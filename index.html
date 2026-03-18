@@ -1324,21 +1324,28 @@ function getAstroData(date) {
 }
 
 function renderTideSVG(curve, w, h) {
-    // Validar que curve sea válido
-    if (!curve || curve.length === 0) {
-        return `<div style="text-align:center;padding:20px;color:#8899cc;font-size:0.9em;">sin datos de mareas</div>`;
+    // Validar que curve sea válido y tenga datos
+    if (!curve || !Array.isArray(curve) || curve.length < 2) {
+        return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;"><rect width="${w}" height="${h}" fill="#060f2a"/><text x="${w/2}" y="${h/2}" text-anchor="middle" dy="0.3em" fill="#8899cc" font-size="12">sin datos</text></svg>`;
     }
 
     try {
-        const levels = curve.map(c => c.level);
+        // Filtrar puntos válidos
+        const validPts = curve.filter(c => c && typeof c.level === 'number' && !isNaN(c.level));
+        if (validPts.length < 2) {
+            return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;"><rect width="${w}" height="${h}" fill="#060f2a"/><text x="${w/2}" y="${h/2}" text-anchor="middle" dy="0.3em" fill="#8899cc" font-size="12">sin datos</text></svg>`;
+        }
+
+        const levels = validPts.map(c => c.level);
         const max = Math.max(...levels);
         const min = Math.min(...levels);
-        const range = max - min || 1;
-        const pts = curve.map((c,i) => `${(i/(curve.length-1))*w},${h-((c.level-min)/range)*(h-4)-2}`).join(' ');
-        return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;" preserveAspectRatio="none"><defs><linearGradient id="tfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4FC3F7" stop-opacity="0.35"/><stop offset="100%" stop-color="#01579B" stop-opacity="0.05"/></linearGradient></defs><polygon points="0,${h} ${pts} ${w},${h}" fill="url(#tfg)"/><polyline points="${pts}" fill="none" stroke="#4FC3F7" stroke-width="1.5" opacity="0.8"/></svg>`;
+        const range = Math.abs(max - min) || 1;
+
+        const pts = validPts.map((c,i) => `${(i/(validPts.length-1))*w},${h-((c.level-min)/range)*(h-4)-2}`).join(' ');
+        return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;" preserveAspectRatio="none"><defs><linearGradient id="tfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4FC3F7" stop-opacity="0.35"/><stop offset="100%" stop-color="#01579B" stop-opacity="0.05"/></linearGradient></defs><rect width="${w}" height="${h}" fill="#060f2a"/><polygon points="0,${h} ${pts} ${w},${h}" fill="url(#tfg)"/><polyline points="${pts}" fill="none" stroke="#4FC3F7" stroke-width="1.5" opacity="0.8"/></svg>`;
     } catch(e) {
         console.error('Error rendering tide SVG:', e);
-        return `<div style="text-align:center;padding:20px;color:#8899cc;font-size:0.9em;">error al cargar mareas</div>`;
+        return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;"><rect width="${w}" height="${h}" fill="#060f2a"/><text x="${w/2}" y="${h/2}" text-anchor="middle" dy="0.3em" fill="#ff6b6b" font-size="12">error</text></svg>`;
     }
 }
 
@@ -4335,6 +4342,7 @@ function updateCurrentDayInfoForMode(mode) {
     let displayEmoji = '☽';
     let displayDay = 0;
     let displayInfo = '';
+    let showLunarInfo = false;
 
     if (mode === 'solar') {
         const sunLongitude = getPlanetPosition('sun', today);
@@ -4360,20 +4368,73 @@ function updateCurrentDayInfoForMode(mode) {
         displayEmoji = getMoonEmoji(elongation);
         displayDay = getLunarDayForDate(today) || 1;
         displayInfo = moonSignData.formatted;
+        showLunarInfo = true;
     }
 
-    // Update the currentDayInfo element
+    // Regenerate the entire currentDayInfo section
     const currentDayInfoDiv = document.getElementById('currentDayInfo');
     if (currentDayInfoDiv) {
-        // Simple update for now - just update the title and emoji
-        const titleElem = currentDayInfoDiv.querySelector('[style*="Luna Hoy"]');
-        if (titleElem) {
-            titleElem.innerHTML = displayTitle;
-        }
-        const emojiSpan = currentDayInfoDiv.querySelector('svg') || currentDayInfoDiv.querySelector('[style*="font-size: 2em"]');
-        if (emojiSpan && mode !== 'lunar') {
-            emojiSpan.textContent = displayEmoji;
-        }
+        // Get events and aspects data
+        const todayEvents = getEventsForDate(today);
+        const todayAspects = [];
+        const todaySignChanges = getSignChanges(today);
+        const todayRetrogrades = getRetrogrades(today);
+        const todayInterAspects = getInterPlanetaryAspects(today);
+
+        const allPlanetaryEvents = [
+            ...todayInterAspects.map(asp => ({ type: 'interPlanetaryAspect', data: asp })),
+            ...todayAspects.map(asp => ({ type: 'aspect', data: asp })),
+            ...todaySignChanges.map(ch => ({ type: 'signChange', data: ch })),
+            ...todayRetrogrades.map(ret => ({ type: 'retrograde', data: ret }))
+        ];
+
+        // Regenerate the HTML
+        currentDayInfoDiv.style.display = 'block';
+        currentDayInfoDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
+                <!-- Eventos -->
+                <div style="background: rgba(6,40,38,0.85); padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(78,205,196,0.30); border-top: 2px solid #4ecdc4; min-width: 0; overflow: hidden;">
+                    <div style="display:flex; align-items:center; gap:4px; font-size: 0.62em; color: #4ecdc4; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
+                        📅 ${currentLang === 'es' ? 'Eventos' : 'Events'}${todayEvents.length > 0 ? ` (${todayEvents.length})` : ''}
+                    </div>
+                    ${todayEvents.length > 0 ? `
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        ${todayEvents.slice(0, 2).map((evt, idx) => {
+                            return `<div style="font-size: 0.65em; padding: 2px 3px; background: rgba(78,205,196,0.12); border-radius: 3px; border-left: 2px solid #4ecdc4;">${evt.time ? `<span style="font-weight: bold; color: #c9a840;">${evt.time}</span> ` : ''}${evt.title}</div>`;
+                        }).join('')}
+                    </div>
+                    ` : `<div style="font-size: 0.6em; color: rgba(78,205,196,0.45); font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
+                </div>
+                <!-- HOY Centro -->
+                <div style="text-align: center; cursor: pointer; transition: all 0.2s; padding: 6px 4px; border-radius: 10px; border: 1px solid rgba(201,168,64,0.32); background: linear-gradient(160deg, rgba(40,28,5,0.95) 0%, rgba(25,18,3,0.95) 100%); box-shadow: 0 0 20px rgba(201,168,64,0.15);">
+                    <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: #c9a840; text-transform: uppercase; margin-bottom: 1px;">— HOY —</div>
+                    <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
+                        <span style="font-size:2.4em;font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
+                    </div>
+                    <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
+                    <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
+                    <div style="font-size: 0.57em; font-weight: 700; margin-top: 3px; color: #e8c84a;">${formatLongDate(today)}</div>
+                </div>
+                <!-- Info según modo -->
+                <div style="background: rgba(20,10,40,0.85); padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(201,168,64,0.28); border-top: 2px solid rgba(201,168,64,0.55); min-width: 0; overflow: hidden;">
+                    <div style="display:flex; align-items:center; gap:4px; font-size: 0.62em; color: #c9a840; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
+                        <span style="font-size: 1em;">${displayEmoji}</span>
+                        ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
+                    </div>
+                    ${allPlanetaryEvents.length > 0 ? `
+                    <div style="display:flex;flex-direction:column;gap:2px;align-items:stretch;">
+                        ${allPlanetaryEvents.slice(0, 3).map(event => {
+                            if (event.type === 'interPlanetaryAspect') {
+                                const asp = event.data;
+                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};">${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</div>`;
+                            }
+                            return '';
+                        }).join('')}
+                    </div>
+                    ` : `<div style="font-size:0.6em;color:rgba(201,168,64,0.4);font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
+                </div>
+            </div>
+        `;
     }
 }
 
