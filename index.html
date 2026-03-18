@@ -1324,11 +1324,22 @@ function getAstroData(date) {
 }
 
 function renderTideSVG(curve, w, h) {
-    const max = Math.max(...curve.map(c => c.level));
-    const min = Math.min(...curve.map(c => c.level));
-    const range = max - min || 1;
-    const pts = curve.map((c,i) => `${(i/(curve.length-1))*w},${h-((c.level-min)/range)*(h-4)-2}`).join(' ');
-    return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;" preserveAspectRatio="none"><defs><linearGradient id="tfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4FC3F7" stop-opacity="0.35"/><stop offset="100%" stop-color="#01579B" stop-opacity="0.05"/></linearGradient></defs><polygon points="0,${h} ${pts} ${w},${h}" fill="url(#tfg)"/><polyline points="${pts}" fill="none" stroke="#4FC3F7" stroke-width="1.5" opacity="0.8"/></svg>`;
+    // Validar que curve sea válido
+    if (!curve || curve.length === 0) {
+        return `<div style="text-align:center;padding:20px;color:#8899cc;font-size:0.9em;">sin datos de mareas</div>`;
+    }
+
+    try {
+        const levels = curve.map(c => c.level);
+        const max = Math.max(...levels);
+        const min = Math.min(...levels);
+        const range = max - min || 1;
+        const pts = curve.map((c,i) => `${(i/(curve.length-1))*w},${h-((c.level-min)/range)*(h-4)-2}`).join(' ');
+        return `<svg viewBox="0 0 ${w} ${h}" style="display:block;width:100%;height:${h}px;" preserveAspectRatio="none"><defs><linearGradient id="tfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4FC3F7" stop-opacity="0.35"/><stop offset="100%" stop-color="#01579B" stop-opacity="0.05"/></linearGradient></defs><polygon points="0,${h} ${pts} ${w},${h}" fill="url(#tfg)"/><polyline points="${pts}" fill="none" stroke="#4FC3F7" stroke-width="1.5" opacity="0.8"/></svg>`;
+    } catch(e) {
+        console.error('Error rendering tide SVG:', e);
+        return `<div style="text-align:center;padding:20px;color:#8899cc;font-size:0.9em;">error al cargar mareas</div>`;
+    }
 }
 
 function get186CycleData() {
@@ -4955,13 +4966,20 @@ function getSublunaryLon(date) {
 
 // ── 2D World Map — embedded SVG continents ──────────────────
 function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
-    const lat = parseFloat(latStr);
+    const lat = parseFloat(latStr) || 0;
+    const lon = parseFloat(lonDeg) || 0;
+
+    // Validar que los valores sean números válidos
+    if (isNaN(lat) || isNaN(lon)) {
+        return '<div style="text-align:center;padding:20px;color:#8899cc;">sin datos disponibles</div>';
+    }
+
     const W = 860, H = 430;
     const mx = lo => ((lo + 180) / 360 * W);
     const my = la => ((90 - la) / 180 * H);
-    const uLat = userLat || ASTRO_USER_LAT;
-    const uLon = userLon || ASTRO_USER_LON;
-    const cityLabel = (ASTRO_USER_NAME || '').split(',')[0];
+    const uLat = userLat || ASTRO_USER_LAT || 9.93;
+    const uLon = userLon || ASTRO_USER_LON || -84;
+    const cityLabel = (ASTRO_USER_NAME || 'Tu ubicación').split(',')[0];
 
     // Trajectory ±12h every 30min
     const now = new Date();
@@ -5071,6 +5089,13 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
 function renderSublunaryGlobe(lat, lon) {
     const canvas = document.getElementById('sublunaryGlobe');
     if (!canvas) return;
+
+    // Validar parámetros
+    lat = parseFloat(lat) || 0;
+    lon = parseFloat(lon) || 0;
+    if (isNaN(lat)) lat = 0;
+    if (isNaN(lon)) lon = 0;
+
     const w = canvas.offsetWidth || 260;
     const h = canvas.offsetHeight || 180;
     canvas.width = w * (window.devicePixelRatio || 1);
@@ -5212,8 +5237,8 @@ function renderSublunaryGlobe(lat, lon) {
         ctx.fill();
     }
 
-    // User (Costa Rica)
-    const pu = project(9.93, -84);
+    // User location
+    const pu = project(ASTRO_USER_LAT || 9.93, ASTRO_USER_LON || -84);
     if (pu.visible) {
         ctx.beginPath();
         ctx.arc(pu.x, pu.y, 3, 0, Math.PI*2);
