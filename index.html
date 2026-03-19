@@ -345,7 +345,7 @@
         .gregorian-header-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; }
         .gregorian-day-header { text-align: center; font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.82em; letter-spacing: 0.8px; padding: 9px; background: rgba(6,8,38,0.95); border: 1px solid var(--blue-border); border-radius: 8px; color: var(--blue-bright); }
         .gregorian-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
-        .gregorian-day-cell { min-height: 120px; background: rgba(4,6,28,0.95); border: 1px solid rgba(74,158,255,0.10); border-radius: 9px; padding: 8px; cursor: pointer; transition: all 0.3s; overflow-y: auto; }
+        .gregorian-day-cell { min-height: 82px; background: rgba(4,6,28,0.95); border: 1px solid rgba(74,158,255,0.10); border-radius: 9px; padding: 8px; cursor: pointer; transition: all 0.3s; overflow-y: auto; }
         .gregorian-day-cell:hover { background: rgba(10,14,50,0.98); border-color: var(--blue-border); }
         .gregorian-day-cell.empty { background: transparent; cursor: default; }
         .gregorian-day-cell.weekend { background: rgba(7,9,36,0.95); border-color: rgba(201,168,64,0.12); }
@@ -406,7 +406,7 @@
             
             /* ── Reminders: 2 columns on mobile ── */
             #reminderOptions > div {
-                grid-template-columns: repeat(2, 1fr) !important;
+                grid-template-columns: repeat(3, 1fr) !important; grid-template-rows: repeat(3, auto) !important; grid-auto-flow: column !important;
             }
             
             /* ── Navigation ── */
@@ -438,7 +438,7 @@
             body.solar-mode .lunar-week { min-width: 800px; }
             body.solar-mode .lunar-week > div:not(.week-header) { display: grid !important; grid-template-columns: repeat(10, 1fr) !important; }
             body.solar-mode .day-cell { min-width: 75px; min-height: 70px; }
-            .gregorian-day-cell { min-height: 80px; padding: 4px; }
+            .gregorian-day-cell { min-height: 65px; padding: 4px; }
             .greg-day-number { font-size: 1em; }
             .greg-event { font-size: 0.53em; padding: 2px 3px; }
             
@@ -459,7 +459,7 @@
                 <!-- Left spacer mirrors buttons width -->
                 <div style="flex:1;min-width:0;"></div>
                 <!-- Title always centered -->
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:0;text-align:center;">🌙 Moon Sync v9</h1>
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:0;text-align:center;">🌙 Lunar</h1>
                 <!-- Buttons pinned right, same flex:1 as spacer so title stays centered -->
                 <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:4px;">
                     <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.85em;opacity:0.5;flex-shrink:0;" title="Activar notificaciones">🔔</button>
@@ -470,7 +470,7 @@
 
             <!-- Mode buttons: single scrollable row, never wrap -->
             <div class="mode-btns" style="display:flex;flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:3px;width:100%;">
-                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Moon Sync v9</button>
+                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">☉ Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">📅 <span id="gregorianButtonLabel">Gregorian</span></button>
             </div>
@@ -629,42 +629,42 @@
                     <!-- Reminder options -->
                     <div class="form-group" id="reminderOptions">
                         <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size:0.85em;">📬 Recordatorios:</label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="4320" data-label="3 days before">
-                                <span style="font-size:0.78em;">3 días antes</span>
+                        <div style="display:grid;grid-template-rows:repeat(3,auto);grid-auto-flow:column;grid-template-columns:repeat(3,1fr);gap:2px;">
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="4320" data-label="3 days before">
+                                <span style="font-size:0.65em;white-space:nowrap;">3 días antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="2880" data-label="2 days before">
-                                <span style="font-size:0.78em;">2 días antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="2880" data-label="2 days before">
+                                <span style="font-size:0.65em;white-space:nowrap;">2 días antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="1440" data-label="1 day before">
-                                <span style="font-size:0.78em;">1 día antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="1440" data-label="1 day before">
+                                <span style="font-size:0.65em;white-space:nowrap;">1 día antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="720" data-label="12 hours before">
-                                <span style="font-size:0.78em;">12 horas antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="720" data-label="12 hours before">
+                                <span style="font-size:0.65em;white-space:nowrap;">12h antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="360" data-label="6 hours before">
-                                <span style="font-size:0.78em;">6 horas antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="360" data-label="6 hours before">
+                                <span style="font-size:0.65em;white-space:nowrap;">6h antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="60" data-label="1 hour before" checked>
-                                <span style="font-size:0.78em;">1 hora antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="60" data-label="1 hour before" checked>
+                                <span style="font-size:0.65em;white-space:nowrap;">1h antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="30" data-label="30 minutes before">
-                                <span style="font-size:0.78em;">30 min antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="30" data-label="30 minutes before">
+                                <span style="font-size:0.65em;white-space:nowrap;">30m antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="15" data-label="15 minutes before">
-                                <span style="font-size:0.78em;">15 min antes</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="15" data-label="15 minutes before">
+                                <span style="font-size:0.65em;white-space:nowrap;">15m antes</span>
                             </label>
-                            <label style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);">
-                                <input type="checkbox" class="reminder-checkbox" value="0" data-label="At time of event">
-                                <span style="font-size:0.78em;">A la hora</span>
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,0.04);min-height:24px;box-sizing:border-box;">
+                                <input type="checkbox" class="reminder-checkbox" style="width:14px;height:14px;flex-shrink:0;margin:0;" value="0" data-label="At time of event">
+                                <span style="font-size:0.65em;white-space:nowrap;">Exacta</span>
                             </label>
                         </div>
                     </div>
@@ -3108,7 +3108,7 @@ function handleDayClick(element) {
     aspectsBtn.style.opacity = '1';
     
     // Mostrar modal de opciones
-    document.getElementById('dayOptionsDate').textContent = `🌙 ${formatLongDate(date)} - ${t('day')} ${currentLang === 'es' ? 'Lunar' : ''} ${lunarDay}`;
+    document.getElementById('dayOptionsDate').textContent = calendarMode === 'lunar' ? `🌙 ${formatLongDate(date)} - ${t('day')} ${currentLang === 'es' ? 'Lunar' : ''} ${lunarDay}` : calendarMode === 'solar' ? `☉ ${formatLongDate(date)}` : `📅 ${formatLongDate(date)}`;
     
     // Guardar datos para uso posterior
     window.selectedDayDate = date;
@@ -3395,8 +3395,8 @@ function showEventForm() {
     // Update reminder checkbox labels
     const reminderLabels = document.querySelectorAll('#reminderOptions label span');
     const reminderTexts = currentLang === 'es' ? 
-        ['3 días antes', '2 días antes', '1 día antes', '12 horas antes', '6 horas antes', '1 hora antes', '30 minutos antes', '15 minutos antes', 'A la hora exacta'] :
-        ['3 days before', '2 days before', '1 day before', '12 hours before', '6 hours before', '1 hour before', '30 minutes before', '15 minutes before', 'At event time'];
+        ['3 días antes', '2 días antes', '1 día antes', '12h antes', '6h antes', '1h antes', '30m antes', '15m antes', 'Exacta'] :
+        ['3 days before', '2 days before', '1 day before', '12h before', '6h before', '1h before', '30m before', '15m before', 'Exact'];
     
     reminderLabels.forEach((label, index) => {
         if (reminderTexts[index]) {
@@ -5100,36 +5100,24 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
     const px = mx(lonDeg), py = my(lat);
     const ux = mx(uLon),   uy = my(uLat);
 
-    // Natural Earth 110m continent paths pre-computed as SVG
-    const landSVG = `<path d="M28.7,43.0L43.0,47.8L59.7,52.6L95.6,47.8L143.3,52.6L191.1,43.0L231.7,47.8L243.7,52.6L274.7,52.6L281.9,71.7L291.4,95.6L269.9,102.7L262.8,109.9L272.3,109.9L262.8,114.7L250.8,124.2L248.4,129.0L238.9,138.6L234.1,143.3L219.8,143.3L215.0,155.3L219.8,162.4L229.3,167.2L231.7,191.1L238.9,193.5L246.1,195.9L246.1,203.1L248.4,195.9L258.0,186.3L272.3,172.0L258.0,167.2L246.1,167.2L238.9,162.4L229.3,167.2L219.8,176.8L215.0,179.2L210.2,176.8L203.1,169.6L198.3,162.4L181.6,169.6L167.2,160.1L155.3,143.3L148.1,133.8L138.6,126.6L133.8,109.9L133.8,97.9L131.4,97.9L138.6,83.6L119.4,81.2L105.1,76.4L83.6,71.7L59.7,71.7L43.0,71.7L35.8,66.9L28.7,52.6Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M305.8,16.7L334.4,19.1L377.4,23.9L387.0,33.4L382.2,43.0L367.9,52.6L339.2,62.1L324.9,71.7L310.6,66.9L291.4,52.6L286.7,38.2L310.6,23.9L324.9,16.7Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M229.3,162.4L238.9,167.2L248.4,167.2L253.2,167.2L248.4,162.4L238.9,162.4L229.3,162.4Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M253.2,172.0L267.6,172.0L274.7,172.0L274.7,169.6L267.6,167.2L258.0,167.2L253.2,172.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M238.9,186.3L250.8,188.7L281.9,188.7L291.4,195.9L310.6,210.2L322.5,215.0L339.2,224.6L344.0,226.9L346.4,238.9L339.2,246.1L334.4,262.8L324.9,269.9L315.3,281.9L305.8,293.8L301.0,305.8L291.4,315.3L281.9,320.1L272.3,339.2L267.6,346.4L277.1,346.4L291.4,339.2L305.8,320.1L315.3,281.9L324.9,269.9L334.4,262.8L339.2,250.8L346.4,234.1L334.4,226.9L315.3,215.0L305.8,205.4L286.7,203.1L274.7,212.6L262.8,210.2L250.8,215.0L238.9,210.2Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M372.7,64.5L396.6,62.1L401.3,62.1L396.6,57.3L377.4,57.3L372.7,62.1Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M415.7,95.6L425.2,93.2L434.8,90.8L432.4,86.0L430.0,76.4L420.4,76.4L415.7,81.2L420.4,86.0L422.8,90.8L418.1,95.6Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M406.1,90.8L415.7,90.8L415.7,86.0L410.9,83.6L406.1,86.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M463.4,33.4L496.9,28.7L501.7,23.9L465.8,23.9Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M406.1,129.0L430.0,129.0L437.2,109.9L444.3,109.9L449.1,105.1L453.9,86.0L463.4,83.6L473.0,83.6L482.6,81.2L487.3,76.4L496.9,71.7L501.7,62.1L496.9,52.6L482.6,47.8L473.0,47.8L463.4,59.7L453.9,64.5L439.6,76.4L434.8,90.8L430.0,95.6L425.2,100.3L418.1,100.3L410.9,109.9L406.1,124.2Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M441.9,76.4L449.1,78.8L453.9,76.4L458.7,76.4L473.0,66.9L477.8,62.1L482.6,57.3L492.1,52.6L496.9,47.8L496.9,43.0L482.6,28.7L473.0,28.7L463.4,38.2L453.9,43.0L449.1,62.1L441.9,71.7Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M387.0,179.2L391.8,186.3L394.2,191.1L406.1,195.9L418.1,203.1L430.0,203.1L439.6,203.1L449.1,203.1L453.9,203.1L463.4,203.1L473.0,195.9L482.6,191.1L496.9,186.3L501.7,181.6L506.4,186.3L520.8,186.3L530.3,191.1L544.7,186.3L554.2,186.3L549.4,191.1L535.1,219.8L520.8,243.7L516.0,258.0L511.2,281.9L496.9,296.2L482.6,296.2L473.0,286.7L468.2,267.6L463.4,253.2L458.7,234.1L453.9,219.8L449.1,205.4L439.6,203.1L434.8,203.1L430.0,203.1Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M535.1,243.7L544.7,248.4L549.4,258.0L549.4,267.6L544.7,277.1L535.1,272.3L535.1,258.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M516.0,162.4L520.8,181.6L535.1,186.3L554.2,186.3L568.6,162.4L568.6,152.9L559.0,152.9L549.4,152.9L535.1,148.1L525.6,148.1L516.0,148.1L516.0,157.7Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M592.4,162.4L602.0,167.2L611.6,195.9L621.1,195.9L621.1,195.9L625.9,195.9L625.9,200.7L621.1,200.7L621.1,195.9L625.9,181.6L630.7,167.2L621.1,148.1L611.6,148.1L602.0,152.9L592.4,152.9Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M492.1,114.7L506.4,129.0L516.0,129.0L520.8,143.3L537.5,126.6L549.4,143.3L563.8,143.3L573.3,155.3L585.3,162.4L597.2,157.7L621.1,148.1L635.4,167.2L640.2,162.4L659.3,162.4L668.9,172.0L678.4,191.1L688.0,210.2L704.7,210.2L711.9,205.4L721.4,162.4L726.2,152.9L728.6,143.3L735.8,129.0L740.6,109.9L759.7,109.9L764.4,105.1L774.0,109.9L776.4,109.9L769.2,109.9L759.7,119.4L750.1,129.0L740.6,138.6L740.6,143.3L728.6,157.7L711.9,162.4L702.3,172.0L688.0,186.3L678.4,205.4L668.9,205.4L659.3,215.0L649.8,200.7L640.2,191.1L635.4,186.3L621.1,181.6L602.0,167.2L592.4,162.4L587.7,157.7L573.3,155.3L563.8,143.3L549.4,143.3L537.5,126.6L525.6,124.2L516.0,109.9L501.7,105.1Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M501.7,52.6L516.0,62.1L539.9,66.9L563.8,66.9L573.3,62.1L597.2,71.7L621.1,71.7L645.0,76.4L668.9,76.4L692.8,90.8L716.7,95.6L735.8,95.6L740.6,90.8L764.4,76.4L788.3,76.4L812.2,71.7L824.2,66.9L836.1,62.1L836.1,52.6L812.2,52.6L764.4,47.8L716.7,47.8L668.9,43.0L621.1,43.0L573.3,43.0L525.6,52.6Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M740.6,138.6L745.3,136.2L750.1,133.8L754.9,131.4L759.7,119.4L764.4,114.7L769.2,109.9L764.4,107.5L754.9,109.9L745.3,124.2L740.6,133.8Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M716.7,162.4L721.4,157.7L721.4,152.9L716.7,157.7Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M711.9,195.9L716.7,191.1L721.4,181.6L726.2,181.6L721.4,172.0L716.7,172.0L711.9,181.6Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M659.3,162.4L668.9,172.0L673.7,181.6L678.4,191.1L668.9,205.4L673.7,210.2L678.4,212.6L683.2,210.2L688.0,195.9L692.8,191.1L688.0,181.6L673.7,181.6L668.9,172.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M659.3,205.4L668.9,210.2L678.4,219.8L683.2,224.6L678.4,229.3L668.9,219.8L659.3,215.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M680.8,229.3L692.8,231.7L704.7,234.1L711.9,234.1L704.7,229.3L688.0,229.3Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M688.0,210.2L697.6,205.4L707.1,200.7L711.9,200.7L707.1,210.2L702.3,219.8L692.8,219.8L688.0,215.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M721.4,215.0L726.2,210.2L726.2,219.8L721.4,224.6L716.7,224.6L716.7,215.0Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M745.3,224.6L754.9,224.6L764.4,229.3L774.0,229.3L783.6,234.1L774.0,234.1L764.4,229.3L754.9,229.3L745.3,229.3Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M702.3,267.6L707.1,258.0L716.7,258.0L726.2,248.4L735.8,248.4L745.3,243.7L754.9,243.7L764.4,243.7L774.0,248.4L783.6,253.2L788.3,262.8L793.1,272.3L793.1,281.9L788.3,296.2L783.6,305.8L776.4,305.8L769.2,305.8L759.7,301.0L754.9,301.0L740.6,291.4L726.2,281.9L716.7,277.1L707.1,281.9L702.3,277.1Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M840.9,301.0L845.7,305.8L855.2,305.8L855.2,315.3L845.7,320.1L836.1,324.9L831.3,320.1L836.1,315.3L840.9,310.6L826.6,324.9L836.1,320.1L840.9,329.7L831.3,329.7Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
-        <path d="M0.0,387.0L71.7,382.2L215.0,377.4L358.3,382.2L430.0,372.7L501.7,377.4L573.3,382.2L645.0,377.4L716.7,377.4L788.3,377.4L860.0,382.2L860.0,406.1L0.0,406.1Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>`;
+    // Natural Earth continent paths - high detail v2
+    const landSVG = `<path d="M28.7,43.0 L35.8,45.4 L43.0,47.8 L52.6,45.4 L59.7,45.4 L71.7,47.8 L83.6,50.2 L93.2,47.8 L100.3,50.2 L105.1,52.6 L107.5,57.3 L112.3,71.7 L117.1,81.2 L119.4,83.6 L124.2,90.8 L129.0,95.6 L131.4,97.9 L133.8,105.1 L133.8,112.3 L138.6,119.4 L143.3,129.0 L148.1,133.8 L150.5,136.2 L150.5,138.6 L155.3,140.9 L160.1,145.7 L167.2,150.5 L172.0,155.3 L176.8,160.1 L179.2,164.8 L183.9,169.6 L191.1,172.0 L198.3,174.4 L200.7,176.8 L205.4,176.8 L210.2,179.2 L215.0,176.8 L219.8,174.4 L224.6,176.8 L229.3,181.6 L231.7,186.3 L234.1,191.1 L238.9,193.5 L241.3,193.5 L243.7,193.5 L238.9,186.3 L236.5,179.2 L234.1,172.0 L236.5,162.4 L236.5,155.3 L238.9,152.9 L238.9,148.1 L236.5,143.3 L234.1,140.9 L238.9,138.6 L243.7,133.8 L248.4,131.4 L250.8,126.6 L255.6,121.8 L258.0,117.1 L262.8,114.7 L265.2,112.3 L267.6,109.9 L269.9,107.5 L272.3,102.7 L274.7,100.3 L277.1,102.7 L281.9,105.1 L286.7,102.7 L289.1,100.3 L293.8,95.6 L298.6,102.7 L303.4,102.7 L298.6,95.6 L293.8,90.8 L289.1,88.4 L281.9,83.6 L277.1,78.8 L272.3,76.4 L267.6,71.7 L258.0,69.3 L250.8,66.9 L243.7,64.5 L234.1,62.1 L224.6,59.7 L215.0,54.9 L203.1,50.2 L191.1,45.4 L179.2,43.0 L167.2,40.6 L155.3,40.6 L143.3,40.6 L119.4,43.0 L95.6,43.0 L71.7,43.0 L47.8,43.0 L28.7,43.0 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M238.9,191.1 L243.7,188.7 L248.4,186.3 L253.2,186.3 L258.0,186.3 L262.8,186.3 L267.6,188.7 L274.7,191.1 L279.5,193.5 L286.7,195.9 L291.4,200.7 L298.6,203.1 L305.8,205.4 L310.6,210.2 L312.9,215.0 L315.3,219.8 L317.7,224.6 L320.1,229.3 L324.9,234.1 L329.7,238.9 L334.4,243.7 L339.2,246.1 L341.6,250.8 L344.0,253.2 L339.2,258.0 L334.4,262.8 L332.1,267.6 L327.3,269.9 L324.9,272.3 L320.1,274.7 L315.3,279.5 L312.9,284.3 L310.6,289.1 L308.2,293.8 L303.4,296.2 L298.6,298.6 L293.8,303.4 L289.1,305.8 L281.9,308.2 L277.1,310.6 L274.7,312.9 L272.3,317.7 L269.9,320.1 L272.3,322.5 L267.6,327.3 L265.2,329.7 L260.4,334.4 L258.0,339.2 L253.2,339.2 L250.8,334.4 L253.2,329.7 L255.6,324.9 L258.0,320.1 L258.0,315.3 L260.4,310.6 L260.4,305.8 L260.4,298.6 L262.8,291.4 L262.8,281.9 L262.8,272.3 L262.8,262.8 L262.8,258.0 L258.0,253.2 L253.2,248.4 L248.4,243.7 L246.1,238.9 L243.7,231.7 L241.3,226.9 L238.9,222.2 L238.9,215.0 L241.3,210.2 L243.7,205.4 L246.1,200.7 L243.7,195.9 L241.3,193.5 L238.9,191.1 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M406.1,129.0 L408.5,126.6 L408.5,124.2 L408.5,119.4 L410.9,117.1 L408.5,112.3 L420.4,112.3 L425.2,109.9 L430.0,112.3 L432.4,109.9 L437.2,112.3 L437.2,105.1 L432.4,102.7 L430.0,100.3 L425.2,100.3 L420.4,100.3 L418.1,97.9 L415.7,93.2 L418.1,90.8 L420.4,88.4 L422.8,86.0 L418.1,81.2 L415.7,76.4 L418.1,74.1 L422.8,76.4 L430.0,78.8 L432.4,83.6 L434.8,88.4 L437.2,90.8 L439.6,90.8 L441.9,88.4 L444.3,86.0 L446.7,83.6 L449.1,83.6 L451.5,83.6 L453.9,86.0 L456.3,86.0 L458.7,83.6 L458.7,78.8 L461.1,81.2 L463.4,83.6 L465.8,83.6 L468.2,86.0 L470.6,83.6 L473.0,83.6 L475.4,86.0 L477.8,83.6 L480.2,83.6 L482.6,81.2 L484.9,81.2 L487.3,76.4 L484.9,71.7 L480.2,71.7 L475.4,71.7 L473.0,69.3 L468.2,66.9 L463.4,64.5 L463.4,59.7 L465.8,57.3 L470.6,52.6 L475.4,50.2 L480.2,47.8 L487.3,45.4 L494.5,45.4 L501.7,47.8 L506.4,50.2 L513.6,52.6 L520.8,52.6 L525.6,54.9 L530.3,59.7 L535.1,66.9 L530.3,76.4 L525.6,81.2 L520.8,83.6 L516.0,88.4 L511.2,90.8 L506.4,95.6 L501.7,100.3 L496.9,105.1 L494.5,109.9 L492.1,114.7 L494.5,117.1 L496.9,119.4 L492.1,119.4 L489.7,124.2 L487.3,126.6 L484.9,126.6 L482.6,124.2 L477.8,121.8 L473.0,124.2 L468.2,124.2 L465.8,124.2 L463.4,126.6 L461.1,124.2 L458.7,114.7 L456.3,109.9 L453.9,107.5 L451.5,109.9 L449.1,109.9 L446.7,109.9 L449.1,114.7 L449.1,119.4 L446.7,124.2 L441.9,109.9 L439.6,109.9 L437.2,112.3 L432.4,112.3 L430.0,114.7 L427.6,119.4 L425.2,124.2 L420.4,126.6 L415.7,129.0 L410.9,129.0 L406.1,129.0 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M389.4,179.2 L389.4,183.9 L391.8,186.3 L394.2,188.7 L396.6,191.1 L401.3,195.9 L406.1,200.7 L410.9,203.1 L418.1,203.1 L422.8,203.1 L430.0,203.1 L434.8,205.4 L439.6,205.4 L444.3,205.4 L449.1,205.4 L453.9,207.8 L453.9,212.6 L453.9,215.0 L451.5,219.8 L453.9,224.6 L458.7,226.9 L463.4,224.6 L468.2,222.2 L473.0,224.6 L477.8,229.3 L482.6,231.7 L489.7,236.5 L496.9,241.3 L501.7,246.1 L506.4,250.8 L511.2,255.6 L513.6,260.4 L516.0,267.6 L513.6,272.3 L508.8,277.1 L504.1,281.9 L499.3,289.1 L496.9,293.8 L494.5,296.2 L499.3,293.8 L504.1,286.7 L508.8,281.9 L513.6,274.7 L518.4,267.6 L520.8,258.0 L525.6,243.7 L527.9,234.1 L530.3,224.6 L532.7,215.0 L535.1,207.8 L539.9,203.1 L544.7,195.9 L549.4,188.7 L551.8,186.3 L544.7,186.3 L539.9,186.3 L535.1,186.3 L530.3,186.3 L525.6,181.6 L520.8,183.9 L516.0,181.6 L511.2,183.9 L508.8,181.6 L508.8,174.4 L508.8,169.6 L508.8,162.4 L508.8,155.3 L508.8,148.1 L508.8,143.3 L508.8,138.6 L511.2,131.4 L508.8,129.0 L504.1,129.0 L496.9,131.4 L489.7,131.4 L482.6,131.4 L473.0,131.4 L465.8,131.4 L458.7,129.0 L453.9,129.0 L449.1,129.0 L441.9,129.0 L437.2,129.0 L430.0,131.4 L422.8,131.4 L418.1,131.4 L410.9,133.8 L406.1,136.2 L401.3,138.6 L396.6,143.3 L394.2,148.1 L391.8,155.3 L389.4,162.4 L389.4,167.2 L389.4,172.0 L389.4,179.2 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M492.1,114.7 L496.9,112.3 L501.7,109.9 L506.4,114.7 L511.2,119.4 L516.0,124.2 L520.8,126.6 L523.2,129.0 L525.6,124.2 L530.3,119.4 L535.1,119.4 L539.9,124.2 L544.7,126.6 L549.4,126.6 L554.2,129.0 L559.0,143.3 L561.4,152.9 L563.8,157.7 L566.2,162.4 L568.6,167.2 L570.9,162.4 L573.3,155.3 L578.1,155.3 L585.3,152.9 L592.4,155.3 L597.2,160.1 L602.0,162.4 L604.4,167.2 L609.2,174.4 L611.6,181.6 L613.9,191.1 L616.3,195.9 L618.7,195.9 L621.1,191.1 L621.1,183.9 L625.9,176.8 L630.7,167.2 L635.4,162.4 L640.2,162.4 L642.6,162.4 L645.0,162.4 L649.8,167.2 L654.6,172.0 L659.3,174.4 L664.1,176.8 L668.9,179.2 L671.3,200.7 L673.7,207.8 L676.1,212.6 L678.4,212.6 L683.2,219.8 L688.0,226.9 L683.2,231.7 L688.0,231.7 L697.6,231.7 L704.7,234.1 L709.5,234.1 L716.7,226.9 L721.4,215.0 L719.1,203.1 L716.7,191.1 L714.3,181.6 L711.9,172.0 L707.1,167.2 L702.3,162.4 L697.6,162.4 L692.8,162.4 L688.0,167.2 L683.2,172.0 L678.4,172.0 L673.7,172.0 L673.7,167.2 L680.8,162.4 L688.0,157.7 L692.8,152.9 L699.9,148.1 L707.1,143.3 L714.3,138.6 L719.1,133.8 L719.1,129.0 L716.7,124.2 L721.4,119.4 L726.2,121.8 L731.0,126.6 L735.8,129.0 L740.6,133.8 L745.3,131.4 L747.7,129.0 L750.1,124.2 L754.9,129.0 L759.7,131.4 L764.4,129.0 L764.4,124.2 L766.8,119.4 L769.2,112.3 L774.0,109.9 L774.0,105.1 L769.2,100.3 L764.4,95.6 L759.7,90.8 L752.5,90.8 L745.3,95.6 L740.6,100.3 L735.8,114.7 L731.0,124.2 L726.2,119.4 L716.7,114.7 L707.1,109.9 L697.6,100.3 L688.0,95.6 L678.4,90.8 L668.9,86.0 L659.3,83.6 L649.8,81.2 L640.2,81.2 L630.7,76.4 L621.1,71.7 L609.2,66.9 L597.2,64.5 L585.3,66.9 L573.3,66.9 L561.4,76.4 L554.2,81.2 L549.4,83.6 L544.7,88.4 L535.1,95.6 L525.6,100.3 L516.0,105.1 L506.4,107.5 L496.9,109.9 L492.1,114.7 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M704.7,248.4 L709.5,246.1 L716.7,246.1 L723.8,248.4 L731.0,246.1 L740.6,243.7 L747.7,243.7 L754.9,246.1 L759.7,253.2 L764.4,258.0 L769.2,248.4 L774.0,248.4 L778.8,253.2 L783.6,260.4 L788.3,267.6 L793.1,274.7 L795.5,281.9 L793.1,289.1 L788.3,296.2 L783.6,303.4 L778.8,308.2 L771.6,308.2 L764.4,305.8 L757.3,301.0 L752.5,298.6 L745.3,296.2 L738.2,293.8 L731.0,293.8 L721.4,293.8 L714.3,296.2 L707.1,296.2 L704.7,293.8 L702.3,286.7 L702.3,279.5 L704.7,272.3 L707.1,267.6 L704.7,258.0 L704.7,248.4 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M298.6,71.7 L310.6,71.7 L322.5,69.3 L334.4,64.5 L346.4,57.3 L363.1,52.6 L377.4,47.8 L387.0,40.6 L382.2,33.4 L370.3,28.7 L358.3,23.9 L339.2,23.9 L322.5,26.3 L310.6,28.7 L298.6,33.4 L291.4,38.2 L291.4,43.0 L296.2,52.6 L301.0,62.1 L298.6,71.7 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M406.1,93.2 L410.9,93.2 L415.7,90.8 L418.1,90.8 L418.1,86.0 L420.4,83.6 L418.1,81.2 L415.7,76.4 L418.1,74.1 L420.4,76.4 L422.8,76.4 L425.2,78.8 L430.0,81.2 L432.4,88.4 L434.8,93.2 L430.0,93.2 L425.2,95.6 L418.1,95.6 L413.3,93.2 L406.1,93.2 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M740.6,140.9 L742.9,136.2 L745.3,133.8 L750.1,133.8 L754.9,131.4 L759.7,131.4 L764.4,129.0 L764.4,124.2 L766.8,119.4 L769.2,112.3 L771.6,109.9 L766.8,109.9 L764.4,114.7 L759.7,124.2 L754.9,129.0 L750.1,133.8 L745.3,136.2 L740.6,140.9 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M621.1,191.1 L623.5,195.9 L625.9,198.3 L623.5,200.7 L621.1,198.3 L621.1,191.1 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M535.1,243.7 L539.9,248.4 L544.7,255.6 L547.1,262.8 L544.7,269.9 L542.3,274.7 L537.5,274.7 L535.1,269.9 L532.7,262.8 L532.7,253.2 L535.1,243.7 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M843.3,298.6 L848.1,303.4 L855.2,305.8 L852.8,310.6 L848.1,312.9 L845.7,310.6 L843.3,305.8 L843.3,298.6 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M828.9,320.1 L831.3,322.5 L836.1,324.9 L840.9,320.1 L840.9,315.3 L836.1,315.3 L831.3,317.7 L828.9,320.1 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M709.5,172.0 L711.9,176.8 L716.7,181.6 L721.4,186.3 L726.2,191.1 L731.0,195.9 L731.0,191.1 L726.2,186.3 L721.4,181.6 L719.1,176.8 L716.7,172.0 L711.9,169.6 L709.5,172.0 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M716.7,162.4 L719.1,160.1 L721.4,155.3 L719.1,155.3 L716.7,157.7 L716.7,162.4 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M226.9,162.4 L231.7,160.1 L236.5,160.1 L241.3,162.4 L246.1,167.2 L250.8,167.2 L253.2,167.2 L248.4,164.8 L243.7,162.4 L238.9,160.1 L234.1,160.1 L226.9,162.4 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M0.0,363.1 L47.8,367.9 L95.6,372.7 L143.3,377.4 L191.1,382.2 L238.9,377.4 L286.7,372.7 L334.4,370.3 L382.2,375.1 L430.0,377.4 L477.8,372.7 L525.6,370.3 L573.3,375.1 L621.1,379.8 L668.9,382.2 L716.7,377.4 L764.4,372.7 L812.2,367.9 L860.0,363.1 L860.0,430.0 L0.0,430.0 L0.0,363.1 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>`;
 
         return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;border-radius:8px;border:1px solid rgba(74,158,255,0.2);">'
         + '<defs>'
@@ -5247,21 +5235,20 @@ function renderSublunaryGlobe(lat, lon) {
         ctx.stroke();
     }
 
-    // Accurate continent polygons [lon, lat] for 3D globe
+    // Accurate continent polygons [lon, lat] for 3D globe - high detail
     const landMasses = [
-        [[-168,72],[-100,72],[-80,68],[-65,47],[-70,44],[-82,45],[-90,42],[-95,49],[-125,49],[-125,55],[-145,60],[-165,62],[-168,68]], // North America
-        [[-80,12],[-62,11],[-50,2],[-36,-5],[-35,-10],[-40,-22],[-52,-34],[-68,-55],[-58,-52],[-48,-28],[-35,-8],[-48,0],[-60,5],[-75,0],[-80,2]], // South America
-        [[-52,83],[-18,76],[-20,72],[-38,64],[-58,68],[-50,80]], // Greenland
-        [[-10,36],[0,36],[3,44],[10,54],[18,55],[28,58],[30,70],[20,70],[10,63],[2,52],[-8,44]], // Europe
-        [[5,58],[10,58],[18,70],[28,72],[30,80],[18,78],[10,72],[6,62]], // Scandinavia
-        [[-18,15],[0,5],[10,5],[18,10],[30,15],[44,10],[50,10],[44,-5],[34,-28],[20,-35],[10,-5],[0,5],[-18,10]], // Africa
-        [[44,-12],[50,-16],[50,-22],[44,-22]], // Madagascar
-        [[26,42],[50,30],[70,24],[80,28],[88,22],[100,10],[104,2],[118,5],[122,22],[125,38],[130,44],[140,46],[142,44],[130,32],[118,22],[100,5],[88,22],[70,24],[56,30],[45,37],[36,44],[30,46]], // Asia
-        [[30,68],[60,72],[100,72],[140,70],[165,62],[160,60],[130,52],[100,58],[60,64]], // Siberia
-        [[130,32],[136,38],[142,44],[136,44],[130,34]], // Japan
-        [[114,-22],[128,-14],[140,-12],[150,-22],[150,-34],[145,-38],[130,-32],[116,-30]], // Australia
-        [[172,-36],[178,-42],[168,-44],[174,-40]], // New Zealand
-        [[-180,-72],[0,-68],[90,-70],[180,-72],[180,-80],[-180,-80]], // Antarctica
+        [[-168,72],[-162,70],[-155,71],[-145,69],[-138,69],[-135,66],[-131,56],[-128,52],[-125,49],[-124,43],[-120,36],[-117,32],[-115,30],[-110,25],[-105,20],[-100,18],[-96,16],[-90,16],[-86,16],[-83,12],[-80,9],[-80,15],[-81,22],[-81,25],[-80,28],[-81,31],[-78,34],[-75,37],[-72,41],[-68,44],[-66,47],[-60,47],[-57,50],[-55,47],[-55,50],[-59,53],[-64,57],[-68,60],[-75,62],[-82,64],[-90,67],[-100,71],[-110,73],[-120,73],[-140,72],[-155,72],[-168,72]], // North America
+        [[-80,10],[-76,12],[-72,12],[-68,11],[-63,9],[-58,6],[-52,4],[-49,0],[-47,-4],[-44,-8],[-40,-12],[-37,-15],[-38,-18],[-41,-22],[-44,-24],[-48,-27],[-50,-31],[-53,-34],[-57,-37],[-64,-40],[-67,-44],[-69,-48],[-72,-52],[-74,-52],[-73,-46],[-71,-40],[-70,-32],[-70,-24],[-70,-18],[-74,-14],[-77,-10],[-79,-5],[-80,0],[-78,4],[-78,8],[-80,10]], // South America
+        [[-55,60],[-45,61],[-35,66],[-22,70],[-18,73],[-20,76],[-30,80],[-45,79],[-55,76],[-58,72],[-55,64],[-55,60]], // Greenland
+        [[-10,36],[-9,40],[-9,43],[-2,44],[3,43],[3,46],[0,48],[-5,49],[-6,52],[-3,54],[-5,58],[0,57],[2,53],[5,53],[8,55],[10,54],[12,55],[12,57],[16,55],[20,55],[24,58],[21,60],[18,61],[14,65],[17,68],[21,70],[27,71],[32,69],[38,68],[42,65],[44,62],[40,56],[36,53],[30,48],[27,44],[26,40],[24,37],[20,39],[16,38],[13,38],[12,42],[9,44],[7,38],[5,44],[3,43],[0,40],[-2,38],[-6,36],[-10,36]], // Europe
+        [[-17,15],[-15,11],[-10,6],[-5,5],[0,5],[4,4],[8,4],[10,1],[9,-3],[12,-5],[16,-3],[20,-6],[28,-11],[33,-15],[36,-22],[35,-24],[31,-28],[28,-33],[29,-33],[33,-28],[37,-22],[40,-12],[43,0],[46,5],[50,11],[48,12],[42,12],[38,13],[33,14],[33,20],[33,28],[34,35],[30,36],[20,35],[10,36],[5,36],[0,35],[-5,35],[-10,33],[-15,28],[-17,22],[-17,15]], // Africa
+        [[26,42],[30,44],[36,38],[40,38],[44,40],[48,37],[52,36],[55,26],[58,20],[60,25],[68,25],[72,22],[76,14],[78,8],[80,10],[84,20],[88,22],[92,20],[96,17],[100,15],[102,3],[106,-2],[108,-7],[115,-8],[120,-5],[121,5],[118,18],[114,22],[108,20],[104,18],[102,20],[108,24],[116,30],[121,34],[120,38],[124,39],[128,36],[132,35],[134,38],[140,36],[141,40],[144,44],[142,48],[138,52],[132,50],[128,42],[124,40],[116,44],[108,50],[100,54],[92,56],[84,58],[75,62],[65,62],[55,58],[48,53],[40,48],[32,45],[26,42]], // Asia
+        [[115,-14],[120,-13],[130,-12],[138,-16],[142,-14],[148,-19],[152,-25],[153,-28],[150,-34],[146,-39],[140,-38],[135,-35],[129,-33],[119,-34],[114,-30],[114,-27],[115,-22],[115,-14]], // Australia
+        [[44,-12],[48,-17],[49,-22],[47,-25],[44,-23],[43,-16],[44,-12]], // Madagascar
+        [[130,31],[134,34],[138,35],[140,38],[142,43],[141,44],[138,38],[134,34],[130,31]], // Japan
+        [[173,-35],[178,-38],[177,-40],[174,-41],[173,-38],[173,-35]], // NZ North
+        [[167,-44],[170,-46],[172,-44],[170,-42],[167,-44]], // NZ South
+        [[-180,-62],[-140,-66],[-100,-70],[-60,-66],[-20,-67],[20,-66],[60,-67],[100,-70],[140,-66],[180,-62],[180,-90],[-180,-90],[-180,-62]], // Antarctica
     ];
 
     ctx.fillStyle = '#1e3d5c';
@@ -5345,7 +5332,7 @@ function renderSublunaryGlobe(lat, lon) {
     ctx.stroke();
 }
 
-// ── Auto-refresh sublunar position every 10 minutes ──────────
+// ── Auto-refresh sublunar position every 3 minutes ──────────
 let _sublunaryTimer = null;
 function startSublunaryRefresh() {
     if (_sublunaryTimer) clearInterval(_sublunaryTimer);
