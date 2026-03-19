@@ -4410,7 +4410,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ${todayEvents.length > 0 ? `
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         ${todayEvents.slice(0, 2).map((evt, idx) => {
-                            return `<div style="font-size: 0.65em; padding: 2px 3px; background: rgba(78,205,196,0.12); border-radius: 3px; border-left: 2px solid #4ecdc4;">${evt.time ? `<span style="font-weight: bold; color: #c9a840;">${evt.time}</span> ` : ''}${evt.title}</div>`;
+                            return `<div style="font-size: 0.65em; padding: 2px 3px; background: rgba(78,205,196,0.12); border-radius: 3px; border-left: 2px solid #4ecdc4;">${evt.title}${evt.time ? ` <span style="font-weight: bold; color: #c9a840; float:right;">${evt.time}</span>` : ''}</div>`;
                         }).join('')}
                     </div>
                     ` : `<div style="font-size: 0.6em; color: rgba(78,205,196,0.45); font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
@@ -4592,7 +4592,7 @@ function generateGregorianMonth() {
         // Events
         if (events && events.length > 0) {
             events.slice(0,2).forEach(evt => {
-                html += `<div class="day-event-item type-${evt.type}">${evt.time ? evt.time + ' ' : ''}${evt.title}</div>`;
+                html += `<div class="day-event-item type-${evt.type}">${evt.title}${evt.time ? ' ' + evt.time : ''}</div>`;
             });
         }
         
@@ -4798,7 +4798,7 @@ function generateSolarWeeks(sign) {
             // Events HTML
             const eventsHTML = dayEvents.slice(0, 3).map(event => `
                 <div class="day-event-item type-${event.type}">
-                    ${event.time ? `<span class="event-time-badge">${event.time}</span> ` : ''}${event.title}
+                    ${event.title}${event.time ? ` <span class="event-time-badge" style="float:right;">${event.time}</span>` : ''}
                 </div>
             `).join('');
             
@@ -5883,7 +5883,7 @@ function renderCalendar() {
             // Solo mostrar eventos del usuario
             const eventsHTML = dayEvents.slice(0, 3).map(event => `
                 <div class="day-event-item type-${event.type}">
-                    ${event.time ? `<span class="event-time-badge">${event.time}</span> ` : ''}${event.title}
+                    ${event.title}${event.time ? ` <span class="event-time-badge" style="float:right;">${event.time}</span>` : ''}
                 </div>
             `).join('');
             
@@ -6129,6 +6129,7 @@ if ('Notification' in window && Notification.permission === 'default') {
 
 // Check for events/aspects that need notifications
 function checkNotifications() {
+    console.log("🔔 checkNotifications running at", new Date().toLocaleTimeString(), "events:", Object.keys(events).length);
     // Check if notifications are enabled by user
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') !== 'false';
     
@@ -6140,28 +6141,42 @@ function checkNotifications() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayKey = getDateKey(today);
     
-    // Check user events
+    // Check user events - uses saved reminders from each event
     const todayEvents = events[todayKey] || [];
     todayEvents.forEach(event => {
-        if (event.time && !event.notified) {
+        if (event.time) {
             const [hours, minutes] = event.time.split(':');
             const eventTime = new Date(today);
             eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
             
-            // Notify 15 minutes before
-            const notifyTime = new Date(eventTime.getTime() - 15 * 60 * 1000);
+            // Use saved reminders, or default to 15 min and at-time
+            const reminders = event.reminders && event.reminders.length > 0 
+                ? event.reminders 
+                : [{minutes: 15, label: '15 min'}, {minutes: 0, label: 'at time'}];
             
-            if (now >= notifyTime && now < eventTime) {
-                new Notification('📅 ' + (currentLang === 'es' ? 'Evento próximo' : 'Upcoming Event'), {
-                    body: `${event.time} - ${event.title}`,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
-                    tag: `event-${todayKey}-${event.title}`,
-                    requireInteraction: false
-                });
+            reminders.forEach(reminder => {
+                const reminderKey = `notified-${todayKey}-${event.title}-${reminder.minutes}`;
+                if (localStorage.getItem(reminderKey)) return; // Already notified for this reminder
                 
-                event.notified = true;
-                saveEvents();
-            }
+                const notifyTime = new Date(eventTime.getTime() - reminder.minutes * 60 * 1000);
+                const windowEnd = new Date(notifyTime.getTime() + 2 * 60 * 1000); // 2 min window
+                
+                if (now >= notifyTime && now <= windowEnd) {
+                    const timeLabel = reminder.minutes === 0 
+                        ? (currentLang === 'es' ? 'Ahora' : 'Now')
+                        : (currentLang === 'es' ? `En ${reminder.minutes} min` : `In ${reminder.minutes} min`);
+                    
+                    new Notification('📅 ' + (currentLang === 'es' ? 'Evento: ' : 'Event: ') + event.title, {
+                        body: `${timeLabel} - ${event.time} ${event.title}`,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
+                        tag: `event-${todayKey}-${event.title}-${reminder.minutes}`,
+                        requireInteraction: true
+                    });
+                    
+                    localStorage.setItem(reminderKey, 'true');
+                    console.log(`🔔 Notification sent: ${event.title} (${reminder.label})`);
+                }
+            });
         }
     });
     
@@ -6216,7 +6231,7 @@ function checkLunarPhaseStart(date) {
 }
 
 // Check notifications every 5 minutes
-setInterval(checkNotifications, 5 * 60 * 1000);
+setInterval(checkNotifications, 60 * 1000);
 
 // Initial check 2 seconds after page load
 setTimeout(checkNotifications, 2000);
@@ -6285,7 +6300,7 @@ function openMoonVerMas(timestamp) {
         // ── Agenda ──
         const events = getEventsForDate(d);
         const agendaHTML = events.length > 0
-            ? events.map(e=>{const bc=e.type==='reminder'?'#f5576c':e.type==='appointment'?'#c9a840':'#4ecdc4';return`<div style="padding:4px 6px;margin-bottom:3px;border-radius:4px;background:rgba(78,205,196,0.08);border-left:2px solid ${bc};font-size:0.80em;">${e.time?`<span style="color:#c9a840;font-weight:700;margin-right:3px;">${e.time}</span>`:''}<span style="color:#e8eaf6;">${e.title}</span>${e.description?`<div style="color:#8899cc;font-size:0.85em;margin-top:1px;">${e.description}</div>`:''}</div>`;}).join('')
+            ? events.map(e=>{const bc=e.type==='reminder'?'#f5576c':e.type==='appointment'?'#c9a840':'#4ecdc4';return`<div style="padding:4px 6px;margin-bottom:3px;border-radius:4px;background:rgba(78,205,196,0.08);border-left:2px solid ${bc};font-size:0.80em;"><span style="color:#e8eaf6;">${e.title}</span>${e.time?`<span style="color:#c9a840;font-weight:700;margin-left:auto;">${e.time}</span>`:''}${e.description?`<div style="color:#8899cc;font-size:0.85em;margin-top:1px;">${e.description}</div>`:''}</div>`;}).join('')
             : `<div style="color:rgba(255,255,255,0.25);font-style:italic;font-size:0.80em;padding:6px 0;">Sin eventos</div>`;
 
         // ── Diario ──
