@@ -7,7 +7,6 @@
   "display": "standalone",
   "background_color": "#02020F",
   "theme_color": "#c9a840",
-  "orientation": "portrait",
   "icons": [
     { "src": "icons/android_mdpi_48x48.png", "sizes": "48x48", "type": "image/png" },
     { "src": "icons/android_hdpi_72x72.png", "sizes": "72x72", "type": "image/png" },
