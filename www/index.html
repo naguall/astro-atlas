@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>🌙 Moon Tracker - Lunar Calendar & Planetary Aspects</title>
+    <title>🌙 Moon Flow - Calendario Lunar</title>
     
     <!-- PWA Meta Tags -->
     <meta name="description" content="Moon Tracker - Complete lunar calendar with exact phases, planetary aspects, personal journal and automatic notifications.">
@@ -19,13 +19,14 @@
     <link rel="manifest" href="manifest.json">
     
     <!-- iOS Icons -->
-    <link rel="apple-touch-icon" href="icon-152.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="icon-72.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-    
+    <link rel="apple-touch-icon" href="icons/apple_touch_icon_180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/ios_152_152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/ios_180_180x180.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/ios_120_120x120.png">
+
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="icon-72.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon_32_32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon_16_16x16.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
@@ -6671,5 +6672,12 @@ if ('serviceWorker' in navigator) {
             </div>
         </div>
     </div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
 </body>
 </html>
