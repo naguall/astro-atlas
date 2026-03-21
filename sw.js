@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v128';
+const CACHE_NAME = 'moon-sync-v129';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -34,9 +34,9 @@ self.addEventListener('notificationclick', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  // External images (Wikimedia): pass through directly without modifying request mode
+  // External images (NASA, Wikimedia): pass through directly without modifying request mode
   // IMPORTANT: <img> tags use no-cors mode; creating new Request() switches to cors and breaks it
-  if (url.includes('upload.wikimedia.org')) {
+  if (url.includes('upload.wikimedia.org') || url.includes('science.nasa.gov')) {
     return; // Let browser handle natively — no SW interception
   }
   // External APIs: network only

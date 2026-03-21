@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v128';
+        var REQUIRED_VER = 'v129';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -5816,7 +5816,7 @@ function getSolarSystemData() {
     return [
         {
             name: es?'Mercurio':'Mercury', icon: '☿', color: '#b0b0b0', colorBg: 'rgba(176,176,176,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/220px-Mercury_in_true_color.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Mercury_in_true_color.jpg',
             diameter: 4879, mass: '3.30×10²³ kg', gravity: 3.7,
             distSun: 57.9, distSunUnit: 'M km',
             orbitalPeriod: 88, orbitalPeriodUnit: es?'días':'days',
@@ -5836,7 +5836,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Venus':'Venus', icon: '♀', color: '#f5deb3', colorBg: 'rgba(245,222,179,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Venus-real_color.jpg/220px-Venus-real_color.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg',
             diameter: 12104, mass: '4.87×10²⁴ kg', gravity: 8.87,
             distSun: 108.2, distSunUnit: 'M km',
             orbitalPeriod: 225, orbitalPeriodUnit: es?'días':'days',
@@ -5856,7 +5856,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Tierra':'Earth', icon: '🌍', color: '#4ecdc4', colorBg: 'rgba(78,205,196,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/The_Blue_Marble_%28remastered%29.jpg/220px-The_Blue_Marble_%28remastered%29.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/c/cb/The_Blue_Marble_%28remastered%29.jpg',
             diameter: 12742, mass: '5.97×10²⁴ kg', gravity: 9.81,
             distSun: 149.6, distSunUnit: 'M km',
             orbitalPeriod: 365, orbitalPeriodUnit: es?'días':'days',
@@ -5876,7 +5876,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Marte':'Mars', icon: '♂', color: '#ff6b6b', colorBg: 'rgba(255,107,107,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/220px-OSIRIS_Mars_true_color.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg',
             diameter: 6792, mass: '6.42×10²³ kg', gravity: 3.72,
             distSun: 227.9, distSunUnit: 'M km',
             orbitalPeriod: 687, orbitalPeriodUnit: es?'días':'days',
@@ -5896,7 +5896,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Júpiter':'Jupiter', icon: '♃', color: '#f5a623', colorBg: 'rgba(245,166,35,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Jupiter_New_Horizons.jpg/220px-Jupiter_New_Horizons.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Jupiter_New_Horizons.jpg',
             diameter: 142984, mass: '1.90×10²⁷ kg', gravity: 24.79,
             distSun: 778.6, distSunUnit: 'M km',
             orbitalPeriod: 4333, orbitalPeriodUnit: es?'días (11.86 años)':'days (11.86 years)',
@@ -5917,7 +5917,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Saturno':'Saturn', icon: '♄', color: '#e8c84a', colorBg: 'rgba(232,200,74,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/220px-Saturn_during_Equinox.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg',
             diameter: 120536, mass: '5.68×10²⁶ kg', gravity: 10.44,
             distSun: 1433.5, distSunUnit: 'M km',
             orbitalPeriod: 10759, orbitalPeriodUnit: es?'días (29.46 años)':'days (29.46 years)',
@@ -5938,7 +5938,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Urano':'Uranus', icon: '♅', color: '#7ec8ff', colorBg: 'rgba(126,200,255,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Uranus_as_seen_by_NASA%27s_Voyager_2_%28reprocessed%29.png/220px-Uranus_as_seen_by_NASA%27s_Voyager_2_%28reprocessed%29.png',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/4/48/Uranus_as_seen_by_NASA%27s_Voyager_2_%28reprocessed%29.png',
             diameter: 51118, mass: '8.68×10²⁵ kg', gravity: 8.87,
             distSun: 2872.5, distSunUnit: 'M km',
             orbitalPeriod: 30687, orbitalPeriodUnit: es?'días (84 años)':'days (84 years)',
@@ -5959,7 +5959,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Neptuno':'Neptune', icon: '♆', color: '#4169e1', colorBg: 'rgba(65,105,225,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Neptune_Voyager2_color_calibrated.png/220px-Neptune_Voyager2_color_calibrated.png',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Neptune_Voyager2_color_calibrated.png',
             diameter: 49528, mass: '1.02×10²⁶ kg', gravity: 11.15,
             distSun: 4495.1, distSunUnit: 'M km',
             orbitalPeriod: 60190, orbitalPeriodUnit: es?'días (164.8 años)':'days (164.8 years)',
@@ -5980,7 +5980,7 @@ function getSolarSystemData() {
         },
         {
             name: es?'Plutón':'Pluto', icon: '⯓', color: '#c9a87c', colorBg: 'rgba(201,168,124,',
-            photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Pluto_in_True_Color_-_High-Res.jpg/220px-Pluto_in_True_Color_-_High-Res.jpg',
+            photo: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg',
             diameter: 2377, mass: '1.30×10²² kg', gravity: 0.62,
             distSun: 5906.4, distSunUnit: 'M km',
             orbitalPeriod: 90560, orbitalPeriodUnit: es?'días (247.9 años)':'days (247.9 years)',
@@ -6236,7 +6236,7 @@ function renderSolarSystemPanel() {
         const planetImgId = 'planetImg' + idx;
         html += '<div style="text-align:center;margin-bottom:8px;padding:12px;background:radial-gradient(circle,' + p.colorBg + '0.1) 0%,rgba(0,0,0,0) 70%);border-radius:10px;">'
             + '<div id="' + planetImgId + '" style="width:130px;height:130px;margin:0 auto;border-radius:50%;overflow:hidden;border:2px solid ' + p.colorBg + '0.3);box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);">'
-            + '<img src="' + p.photo + '" alt="' + p.name + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"/>'
+            + '<img src="' + p.photo + '" alt="' + p.name + '" referrerpolicy="no-referrer" loading="eager" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"/>'
             + '<div style="display:none;">' + renderPlanetSVG(p, 126) + '</div>'
             + '</div>'
             + '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">' + p.name + (p.isDwarf ? ' — '+(es?'Planeta Enano':'Dwarf Planet') : '') + ' <span style="font-size:0.85em;color:rgba(255,255,255,0.15);">NASA</span></div>'
@@ -10380,7 +10380,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v128';
+const APP_VERSION = 'v129';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
