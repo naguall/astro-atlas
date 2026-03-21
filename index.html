@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v135';
+        var REQUIRED_VER = 'v136';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -9665,20 +9665,16 @@ clearOldNotifications();
 
 // Clear app badge + close Android notifications when opening the app
 (function() {
-    function clearAllBadges() {
-        markAllNotifSeen();
-        if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
-        if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
-        // Android: tell SW to close all notifications + clear badge from its side
+    function _sendClearToSW() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(function(reg) {
-                // Method 1: Close from page side
+                // Close from page side
                 if (reg.getNotifications) {
                     reg.getNotifications().then(function(notifications) {
                         notifications.forEach(function(n) { n.close(); });
                     });
                 }
-                // Method 2: Tell SW to close from its side (more reliable on Android)
+                // Tell SW to close from its side + do the silent notification trick
                 if (navigator.serviceWorker.controller) {
                     navigator.serviceWorker.controller.postMessage({type: 'CLEAR_BADGES'});
                 } else if (reg.active) {
@@ -9686,6 +9682,21 @@ clearOldNotifications();
                 }
             }).catch(function(){});
         }
+    }
+
+    function clearAllBadges() {
+        markAllNotifSeen();
+        if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
+        if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
+        // Android: tell SW to close all notifications + clear badge
+        _sendClearToSW();
+        // Retry after delays — Android launcher sometimes needs time to sync
+        setTimeout(_sendClearToSW, 500);
+        setTimeout(_sendClearToSW, 2000);
+        setTimeout(function() {
+            if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
+            if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
+        }, 3000);
         updateNotifBadge();
     }
 
@@ -10405,7 +10416,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v135';
+const APP_VERSION = 'v136';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })

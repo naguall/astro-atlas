@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v135';
+const CACHE_NAME = 'moon-sync-v136';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -39,12 +39,41 @@ self.addEventListener('notificationclick', e => {
 // Listen for messages from the page to clear all notifications + badge
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'CLEAR_BADGES') {
+    // Step 1: Close ALL existing notifications
     self.registration.getNotifications().then(notifications => {
       notifications.forEach(n => n.close());
+    }).then(() => {
+      // Step 2: Clear via Badging API
       if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
       if ('setAppBadge' in self.navigator) { self.navigator.setAppBadge(0).catch(()=>{}); }
-    });
+      // Step 3: Android trick — show a silent notification and immediately close it
+      // This forces the launcher to recount notifications (will find 0)
+      return self.registration.showNotification('', {
+        tag: 'badge-clear',
+        silent: true,
+        badge: '',
+        timestamp: 0
+      });
+    }).then(() => {
+      // Close the dummy notification immediately
+      return self.registration.getNotifications({tag: 'badge-clear'});
+    }).then(ns => {
+      ns.forEach(n => n.close());
+      // Final badge clear after dummy is closed
+      if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
+      if ('setAppBadge' in self.navigator) { self.navigator.setAppBadge(0).catch(()=>{}); }
+    }).catch(() => {});
   }
+});
+
+// Also clear badge when a notification is dismissed by swiping
+self.addEventListener('notificationclose', e => {
+  self.registration.getNotifications().then(notifications => {
+    if (notifications.length === 0) {
+      if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
+      if ('setAppBadge' in self.navigator) { self.navigator.setAppBadge(0).catch(()=>{}); }
+    }
+  });
 });
 
 self.addEventListener('fetch', e => {
