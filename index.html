@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v114';
+        var REQUIRED_VER = 'v115';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -598,6 +598,9 @@
                 <button onclick="showMajorAspectsModal()" class="planet-btn" style="background: rgba(233, 30, 99, 0.3); border: 2px solid #e91e63; color: #ff69b4; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s;">
                     <span id="majorAspectsBtn">⭐ Aspectos Mayores</span>
                 </button>
+                <button onclick="showHistoricAspectsModal()" class="planet-btn" style="background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(231,76,60,0.25)); border: 2px solid #e8c84a; color: #e8c84a; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s;">
+                    <span>🏛️ Eventos Extraordinarios 2026</span>
+                </button>
             </div>
             
             <div id="aspectsLegendDiv" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; font-size: 0.85em; color: #a8b2d1;">
@@ -628,6 +631,19 @@
                 <span class="close" onclick="closeMajorAspectsModal()">&times;</span>
             </div>
             <div id="majorAspectsBody" style="padding: 20px;">
+                <!-- Content will be filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Eventos Extraordinarios -->
+    <div id="historicAspectsModal" class="modal">
+        <div class="modal-content" style="max-width: 750px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="historicAspectsTitle">🏛️ Eventos Extraordinarios 2026</h2>
+                <span class="close" onclick="closeHistoricAspectsModal()">&times;</span>
+            </div>
+            <div id="historicAspectsBody" style="padding: 15px;">
                 <!-- Content will be filled by JS -->
             </div>
         </div>
@@ -4591,6 +4607,159 @@ function showMajorAspectsModal() {
 
 function closeMajorAspectsModal() {
     document.getElementById('majorAspectsModal').classList.remove('show');
+}
+
+function showHistoricAspectsModal() {
+    const modal = document.getElementById('historicAspectsModal');
+    const body = document.getElementById('historicAspectsBody');
+    const L = currentLang === 'es';
+    document.getElementById('historicAspectsTitle').textContent = L ? '🏛️ Eventos Extraordinarios 2026' : '🏛️ Extraordinary Events 2026';
+
+    const events = [
+        {
+            type:'major', badge:L?'MAYOR':'MAJOR', badgeColor:'#ff8a80', badgeBg:'rgba(231,76,60,0.2)',
+            planet1:'Saturno', symbol:'☌', planet2:'Neptuno',
+            date:'20 Feb 2026', time:'07:24', degrees:'0°44', signs:'Aries',
+            cycle:L?'Ocurre cada ~36 años':'Occurs every ~36 years',
+            lastTime:L?'Última vez: 1989 en Capricornio':'Last time: 1989 in Capricorn',
+            history:[
+                {year:'1989',text:L?'Caída del Muro de Berlín. Fin de la Guerra Fría. Colapso de la URSS comienza. Masacre de Tiananmén. Se disuelven estructuras políticas de décadas.':'Fall of the Berlin Wall. End of Cold War. USSR collapse begins. Tiananmen Square. Decades-old political structures dissolve.'},
+                {year:'1953',text:L?'Muerte de Stalin. Fin de la Guerra de Corea. Descubrimiento del ADN. Coronación de Isabel II. Cambio de era política y científica.':'Death of Stalin. End of Korean War. DNA discovery. Queen Elizabeth II coronation. Political and scientific era shift.'},
+                {year:'1917',text:L?'Revolución Rusa. EE.UU. entra en la Primera Guerra Mundial. Colapso del orden imperial europeo. Nacen ideologías que definen el siglo XX.':'Russian Revolution. US enters WWI. European imperial order collapses. Ideologies born that define 20th century.'}
+            ],
+            meaning:L?'Cuando Saturno (estructura, realidad) se une con Neptuno (disolución, sueños), las viejas estructuras se disuelven para dar paso a nuevos ideales. Marca el fin de una era y el nacimiento de otra.':'When Saturn (structure, reality) meets Neptune (dissolution, dreams), old structures dissolve for new ideals. Marks end of one era and birth of another.'
+        },
+        {
+            type:'major', badge:L?'MAYOR':'MAJOR', badgeColor:'#ff8a80', badgeBg:'rgba(231,76,60,0.2)',
+            planet1:'Urano', symbol:'△', planet2:'Plutón',
+            date:'17 Jul 2026', time:'23:04', degrees:'4°29', signs:L?'Géminis/Acuario':'Gemini/Aquarius',
+            cycle:L?'Ciclo completo: ~127 años':'Full cycle: ~127 years',
+            lastTime:L?'Último trígono: 1921-1922':'Last trine: 1921-1922',
+            history:[
+                {year:'1921-22',text:L?'Boom de los "Roaring Twenties". Revolución en radio, cine y aviación. Nacimiento del jazz. Transformación cultural acelerada.':'Roaring Twenties boom. Revolution in radio, cinema and aviation. Birth of jazz. Accelerated cultural transformation.'},
+                {year:'1965-66',text:L?'(Conjunción) Revolución contracultural. Derechos civiles. Revolución sexual. Era espacial. Beatles, hippies, protesta social masiva.':'(Conjunction) Counterculture revolution. Civil rights. Sexual revolution. Space age. Beatles, hippies, massive social protest.'},
+                {year:'2012-15',text:L?'(Cuadratura) Primavera Árabe. Movimiento Occupy. Crisis de refugiados. Populismo global. Bitcoin y blockchain emergen.':'(Square) Arab Spring. Occupy movement. Refugee crisis. Global populism. Bitcoin and blockchain emerge.'}
+            ],
+            meaning:L?'Urano (revolución, tecnología) en flujo armónico con Plutón (transformación profunda). El aspecto de las grandes revoluciones tecnológicas y sociales que transforman civilizaciones.':'Uranus (revolution, technology) in harmonic flow with Pluto (deep transformation). The aspect of great revolutions that transform civilizations.'
+        },
+        {
+            type:'notable', badge:L?'NOTABLE':'NOTABLE', badgeColor:'#80cbc4', badgeBg:'rgba(78,205,196,0.2)',
+            planet1:'Marte', symbol:'☌', planet2:'Plutón',
+            date:'27 Ene 2026', time:'15:00', degrees:'3°34', signs:'Acuario',
+            cycle:L?'Ocurre cada ~2 años':'Occurs every ~2 years',
+            lastTime:L?'Última vez: Mar 2024 en Acuario':'Last time: Mar 2024 in Aquarius',
+            history:[
+                {year:'2020',text:L?'Conjunción en Capricornio con Saturno y Júpiter. Inicio pandemia COVID-19. Lockdowns globales. Transformación radical del trabajo.':'Conjunction in Capricorn with Saturn and Jupiter. COVID-19 pandemic starts. Global lockdowns. Radical work transformation.'},
+                {year:'2001',text:L?'Conjunción en Sagitario. Ataques del 11-S. Inicio de la "Guerra contra el Terror". Cambio radical en geopolítica global.':'Conjunction in Sagittarius. 9/11 attacks. Start of "War on Terror". Radical shift in global geopolitics.'}
+            ],
+            meaning:L?'Marte activa la energía transformadora de Plutón. Acción intensa, confrontación con el poder. En Acuario: transformación de estructuras colectivas y tecnológicas.':'Mars activates Pluto transformative energy. Intense action, confrontation with power. In Aquarius: transformation of collective and tech structures.'
+        },
+        {
+            type:'notable', badge:L?'NOTABLE':'NOTABLE', badgeColor:'#80cbc4', badgeBg:'rgba(78,205,196,0.2)',
+            planet1:'Saturno', symbol:'⚹', planet2:'Plutón',
+            date:'28 Mar 2026', time:'14:40', degrees:'5°09', signs:L?'Aries/Acuario':'Aries/Aquarius',
+            cycle:L?'Ciclo Saturno-Plutón: ~33 años':'Saturn-Pluto cycle: ~33 years',
+            lastTime:L?'Última conjunción: Ene 2020':'Last conjunction: Jan 2020',
+            history:[
+                {year:'2020',text:L?'(Conjunción) Pandemia COVID-19. Colapso económico mundial. Reestructuración del orden laboral y social.':'(Conjunction) COVID-19 pandemic. World economic collapse. Labor and social order restructuring.'},
+                {year:'1982',text:L?'(Conjunción) Recesión global. Crisis de deuda latinoamericana. Guerra de Malvinas. Inicio era Reagan/Thatcher.':'(Conjunction) Global recession. Latin American debt crisis. Falklands War. Reagan/Thatcher era begins.'},
+                {year:'1947',text:L?'(Conjunción) Inicio Guerra Fría. Plan Marshall. Partición India/Pakistán. Creación de Israel. Nuevo orden post-WWII.':'(Conjunction) Cold War begins. Marshall Plan. India/Pakistan partition. Israel created. New post-WWII order.'}
+            ],
+            meaning:L?'Oportunidad constructiva del ciclo Saturno-Plutón iniciado en 2020. Momento de darle forma productiva a las transformaciones post-pandemia.':'Constructive opportunity in Saturn-Pluto cycle from 2020. Time to give productive form to post-pandemic transformations.'
+        },
+        {
+            type:'notable', badge:L?'NOTABLE':'NOTABLE', badgeColor:'#80cbc4', badgeBg:'rgba(78,205,196,0.2)',
+            planet1:'Venus', symbol:'☌', planet2:'Júpiter',
+            date:'9 Jun 2026', time:'12:55', degrees:'25°46', signs:L?'Cáncer':'Cancer',
+            cycle:L?'Ocurre ~1 vez al año':'Occurs ~once a year',
+            lastTime:L?'Última vez: May 2024 en Tauro':'Last time: May 2024 in Taurus',
+            history:[
+                {year:L?'Tradición':'Tradition',text:L?'Conocida como "La Gran Benefactora". Conjunción de los dos planetas más benéficos. En la antigüedad, el mejor día del año para bodas, negocios e iniciar proyectos. En Cáncer: amor familiar y nutrición emocional amplificados.':'Known as "The Great Benefactress". Conjunction of the two most benefic planets. In antiquity, the best day for weddings, business and projects. In Cancer: family love and emotional nurturing amplified.'}
+            ],
+            meaning:L?'El aspecto más afortunado del zodíaco. Venus (amor, belleza) + Júpiter (abundancia, expansión). En Cáncer: generosidad emocional al máximo.':'Most fortunate aspect in zodiac. Venus (love, beauty) + Jupiter (abundance, expansion). In Cancer: emotional generosity at maximum.'
+        },
+        {
+            type:'notable', badge:L?'NOTABLE':'NOTABLE', badgeColor:'#80cbc4', badgeBg:'rgba(78,205,196,0.2)',
+            planet1:'Júpiter', symbol:'☍', planet2:'Plutón',
+            date:'20 Jul 2026', time:'07:54', degrees:'4°26', signs:L?'Leo/Acuario':'Leo/Aquarius',
+            cycle:L?'Ciclo Júpiter-Plutón: ~12 años':'Jupiter-Pluto cycle: ~12 years',
+            lastTime:L?'Última conjunción: Nov 2020':'Last conjunction: Nov 2020',
+            history:[
+                {year:'2020',text:L?'(Triple conjunción) Pandemia COVID-19 en apogeo. Mercados colapsan y se recuperan. Expansión monetaria sin precedentes. Billonarios aumentan riqueza masivamente.':'(Triple conjunction) COVID-19 at peak. Markets crash and recover. Unprecedented monetary expansion. Billionaires massively increase wealth.'},
+                {year:'2007',text:L?'(Cuadratura) Crisis financiera global. Burbuja inmobiliaria estalla. Colapso de Lehman Brothers. Gran Recesión.':'(Square) Global financial crisis. Housing bubble bursts. Lehman Brothers collapses. Great Recession.'}
+            ],
+            meaning:L?'Punto de máxima tensión del ciclo de 2020. Júpiter (expansión) vs Plutón (poder concentrado). En Leo/Acuario: expresión individual vs control colectivo.':'Peak tension of 2020 cycle. Jupiter (expansion) vs Pluto (concentrated power). In Leo/Aquarius: individual expression vs collective control.'
+        },
+        {
+            type:'notable', badge:L?'NOTABLE':'NOTABLE', badgeColor:'#80cbc4', badgeBg:'rgba(78,205,196,0.2)',
+            planet1:'Júpiter', symbol:'△', planet2:'Saturno',
+            date:'31 Ago 2026', time:'15:40', degrees:'13°41', signs:L?'Leo/Aries':'Leo/Aries',
+            cycle:L?'Ciclo Júpiter-Saturno: ~20 años':'Jupiter-Saturn cycle: ~20 years',
+            lastTime:L?'Última conjunción: Dic 2020 ("Gran Conjunción")':'Last conjunction: Dec 2020 ("Great Conjunction")',
+            history:[
+                {year:'2020',text:L?'(Gran Conjunción en Acuario) Primera en signo de aire en 200 años. Inicio "Era de Aire": tecnología e información como motores. Coincide con vacunas COVID.':'(Great Conjunction in Aquarius) First in air sign in 200 years. Start of "Age of Air": tech and info as drivers. Coincides with COVID vaccines.'},
+                {year:'2000',text:L?'(Conjunción en Tauro) Burbuja dot-com estalla. Consolidación tecnológica. Bush vs Gore. Incertidumbre de cambio de milenio.':'(Conjunction in Taurus) Dot-com bubble bursts. Tech consolidation. Bush vs Gore. Millennium uncertainty.'},
+                {year:'1981',text:L?'(Conjunción en Libra) Era Reagan. IBM lanza primera PC. MTV debut. Revolución neoliberal. Nuevas estructuras económicas globales.':'(Conjunction in Libra) Reagan era. IBM launches first PC. MTV debuts. Neoliberal revolution. New global economic structures.'}
+            ],
+            meaning:L?'Cosecha armónica del ciclo de la Gran Conjunción de 2020. Júpiter (visión) fluye con Saturno (estructura) en signos de fuego: acción decidida con forma.':'Harmonic harvest from 2020 Great Conjunction. Jupiter (vision) flows with Saturn (structure) in fire signs: decisive action with form.'
+        },
+        {
+            type:'generational', badge:L?'GENERACIONAL':'GENERATIONAL', badgeColor:'#d4a5f5', badgeBg:'rgba(155,89,182,0.25)',
+            planet1:'Neptuno', symbol:'→', planet2:L?'Aries':'Aries',
+            date:'26 Ene 2026', time:'', degrees:'', signs:'',
+            cycle:L?'Neptuno cambia de signo cada ~14 años':'Neptune changes signs every ~14 years',
+            lastTime:L?'Última vez en Aries: 1861-1875':'Last time in Aries: 1861-1875',
+            history:[
+                {year:'1861-75',text:L?'Guerra Civil de EE.UU. y abolición de la esclavitud. Unificación de Italia y Alemania. Comuna de París. Idealismo revolucionario aplicado a acción directa. Nacen movimientos obreros.':'US Civil War and abolition of slavery. Unification of Italy and Germany. Paris Commune. Revolutionary idealism in direct action. Labor movements born.'}
+            ],
+            meaning:L?'Neptuno (espiritualidad, inconsciente colectivo) entra en Aries (acción, identidad) por primera vez en 165 años. Nueva generación con ideales aplicados a la acción directa. Hasta 2039.':'Neptune (spirituality, collective unconscious) enters Aries (action, identity) for first time in 165 years. New generation with ideals in direct action. Until 2039.'
+        },
+        {
+            type:'generational', badge:L?'GENERACIONAL':'GENERATIONAL', badgeColor:'#d4a5f5', badgeBg:'rgba(155,89,182,0.25)',
+            planet1:'Urano', symbol:'→', planet2:L?'Géminis':'Gemini',
+            date:'7 Jul 2026', time:'', degrees:'', signs:'',
+            cycle:L?'Urano cambia de signo cada ~7 años':'Uranus changes signs every ~7 years',
+            lastTime:L?'Última vez en Géminis: 1941-1949':'Last time in Gemini: 1941-1949',
+            history:[
+                {year:'1941-49',text:L?'Revolución en comunicaciones de guerra (radar, computadoras, Enigma). Invención del transistor (1947). Plan Marshall. Nacen las Naciones Unidas. La información como arma y como puente.':'Revolution in wartime communications (radar, computers, Enigma). Transistor invention (1947). Marshall Plan. United Nations born. Information as weapon and bridge.'}
+            ],
+            meaning:L?'Urano (revolución, tecnología) entra en Géminis (comunicación, información) por primera vez en 77 años. Revolución en IA, comunicación y tecnología. Hasta 2033.':'Uranus (revolution, technology) enters Gemini (communication, information) for first time in 77 years. AI revolution, communication and tech. Until 2033.'
+        }
+    ];
+
+    let html = '<div style="font-size:0.82em;color:#a8b2d1;margin-bottom:15px;line-height:1.5;">' + (L?'Alineaciones poco frecuentes entre planetas lentos que marcan épocas enteras. Incluye contexto histórico de ciclos anteriores.':'Rare alignments between slow planets that mark entire eras. Includes historical context from previous cycles.') + '</div>';
+
+    events.forEach(function(ev) {
+        var isSC = ev.symbol === '→';
+        var titleLine = isSC ? tp(ev.planet1) + ' → ' + ts(ev.planet2) : tp(ev.planet1) + ' ' + ev.symbol + ' ' + tp(ev.planet2) + (ev.degrees ? ' (' + ev.degrees + ')' : '') + (ev.signs ? ' — ' + ev.signs : '');
+        html += '<div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + ev.badgeColor + ';">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+        html += '<div style="font-size:1.05em;font-weight:700;color:#e8eaf6;">' + titleLine + '</div>';
+        html += '<span style="background:' + ev.badgeBg + ';color:' + ev.badgeColor + ';padding:2px 8px;border-radius:4px;font-size:0.72em;font-weight:700;border:1px solid ' + ev.badgeColor + '40;">' + ev.badge + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:0.82em;">';
+        html += '<span style="color:#f0e68c;font-weight:600;">📅 ' + ev.date + (ev.time ? ' — ' + ev.time : '') + '</span>';
+        html += '<span style="color:#c9a840;">⏱️ ' + ev.cycle + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + ev.lastTime + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + ev.meaning + '</div>';
+        if (ev.history && ev.history.length) {
+            html += '<div style="margin-top:8px;"><div style="font-size:0.7em;color:' + ev.badgeColor + ';font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📜 ' + (L ? 'Eventos Históricos en Ciclos Anteriores' : 'Historical Events in Previous Cycles') + '</div>';
+            ev.history.forEach(function(h) {
+                html += '<div style="font-size:0.8em;padding:6px 10px;margin-bottom:4px;background:rgba(255,255,255,0.03);border-radius:5px;border-left:2px solid ' + ev.badgeColor + '40;">';
+                html += '<span style="color:' + ev.badgeColor + ';font-weight:700;">' + h.year + ':</span> <span style="color:#b0bec5;line-height:1.45;">' + h.text + '</span></div>';
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+    });
+
+    body.innerHTML = html;
+    modal.classList.add('show');
+}
+
+function closeHistoricAspectsModal() {
+    document.getElementById('historicAspectsModal').classList.remove('show');
 }
 
 function calculateMajorAspects2026() {
