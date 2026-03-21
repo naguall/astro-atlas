@@ -6101,14 +6101,12 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">
                 <!-- Mapa 2D SVG -->
                 <div>
-                    <div style="font-size:0.68em;color:#8899cc;margin-bottom:4px;text-align:center;">🗺️ ${currentLang==='es'?'Mapa 2D':'2D Map'}</div>
                     <div id="sublunaryMapContainer" style="border-radius:8px;overflow:hidden;border:1px solid rgba(74,158,255,0.25);">
                         ${renderSublunaryMap(astro.sublunarLat, getSublunaryLonDeg(today), ASTRO_USER_LAT, ASTRO_USER_LON)}
                     </div>
                 </div>
                 <!-- Globo 3D -->
                 <div>
-                    <div style="font-size:0.68em;color:#8899cc;margin-bottom:4px;text-align:center;">🌍 ${currentLang==='es'?'Globo 3D':'3D Globe'}</div>
                     <canvas id="sublunaryGlobe" width="260" height="180" style="border-radius:8px;border:1px solid rgba(74,158,255,0.25);display:block;width:100%;"></canvas>
                 </div>
             </div>
