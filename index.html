@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v112';
+        var REQUIRED_VER = 'v113';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -3249,8 +3249,13 @@ function openAspectsModal(date, lunarDay, dayData) {
         htmlContent += interAspects.map(asp => {
             const degreeStr = asp.degrees ? `<span style="color: #a8b2d1; font-size: 0.85em;">(${asp.degrees})</span>` : '';
             const signsStr = asp.signs ? `<span style="color: rgba(255,255,255,0.4); font-size: 0.82em;"> — ${asp.signs}</span>` : '';
-            const badge = asp.isGenerational ? '<span style="background: #9b59b6; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">GENERACIONAL</span>' :
-                         asp.isImportant ? '<span style="background: #4ecdc4; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">IMPORTANTE</span>' : '';
+            const badge = asp.isGenerational ? '<span style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);" title="Aspecto entre planetas lentos que marca toda una generación">GENERACIONAL</span>' :
+                         asp.isMajor ? '<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);" title="Aspecto mayor: alineación poco frecuente entre planetas exteriores con impacto colectivo profundo">MAYOR</span>' :
+                         asp.isImportant ? '<span style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);" title="Aspecto notable: involucra planetas sociales o exteriores en ángulo significativo">NOTABLE</span>' : '';
+
+            const badgeExplain = asp.isGenerational ? `<div style="font-size:0.72em;color:#d4a5f5;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Planetas lentos (Urano/Neptuno/Plutón) — efecto que marca toda una generación':'Slow planets (Uranus/Neptune/Pluto) — effect that marks an entire generation'}</div>` :
+                               asp.isMajor ? `<div style="font-size:0.72em;color:#ff8a80;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Alineación poco frecuente entre planetas exteriores — impacto colectivo profundo':'Rare alignment between outer planets — deep collective impact'}</div>` :
+                               asp.isImportant ? `<div style="font-size:0.72em;color:#80cbc4;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Involucra planetas sociales o exteriores en ángulo significativo':'Involves social or outer planets at a significant angle'}</div>` : '';
 
             return `
             <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2);">
@@ -3258,7 +3263,7 @@ function openAspectsModal(date, lunarDay, dayData) {
                     ${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}${asp.time ? `<span style="color: #f0e68c; font-weight: bold; float:right;">${asp.time}</span>` : ''}
                 </div>
                 <div class="aspect-description">
-                    ${translateMeaning(asp.meaning)}
+                    ${badgeExplain}${translateMeaning(asp.meaning)}
                 </div>
             </div>
         `}).join('');
@@ -3429,11 +3434,14 @@ function openInterAspectsOnlyModal(date, lunarDay, interAspects) {
         const timeStr = asp.time ? `<span style="color: #f0e68c; font-weight: bold;">${asp.time}</span> - ` : '';
         const degreeStr = asp.degrees ? `<span style="color: #a8b2d1; font-size: 0.85em;">(${asp.degrees})</span>` : '';
         const signsStr = asp.signs ? `<span style="color: rgba(255,255,255,0.4); font-size: 0.82em;"> — ${asp.signs}</span>` : '';
-        const majorLabel = currentLang === 'es' ? 'MAYOR' : 'MAJOR';
-        const importantLabel = currentLang === 'es' ? 'IMPORTANTE' : 'IMPORTANT';
-        const badge = asp.isMajor ? `<span style="background: #9b59b6; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">${majorLabel}</span>` :
-                     asp.isImportant ? `<span style="background: #4ecdc4; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">${importantLabel}</span>` : '';
+        const badge = asp.isGenerational ? '<span style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);" title="Aspecto entre planetas lentos que marca toda una generación">GENERACIONAL</span>' :
+                     asp.isMajor ? '<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);" title="Aspecto mayor: alineación poco frecuente entre planetas exteriores con impacto colectivo profundo">MAYOR</span>' :
+                     asp.isImportant ? '<span style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);" title="Aspecto notable: involucra planetas sociales o exteriores en ángulo significativo">NOTABLE</span>' : '';
         const defaultMeaning = currentLang === 'es' ? 'Aspecto interplanetario significativo.' : 'Significant interplanetary aspect.';
+
+        const badgeExplain = asp.isGenerational ? `<div style="font-size:0.72em;color:#d4a5f5;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Planetas lentos (Urano/Neptuno/Plutón) — efecto que marca toda una generación':'Slow planets (Uranus/Neptune/Pluto) — effect that marks an entire generation'}</div>` :
+                             asp.isMajor ? `<div style="font-size:0.72em;color:#ff8a80;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Alineación poco frecuente entre planetas exteriores — impacto colectivo profundo':'Rare alignment between outer planets — deep collective impact'}</div>` :
+                             asp.isImportant ? `<div style="font-size:0.72em;color:#80cbc4;margin-bottom:4px;line-height:1.3;font-style:italic;">${currentLang==='es'?'Involucra planetas sociales o exteriores en ángulo significativo':'Involves social or outer planets at a significant angle'}</div>` : '';
 
         return `
         <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2);">
@@ -3441,7 +3449,7 @@ function openInterAspectsOnlyModal(date, lunarDay, interAspects) {
                 ${timeStr}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}
             </div>
             <div class="aspect-description" style="font-size: 0.95em; line-height: 1.4;">
-                ${asp.meaning ? translateMeaning(asp.meaning) : defaultMeaning}
+                ${badgeExplain}${asp.meaning ? translateMeaning(asp.meaning) : defaultMeaning}
             </div>
         </div>
     `}).join('');
