@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v130';
+        var REQUIRED_VER = 'v131';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -2897,6 +2897,10 @@ function updateUILanguage() {
         renderSolarCalendar();
     } else if (calendarMode === 'gregorian') {
         renderGregorianCalendar();
+    } else if (calendarMode === 'earth') {
+        switchToEarthMode();
+    } else if (calendarMode === 'solarsystem') {
+        switchToSolarSystemMode();
     }
 }
 
@@ -10380,7 +10384,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v130';
+const APP_VERSION = 'v131';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
