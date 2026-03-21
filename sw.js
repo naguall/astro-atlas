@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v123';
+const CACHE_NAME = 'moon-sync-v124';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -18,6 +18,18 @@ self.addEventListener('activate', e => {
     )
   );
   self.clients.claim();
+});
+
+// When user clicks a notification, open app and clear badge
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
+  e.waitUntil(
+    clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
+      if (cls.length > 0) { return cls[0].focus(); }
+      return clients.openWindow('/moon-sync/');
+    })
+  );
 });
 
 self.addEventListener('fetch', e => {
