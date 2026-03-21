@@ -3729,9 +3729,12 @@ function saveEvent() {
 
     console.log(`✅ Event saved with ${reminders.length} reminders`);
 
-    // Log to notification history
-    const dateStr = selectedDate.toLocaleDateString(currentLang==='es'?'es':'en', {day:'numeric',month:'short'});
-    logNotificationEvent(`📅 ${currentLang==='es'?'Evento creado':'Event created'}: "${title}" - ${dateStr}${event.time?' '+event.time:''}`, 'event');
+    // Only log to notification history if the event is for today
+    const eventDateKey = getDateKey(selectedDate);
+    const todayDateKey = getDateKey(new Date());
+    if (eventDateKey === todayDateKey) {
+        logNotificationEvent(`📅 ${currentLang==='es'?'Evento creado para hoy':'Event created for today'}: "${title}"${event.time?' '+event.time:''}`, 'event');
+    }
 }
 
 function editEvent(index) {
@@ -9263,12 +9266,13 @@ function logNotificationEvent(message, type) {
     updateNotifBadge();
 }
 
-// Update the red badge on the 🔔 button
+// Update the red badge on the 🔔 button (only count today's unseen)
 function updateNotifBadge() {
     const badge = document.getElementById('notifBadge');
     if (!badge) return;
     const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
-    const unseen = history.filter(h => !h.seen).length;
+    const todayStr = new Date().toISOString().slice(0,10);
+    const unseen = history.filter(h => !h.seen && h.timestamp && h.timestamp.slice(0,10) === todayStr).length;
     if (unseen > 0) {
         badge.textContent = unseen > 99 ? '99+' : unseen;
         badge.style.display = 'block';
@@ -9295,6 +9299,9 @@ function clearOldNotifications() {
     localStorage.setItem('notifHistory', JSON.stringify(filtered));
     updateNotifBadge();
 }
+
+// IMPORTANT: Clear old notifications immediately on page load
+clearOldNotifications();
 
 // Schedule clear at 23:59
 (function scheduleMidnightClear() {
@@ -9333,15 +9340,22 @@ function openNotifHistoryModal() {
         </div>
     `;
 
-    if (history.length === 0) {
+    // Filter: only show today's notifications
+    const todayStr = new Date().toISOString().slice(0,10);
+    const todayHistory = history.filter(h => h.timestamp && h.timestamp.slice(0,10) === todayStr);
+
+    if (todayHistory.length === 0) {
         html += `<div style="text-align:center;padding:30px 10px;color:rgba(255,255,255,0.35);font-size:0.85em;">
-            ${currentLang==='es'?'No hay historial de notificaciones aún':'No notification history yet'}
+            ${currentLang==='es'?'No hay notificaciones para hoy':'No notifications for today'}
         </div>`;
     } else {
+        html += `<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:8px;text-align:center;">
+            ${currentLang==='es'?'Mostrando solo notificaciones de hoy':'Showing only notifications from today'}
+        </div>`;
         html += `<div style="max-height:350px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">`;
-        history.forEach(item => {
+        todayHistory.forEach(item => {
             const d = new Date(item.timestamp);
-            const timeStr = d.toLocaleDateString(currentLang==='es'?'es':'en', {day:'numeric',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit'});
+            const timeStr = d.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit'});
             const typeIcon = item.type==='system'?'⚙️':item.type==='event'?'📅':item.type==='aspect'?'🪐':'🔔';
             const borderColor = item.type==='system'?'rgba(78,205,196,0.3)':item.type==='event'?'rgba(201,168,64,0.3)':'rgba(74,158,255,0.3)';
             html += `<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-left:3px solid ${borderColor};border-radius:4px;display:flex;align-items:center;gap:8px;">
