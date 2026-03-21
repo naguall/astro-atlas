@@ -9843,7 +9843,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v101';
+const APP_VERSION = 'v102';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })

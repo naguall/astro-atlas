@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v101';
+const CACHE_NAME = 'moon-sync-v102';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -22,8 +22,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  // External APIs: network only, create clean request to avoid clone issues
-  if (url.includes('open-meteo.com') || url.includes('fonts.googleapis.com') || url.includes('earthquake.usgs.gov') || url.includes('upload.wikimedia.org')) {
+  // External images (Wikimedia): pass through directly without modifying request mode
+  // IMPORTANT: <img> tags use no-cors mode; creating new Request() switches to cors and breaks it
+  if (url.includes('upload.wikimedia.org')) {
+    return; // Let browser handle natively — no SW interception
+  }
+  // External APIs: network only
+  if (url.includes('open-meteo.com') || url.includes('fonts.googleapis.com') || url.includes('earthquake.usgs.gov')) {
     e.respondWith(
       fetch(new Request(url, {method: 'GET', headers: e.request.headers}))
         .catch(() => new Response('{"error":"offline"}', {status: 503, headers: {'Content-Type':'application/json'}}))
