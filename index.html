@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v134';
+        var REQUIRED_VER = 'v135';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -51,8 +51,17 @@
             }
         } catch(e) {}
 
-        // ALWAYS clear iOS app badge on page load (earliest possible moment)
+        // ALWAYS clear app badge on page load (earliest possible moment)
         if (navigator.clearAppBadge) { navigator.clearAppBadge().catch(function(){}); }
+        if (navigator.setAppBadge) { navigator.setAppBadge(0).catch(function(){}); }
+        // Tell SW to close all notifications (Android badge is tied to notification shade)
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({type: 'CLEAR_BADGES'});
+        } else if (navigator.serviceWorker) {
+            navigator.serviceWorker.ready.then(function(reg) {
+                if (reg.active) reg.active.postMessage({type: 'CLEAR_BADGES'});
+            }).catch(function(){});
+        }
     })();
     </script>
 
@@ -9032,6 +9041,8 @@ if ('Notification' in window && Notification.permission === 'default') {
 const _Notif = window.Notification;
 function sendNotif(title, opts) {
     console.log('🔔 sendNotif called:', title);
+    // Add tag so Android can replace instead of stacking notifications
+    if (!opts.tag) { opts.tag = 'moon-sync-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
     // On mobile, MUST use ServiceWorker.showNotification - new Notification() silently fails
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function(reg) {
@@ -9657,13 +9668,21 @@ clearOldNotifications();
     function clearAllBadges() {
         markAllNotifSeen();
         if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
-        // Android: close all SW notifications (this removes the badge from the icon)
+        if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
+        // Android: tell SW to close all notifications + clear badge from its side
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(function(reg) {
+                // Method 1: Close from page side
                 if (reg.getNotifications) {
                     reg.getNotifications().then(function(notifications) {
                         notifications.forEach(function(n) { n.close(); });
                     });
+                }
+                // Method 2: Tell SW to close from its side (more reliable on Android)
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({type: 'CLEAR_BADGES'});
+                } else if (reg.active) {
+                    reg.active.postMessage({type: 'CLEAR_BADGES'});
                 }
             }).catch(function(){});
         }
@@ -10386,7 +10405,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v134';
+const APP_VERSION = 'v135';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v134';
+const CACHE_NAME = 'moon-sync-v135';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -23,13 +23,28 @@ self.addEventListener('activate', e => {
 // When user clicks a notification, open app and clear badge
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
   e.waitUntil(
-    clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
-      if (cls.length > 0) { return cls[0].focus(); }
-      return clients.openWindow('/moon-sync/');
+    self.registration.getNotifications().then(notifications => {
+      notifications.forEach(n => n.close());
+      if ('clearAppBadge' in self.navigator) { return self.navigator.clearAppBadge().catch(()=>{}); }
+    }).then(() => {
+      return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
+        if (cls.length > 0) { return cls[0].focus(); }
+        return clients.openWindow('/moon-sync/');
+      });
     })
   );
+});
+
+// Listen for messages from the page to clear all notifications + badge
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'CLEAR_BADGES') {
+    self.registration.getNotifications().then(notifications => {
+      notifications.forEach(n => n.close());
+      if ('clearAppBadge' in self.navigator) { self.navigator.clearAppBadge().catch(()=>{}); }
+      if ('setAppBadge' in self.navigator) { self.navigator.setAppBadge(0).catch(()=>{}); }
+    });
+  }
 });
 
 self.addEventListener('fetch', e => {
