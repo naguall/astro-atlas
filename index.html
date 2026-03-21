@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v138';
+        var REQUIRED_VER = 'v139';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -289,6 +289,25 @@
         .day-event-item.type-appointment { border-left-color: var(--gold); background: rgba(201,168,64,0.08); }
         .day-cell.today .day-event-item { background: rgba(201,168,64,0.10); }
         .event-time-badge { font-size: 0.75em; font-weight: bold; color: var(--gold); background: rgba(201,168,64,0.10); padding: 1px 3px; border-radius: 2px; margin-right: 3px; }
+
+        /* AI Chat */
+        #aiChatFab { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); border: 2px solid rgba(255,255,255,0.2); color: white; font-size: 1.5em; cursor: pointer; z-index: 999; box-shadow: 0 4px 20px rgba(102,126,234,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        #aiChatFab:active { transform: scale(0.92); }
+        #aiChatModal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.95); flex-direction: column; }
+        #aiChatModal.show { display: flex; }
+        .ai-chat-header { padding: 12px 16px; background: rgba(5,7,30,0.98); border-bottom: 1px solid rgba(102,126,234,0.3); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .ai-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; -webkit-overflow-scrolling: touch; }
+        .ai-msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 0.88em; line-height: 1.5; word-wrap: break-word; }
+        .ai-msg.user { align-self: flex-end; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-bottom-right-radius: 4px; }
+        .ai-msg.assistant { align-self: flex-start; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+        .ai-msg.assistant p { margin: 0 0 8px 0; } .ai-msg.assistant p:last-child { margin-bottom: 0; }
+        .ai-msg.error { align-self: center; background: rgba(255,68,68,0.15); color: #ff6b6b; border: 1px solid rgba(255,68,68,0.3); font-size: 0.8em; }
+        .ai-chat-input-bar { padding: 12px 16px; background: rgba(5,7,30,0.98); border-top: 1px solid rgba(102,126,234,0.3); display: flex; gap: 8px; flex-shrink: 0; }
+        .ai-chat-input-bar textarea { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; color: white; padding: 10px 16px; font-size: 0.88em; resize: none; outline: none; max-height: 100px; font-family: inherit; }
+        .ai-chat-input-bar button { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white; font-size: 1.2em; cursor: pointer; flex-shrink: 0; }
+        .ai-typing { align-self: flex-start; padding: 10px 14px; font-size: 0.8em; color: rgba(255,255,255,0.4); }
+        .ai-typing span { animation: aiDot 1.4s infinite; } .ai-typing span:nth-child(2) { animation-delay: 0.2s; } .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes aiDot { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: center; align-items: center; overflow: auto; }
         .modal.show { display: flex; }
@@ -9533,6 +9552,27 @@ function openPreferencesModal() {
             </button>
         </div>
 
+        <!-- AI Assistant API Key -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.85em;font-weight:700;color:#b388ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+                ✨ ${currentLang==='es'?'Asistente AI':'AI Assistant'}
+            </div>
+            <div style="padding:10px 12px;background:rgba(179,136,255,0.04);border:1px solid rgba(179,136,255,0.2);border-radius:8px;">
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:8px;">
+                    ${currentLang==='es'?'Ingresa tu API key de Google Gemini (gratis en aistudio.google.com) para activar el asistente AI.':'Enter your Google Gemini API key (free at aistudio.google.com) to activate the AI assistant.'}
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="password" id="prefGeminiKey" value="${localStorage.getItem('geminiApiKey') || ''}" placeholder="AIza..."
+                        style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />
+                    <button onclick="var k=document.getElementById('prefGeminiKey').value.trim();if(k){localStorage.setItem('geminiApiKey',k);}else{localStorage.removeItem('geminiApiKey');}this.textContent='✓';setTimeout(()=>{this.textContent=currentLang==='es'?'Guardar':'Save';},1500);"
+                        style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;white-space:nowrap;">
+                        ${currentLang==='es'?'Guardar':'Save'}
+                    </button>
+                </div>
+                ${localStorage.getItem('geminiApiKey') ? '<div style="margin-top:6px;font-size:0.72em;color:#b388ff;">✓ ' + (currentLang==='es'?'API key configurada':'API key configured') + '</div>' : ''}
+            </div>
+        </div>
+
         <!-- Forzar Actualización / Force Update -->
         <div style="margin-bottom:16px;">
             <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
@@ -10419,7 +10459,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v138';
+const APP_VERSION = 'v139';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
@@ -10582,6 +10622,284 @@ DOMTokenList.prototype.add = function() {
     }
 };
 
+</script>
+
+<!-- AI Chat FAB Button -->
+<button id="aiChatFab" onclick="openAIChat()" title="AI Assistant">✨</button>
+
+<!-- AI Chat Modal -->
+<div id="aiChatModal">
+    <div class="ai-chat-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3em;">✨</span>
+            <div>
+                <div style="font-weight:700;color:white;font-size:0.95em;" id="aiChatTitle">AI Assistant</div>
+                <div style="font-size:0.7em;color:rgba(255,255,255,0.4);" id="aiChatSubtitle">Ciclos cósmicos</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="clearAIChat()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;">🗑️</button>
+            <button onclick="closeAIChat()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.85em;cursor:pointer;">✕</button>
+        </div>
+    </div>
+    <div class="ai-chat-messages" id="aiChatMessages"></div>
+    <div class="ai-chat-input-bar">
+        <textarea id="aiChatInput" rows="1" placeholder="Pregunta sobre ciclos lunares, mareas, aspectos..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"></textarea>
+        <button onclick="sendAIMessage()">➤</button>
+    </div>
+</div>
+
+<script>
+// ===================== AI CHAT SYSTEM =====================
+
+let aiChatHistory = [];
+let aiIsTyping = false;
+
+function getGeminiKey() {
+    return localStorage.getItem('geminiApiKey') || '';
+}
+
+function openAIChat() {
+    const modal = document.getElementById('aiChatModal');
+    modal.classList.add('show');
+    document.getElementById('aiChatFab').style.display = 'none';
+    document.getElementById('aiChatTitle').textContent = currentLang === 'es' ? 'Asistente AI' : 'AI Assistant';
+    document.getElementById('aiChatSubtitle').textContent = currentLang === 'es' ? 'Ciclos cósmicos & astrología' : 'Cosmic cycles & astrology';
+
+    if (!getGeminiKey()) {
+        showAIWelcome();
+    } else if (aiChatHistory.length === 0) {
+        showAIWelcome();
+    }
+    setTimeout(() => document.getElementById('aiChatInput').focus(), 200);
+}
+
+function closeAIChat() {
+    document.getElementById('aiChatModal').classList.remove('show');
+    document.getElementById('aiChatFab').style.display = 'flex';
+}
+
+function clearAIChat() {
+    aiChatHistory = [];
+    document.getElementById('aiChatMessages').innerHTML = '';
+    showAIWelcome();
+}
+
+function showAIWelcome() {
+    const container = document.getElementById('aiChatMessages');
+    const hasKey = !!getGeminiKey();
+    const isEs = currentLang === 'es';
+
+    if (!hasKey) {
+        container.innerHTML = `
+            <div class="ai-msg assistant">
+                <p><strong>${isEs ? '¡Hola! Soy tu asistente de ciclos cósmicos.' : 'Hi! I\'m your cosmic cycles assistant.'}</strong></p>
+                <p>${isEs ? 'Para activarme necesitas una API key gratuita de Google Gemini:' : 'To activate me you need a free Google Gemini API key:'}</p>
+                <p>1. ${isEs ? 'Ve a' : 'Go to'} <strong>aistudio.google.com</strong></p>
+                <p>2. ${isEs ? 'Crea una API key (gratis)' : 'Create an API key (free)'}</p>
+                <p>3. ${isEs ? 'Pégala abajo:' : 'Paste it below:'}</p>
+                <div style="margin-top:8px;">
+                    <input type="password" id="aiKeyInput" placeholder="AIza..." style="width:100%;padding:8px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.4);border-radius:8px;color:white;font-size:0.85em;outline:none;margin-bottom:8px;" />
+                    <button onclick="saveGeminiKey()" style="width:100%;padding:10px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;font-size:0.85em;">
+                        ${isEs ? '💾 Guardar y activar' : '💾 Save and activate'}
+                    </button>
+                </div>
+            </div>`;
+    } else {
+        container.innerHTML = `
+            <div class="ai-msg assistant">
+                <p><strong>${isEs ? '✨ ¡Listo! Pregúntame lo que quieras sobre:' : '✨ Ready! Ask me anything about:'}</strong></p>
+                <p>🌙 ${isEs ? 'Ciclos lunares y fases' : 'Lunar cycles and phases'}</p>
+                <p>🌊 ${isEs ? 'Mareas y su influencia' : 'Tides and their influence'}</p>
+                <p>⭐ ${isEs ? 'Aspectos planetarios' : 'Planetary aspects'}</p>
+                <p>☀️ ${isEs ? 'Ciclo solar y estaciones' : 'Solar cycle and seasons'}</p>
+                <p>🌍 ${isEs ? 'Actividad sísmica y terrestre' : 'Seismic and earth activity'}</p>
+                <p>🪐 ${isEs ? 'Sistema solar y planetas' : 'Solar system and planets'}</p>
+            </div>`;
+    }
+}
+
+function saveGeminiKey() {
+    const input = document.getElementById('aiKeyInput');
+    if (!input) return;
+    const key = input.value.trim();
+    if (!key) return;
+    localStorage.setItem('geminiApiKey', key);
+    clearAIChat();
+}
+
+function gatherAstroContext() {
+    const now = new Date();
+    const isEs = currentLang === 'es';
+    let ctx = '';
+
+    // Current date and location
+    ctx += 'Fecha actual: ' + now.toLocaleDateString('es-CR', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n';
+    ctx += 'Hora: ' + now.toLocaleTimeString('es-CR') + '\n';
+    ctx += 'Ubicación del usuario: ' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ' (lat:' + ASTRO_USER_LAT + ', lon:' + ASTRO_USER_LON + ')\n';
+
+    // Lunar day
+    try {
+        const ld = getLunarDayForDate(now);
+        if (ld) ctx += 'Día lunar actual: ' + ld + '\n';
+    } catch(e) {}
+
+    // Moon illumination
+    try {
+        const moonIllum = getMoonIllumination(now);
+        if (moonIllum !== undefined) ctx += 'Iluminación lunar: ' + (moonIllum * 100).toFixed(1) + '%\n';
+    } catch(e) {}
+
+    // Moon phase name
+    try {
+        const phase = getMoonPhaseName(now);
+        if (phase) ctx += 'Fase lunar: ' + phase + '\n';
+    } catch(e) {}
+
+    // Calendar mode
+    ctx += 'Modo de calendario activo: ' + (calendarMode || 'lunar') + '\n';
+
+    return ctx;
+}
+
+function buildSystemPrompt() {
+    const isEs = currentLang === 'es';
+    const astroCtx = gatherAstroContext();
+
+    return `Eres un asistente experto en astronomía, ciclos cósmicos y astrología integrado en la app "Moon Sync". Respondes de forma clara, precisa y concisa.
+
+CONTEXTO ASTRONÓMICO ACTUAL:
+${astroCtx}
+
+TU ESPECIALIDAD:
+- Ciclos lunares: fases, días lunares, lunas nuevas/llenas, eclipses, su significado e influencia
+- Mareas: cómo la luna y el sol afectan las mareas, mareas vivas y muertas
+- Aspectos planetarios: conjunciones, oposiciones, trígonos, cuadraturas entre planetas
+- Ciclo solar: solsticios, equinoccios, declinación solar, estaciones
+- Sistema solar: posiciones planetarias, datos de planetas
+- Actividad sísmica y terrestre
+- Astrología: cartas natales, tránsitos, casas, signos
+
+REGLAS:
+- Responde en ${isEs ? 'español' : 'inglés'}
+- Sé conciso pero completo (máximo 3-4 párrafos)
+- Usa datos astronómicos reales cuando sea posible
+- Si mencionas aspectos astrológicos, aclara que es una interpretación tradicional
+- Puedes usar emojis relevantes (🌙☀️⭐🌊🪐)
+- Si no sabes algo, dilo honestamente`;
+}
+
+function addAIMessage(role, text) {
+    const container = document.getElementById('aiChatMessages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg ' + role;
+
+    if (role === 'assistant') {
+        // Simple markdown: **bold**, *italic*, newlines
+        let html = text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+        div.innerHTML = '<p>' + html + '</p>';
+    } else {
+        div.textContent = text;
+    }
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+}
+
+function showTypingIndicator() {
+    const container = document.getElementById('aiChatMessages');
+    const div = document.createElement('div');
+    div.className = 'ai-typing';
+    div.id = 'aiTypingIndicator';
+    div.innerHTML = '<span>●</span> <span>●</span> <span>●</span>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const el = document.getElementById('aiTypingIndicator');
+    if (el) el.remove();
+}
+
+async function sendAIMessage() {
+    if (aiIsTyping) return;
+    const input = document.getElementById('aiChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const key = getGeminiKey();
+    if (!key) {
+        showAIWelcome();
+        return;
+    }
+
+    // Clear welcome message on first real message
+    if (aiChatHistory.length === 0) {
+        const container = document.getElementById('aiChatMessages');
+        container.innerHTML = '';
+    }
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Add user message
+    addAIMessage('user', text);
+    aiChatHistory.push({role: 'user', parts: [{text: text}]});
+
+    // Show typing
+    aiIsTyping = true;
+    showTypingIndicator();
+
+    try {
+        const systemPrompt = buildSystemPrompt();
+
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                system_instruction: {parts: [{text: systemPrompt}]},
+                contents: aiChatHistory,
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1024
+                }
+            })
+        });
+
+        removeTypingIndicator();
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            const errMsg = err.error?.message || ('Error ' + response.status);
+            if (response.status === 400 && errMsg.includes('API key')) {
+                addAIMessage('error', currentLang === 'es' ? '🔑 API key inválida. Ve a Preferencias para cambiarla.' : '🔑 Invalid API key. Go to Preferences to change it.');
+            } else {
+                addAIMessage('error', '❌ ' + errMsg);
+            }
+            aiChatHistory.pop(); // Remove failed user message
+            aiIsTyping = false;
+            return;
+        }
+
+        const data = await response.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
+
+        addAIMessage('assistant', reply);
+        aiChatHistory.push({role: 'model', parts: [{text: reply}]});
+
+    } catch(err) {
+        removeTypingIndicator();
+        addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
+        aiChatHistory.pop();
+    }
+
+    aiIsTyping = false;
+}
 </script>
 </body>
 </html>
