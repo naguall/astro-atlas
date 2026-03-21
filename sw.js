@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v48';
+const CACHE_NAME = 'moon-sync-v49';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -21,15 +21,17 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // External APIs: network only, no cache
   if (e.request.url.includes('open-meteo.com') || e.request.url.includes('fonts.googleapis.com')) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
+  // All app files: NETWORK FIRST, fallback to cache (ensures updates arrive)
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(resp => {
+    fetch(e.request).then(resp => {
       const clone = resp.clone();
       caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
       return resp;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
