@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v141';
+        var REQUIRED_VER = 'v142';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -2055,16 +2055,60 @@ function getMajorAspect(date) {
 function getSignChanges(date) {
     const changes = [];
     const dateStr = new Date(date).setHours(0, 0, 0, 0);
-    
+
     for (const change of signChanges2026) {
         const changeDate = new Date(change.date);
         changeDate.setHours(0, 0, 0, 0);
-        
+
         if (changeDate.getTime() === dateStr) {
-            changes.push(change);
+            // Enrich: find other planets already in the same sign on this date
+            const companions = getCompanionPlanets(change.planet, change.toSign, date);
+            // Enrich: find nearby inter-planetary aspects (±2 days)
+            const nearbyAspects = getNearbyAspects(date, 2);
+            changes.push({...change, companions, nearbyAspects});
         }
     }
     return changes;
+}
+
+// Find which other planets are in the same sign on a given date
+function getCompanionPlanets(enteringPlanet, sign, date) {
+    const planetMap = {
+        'Sol': 'sun', 'Mercurio': 'mercury', 'Venus': 'venus', 'Marte': 'mars',
+        'Júpiter': 'jupiter', 'Saturno': 'saturn', 'Urano': 'uranus', 'Neptuno': 'neptune', 'Plutón': 'pluto'
+    };
+    const signNames = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+    const targetSignIndex = signNames.indexOf(sign);
+    if (targetSignIndex === -1) return [];
+
+    const companions = [];
+    for (const [nameEs, nameEn] of Object.entries(planetMap)) {
+        if (nameEs === enteringPlanet) continue; // Skip the planet that's entering
+        try {
+            const lon = getPlanetPosition(nameEn, date);
+            const signIdx = Math.floor(lon / 30);
+            if (signIdx === targetSignIndex) {
+                const deg = getZodiacSignWithDegree(lon);
+                companions.push({ planet: nameEs, degree: deg.formatted });
+            }
+        } catch(e) {}
+    }
+    return companions;
+}
+
+// Find inter-planetary aspects within ±N days of a date
+function getNearbyAspects(date, days) {
+    const nearby = [];
+    const dateMs = new Date(date).setHours(0,0,0,0);
+    const rangeMs = days * 86400000;
+
+    for (const asp of interPlanetaryAspects2026) {
+        const aspMs = new Date(asp.date).setHours(0,0,0,0);
+        if (Math.abs(aspMs - dateMs) <= rangeMs) {
+            nearby.push(asp);
+        }
+    }
+    return nearby;
 }
 
 function getStellium(date) {
@@ -3339,10 +3383,30 @@ function openAspectsModal(date, lunarDay, dayData) {
         `}).join('');
     }
 
-    // 2. Cambios de Signo (PLANETARIOS antes que lunares)
+    // 2. Cambios de Signo (PLANETARIOS antes que lunares) — enriched with companions
     if (signChanges.length > 0) {
         htmlContent += signChanges.map(change => {
             const timeStr = change.time ? `<span style="color: #f0e68c; font-weight: bold;">${change.time}</span> - ` : '';
+            // Show companion planets in the same sign
+            let companionHtml = '';
+            if (change.companions && change.companions.length > 0) {
+                const compList = change.companions.map(c => `<span style="color:${change.color};font-weight:600;">${c.planet}</span>`).join(', ');
+                companionHtml = `<div style="margin-top:4px;padding:4px 8px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.15);border-radius:5px;font-size:0.82em;">
+                    <span style="color:#f0e68c;">🤝</span> <span style="color:rgba(255,255,255,0.6);">${currentLang==='es'?'Ya en':'Already in'} ${ts(change.toSign)}:</span> ${compList}
+                </div>`;
+            }
+            // Show nearby aspects (±2 days)
+            let nearbyHtml = '';
+            if (change.nearbyAspects && change.nearbyAspects.length > 0) {
+                const aspList = change.nearbyAspects.map(a => {
+                    const dayDiff = Math.round((new Date(a.date).setHours(0,0,0,0) - new Date(change.date).setHours(0,0,0,0)) / 86400000);
+                    const when = dayDiff === 0 ? (currentLang==='es'?'hoy':'today') : dayDiff > 0 ? `+${dayDiff}d` : `${dayDiff}d`;
+                    return `<span style="color:${a.color || '#aaa'};">${a.planet1} ${a.symbol} ${a.planet2}</span> <span style="opacity:0.5;font-size:0.85em;">(${when})</span>`;
+                }).join(' · ');
+                nearbyHtml = `<div style="margin-top:3px;font-size:0.78em;color:rgba(255,255,255,0.5);">
+                    ⚡ ${currentLang==='es'?'Aspectos cercanos':'Nearby aspects'}: ${aspList}
+                </div>`;
+            }
             return `
             <div class="aspect-detail" style="border-left-color: ${change.color};">
                 <div class="aspect-planets">
@@ -3350,6 +3414,8 @@ function openAspectsModal(date, lunarDay, dayData) {
                 </div>
                 <div class="aspect-description">
                     ${translateMeaning(change.meaning)}
+                    ${companionHtml}
+                    ${nearbyHtml}
                 </div>
             </div>
         `}).join('');
@@ -10462,7 +10528,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v141';
+const APP_VERSION = 'v142';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
@@ -10881,14 +10947,25 @@ async function sendAIMessage() {
             apiUrl = AI_PROXY_URL;
         } else {
             const key = getGeminiKey() || AI_BUILTIN_KEY;
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key;
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + key;
         }
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(requestBody)
-        });
+        // Retry logic for rate limits
+        let response;
+        let retries = 0;
+        while (retries < 3) {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(requestBody)
+            });
+            if (response.status === 429 && retries < 2) {
+                retries++;
+                await new Promise(r => setTimeout(r, 3000 * retries));
+                continue;
+            }
+            break;
+        }
 
         removeTypingIndicator();
 
@@ -10896,7 +10973,7 @@ async function sendAIMessage() {
             const err = await response.json().catch(() => ({}));
             const errMsg = err.error?.message || ('Error ' + response.status);
             if (response.status === 429) {
-                addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera un momento.' : '⏳ Too many requests. Wait a moment.');
+                addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
             } else if (response.status === 400 && errMsg.includes('API key')) {
                 addAIMessage('error', currentLang === 'es' ? '🔑 API key inválida. Ve a ⚙️ Preferencias para cambiarla.' : '🔑 Invalid API key. Go to ⚙️ Preferences to change it.');
             } else {
