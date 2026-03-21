@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v148';
+        var REQUIRED_VER = 'v149';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -9922,21 +9922,30 @@ function openPreferencesModal() {
                 ✨ ${currentLang==='es'?'Asistente AI':'AI Assistant'}
             </div>
             <div style="padding:10px 12px;background:rgba(179,136,255,0.04);border:1px solid rgba(179,136,255,0.2);border-radius:8px;">
-                ${AI_PROXY_URL
-                    ? '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente AI activo':'AI Assistant active') + '</div><div style="font-size:0.68em;color:rgba(255,255,255,0.3);">Proxy: ' + AI_PROXY_URL.substring(0, 40) + '...</div>'
-                    : `<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:8px;">
-                    ${currentLang==='es'?'API key personal de Google Gemini (gratis en aistudio.google.com):':'Personal Google Gemini API key (free at aistudio.google.com):'}
-                </div>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <input type="password" id="prefGeminiKey" value="${localStorage.getItem('geminiApiKey') || ''}" placeholder="AIza..."
-                        style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />
-                    <button onclick="var k=document.getElementById('prefGeminiKey').value.trim();if(k){localStorage.setItem('geminiApiKey',k);}else{localStorage.removeItem('geminiApiKey');}this.textContent='✓';setTimeout(()=>{this.textContent=currentLang==='es'?'Guardar':'Save';},1500);"
-                        style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;white-space:nowrap;">
-                        ${currentLang==='es'?'Guardar':'Save'}
-                    </button>
-                </div>
-                ${localStorage.getItem('geminiApiKey') ? '<div style="margin-top:6px;font-size:0.72em;color:#b388ff;">✓ ' + (currentLang==='es'?'API key configurada':'API key configured') + '</div>' : ''}`
+                <div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ${currentLang==='es'?'Asistente AI activo (integrado)':'AI Assistant active (built-in)'}</div>
+                <div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>
+                ${localStorage.getItem('geminiApiKey')
+                    ? '<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>'
+                    : ''
                 }
+                <details style="margin-top:6px;">
+                    <summary style="cursor:pointer;font-size:0.72em;color:rgba(255,255,255,0.4);outline:none;">
+                        ${currentLang==='es'?'▸ API key personal (opcional)':'▸ Personal API key (optional)'}
+                    </summary>
+                    <div style="margin-top:8px;">
+                        <div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">
+                            ${currentLang==='es'?'Si tienes tu propia key de Google Gemini, puedes usarla aquí:':'If you have your own Google Gemini key, you can use it here:'}
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="password" id="prefGeminiKey" value="${localStorage.getItem('geminiApiKey') || ''}" placeholder="AIza..."
+                                style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />
+                            <button onclick="var k=document.getElementById('prefGeminiKey').value.trim();if(k){localStorage.setItem('geminiApiKey',k);}else{localStorage.removeItem('geminiApiKey');}this.textContent='✓';setTimeout(()=>{this.textContent=currentLang==='es'?'Guardado':'Saved';},1500);"
+                                style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;white-space:nowrap;">
+                                ${currentLang==='es'?'Guardar':'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -10826,7 +10835,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v148';
+const APP_VERSION = 'v149';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
@@ -11023,16 +11032,15 @@ let aiChatHistory = [];
 let aiIsTyping = false;
 
 // Built-in Gemini API key (free tier) — users don't need to configure anything
-const AI_BUILTIN_KEY = 'AIzaSyCg_3eDzIcYaLBNB7Wq1fnzcJNgEUX6cyQ';
-// Optional proxy URL or personal key override
-const AI_PROXY_URL = localStorage.getItem('aiProxyUrl') || '';
-
+// AI Proxy URL — Cloudflare Worker keeps the API key secret
+const AI_PROXY_URL = 'https://moon-sync-ai.bearman-ux.workers.dev';
+// Fallback: user can set their own personal key in Preferences
 function getGeminiKey() {
     return localStorage.getItem('geminiApiKey') || '';
 }
 
 function aiIsConfigured() {
-    return !!(AI_BUILTIN_KEY || AI_PROXY_URL || getGeminiKey());
+    return !!(AI_PROXY_URL || getGeminiKey());
 }
 
 function openAIChat() {
@@ -11239,13 +11247,13 @@ async function sendAIMessage() {
             }
         };
 
-        // Priority: proxy > personal key > built-in key
+        // Priority: personal key (direct) > proxy (Cloudflare Worker)
         let apiUrl;
-        if (AI_PROXY_URL) {
-            apiUrl = AI_PROXY_URL;
+        const personalKey = getGeminiKey();
+        if (personalKey) {
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + personalKey;
         } else {
-            const key = getGeminiKey() || AI_BUILTIN_KEY;
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + key;
+            apiUrl = AI_PROXY_URL;
         }
 
         // Retry logic for rate limits
