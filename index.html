@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v142';
+        var REQUIRED_VER = 'v143';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -4305,12 +4305,58 @@ function translateMeaning(spanishText) {
 // Modal de Cambio de Signo
 function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
     const date = new Date(parseInt(dateTime));
-    
+
     const title = currentLang === 'es' ? `${planet} Cambia de Signo` : `${planet} Changes Sign`;
     const enters = currentLang === 'es' ? 'entra en' : 'enters';
     const meaningLabel = currentLang === 'es' ? '💫 Significado' : '💫 Meaning';
     const translatedMeaning = translateMeaning(meaning);
-    
+
+    // Get companion planets and nearby aspects
+    const companions = getCompanionPlanets(planet, toSign, date);
+    const nearbyAspects = getNearbyAspects(date, 3);
+
+    // Build companions HTML
+    let companionHtml = '';
+    if (companions.length > 0) {
+        const isEs = currentLang === 'es';
+        const compItems = companions.map(c =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:6px;margin-bottom:4px;">
+                <span style="color:#f0e68c;font-weight:600;">${c.planet}</span>
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85em;">${c.degree}</span>
+            </div>`
+        ).join('');
+        companionHtml = `
+        <div style="background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);padding:12px;border-radius:8px;margin-bottom:15px;">
+            <h4 style="margin:0 0 8px;color:#c9a840;font-size:0.9em;">🤝 ${isEs ? 'Ya en' : 'Already in'} ${toSign}</h4>
+            ${compItems}
+        </div>`;
+    }
+
+    // Build nearby aspects HTML
+    let aspectsHtml = '';
+    if (nearbyAspects.length > 0) {
+        const isEs = currentLang === 'es';
+        const aspItems = nearbyAspects.map(a => {
+            const aspDate = new Date(a.date);
+            const dayDiff = Math.round((aspDate.setHours(0,0,0,0) - new Date(date).setHours(0,0,0,0)) / 86400000);
+            const when = dayDiff === 0 ? (isEs?'hoy':'today') : dayDiff > 0 ? `+${dayDiff}d` : `${dayDiff}d`;
+            const badge = a.isMajor ? '<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">MAYOR</span>' :
+                         a.isImportant ? '<span style="background:rgba(78,205,196,0.15);color:#80cbc4;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">NOTABLE</span>' : '';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:6px;margin-bottom:4px;border-left:3px solid ${a.color || '#666'};">
+                <div>
+                    <span style="color:white;font-weight:600;">${a.planet1} ${a.symbol} ${a.planet2}</span>${badge}
+                    <div style="font-size:0.75em;color:rgba(255,255,255,0.4);">${a.aspect} ${a.degrees ? '— ' + a.degrees : ''}</div>
+                </div>
+                <span style="color:rgba(255,255,255,0.4);font-size:0.8em;white-space:nowrap;">${when}</span>
+            </div>`;
+        }).join('');
+        aspectsHtml = `
+        <div style="background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);padding:12px;border-radius:8px;margin-bottom:15px;">
+            <h4 style="margin:0 0 8px;color:#7ec8ff;font-size:0.9em;">⚡ ${isEs ? 'Aspectos Cercanos (±3 días)' : 'Nearby Aspects (±3 days)'}</h4>
+            ${aspItems}
+        </div>`;
+    }
+
     document.getElementById('signChangeModalTitle').textContent = title;
     document.getElementById('signChangeModalBody').innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
@@ -4318,7 +4364,11 @@ function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
             <h3>${planet} ${enters} ${toSign}</h3>
             <p style="color: rgba(255,255,255,0.7);">${formatLongDate(date)}</p>
         </div>
-        
+
+        ${companionHtml}
+
+        ${aspectsHtml}
+
         <!-- Significado -->
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
             <h4 style="margin-top: 0; color: #f0e68c; font-size: 1em;">${meaningLabel}</h4>
@@ -4327,7 +4377,7 @@ function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
             </p>
         </div>
     `;
-    
+
     document.getElementById('signChangeModal').classList.add('show');
 }
 
@@ -10528,7 +10578,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v142';
+const APP_VERSION = 'v143';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
