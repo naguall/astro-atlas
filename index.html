@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v119';
+        var REQUIRED_VER = 'v120';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -7673,10 +7673,10 @@ function renderSublunaryInfoBox(latStr, lonDeg, userLat, userLon) {
     var riseStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
     var setStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
 
-    return '<div style="padding:10px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;">'
-        + '<div style="font-size:1.1em;font-weight:bold;color:#4ecdc4;margin-bottom:4px;">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</div>'
-        + '<div style="font-size:1.1em;font-weight:bold;color:#c9a840;margin-bottom:4px;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</div>'
-        + '<div style="font-size:1.05em;color:rgba(200,215,255,0.8);margin-top:4px;">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</div>'
+    return '<div style="padding:8px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;">'
+        + '<span style="font-size:0.95em;font-weight:bold;color:#4ecdc4;">' + cityLabel + ' ↔ Sublunar: ' + Math.round(distToUser).toLocaleString() + ' km</span>'
+        + '<span style="font-size:0.95em;font-weight:bold;color:#c9a840;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</span>'
+        + '<span style="font-size:0.95em;color:rgba(200,215,255,0.8);">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</span>'
         + '</div>';
 }
 
@@ -8306,7 +8306,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 📍 ${currentLang==='es'?'Posición Sublunar — Punto sobre la Tierra':'Sublunar Point — Position over Earth'}
                 <span style="font-size:0.78em;color:#8899cc;font-weight:400;margin-left:8px;">${currentLang==='es'?'Lat':'Lat'}: ${astro.sublunarLat}°${astro.sublunarDir} · ${currentLang==='es'?'Lon':'Lon'}: ${getSublunaryLon(today)}</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <!-- Mapa 2D SVG -->
                 <div>
                     <div id="sublunaryMapContainer" style="border-radius:8px;overflow:hidden;border:1px solid rgba(74,158,255,0.25);">
@@ -8314,8 +8314,8 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                     </div>
                 </div>
                 <!-- Globo 3D -->
-                <div>
-                    <canvas id="sublunaryGlobe" width="260" height="180" style="border-radius:8px;border:1px solid rgba(74,158,255,0.25);display:block;width:100%;"></canvas>
+                <div id="sublunaryGlobeWrap" style="position:relative;">
+                    <canvas id="sublunaryGlobe" style="border-radius:8px;border:1px solid rgba(74,158,255,0.25);display:block;width:100%;"></canvas>
                 </div>
             </div>
             <!-- Info box separado debajo de ambos mapas -->
@@ -8374,8 +8374,14 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
 
     </div>`;
 
-    // Start 3D globe after DOM update
+    // Start 3D globe after DOM update — match height to 2D map
     setTimeout(() => {
+        const mapC = document.getElementById('sublunaryMapContainer');
+        const canvas = document.getElementById('sublunaryGlobe');
+        if (mapC && canvas) {
+            const mapH = mapC.offsetHeight;
+            if (mapH > 0) { canvas.style.height = mapH + 'px'; }
+        }
         renderSublunaryGlobe(parseFloat(astro.sublunarLat), getSublunaryLonDeg(today));
         startSublunaryRefresh();
         // Fetch real tide data from Open-Meteo
