@@ -7484,7 +7484,22 @@ function updateCurrentDayInfoForMode(mode) {
     if (currentDayInfoDiv) {
         // Get events and aspects data
         const todayEvents = getAllEventsForDate(today);
-        const todayAspects = [];
+        // Get lunar aspects for today (same as lunar mode)
+        const todayLunarDay = getLunarDayForDate(today);
+        let todayAspects = [];
+        if (todayLunarDay) {
+            const nm = findNearestNewMoon(today);
+            const wks = calculateLunarCycle(nm);
+            for (const wk of wks) {
+                for (const d of wk.days) {
+                    if (d.date.toDateString() === today.toDateString()) {
+                        todayAspects = d.aspects || [];
+                        break;
+                    }
+                }
+                if (todayAspects.length > 0) break;
+            }
+        }
         const todaySignChanges = getSignChanges(today);
         const todayRetrogrades = getRetrogrades(today);
         const todayInterAspects = getInterPlanetaryAspects(today);
@@ -7559,10 +7574,12 @@ function updateCurrentDayInfoForMode(mode) {
                                 return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.12);border-radius:4px;border-left:2px solid #e85d7a;text-align:center;width:100%;">${tp(ret.planet)} ${ret.type==='start'?(currentLang==='es'?'℞ Retro':'℞ Retro'):(currentLang==='es'?'℞ Directo':'℞ Direct')}</div>`;
                             } else if (event.type === 'interPlanetaryAspect') {
                                 const asp = event.data;
-                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};text-align:center;width:100%;">☽ ${asp.symbol} ${tp(asp.planet2)}</div>`;
+                                const ts2 = asp.time ? `<span style="font-weight:bold;color:#c9a840">${asp.time}</span> ` : '';
+                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};text-align:center;width:100%;"><span style="color:#e8eaf6">${ts2}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
-                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(124,77,255,0.12);border-radius:4px;border-left:2px solid #7c4dff;text-align:center;width:100%;">☽ ${asp.symbol || ''} ${asp.name || asp.type || ''}</div>`;
+                                const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
+                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${color};border-right:2px solid ${color};text-align:center;width:100%;"><span style="color:#e8eaf6">☽ ${asp.symbol} ${tp(asp.planetName)}</span></div>`;
                             }
                             return '';
                         }).join('')}
