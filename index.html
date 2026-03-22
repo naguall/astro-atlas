@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v151';
+        var REQUIRED_VER = 'v152';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -3584,6 +3584,167 @@ async function gcalDeleteEvent(gcalId) {
     } catch(e) {
         console.error('❌ Google Calendar delete error:', e);
         return false;
+    }
+}
+
+// Export Moon Sync astro events (phases, eclipses, aspects) to Google Calendar
+async function gcalExportAstroEvents(btn) {
+    if (!gcalIsConnected()) {
+        alert(currentLang === 'es' ? 'Conecta Google Calendar primero' : 'Connect Google Calendar first');
+        return;
+    }
+    const origText = btn.textContent;
+    btn.textContent = currentLang === 'es' ? '⏳ Exportando...' : '⏳ Exporting...';
+    btn.disabled = true;
+
+    try {
+        // Get current lunar cycle
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nearestNM = findNearestNewMoon(today);
+        const weeks = calculateLunarCycle(nearestNM);
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let created = 0;
+        let skipped = 0;
+
+        // Collect astro events for the cycle
+        const astroEvents = [];
+
+        weeks.forEach((week, wIdx) => {
+            // Add phase marker for week start
+            if (wIdx === 0 || wIdx === 2) {
+                const phaseName = wIdx === 0 ?
+                    (currentLang === 'es' ? '🌑 Luna Nueva' : '🌑 New Moon') :
+                    (currentLang === 'es' ? '🌕 Luna Llena' : '🌕 Full Moon');
+                astroEvents.push({
+                    date: week.startDate,
+                    title: phaseName,
+                    description: `${week.name} - ${week.zodiacSign}`
+                });
+            }
+            if (wIdx === 1) {
+                astroEvents.push({
+                    date: week.startDate,
+                    title: currentLang === 'es' ? '🌓 Cuarto Creciente' : '🌓 First Quarter',
+                    description: week.name
+                });
+            }
+            if (wIdx === 3) {
+                astroEvents.push({
+                    date: week.startDate,
+                    title: currentLang === 'es' ? '🌗 Cuarto Menguante' : '🌗 Last Quarter',
+                    description: week.name
+                });
+            }
+
+            // Check each day for eclipses, sign changes, retrogrades, major aspects
+            week.days.forEach(day => {
+                const eclipse = getEclipseInfo(day.date);
+                if (eclipse) {
+                    astroEvents.push({
+                        date: day.date,
+                        title: `${eclipse.type === 'solar' ? '☀️' : '🌒'} Eclipse: ${eclipse.name}`,
+                        description: currentLang === 'es' ? 'Eclipse visible - evento astronómico importante' : 'Eclipse - major astronomical event'
+                    });
+                }
+
+                const signChanges = getSignChanges(day.date);
+                signChanges.forEach(sc => {
+                    astroEvents.push({
+                        date: day.date,
+                        title: `${sc.symbol} ${sc.planet} → ${sc.toSign}`,
+                        description: sc.meaning || '',
+                        time: sc.time || ''
+                    });
+                });
+
+                const retrogrades = getRetrogrades(day.date);
+                retrogrades.forEach(r => {
+                    astroEvents.push({
+                        date: day.date,
+                        title: `${r.symbol} ${r.planet} ${r.isStart ? (currentLang==='es'?'Retrógrado':'Retrograde') : (currentLang==='es'?'Directo':'Direct')}`,
+                        description: currentLang==='es' ? `${r.planet} cambia de dirección` : `${r.planet} changes direction`
+                    });
+                });
+
+                const astroEvent = isAstronomicalEvent(day.date);
+                if (astroEvent) {
+                    astroEvents.push({
+                        date: day.date,
+                        title: `☀️ ${astroEvent[currentLang === 'es' ? 'es' : 'en']}`,
+                        description: currentLang==='es' ? 'Evento astronómico' : 'Astronomical event'
+                    });
+                }
+            });
+        });
+
+        // Create events in batches (avoid rate limits)
+        for (const evt of astroEvents) {
+            const dateStr = getDateKey(evt.date);
+            let gcalEvent;
+
+            if (evt.time) {
+                const [h, m] = evt.time.split(':');
+                const start = new Date(evt.date);
+                start.setHours(parseInt(h), parseInt(m || 0), 0, 0);
+                const end = new Date(start.getTime() + 30 * 60 * 1000);
+                gcalEvent = {
+                    summary: evt.title,
+                    description: `[Moon Sync] ${evt.description}`,
+                    start: { dateTime: start.toISOString(), timeZone: tz },
+                    end: { dateTime: end.toISOString(), timeZone: tz }
+                };
+            } else {
+                gcalEvent = {
+                    summary: evt.title,
+                    description: `[Moon Sync] ${evt.description}`,
+                    start: { date: dateStr },
+                    end: { date: dateStr }
+                };
+            }
+
+            try {
+                const resp = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + gcalAccessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(gcalEvent)
+                });
+                if (resp.ok) {
+                    created++;
+                } else {
+                    skipped++;
+                    if (resp.status === 429) {
+                        // Rate limited, wait and retry
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+            } catch(e) {
+                skipped++;
+            }
+
+            // Small delay between requests
+            await new Promise(r => setTimeout(r, 200));
+        }
+
+        btn.textContent = `✓ ${created} ${currentLang === 'es' ? 'eventos creados' : 'events created'}`;
+        btn.style.color = '#4ecdc4';
+        setTimeout(() => {
+            btn.textContent = origText;
+            btn.style.color = '#c9a840';
+            btn.disabled = false;
+        }, 3000);
+
+        // Re-sync to show the new events
+        gcalFetchEvents();
+
+    } catch(e) {
+        console.error('❌ Export error:', e);
+        btn.textContent = '❌ Error';
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = origText; }, 2000);
     }
 }
 
@@ -7637,6 +7798,9 @@ function renderSolarCalendar() {
     // Generate solar calendar
     solarWeeks.innerHTML = generateSolarWeeks(sign);
 
+    // Sync all decan scrolls
+    syncWeekScrolls(solarWeeks);
+
     // Update currentDayInfo to show solar data instead of lunar
     updateCurrentDayInfoForMode('solar');
 
@@ -9585,6 +9749,33 @@ function renderCalendar() {
         
         container.appendChild(weekDiv);
     });
+
+    // Sync all week scrolls — when one scrolls, all follow
+    syncWeekScrolls(container);
+}
+
+// Synchronize horizontal scroll of all .days-container within a parent
+function syncWeekScrolls(parentContainer) {
+    const containers = parentContainer.querySelectorAll('.days-container');
+    if (containers.length < 2) return;
+    let isSyncing = false;
+
+    containers.forEach(el => {
+        el.addEventListener('scroll', function() {
+            if (isSyncing) return;
+            isSyncing = true;
+            const left = this.scrollLeft;
+            const maxScroll = this.scrollWidth - this.clientWidth;
+            const pct = maxScroll > 0 ? left / maxScroll : 0;
+            containers.forEach(other => {
+                if (other !== this) {
+                    const otherMax = other.scrollWidth - other.clientWidth;
+                    other.scrollLeft = pct * otherMax;
+                }
+            });
+            isSyncing = false;
+        }, { passive: true });
+    });
 }
 
 function nextCycle() {
@@ -10375,6 +10566,12 @@ function openPreferencesModal() {
                         <button onclick="gcalSignOut();openPreferencesModal();" style="padding:8px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.82em;cursor:pointer;">
                             ${t('gcalDisconnect')}
                         </button>
+                    </div>
+                    <button onclick="gcalExportAstroEvents(this)" style="width:100%;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;margin-bottom:4px;">
+                        🌙 ${currentLang==='es'?'Exportar aspectos lunares a Google Calendar':'Export lunar aspects to Google Calendar'}
+                    </button>
+                    <div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;">
+                        ${currentLang==='es'?'Agrega fases lunares, eclipses y aspectos del ciclo actual':'Adds lunar phases, eclipses, and aspects from current cycle'}
                     </div>
                 ` : `
                     <div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">${t('gcalDisconnected')}</div>
@@ -11275,7 +11472,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v151';
+const APP_VERSION = 'v152';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
