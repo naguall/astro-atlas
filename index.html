@@ -411,8 +411,8 @@
         /* Solar mode */
         body.solar-mode { background: radial-gradient(ellipse 70% 50% at 20% 15%, rgba(90,55,0,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 80% 80%, rgba(70,35,0,0.50) 0%, transparent 55%), linear-gradient(170deg, #0e0700 0%, #180e00 40%, #0e0700 100%); }
         body.solar-mode .lunar-week { background: rgba(18,11,2,0.95); border-color: rgba(212,175,55,0.18) !important; border-left-color: rgba(212,175,55,0.50) !important; }
-        body.solar-mode .lunar-week > div:not(.week-header) { grid-template-columns: repeat(10, 1fr) !important; }
-        body.solar-mode .day-cell { background: rgba(14,9,2,0.95); border: 1px solid rgba(212,175,55,0.16); }
+        body.solar-mode .lunar-week > div:not(.week-header) { display: flex !important; gap: 5px; overflow-x: auto; }
+        body.solar-mode .day-cell { background: rgba(14,9,2,0.95); border: 1px solid rgba(212,175,55,0.16); min-width: 100px; min-height: 110px; flex-shrink: 0; }
         body.solar-mode .day-cell:hover { background: rgba(22,14,2,0.98); border-color: rgba(212,175,55,0.38); }
         body.solar-mode .day-cell.today, body.solar-mode .day-cell.today.weekend { background: linear-gradient(160deg, rgba(45,32,5,0.98) 0%, rgba(30,20,3,0.98) 100%) !important; border: 1px solid rgba(201,168,64,0.60) !important; border-top: 3px solid #c9a840 !important; box-shadow: 0 0 22px rgba(201,168,64,0.25), inset 0 1px 0 rgba(201,168,64,0.20) !important; }
         body.solar-mode .day-cell.weekend { background: rgba(25,18,2,0.95); border: 1px solid rgba(212,175,55,0.35); border-top: 2px solid rgba(212,175,55,0.55); box-shadow: 0 0 8px rgba(212,175,55,0.15), inset 0 0 12px rgba(212,175,55,0.06); }
@@ -528,9 +528,9 @@
             
             /* ── Solar/Gregorian ── */
             body.solar-mode #solarWeeks { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            body.solar-mode .lunar-week { min-width: 800px; }
-            body.solar-mode .lunar-week > div:not(.week-header) { display: grid !important; grid-template-columns: repeat(10, 1fr) !important; }
-            body.solar-mode .day-cell { min-width: 100px; min-height: 110px; }
+            body.solar-mode .lunar-week { min-width: unset; }
+            body.solar-mode .lunar-week > div:not(.week-header) { display: flex !important; gap: 4px; overflow-x: auto; }
+            body.solar-mode .day-cell { min-width: 100px; min-height: 110px; flex-shrink: 0; }
             /* Gregorian mobile: horizontally scrollable with larger cells */
             body.gregorian-mode .gregorian-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             body.gregorian-mode .gregorian-header-row { min-width: 750px; }
