@@ -3342,11 +3342,10 @@ function handleGcalTokenResponse(response) {
 }
 
 function gcalSignIn() {
-    const clientId = localStorage.getItem('gcalClientId');
-    if (!clientId) {
+    if (!GCAL_CLIENT_ID) {
         alert(currentLang === 'es' ?
-            'Primero ingresa tu Google Client ID en Preferencias' :
-            'First enter your Google Client ID in Preferences');
+            'Error: Client ID no configurado' :
+            'Error: Client ID not configured');
         return;
     }
     if (!gcalTokenClient) {
