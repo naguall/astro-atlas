@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v158';
+        var REQUIRED_VER = 'v159';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -25,9 +25,14 @@
                     regs.forEach(function(r){ r.unregister(); });
                 });
             }
-            // Clear stale notification history (old entries from other days)
+            // Clear stale notification history and natal chart cache (force recalculation)
             localStorage.removeItem('notifHistory');
             localStorage.removeItem('lastNotifLogDay');
+            localStorage.removeItem('natalChart');
+            // Also clear per-profile chart caches
+            for (var k in localStorage) {
+                if (k.indexOf('natalChart_') === 0) localStorage.removeItem(k);
+            }
             localStorage.setItem('app_version', REQUIRED_VER);
             // If we had an old version, reload to get fresh files
             if (lastVer) {
@@ -8567,6 +8572,7 @@ function saveNatalForm() {
     // Calculate natal chart
     const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
     const chart = calculateNatalChart(birthUTC);
+    chart._engineVer = 'v159';
     localStorage.setItem('natalChart', JSON.stringify(chart));
     // Also save per-profile chart cache
     localStorage.setItem('natalChart_' + activeId, JSON.stringify(chart));
@@ -8587,9 +8593,13 @@ function renderPersonalCalendar() {
         const profileChart = localStorage.getItem('natalChart_' + natal.id);
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
-    if (!natalChart) {
+    // Force recalculation if chart was computed by an older engine version
+    const NATAL_ENGINE_VER = 'v159';
+    if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
+        natalChart._engineVer = NATAL_ENGINE_VER;
         localStorage.setItem('natalChart', JSON.stringify(natalChart));
+        if (natal.id) localStorage.setItem('natalChart_' + natal.id, JSON.stringify(natalChart));
     }
 
     const today = new Date();
@@ -13441,7 +13451,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v158';
+const APP_VERSION = 'v159';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
