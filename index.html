@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v156';
+        var REQUIRED_VER = 'v157';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -8513,7 +8513,7 @@ function handleCitySearch(query) {
             return;
         }
         box.innerHTML = results.map((r, i) => `
-            <div class="city-suggestion-item" onclick="selectCity(${i})">
+            <div class="city-suggestion-item" onclick="selectNatalCity(${i})">
                 <div style="font-weight:600;">${r.city || r.name.split(',')[0]}</div>
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${r.name}</div>
             </div>
@@ -8522,7 +8522,7 @@ function handleCitySearch(query) {
     }, 400);
 }
 
-function selectCity(index) {
+function selectNatalCity(index) {
     const city = citySuggestions[index];
     if (!city) return;
     document.getElementById('natalBirthCity').value = city.city + (city.country ? ', ' + city.country : '');
@@ -8666,8 +8666,11 @@ function renderPersonalCalendar() {
                 </div>
             </details>
             <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-                <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.3);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.6);font-size:0.72em;cursor:pointer;" title="${L ? 'Copiar carta natal como texto para interpretar con IA' : 'Copy natal chart as text for AI interpretation'}">
-                    📋 ${L ? 'Copiar para IA' : 'Copy for AI'}
+                <button onclick="showNatalInterpretation()" style="background:linear-gradient(135deg,rgba(78,205,196,0.15),rgba(155,89,182,0.15));border:1px solid rgba(78,205,196,0.4);border-radius:6px;padding:5px 12px;color:#4ecdc4;font-size:0.75em;cursor:pointer;font-weight:600;">
+                    🔮 ${L ? 'Interpretar Carta' : 'Interpret Chart'}
+                </button>
+                <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.2);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.4);font-size:0.68em;cursor:pointer;">
+                    📋 ${L ? 'Copiar texto' : 'Copy text'}
                 </button>
                 <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
                     ✏️ ${L ? 'Editar datos' : 'Edit data'}
@@ -12839,7 +12842,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v156';
+const APP_VERSION = 'v157';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
