@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v152';
+        var REQUIRED_VER = 'v153';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -428,6 +428,40 @@
         body.solar-mode h1 { background: linear-gradient(135deg, #8a6010 0%, #D4AF37 45%, #FFF8DC 60%, #C19A6B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         body.solar-mode .current-day-info { border-top-color: rgba(212,175,55,0.55); border-color: rgba(212,175,55,0.32); }
 
+        /* Personal mode */
+        body.personal-mode { background: radial-gradient(ellipse 70% 50% at 20% 15%, rgba(60,0,80,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 80% 80%, rgba(40,0,90,0.50) 0%, transparent 55%), linear-gradient(170deg, #0a0020 0%, #120030 40%, #0a0020 100%); }
+        body.personal-mode h1 { background: linear-gradient(135deg, #9b59b6 0%, #e8c84a 50%, #c39bd3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .personal-natal-card { background: rgba(15,5,30,0.95); border: 1px solid rgba(155,89,182,0.25); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .personal-natal-card h3 { font-family: 'Cinzel', serif; font-size: 0.95em; color: #c39bd3; margin-bottom: 10px; }
+        .natal-planet-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(155,89,182,0.10); font-size: 0.82em; }
+        .natal-planet-row:last-child { border-bottom: none; }
+        .natal-planet-symbol { font-size: 1.2em; width: 24px; text-align: center; }
+        .natal-planet-sign { color: #c39bd3; font-weight: 600; }
+        .natal-planet-degree { color: rgba(255,255,255,0.5); font-size: 0.85em; }
+        .natal-house-label { color: rgba(201,168,64,0.7); font-size: 0.78em; margin-left: auto; }
+        .transit-aspect-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin: 3px 0; border-radius: 6px; font-size: 0.8em; }
+        .transit-aspect-row.conjunction { background: rgba(231,76,60,0.08); border-left: 2px solid #e74c3c; }
+        .transit-aspect-row.opposition { background: rgba(231,76,60,0.06); border-left: 2px solid #c0392b; }
+        .transit-aspect-row.trine { background: rgba(46,204,113,0.08); border-left: 2px solid #2ecc71; }
+        .transit-aspect-row.sextile { background: rgba(52,152,219,0.08); border-left: 2px solid #3498db; }
+        .transit-aspect-row.square { background: rgba(241,196,15,0.08); border-left: 2px solid #f1c40f; }
+        .personal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .personal-day-cell { min-height: 70px; background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; }
+        .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
+        .personal-day-cell.today { background: rgba(25,10,50,0.95); border: 1px solid rgba(201,168,64,0.50); border-top: 3px solid #c9a840; box-shadow: 0 0 18px rgba(201,168,64,0.20); }
+        .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
+        .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
+        .personal-day-num { font-weight: 700; color: #c39bd3; margin-bottom: 2px; }
+        .personal-day-cell.today .personal-day-num { color: #e8c84a; }
+        .personal-transit-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 1px; }
+        .personal-setup-form { max-width: 420px; margin: 20px auto; }
+        .personal-setup-form label { display: block; font-size: 0.85em; color: #c39bd3; margin-bottom: 4px; font-weight: 600; }
+        .personal-setup-form input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(155,89,182,0.30); border-radius: 8px; color: white; font-size: 0.9em; outline: none; margin-bottom: 12px; }
+        .personal-setup-form input:focus { border-color: rgba(155,89,182,0.60); box-shadow: 0 0 12px rgba(155,89,182,0.15); }
+        .city-suggestions { position: absolute; z-index: 100; background: rgba(15,5,30,0.98); border: 1px solid rgba(155,89,182,0.35); border-radius: 8px; max-height: 200px; overflow-y: auto; width: 100%; margin-top: -10px; }
+        .city-suggestion-item { padding: 10px 14px; cursor: pointer; font-size: 0.85em; color: #e8eaf6; border-bottom: 1px solid rgba(155,89,182,0.10); }
+        .city-suggestion-item:hover { background: rgba(155,89,182,0.15); }
+
         /* Gregorian mode */
         body.gregorian-mode { background: radial-gradient(ellipse 65% 45% at 18% 22%, rgba(0,20,70,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 82% 78%, rgba(0,12,50,0.55) 0%, transparent 55%), linear-gradient(170deg, #030815 0%, #050c28 40%, #030613 100%); }
         .gregorian-grid { max-width: 1200px; margin: 0 auto; }
@@ -585,6 +619,7 @@
             <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:3px;width:100%;">
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:5px 12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:20px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Solar</button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="personalButtonLabel">Natal</span></button>
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="ssButtonLabel">S.S</span></button>
                 <!-- HIDDEN: Gregorian button (kept for future use) -->
@@ -3217,6 +3252,8 @@ function updateUILanguage() {
         switchToEarthMode();
     } else if (calendarMode === 'solarsystem') {
         switchToSolarSystemMode();
+    } else if (calendarMode === 'personal') {
+        switchToPersonalMode();
     }
 }
 
@@ -6616,12 +6653,15 @@ function switchToSolarMode() {
     // Apply solar theme
     document.body.classList.add('solar-mode');
     document.body.classList.remove('gregorian-mode');
+    document.body.classList.remove('personal-mode');
 
-    // Hide earth and solar system panels
+    // Hide earth, solar system, and personal panels
     const eip = document.getElementById('earthInfoPanel');
     if (eip) eip.style.display = 'none';
     const ssp = document.getElementById('solarSystemPanel');
     if (ssp) ssp.style.display = 'none';
+    const pCal = document.getElementById('personalCalendar');
+    if (pCal) pCal.style.display = 'none';
 
     updateModeButtons();
     renderSolarCalendar();
@@ -6634,14 +6674,17 @@ function switchToGregorianMode() {
     // Apply gregorian theme
     document.body.classList.add('gregorian-mode');
     document.body.classList.remove('solar-mode');
+    document.body.classList.remove('personal-mode');
 
-    // Hide solar, earth, and solar system panels
+    // Hide solar, earth, solar system, and personal panels
     const sip = document.getElementById('solarInfoPanel');
     if (sip) sip.style.display = 'none';
     const eip = document.getElementById('earthInfoPanel');
     if (eip) eip.style.display = 'none';
     const ssp = document.getElementById('solarSystemPanel');
     if (ssp) ssp.style.display = 'none';
+    const pCal = document.getElementById('personalCalendar');
+    if (pCal) pCal.style.display = 'none';
 
     updateModeButtons();
     renderGregorianCalendar();
@@ -6653,6 +6696,9 @@ function switchToEarthMode() {
 
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
+    document.body.classList.remove('personal-mode');
+    const pCal = document.getElementById('personalCalendar');
+    if (pCal) pCal.style.display = 'none';
 
     // Hide other calendars
     const lunarWeeks = document.getElementById('lunarWeeks');
@@ -6684,10 +6730,13 @@ function switchToEarthMode() {
 function switchToLunarMode() {
     calendarMode = 'lunar';
     localStorage.setItem('calendarMode', 'lunar');
-    
-    // Remove solar and gregorian themes
+
+    // Remove solar, gregorian, and personal themes
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
+    document.body.classList.remove('personal-mode');
+    const pCal = document.getElementById('personalCalendar');
+    if (pCal) pCal.style.display = 'none';
     
     // Show lunar calendar
     const lunarWeeks = document.getElementById('lunarWeeks');
@@ -6737,12 +6786,15 @@ function switchToSolarSystemMode() {
 
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
+    document.body.classList.remove('personal-mode');
 
     // Hide other panels
     const lunarWeeks = document.getElementById('lunarWeeks');
     if (lunarWeeks) lunarWeeks.style.display = 'none';
     const solarWeeks = document.getElementById('solarWeeks');
     if (solarWeeks) solarWeeks.style.display = 'none';
+    const pCal = document.getElementById('personalCalendar');
+    if (pCal) pCal.style.display = 'none';
     const gregorianCal = document.getElementById('gregorianCalendar');
     if (gregorianCal) gregorianCal.style.display = 'none';
     const sip = document.getElementById('solarInfoPanel');
@@ -7597,9 +7649,10 @@ function updateModeButtons() {
     const earthBtn = document.getElementById('earthModeBtn');
     const ssBtn = document.getElementById('solarSystemModeBtn');
     const gregorianBtn = document.getElementById('gregorianModeBtn');
+    const personalBtn = document.getElementById('personalModeBtn');
 
     // Reset all
-    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn].forEach(btn => {
+    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn, personalBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = 'rgba(255,255,255,0.04)'; btn.style.border = '1px solid rgba(255,255,255,0.10)';
         btn.style.color = 'rgba(255,255,255,0.45)';
@@ -7617,7 +7670,833 @@ function updateModeButtons() {
     else if (calendarMode === 'earth') activeStyle(earthBtn, '#4ecdc4');
     else if (calendarMode === 'solarsystem') activeStyle(ssBtn, '#ff9500');
     else if (calendarMode === 'gregorian') activeStyle(gregorianBtn, '#e8c84a');
+    else if (calendarMode === 'personal') activeStyle(personalBtn, '#9b59b6');
 }
+
+// ══════════════════════════════════════════════════
+// ── PERSONAL CALENDAR (Natal Chart Based) ──
+// ══════════════════════════════════════════════════
+
+// --- Historical Timezone Correction Table ---
+// Covers countries where IANA TZ database is unreliable pre-1970
+const HISTORICAL_TZ_CORRECTIONS = {
+    'Europe/Paris': [
+        // France: complex history due to WWII
+        { from: '1891-03-15', to: '1911-03-11', offset: 0.15 }, // PMT (Paris Mean Time = UTC+0:09:21)
+        { from: '1911-03-11', to: '1940-06-14', offset: 0 },    // WET (UTC+0)
+        { from: '1940-06-14', to: '1944-08-25', offset: 2 },    // CEST (German occupation, UTC+2)
+        { from: '1944-08-25', to: '1945-09-16', offset: 2 },    // Maintained +2 after liberation
+        { from: '1945-09-16', to: '1976-01-01', offset: 1 },    // CET (UTC+1, never returned to +0)
+    ],
+    'Europe/Madrid': [
+        // Spain: Franco adopted German time in 1940, never went back
+        { from: '1900-01-01', to: '1940-03-16', offset: 0 },    // WET (UTC+0)
+        { from: '1940-03-16', to: '1976-01-01', offset: 1 },    // CET (UTC+1, "wrong" timezone)
+    ],
+    'Europe/Lisbon': [
+        // Portugal: various changes
+        { from: '1912-01-01', to: '1966-04-03', offset: 0 },    // WET
+        { from: '1966-04-03', to: '1976-09-26', offset: 1 },    // CET (briefly adopted CET)
+        { from: '1976-09-26', to: '1996-01-01', offset: 0 },    // Back to WET
+    ],
+    'Europe/Moscow': [
+        // Russia: decree time chaos
+        { from: '1919-07-01', to: '1930-06-21', offset: 2 },    // EET
+        { from: '1930-06-21', to: '1981-04-01', offset: 3 },    // MSK (decree time +1h permanent)
+    ],
+    'Europe/Berlin': [
+        { from: '1940-04-01', to: '1945-05-08', offset: 2 },    // CEST year-round during war
+        { from: '1945-05-24', to: '1947-04-06', offset: 2 },    // Maintained
+    ],
+    'Europe/Rome': [
+        { from: '1893-11-01', to: '1942-11-02', offset: 1 },    // CET
+    ]
+};
+
+// DST overlays for common historical DST periods (summer time additions)
+// These add +1 to the base offset during summer months
+const HISTORICAL_DST = {
+    'Europe/Paris': [
+        // France had various summer time periods
+        { fromYear: 1916, toYear: 1940, startMonth: 3, endMonth: 10 }, // Approx Mar-Oct
+        { fromYear: 1976, toYear: 2000, startMonth: 3, endMonth: 9 },  // After adoption of EU DST
+    ]
+};
+
+function getHistoricalUTCOffset(ianaTimezone, dateStr) {
+    // dateStr = 'YYYY-MM-DD'
+    const corrections = HISTORICAL_TZ_CORRECTIONS[ianaTimezone];
+    if (!corrections) return null; // Use default Intl resolution
+
+    for (const c of corrections) {
+        if (dateStr >= c.from && dateStr < c.to) {
+            return c.offset;
+        }
+    }
+    return null; // No correction found, use default
+}
+
+// --- Geocoding (OpenStreetMap Nominatim) ---
+let citySearchTimeout = null;
+let citySuggestions = [];
+
+async function searchCities(query) {
+    if (!query || query.length < 2) return [];
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1&accept-language=${currentLang}`;
+        const resp = await fetch(url, {
+            headers: { 'User-Agent': 'MoonSync/1.0 (astrology calendar app)' }
+        });
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        return data.map(r => ({
+            name: r.display_name,
+            lat: parseFloat(r.lat),
+            lon: parseFloat(r.lon),
+            city: r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || r.name,
+            country: r.address?.country || '',
+            countryCode: r.address?.country_code || ''
+        }));
+    } catch(e) {
+        console.error('Geocoding error:', e);
+        return [];
+    }
+}
+
+// Simple timezone lookup from coordinates using rough geographic boundaries
+// Falls back to Intl API for modern dates, uses historical table for old dates
+function getTimezoneFromCoords(lat, lon, countryCode) {
+    // Map of country codes to primary IANA timezone
+    const countryTimezones = {
+        'fr': 'Europe/Paris', 'es': 'Europe/Madrid', 'pt': 'Europe/Lisbon',
+        'de': 'Europe/Berlin', 'it': 'Europe/Rome', 'gb': 'Europe/London',
+        'us': lon < -115 ? 'America/Los_Angeles' : lon < -100 ? 'America/Denver' : lon < -85 ? 'America/Chicago' : 'America/New_York',
+        'mx': 'America/Mexico_City', 'ar': 'America/Argentina/Buenos_Aires',
+        'br': lon < -50 ? 'America/Sao_Paulo' : 'America/Sao_Paulo',
+        'cl': 'America/Santiago', 'co': 'America/Bogota', 've': 'America/Caracas',
+        'pe': 'America/Lima', 'cr': 'America/Costa_Rica', 'pa': 'America/Panama',
+        'ru': lon < 40 ? 'Europe/Moscow' : 'Asia/Novosibirsk',
+        'cn': 'Asia/Shanghai', 'jp': 'Asia/Tokyo', 'in': 'Asia/Kolkata',
+        'au': lon < 135 ? 'Australia/Perth' : lon < 148 ? 'Australia/Adelaide' : 'Australia/Sydney',
+        'za': 'Africa/Johannesburg', 'eg': 'Africa/Cairo',
+        'il': 'Asia/Jerusalem', 'tr': 'Europe/Istanbul',
+        'uy': 'America/Montevideo', 'bo': 'America/La_Paz', 'ec': 'America/Guayaquil',
+        'py': 'America/Asuncion', 'gt': 'America/Guatemala', 'cu': 'America/Havana',
+        'do': 'America/Santo_Domingo', 'hn': 'America/Tegucigalpa', 'ni': 'America/Managua',
+        'sv': 'America/El_Salvador', 'ca': lon < -100 ? 'America/Vancouver' : 'America/Toronto',
+    };
+    return countryTimezones[countryCode] || null;
+}
+
+function getBirthUTCTime(dateStr, timeStr, lat, lon, countryCode) {
+    // dateStr = 'YYYY-MM-DD', timeStr = 'HH:MM'
+    const ianaTimezone = getTimezoneFromCoords(lat, lon, countryCode);
+
+    // Try historical correction first
+    const historicalOffset = ianaTimezone ? getHistoricalUTCOffset(ianaTimezone, dateStr) : null;
+
+    if (historicalOffset !== null) {
+        // Use historical correction
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [h, min] = timeStr.split(':').map(Number);
+        const utcDate = new Date(Date.UTC(y, m - 1, d, h - historicalOffset, min));
+        return utcDate;
+    }
+
+    // Modern date: use Intl for timezone resolution
+    try {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [h, min] = timeStr.split(':').map(Number);
+        if (ianaTimezone) {
+            // Create date in specific timezone
+            const localStr = `${dateStr}T${timeStr}:00`;
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: ianaTimezone,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            // Approximate: create UTC and adjust
+            const approxUTC = new Date(Date.UTC(y, m - 1, d, h, min));
+            const parts = formatter.formatToParts(approxUTC);
+            const getP = (t) => parseInt(parts.find(p => p.type === t)?.value || '0');
+            const localH = getP('hour');
+            const diff = localH - h;
+            return new Date(approxUTC.getTime() + diff * 3600000);
+        }
+        return new Date(Date.UTC(y, m - 1, d, h, min));
+    } catch(e) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [h, min] = timeStr.split(':').map(Number);
+        return new Date(Date.UTC(y, m - 1, d, h, min));
+    }
+}
+
+// --- Natal Chart Calculation ---
+// Uses existing getPlanetPosition() engine
+
+function calculateNatalChart(birthDate) {
+    // birthDate = Date object in UTC
+    const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'lilith'];
+    const natalPositions = {};
+
+    for (const p of planets) {
+        const lon = getPlanetPosition(p, birthDate);
+        const signInfo = getZodiacSignWithDegree(lon);
+        natalPositions[p] = {
+            longitude: lon,
+            sign: signInfo.sign,
+            degree: signInfo.degree,
+            minute: signInfo.minute,
+            formatted: signInfo.formatted
+        };
+    }
+
+    // Calculate houses (Placidus approximation)
+    // Ascendant calculation using birth time and latitude
+    const houses = calculateHouses(birthDate, parseFloat(localStorage.getItem('natalLat') || '0'));
+
+    return { planets: natalPositions, houses };
+}
+
+function calculateHouses(date, latitude) {
+    // Simplified Placidus house calculation
+    // Local Sidereal Time (LST)
+    const jd = getJulianDay(date);
+    const T = (jd - 2451545.0) / 36525;
+    const lon = parseFloat(localStorage.getItem('natalLon') || '0');
+
+    // Greenwich Mean Sidereal Time (GMST) in degrees
+    let GMST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T;
+    GMST = GMST % 360;
+    if (GMST < 0) GMST += 360;
+
+    // Local Sidereal Time
+    let LST = GMST + lon;
+    LST = LST % 360;
+    if (LST < 0) LST += 360;
+
+    // Obliquity of ecliptic
+    const obliquity = 23.4393 - 0.0130 * T;
+    const oblRad = obliquity * Math.PI / 180;
+    const latRad = latitude * Math.PI / 180;
+    const lstRad = LST * Math.PI / 180;
+
+    // Ascendant
+    let ascendant = Math.atan2(
+        Math.cos(lstRad),
+        -(Math.sin(oblRad) * Math.tan(latRad) + Math.cos(oblRad) * Math.sin(lstRad))
+    ) * 180 / Math.PI;
+    if (ascendant < 0) ascendant += 360;
+
+    // MC (Midheaven)
+    let mc = Math.atan2(Math.sin(lstRad), Math.cos(lstRad) * Math.cos(oblRad)) * 180 / Math.PI;
+    if (mc < 0) mc += 360;
+
+    // Simplified equal house system (30° per house from ASC)
+    const houseCusps = [];
+    for (let i = 0; i < 12; i++) {
+        let cusp = (ascendant + i * 30) % 360;
+        houseCusps.push(cusp);
+    }
+
+    return {
+        ascendant: ascendant,
+        mc: mc,
+        cusps: houseCusps,
+        ascFormatted: getZodiacSignWithDegree(ascendant).formatted,
+        mcFormatted: getZodiacSignWithDegree(mc).formatted
+    };
+}
+
+function getHouseForLongitude(longitude, houseCusps) {
+    for (let i = 0; i < 12; i++) {
+        const next = (i + 1) % 12;
+        let start = houseCusps[i];
+        let end = houseCusps[next];
+        if (end < start) end += 360;
+        let lon = longitude;
+        if (lon < start) lon += 360;
+        if (lon >= start && lon < end) return i + 1;
+    }
+    return 1;
+}
+
+// --- Transit Aspects to Natal Chart ---
+function calculateTransitsToNatal(transitDate, natalChart) {
+    const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron'];
+    const aspectTypes = [
+        { name: 'conjunction', symbol: '☌', angle: 0, orb: 6, color: '#e74c3c', class: 'conjunction' },
+        { name: 'sextile', symbol: '⚹', angle: 60, orb: 3, color: '#3498db', class: 'sextile' },
+        { name: 'square', symbol: '□', angle: 90, orb: 6, color: '#f1c40f', class: 'square' },
+        { name: 'trine', symbol: '△', angle: 120, orb: 6, color: '#2ecc71', class: 'trine' },
+        { name: 'opposition', symbol: '☍', angle: 180, orb: 6, color: '#c0392b', class: 'opposition' }
+    ];
+
+    const aspects = [];
+
+    for (const transitPlanet of planets) {
+        const transitLon = getPlanetPosition(transitPlanet, transitDate);
+
+        for (const natalPlanet of Object.keys(natalChart.planets)) {
+            const natalLon = natalChart.planets[natalPlanet].longitude;
+
+            let diff = Math.abs(transitLon - natalLon);
+            if (diff > 180) diff = 360 - diff;
+
+            for (const aspect of aspectTypes) {
+                const aspectDiff = Math.abs(diff - aspect.angle);
+                // Tighter orbs for fast-moving planets, wider for slow
+                const slowPlanets = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+                const effectiveOrb = slowPlanets.includes(transitPlanet) ? aspect.orb : aspect.orb * 0.7;
+
+                if (aspectDiff <= effectiveOrb) {
+                    aspects.push({
+                        transitPlanet,
+                        transitSymbol: planetSymbols[transitPlanet] || transitPlanet[0].toUpperCase(),
+                        natalPlanet,
+                        natalSymbol: planetSymbols[natalPlanet] || natalPlanet[0].toUpperCase(),
+                        type: aspect.name,
+                        symbol: aspect.symbol,
+                        color: aspect.color,
+                        class: aspect.class,
+                        exactness: effectiveOrb - aspectDiff,
+                        applying: diff < aspect.angle // simplified
+                    });
+                }
+            }
+        }
+    }
+
+    // Also check transits to ASC and MC
+    if (natalChart.houses) {
+        for (const transitPlanet of planets) {
+            const transitLon = getPlanetPosition(transitPlanet, transitDate);
+
+            for (const point of [
+                { name: 'ASC', lon: natalChart.houses.ascendant },
+                { name: 'MC', lon: natalChart.houses.mc }
+            ]) {
+                let diff = Math.abs(transitLon - point.lon);
+                if (diff > 180) diff = 360 - diff;
+
+                for (const aspect of aspectTypes) {
+                    if (Math.abs(diff - aspect.angle) <= aspect.orb * 0.6) {
+                        aspects.push({
+                            transitPlanet,
+                            transitSymbol: planetSymbols[transitPlanet] || '?',
+                            natalPlanet: point.name,
+                            natalSymbol: point.name,
+                            type: aspect.name,
+                            symbol: aspect.symbol,
+                            color: aspect.color,
+                            class: aspect.class,
+                            exactness: aspect.orb - Math.abs(diff - aspect.angle),
+                            applying: false
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort by exactness (most exact first) and deduplicate
+    aspects.sort((a, b) => b.exactness - a.exactness);
+
+    // Remove duplicates (same transit+natal pair, keep most exact)
+    const seen = new Set();
+    return aspects.filter(a => {
+        const key = `${a.transitPlanet}-${a.natalPlanet}-${a.type}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+// --- Birth Data Storage ---
+function getNatalData() {
+    const data = localStorage.getItem('natalData');
+    if (!data) return null;
+    try {
+        return JSON.parse(data);
+    } catch(e) { return null; }
+}
+
+function saveNatalData(data) {
+    localStorage.setItem('natalData', JSON.stringify(data));
+    localStorage.setItem('natalLat', data.lat);
+    localStorage.setItem('natalLon', data.lon);
+}
+
+let personalCurrentMonth = new Date().getMonth();
+let personalCurrentYear = new Date().getFullYear();
+
+// --- Switch to Personal Mode ---
+function switchToPersonalMode() {
+    calendarMode = 'personal';
+    localStorage.setItem('calendarMode', 'personal');
+
+    document.body.classList.remove('solar-mode');
+    document.body.classList.remove('gregorian-mode');
+    document.body.classList.add('personal-mode');
+
+    // Hide other panels
+    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'lunarInfoBanner', 'currentDayInfo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? '🔮 Calendario Personal' : '🔮 Personal Calendar';
+
+    updateModeButtons();
+
+    const natal = getNatalData();
+    if (!natal) {
+        renderPersonalSetupForm();
+    } else {
+        renderPersonalCalendar();
+    }
+}
+
+// --- Birth Data Setup Form ---
+function renderPersonalSetupForm() {
+    const L = currentLang === 'es';
+
+    // Navigation area: info text
+    const nav = document.querySelector('.navigation');
+    nav.innerHTML = `<div class="cycle-info"><div class="cycle-number" id="cycleNumber">${L ? 'Configuración Inicial' : 'Initial Setup'}</div><div class="cycle-dates" id="cycleDates">${L ? 'Ingresa tus datos de nacimiento' : 'Enter your birth data'}</div></div>`;
+
+    let container = document.getElementById('personalCalendar');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'personalCalendar';
+        const lunarWeeks = document.getElementById('lunarWeeks');
+        if (lunarWeeks && lunarWeeks.parentNode) {
+            lunarWeeks.parentNode.insertBefore(container, lunarWeeks.nextSibling);
+        }
+    }
+    container.style.display = 'block';
+
+    const existing = getNatalData();
+
+    container.innerHTML = `
+        <div class="personal-setup-form">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:2.5em;margin-bottom:8px;">🔮</div>
+                <div style="font-family:'Cinzel',serif;font-size:1.1em;color:#c39bd3;margin-bottom:6px;">
+                    ${L ? 'Tu Carta Natal' : 'Your Natal Chart'}
+                </div>
+                <div style="font-size:0.78em;color:rgba(255,255,255,0.4);">
+                    ${L ? 'Ingresa tu fecha, hora y lugar de nacimiento para calcular tu carta astral y ver los tránsitos personalizados.' : 'Enter your birth date, time, and place to calculate your natal chart and see personalized transits.'}
+                </div>
+            </div>
+
+            <label>${L ? 'Fecha de nacimiento' : 'Birth date'}</label>
+            <input type="date" id="natalBirthDate" value="${existing?.date || ''}" />
+
+            <label>${L ? 'Hora de nacimiento' : 'Birth time'}</label>
+            <input type="time" id="natalBirthTime" value="${existing?.time || ''}" />
+            <div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:-8px;margin-bottom:12px;">
+                ${L ? 'Si no sabes la hora exacta, usa 12:00 (mediodía). Las casas y ascendente serán aproximados.' : 'If you don\'t know the exact time, use 12:00 (noon). Houses and ascendant will be approximate.'}
+            </div>
+
+            <label>${L ? 'Ciudad de nacimiento' : 'Birth city'}</label>
+            <div style="position:relative;">
+                <input type="text" id="natalBirthCity" placeholder="${L ? 'Ej: París, Francia' : 'E.g.: Paris, France'}"
+                    value="${existing?.cityName || ''}" autocomplete="off" oninput="handleCitySearch(this.value)" />
+                <div id="citySuggestionsBox" class="city-suggestions" style="display:none;"></div>
+            </div>
+            <input type="hidden" id="natalCityLat" value="${existing?.lat || ''}" />
+            <input type="hidden" id="natalCityLon" value="${existing?.lon || ''}" />
+            <input type="hidden" id="natalCityCountry" value="${existing?.countryCode || ''}" />
+
+            ${existing ? `
+            <div style="margin-bottom:16px;padding:10px;background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.25);border-radius:8px;font-size:0.78em;color:#4ecdc4;">
+                ✓ ${L ? 'Datos guardados' : 'Data saved'}: ${existing.cityName} (${existing.date}, ${existing.time})
+            </div>` : ''}
+
+            <button onclick="saveNatalForm()" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(155,89,182,0.35),rgba(155,89,182,0.12));border:1px solid rgba(155,89,182,0.55);border-radius:10px;color:#c39bd3;font-size:1em;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:1px;margin-top:4px;">
+                ${L ? '✨ Calcular Carta Natal' : '✨ Calculate Natal Chart'}
+            </button>
+        </div>
+    `;
+}
+
+function handleCitySearch(query) {
+    clearTimeout(citySearchTimeout);
+    const box = document.getElementById('citySuggestionsBox');
+    if (!query || query.length < 3) {
+        if (box) box.style.display = 'none';
+        return;
+    }
+    citySearchTimeout = setTimeout(async () => {
+        const results = await searchCities(query);
+        citySuggestions = results;
+        if (results.length === 0) {
+            box.style.display = 'none';
+            return;
+        }
+        box.innerHTML = results.map((r, i) => `
+            <div class="city-suggestion-item" onclick="selectCity(${i})">
+                <div style="font-weight:600;">${r.city || r.name.split(',')[0]}</div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${r.name}</div>
+            </div>
+        `).join('');
+        box.style.display = 'block';
+    }, 400);
+}
+
+function selectCity(index) {
+    const city = citySuggestions[index];
+    if (!city) return;
+    document.getElementById('natalBirthCity').value = city.city + (city.country ? ', ' + city.country : '');
+    document.getElementById('natalCityLat').value = city.lat;
+    document.getElementById('natalCityLon').value = city.lon;
+    document.getElementById('natalCityCountry').value = city.countryCode;
+    document.getElementById('citySuggestionsBox').style.display = 'none';
+}
+
+function saveNatalForm() {
+    const L = currentLang === 'es';
+    const date = document.getElementById('natalBirthDate')?.value;
+    const time = document.getElementById('natalBirthTime')?.value || '12:00';
+    const cityName = document.getElementById('natalBirthCity')?.value;
+    const lat = document.getElementById('natalCityLat')?.value;
+    const lon = document.getElementById('natalCityLon')?.value;
+    const countryCode = document.getElementById('natalCityCountry')?.value;
+
+    if (!date) {
+        alert(L ? 'Por favor ingresa tu fecha de nacimiento' : 'Please enter your birth date');
+        return;
+    }
+    if (!lat || !lon) {
+        alert(L ? 'Por favor selecciona una ciudad de la lista de sugerencias' : 'Please select a city from the suggestions list');
+        return;
+    }
+
+    const data = { date, time, cityName, lat: parseFloat(lat), lon: parseFloat(lon), countryCode };
+    saveNatalData(data);
+
+    // Calculate natal chart
+    const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
+    const chart = calculateNatalChart(birthUTC);
+    localStorage.setItem('natalChart', JSON.stringify(chart));
+
+    renderPersonalCalendar();
+}
+
+// --- Personal Calendar Rendering ---
+function renderPersonalCalendar() {
+    const natal = getNatalData();
+    if (!natal) { renderPersonalSetupForm(); return; }
+
+    const L = currentLang === 'es';
+    const birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+    let natalChart;
+    try {
+        natalChart = JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { natalChart = null; }
+    if (!natalChart) {
+        natalChart = calculateNatalChart(birthUTC);
+        localStorage.setItem('natalChart', JSON.stringify(natalChart));
+    }
+
+    const today = new Date();
+    const year = personalCurrentYear;
+    const month = personalCurrentMonth;
+
+    const monthNames = L ?
+        ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] :
+        ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const dayNames = L ? ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+    // Navigation
+    const nav = document.querySelector('.navigation');
+    nav.innerHTML = `
+        <button class="nav-btn" onclick="personalPrevMonth()">◀ ${L ? 'Mes Anterior' : 'Previous'}</button>
+        <div class="cycle-info">
+            <div class="cycle-number" id="cycleNumber">${monthNames[month]} ${year}</div>
+            <div class="cycle-dates" id="cycleDates">${natal.cityName} · ${natal.date}</div>
+        </div>
+        <button class="nav-btn" onclick="personalNextMonth()">${L ? 'Siguiente' : 'Next'} ▶</button>
+    `;
+
+    // Calendar container
+    let container = document.getElementById('personalCalendar');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'personalCalendar';
+        const lunarWeeks = document.getElementById('lunarWeeks');
+        if (lunarWeeks && lunarWeeks.parentNode) {
+            lunarWeeks.parentNode.insertBefore(container, lunarWeeks.nextSibling);
+        }
+    }
+    container.style.display = 'block';
+
+    // Build natal summary card
+    const sunSign = natalChart.planets.sun?.formatted || '?';
+    const moonSign = natalChart.planets.moon?.formatted || '?';
+    const ascSign = natalChart.houses?.ascFormatted || '?';
+    const mcSign = natalChart.houses?.mcFormatted || '?';
+
+    // Today's transits
+    const todayTransits = calculateTransitsToNatal(today, natalChart);
+    const majorTransits = todayTransits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).slice(0, 8);
+    const moonTransits = todayTransits.filter(t => t.transitPlanet === 'moon').slice(0, 4);
+
+    // Birthday check
+    const [birthY, birthM, birthD] = natal.date.split('-').map(Number);
+    const isBirthdayMonth = (month === birthM - 1);
+
+    // Build calendar grid
+    const firstDay = new Date(year, month, 1);
+    let startDow = firstDay.getDay(); // 0=Sun
+    startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    let calendarHTML = `
+        <div class="personal-natal-card">
+            <h3>🔮 ${L ? 'Tu Carta Natal' : 'Your Natal Chart'}</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82em;">
+                <div><span style="color:rgba(255,255,255,0.4);">☉ ${L?'Sol':'Sun'}:</span> <span class="natal-planet-sign">${sunSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">☽ ${L?'Luna':'Moon'}:</span> <span class="natal-planet-sign">${moonSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">ASC:</span> <span class="natal-planet-sign">${ascSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">MC:</span> <span class="natal-planet-sign">${mcSign}</span></div>
+            </div>
+            <details style="margin-top:10px;">
+                <summary style="cursor:pointer;font-size:0.78em;color:rgba(255,255,255,0.4);">▸ ${L ? 'Ver todos los planetas' : 'View all planets'}</summary>
+                <div style="margin-top:8px;">
+                    ${Object.entries(natalChart.planets).map(([p, data]) => `
+                        <div class="natal-planet-row">
+                            <span class="natal-planet-symbol">${planetSymbols[p] || p[0]}</span>
+                            <span style="color:rgba(255,255,255,0.5);min-width:60px;">${planetNames[p] || p}</span>
+                            <span class="natal-planet-sign">${data.formatted}</span>
+                            ${natalChart.houses ? `<span class="natal-house-label">${L?'Casa':'House'} ${getHouseForLongitude(data.longitude, natalChart.houses.cusps)}</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </details>
+            <div style="margin-top:6px;text-align:right;">
+                <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
+                    ✏️ ${L ? 'Editar datos' : 'Edit data'}
+                </button>
+            </div>
+        </div>
+
+        <!-- Today's Transits -->
+        <div class="personal-natal-card">
+            <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
+            ${majorTransits.length > 0 ? `
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Aspectos Mayores' : 'Major Aspects'}</div>
+                    ${majorTransits.map(t => `
+                        <div class="transit-aspect-row ${t.class}">
+                            <span style="font-size:1.1em;">${t.transitSymbol}</span>
+                            <span style="color:${t.color};">${t.symbol}</span>
+                            <span style="font-size:1.1em;">${t.natalSymbol}</span>
+                            <span style="color:rgba(255,255,255,0.5);margin-left:4px;">${planetNames[t.transitPlanet] || t.transitPlanet} ${t.symbol} ${L?'natal':'natal'} ${planetNames[t.natalPlanet] || t.natalPlanet}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">${L ? 'Sin aspectos mayores hoy' : 'No major aspects today'}</div>`}
+            ${moonTransits.length > 0 ? `
+                <div>
+                    <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ${L ? 'Luna transitando' : 'Moon transiting'}</div>
+                    ${moonTransits.map(t => `
+                        <div class="transit-aspect-row ${t.class}" style="opacity:0.7;">
+                            <span>☽</span>
+                            <span style="color:${t.color};">${t.symbol}</span>
+                            <span>${t.natalSymbol}</span>
+                            <span style="color:rgba(255,255,255,0.4);margin-left:4px;">${t.symbol} ${L?'natal':'natal'} ${planetNames[t.natalPlanet] || t.natalPlanet}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+
+        <!-- Monthly Calendar Grid -->
+        <div class="personal-natal-card" style="padding:10px;">
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px;">
+                ${dayNames.map((d,i) => `<div style="text-align:center;font-size:0.75em;font-weight:600;color:${i>=5?'#c9a840':'rgba(255,255,255,0.4)'};padding:4px;">${d}</div>`).join('')}
+            </div>
+            <div class="personal-month-grid">
+    `;
+
+    // Empty cells before first day
+    for (let i = 0; i < startDow; i++) {
+        calendarHTML += `<div class="personal-day-cell" style="opacity:0.2;border:none;"></div>`;
+    }
+
+    // Day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const isToday = date.toDateString() === today.toDateString();
+        const dow = date.getDay();
+        const isWeekend = dow === 0 || dow === 6;
+        const isBirthday = (month === birthM - 1 && day === birthD);
+
+        // Calculate transits for this day (lightweight — only count aspects)
+        const dayTransits = calculateTransitsToNatal(date, natalChart);
+        const majorCount = dayTransits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).length;
+        const hasTrine = dayTransits.some(t => t.type === 'trine' && !['moon','mercury'].includes(t.transitPlanet));
+        const hasSquare = dayTransits.some(t => t.type === 'square' && !['moon','mercury'].includes(t.transitPlanet));
+        const hasConjunction = dayTransits.some(t => t.type === 'conjunction' && !['moon','mercury'].includes(t.transitPlanet));
+        const hasOpposition = dayTransits.some(t => t.type === 'opposition' && !['moon','mercury'].includes(t.transitPlanet));
+
+        let classes = 'personal-day-cell';
+        if (isToday) classes += ' today';
+        if (isWeekend) classes += ' weekend';
+        if (isBirthday) classes += ' birthday';
+
+        let dotsHTML = '';
+        if (hasConjunction) dotsHTML += '<span class="personal-transit-dot" style="background:#e74c3c;" title="Conjunction"></span>';
+        if (hasOpposition) dotsHTML += '<span class="personal-transit-dot" style="background:#c0392b;" title="Opposition"></span>';
+        if (hasSquare) dotsHTML += '<span class="personal-transit-dot" style="background:#f1c40f;" title="Square"></span>';
+        if (hasTrine) dotsHTML += '<span class="personal-transit-dot" style="background:#2ecc71;" title="Trine"></span>';
+
+        calendarHTML += `
+            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${isBirthday ? '🎂 ' : ''}${date.toLocaleDateString(L?'es':'en')}">
+                <div class="personal-day-num">${isBirthday ? '🎂 ' : ''}${day}</div>
+                <div style="margin-top:2px;">${dotsHTML}</div>
+                ${majorCount > 0 ? `<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:1px;">${majorCount} ${L?'asp.':'asp.'}</div>` : ''}
+            </div>
+        `;
+    }
+
+    calendarHTML += `
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
+            <span><span class="personal-transit-dot" style="background:#e74c3c;"></span> ${L?'Conjunción':'Conjunction'}</span>
+            <span><span class="personal-transit-dot" style="background:#c0392b;"></span> ${L?'Oposición':'Opposition'}</span>
+            <span><span class="personal-transit-dot" style="background:#f1c40f;"></span> ${L?'Cuadratura':'Square'}</span>
+            <span><span class="personal-transit-dot" style="background:#2ecc71;"></span> ${L?'Trígono':'Trine'}</span>
+        </div>
+    `;
+
+    container.innerHTML = calendarHTML;
+}
+
+function personalPrevMonth() {
+    personalCurrentMonth--;
+    if (personalCurrentMonth < 0) {
+        personalCurrentMonth = 11;
+        personalCurrentYear--;
+    }
+    renderPersonalCalendar();
+}
+
+function personalNextMonth() {
+    personalCurrentMonth++;
+    if (personalCurrentMonth > 11) {
+        personalCurrentMonth = 0;
+        personalCurrentYear++;
+    }
+    renderPersonalCalendar();
+}
+
+// --- Day Detail Modal ---
+function showPersonalDayDetail(year, month, day) {
+    const L = currentLang === 'es';
+    const date = new Date(year, month, day);
+    const natal = getNatalData();
+    if (!natal) return;
+
+    let natalChart;
+    try { natalChart = JSON.parse(localStorage.getItem('natalChart')); } catch(e) { return; }
+    if (!natalChart) return;
+
+    const transits = calculateTransitsToNatal(date, natalChart);
+    const majorTransits = transits.filter(t => !['moon','mercury'].includes(t.transitPlanet));
+    const moonTransits = transits.filter(t => t.transitPlanet === 'moon');
+
+    // Also get current transit positions
+    const transitPositions = {};
+    ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'].forEach(p => {
+        const lon = getPlanetPosition(p, date);
+        transitPositions[p] = getZodiacSignWithDegree(lon);
+    });
+
+    const [birthY, birthM, birthD] = natal.date.split('-').map(Number);
+    const isBirthday = (month === birthM - 1 && day === birthD);
+
+    const dateStr = date.toLocaleDateString(L?'es':'en', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+    let html = `
+        <div style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0;">
+                    ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
+                </h3>
+                <button onclick="document.getElementById('personalDayModal').classList.remove('show')" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>
+            </div>
+
+            ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${L?'¡Feliz Retorno Solar!':'Happy Solar Return!'}</div>` : ''}
+
+            <!-- Transit Positions -->
+            <div style="margin-bottom:12px;">
+                <div style="font-size:0.75em;font-weight:700;color:#7ec8ff;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Posiciones Planetarias' : 'Planetary Positions'}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:0.78em;">
+                    ${Object.entries(transitPositions).map(([p, data]) => `
+                        <div style="padding:3px 6px;"><span style="opacity:0.5;">${planetSymbols[p]}</span> ${data.formatted}</div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Major Transits to Natal -->
+            <div style="margin-bottom:12px;">
+                <div style="font-size:0.75em;font-weight:700;color:#c39bd3;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Tránsitos a tu Carta Natal' : 'Transits to your Natal Chart'} (${majorTransits.length})</div>
+                ${majorTransits.length > 0 ? majorTransits.map(t => `
+                    <div class="transit-aspect-row ${t.class}">
+                        <span style="font-size:1.1em;">${t.transitSymbol}</span>
+                        <span style="color:${t.color};font-weight:700;">${t.symbol}</span>
+                        <span style="font-size:1.1em;">${t.natalSymbol}</span>
+                        <span style="flex:1;color:rgba(255,255,255,0.5);margin-left:6px;font-size:0.9em;">
+                            ${planetNames[t.transitPlanet] || t.transitPlanet} ${aspectNames[t.type] || t.type} ${L?'natal':'natal'} ${planetNames[t.natalPlanet] || t.natalPlanet}
+                        </span>
+                    </div>
+                `).join('') : `<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:6px;">${L?'Sin aspectos mayores':'No major aspects'}</div>`}
+            </div>
+
+            <!-- Moon Transits -->
+            ${moonTransits.length > 0 ? `
+            <div>
+                <div style="font-size:0.75em;font-weight:700;color:rgba(255,255,255,0.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">☽ ${L ? 'Luna' : 'Moon'}</div>
+                ${moonTransits.map(t => `
+                    <div class="transit-aspect-row ${t.class}" style="opacity:0.7;">
+                        <span>☽</span>
+                        <span style="color:${t.color};">${t.symbol}</span>
+                        <span>${t.natalSymbol}</span>
+                        <span style="color:rgba(255,255,255,0.35);margin-left:4px;">${planetNames[t.natalPlanet] || t.natalPlanet}</span>
+                    </div>
+                `).join('')}
+            </div>` : ''}
+        </div>
+    `;
+
+    // Use existing modal pattern or create one
+    let modal = document.getElementById('personalDayModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'personalDayModal';
+        modal.className = 'modal-overlay';
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" id="personalDayModalContent" style="max-width:480px;max-height:85vh;overflow-y:auto;"></div>';
+        document.body.appendChild(modal);
+    }
+    document.getElementById('personalDayModalContent').innerHTML = html;
+    modal.classList.add('show');
+}
+
+// Aspect name translations
+const aspectNames = {
+    conjunction: currentLang === 'es' ? 'conjunción' : 'conjunction',
+    opposition: currentLang === 'es' ? 'oposición' : 'opposition',
+    trine: currentLang === 'es' ? 'trígono' : 'trine',
+    square: currentLang === 'es' ? 'cuadratura' : 'square',
+    sextile: currentLang === 'es' ? 'sextil' : 'sextile'
+};
 
 let currentGregorianMonth = new Date().getMonth(); // 0-11
 let currentGregorianYear = 2026;
@@ -9893,6 +10772,8 @@ if (calendarMode === 'solar') {
 } else if (calendarMode === 'gregorian') {
     document.body.classList.add('gregorian-mode');
     renderGregorianCalendar();
+} else if (calendarMode === 'personal') {
+    switchToPersonalMode();
 } else {
     renderCalendar();
 }
@@ -11489,7 +12370,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v152';
+const APP_VERSION = 'v153';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
