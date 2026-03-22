@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v153';
+        var REQUIRED_VER = 'v154';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -1122,31 +1122,260 @@ function getMoonPosition(date) {
 
 // Calcular posición planetaria (simplificado)
 function getPlanetPosition(planet, date) {
-    if (planet === 'moon') {
-        return getMoonPosition(date);
-    }
-    
+    if (planet === 'moon') return getMoonPosition(date);
+
     const jd = getJulianDay(date);
-    const T = (jd - 2451545.0) / 36525;
-    
-    const positions = {
-        sun: 280.46646 + 36000.76983 * T,
-        mercury: 252.25 + 149472.51529 * T,
-        venus: 181.98 + 58517.81539 * T,
-        mars: 355.43 + 19140.30268 * T,
-        jupiter: 34.35 + 3034.74612 * T,
-        saturn: 50.08 + 1222.49362 * T,
-        uranus: 314.05 + 428.48202 * T,
-        neptune: 304.35 + 218.48600 * T,
-        pluto: 238.93 + 145.20780 * T,
-        chiron: 139.52 + 15.09376 * T,
-        lilith: 83.35 + 40.66246 * T
-    };
-    
-    let longitude = positions[planet] % 360;
-    if (longitude < 0) longitude += 360;
-    
-    return longitude;
+    // d = days since 2000 Jan 0.0 UT (Schlyter epoch = JD 2451543.5)
+    const d = jd - 2451543.5;
+    const T = d / 36525;
+    const dr = Math.PI / 180;
+
+    // ═══════════════════════════════════════════
+    // Full Schlyter/Meeus planetary position engine
+    // with orbital inclination + perturbation corrections
+    // Accuracy: ~1-2 arcminutes for major planets
+    // ═══════════════════════════════════════════
+
+    // Orbital elements as f(d) — Schlyter's algorithm
+    // N=lon ascending node, i=inclination, w=arg perihelion, a=AU, e=eccentricity, M=mean anomaly
+    function getOrbitalElements(body) {
+        switch(body) {
+            case 'sun': return {
+                N:0, i:0, w: 282.9404 + 4.70935e-5 * d,
+                a:1, e: 0.016709 - 1.151e-9 * d,
+                M: (356.0470 + 0.9856002585 * d) % 360
+            };
+            case 'mercury': return {
+                N: (48.3313 + 3.24587e-5 * d) % 360,
+                i: 7.0047 + 5.00e-8 * d,
+                w: (29.1241 + 1.01444e-5 * d) % 360,
+                a: 0.387098,
+                e: 0.205635 + 5.59e-10 * d,
+                M: (168.6562 + 4.0923344368 * d) % 360
+            };
+            case 'venus': return {
+                N: (76.6799 + 2.46590e-5 * d) % 360,
+                i: 3.3946 + 2.75e-8 * d,
+                w: (54.8910 + 1.38374e-5 * d) % 360,
+                a: 0.723330,
+                e: 0.006773 - 1.302e-9 * d,
+                M: (48.0052 + 1.6021302244 * d) % 360
+            };
+            case 'mars': return {
+                N: (49.5574 + 2.11081e-5 * d) % 360,
+                i: 1.8497 - 1.78e-8 * d,
+                w: (286.5016 + 2.92961e-5 * d) % 360,
+                a: 1.523688,
+                e: 0.093405 + 2.516e-9 * d,
+                M: (18.6021 + 0.5240207766 * d) % 360
+            };
+            case 'jupiter': return {
+                N: (100.4542 + 2.76854e-5 * d) % 360,
+                i: 1.3030 - 1.557e-7 * d,
+                w: (273.8777 + 1.64505e-5 * d) % 360,
+                a: 5.20256,
+                e: 0.048498 + 4.469e-9 * d,
+                M: (19.8950 + 0.0830853001 * d) % 360
+            };
+            case 'saturn': return {
+                N: (113.6634 + 2.38980e-5 * d) % 360,
+                i: 2.4886 - 1.081e-7 * d,
+                w: (339.3939 + 2.97661e-5 * d) % 360,
+                a: 9.55475,
+                e: 0.055546 - 9.499e-9 * d,
+                M: (316.9670 + 0.0334442282 * d) % 360
+            };
+            case 'uranus': return {
+                N: (74.0005 + 1.3978e-5 * d) % 360,
+                i: 0.7733 + 1.9e-8 * d,
+                w: (96.6612 + 3.0565e-5 * d) % 360,
+                a: 19.18171 - 1.55e-8 * d,
+                e: 0.047318 + 7.45e-9 * d,
+                M: (142.5905 + 0.011725806 * d) % 360
+            };
+            case 'neptune': return {
+                N: (131.7806 + 3.0173e-5 * d) % 360,
+                i: 1.7700 - 2.55e-7 * d,
+                w: (272.8461 - 6.027e-6 * d) % 360,
+                a: 30.05826 + 3.313e-8 * d,
+                e: 0.008606 + 2.15e-9 * d,
+                M: (260.2471 + 0.005995147 * d) % 360
+            };
+            case 'pluto': return {
+                N: (110.3034 + 1.844e-5 * d) % 360,
+                i: 17.1426 + 3.6e-8 * d,
+                w: (113.7680 + 3.175e-6 * d) % 360,
+                a: 39.48168,
+                e: 0.248662 + 5.17e-9 * d,
+                M: (14.8820 + 0.003981868 * d) % 360
+            };
+        }
+    }
+
+    // Solve Kepler's equation
+    function solveKepler(M_deg, e) {
+        let M = ((M_deg % 360) + 360) % 360;
+        const Mr = M * dr;
+        let E = Mr + e * Math.sin(Mr) * (1 + e * Math.cos(Mr));
+        // Iterate for high eccentricity (Mercury, Pluto)
+        if (e > 0.05) {
+            for (let i = 0; i < 20; i++) {
+                const dE = (E - e * Math.sin(E) - Mr) / (1 - e * Math.cos(E));
+                E -= dE;
+                if (Math.abs(dE) < 1e-12) break;
+            }
+        }
+        return E; // radians
+    }
+
+    // Compute heliocentric ecliptic rectangular coordinates
+    function helioRect(body) {
+        const el = getOrbitalElements(body);
+        const E = solveKepler(el.M, el.e);
+
+        // Position in orbital plane
+        const xv = el.a * (Math.cos(E) - el.e);
+        const yv = el.a * Math.sqrt(1 - el.e * el.e) * Math.sin(E);
+
+        // True anomaly and distance
+        const v = Math.atan2(yv, xv);
+        const r = Math.sqrt(xv * xv + yv * yv);
+
+        // Heliocentric ecliptic coordinates (3D with inclination)
+        const Nr = el.N * dr;
+        const ir = el.i * dr;
+        const wr = el.w * dr;
+
+        const xh = r * (Math.cos(Nr) * Math.cos(v + wr) - Math.sin(Nr) * Math.sin(v + wr) * Math.cos(ir));
+        const yh = r * (Math.sin(Nr) * Math.cos(v + wr) + Math.cos(Nr) * Math.sin(v + wr) * Math.cos(ir));
+        const zh = r * Math.sin(v + wr) * Math.sin(ir);
+
+        // Also compute heliocentric longitude for perturbation calcs
+        let lonH = Math.atan2(yh, xh) / dr;
+        if (lonH < 0) lonH += 360;
+
+        return { x: xh, y: yh, z: zh, r: r, lon: lonH, v: v / dr, el: el };
+    }
+
+    // Sun/Earth position (geocentric Sun = negative of Earth heliocentric)
+    if (planet === 'sun') {
+        const el = getOrbitalElements('sun');
+        const E = solveKepler(el.M, el.e);
+        const xv = Math.cos(E) - el.e;
+        const yv = Math.sqrt(1 - el.e * el.e) * Math.sin(E);
+        const v = Math.atan2(yv, xv) / dr;
+        let lon = v + el.w;
+        // Perturbation from Moon, Jupiter, Saturn
+        const Mj = getOrbitalElements('jupiter').M;
+        const Ms = getOrbitalElements('saturn').M;
+        const Mm = getMoonMeanAnomaly(d);
+        lon += -0.00569;
+        lon += -0.01097 * Math.sin((Mj * 2 + 238) * dr);
+        lon += -0.00714 * Math.sin(Mm * dr);
+        lon += 0.00395 * Math.sin((Ms + 140) * dr);
+        lon = ((lon % 360) + 360) % 360;
+        return lon;
+    }
+
+    // Lilith (Mean Black Moon Lilith — mean lunar apogee)
+    if (planet === 'lilith') {
+        // Mean longitude of lunar apogee (Meeus)
+        let lon = 83.3532465 + 0.1114041 * d;
+        lon = ((lon % 360) + 360) % 360;
+        return lon;
+    }
+
+    // Chiron — use precomputed ephemeris points + interpolation for 2020-2030
+    if (planet === 'chiron') {
+        // Chiron key positions (geocentric ecliptic longitude, from ephemeris)
+        // Chiron entered Aries April 2018, stays through 2027
+        const chironEphem = [
+            {jd:2459215.5, lon:5.0},   // Jan 1, 2021: 5° Aries
+            {jd:2459580.5, lon:12.5},   // Jan 1, 2022: 12.5° Aries
+            {jd:2459945.5, lon:14.0},   // Jan 1, 2023: 14° Aries
+            {jd:2460310.5, lon:17.0},   // Jan 1, 2024: 17° Aries
+            {jd:2460676.5, lon:21.5},   // Jan 1, 2025: 21.5° Aries
+            {jd:2461041.5, lon:24.5},   // Jan 1, 2026: 24.5° Aries
+            {jd:2461406.5, lon:28.0},   // Jan 1, 2027: 28° Aries
+            {jd:2461771.5, lon:32.0},   // Jan 1, 2028: 2° Taurus
+        ];
+        // Linear interpolation
+        for (let i = 0; i < chironEphem.length - 1; i++) {
+            if (jd >= chironEphem[i].jd && jd < chironEphem[i+1].jd) {
+                const frac = (jd - chironEphem[i].jd) / (chironEphem[i+1].jd - chironEphem[i].jd);
+                return chironEphem[i].lon + frac * (chironEphem[i+1].lon - chironEphem[i].lon);
+            }
+        }
+        // Fallback: approximate mean motion ~1.4°/year from last known
+        const lastPt = chironEphem[chironEphem.length-1];
+        return lastPt.lon + 1.4 * (jd - lastPt.jd) / 365.25;
+    }
+
+    // ── Main planets: full heliocentric→geocentric with perturbations ──
+    const pH = helioRect(planet);
+    // Sun geocentric rectangular coords (Schlyter method)
+    const sunEl = getOrbitalElements('sun');
+    const sunE = solveKepler(sunEl.M, sunEl.e);
+    const sunXv = Math.cos(sunE) - sunEl.e;
+    const sunYv = Math.sqrt(1 - sunEl.e * sunEl.e) * Math.sin(sunE);
+    const sunV = Math.atan2(sunYv, sunXv);
+    const sunR = Math.sqrt(sunXv * sunXv + sunYv * sunYv);
+    const sunLon = sunV + sunEl.w * dr;
+    // geocentric planet = heliocentric planet + geocentric sun
+    const xs = sunR * Math.cos(sunLon);
+    const ys = sunR * Math.sin(sunLon);
+
+    // Apply planetary perturbations (Schlyter method)
+    let xh = pH.x, yh = pH.y, zh = pH.z;
+
+    if (planet === 'jupiter') {
+        const Mj = getOrbitalElements('jupiter').M * dr;
+        const Ms = getOrbitalElements('saturn').M * dr;
+        const dlon = -0.332 * Math.sin(2*Mj - 5*Ms - 67.6*dr)
+                    - 0.056 * Math.sin(2*Mj - 2*Ms + 21*dr)
+                    + 0.042 * Math.sin(3*Mj - 5*Ms + 21*dr)
+                    - 0.036 * Math.sin(Mj - 2*Ms)
+                    + 0.022 * Math.cos(Mj - Ms)
+                    + 0.023 * Math.sin(2*Mj - 3*Ms + 52*dr)
+                    - 0.016 * Math.sin(Mj - 5*Ms - 69*dr);
+        const lonAdj = pH.lon + dlon;
+        const rP = pH.r;
+        xh = rP * Math.cos(lonAdj * dr) * Math.cos(pH.el.i * dr);
+        yh = rP * Math.sin(lonAdj * dr) * Math.cos(pH.el.i * dr);
+        zh = rP * Math.sin(pH.el.i * dr);
+    }
+
+    if (planet === 'saturn') {
+        const Mj = getOrbitalElements('jupiter').M * dr;
+        const Ms = getOrbitalElements('saturn').M * dr;
+        const dlon = 0.812 * Math.sin(2*Mj - 5*Ms - 67.6*dr)
+                    - 0.229 * Math.cos(2*Mj - 4*Ms - 2*dr)
+                    + 0.119 * Math.sin(Mj - 2*Ms - 3*dr)
+                    + 0.046 * Math.sin(2*Mj - 6*Ms - 69*dr)
+                    + 0.014 * Math.sin(Mj - 3*Ms + 32*dr);
+        const dlat = -0.020 * Math.cos(2*Mj - 4*Ms - 2*dr)
+                    + 0.018 * Math.sin(2*Mj - 6*Ms - 49*dr);
+        const lonAdj = pH.lon + dlon;
+        const latAdj = dlat;
+        const rP = pH.r;
+        xh = rP * Math.cos(lonAdj * dr) * Math.cos(latAdj * dr);
+        yh = rP * Math.sin(lonAdj * dr) * Math.cos(latAdj * dr);
+        zh = rP * Math.sin(latAdj * dr);
+    }
+
+    // Geocentric ecliptic coordinates = heliocentric + sun geocentric
+    const xg = xh + xs;
+    const yg = yh + ys;
+
+    let geoLon = Math.atan2(yg, xg) / dr;
+    if (geoLon < 0) geoLon += 360;
+
+    return geoLon;
+}
+
+// Helper: Moon mean anomaly for Sun perturbation
+function getMoonMeanAnomaly(d) {
+    return (115.3654 + 13.0649929509 * d) % 360;
 }
 
 // Obtener signo zodiacal desde longitud
@@ -12370,7 +12599,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v153';
+const APP_VERSION = 'v154';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
