@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v154';
+        var REQUIRED_VER = 'v155';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -8658,7 +8658,7 @@ function showPersonalDayDetail(year, month, day) {
                 <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0;">
                     ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
                 </h3>
-                <button onclick="document.getElementById('personalDayModal').classList.remove('show')" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>
+                <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>
             </div>
 
             ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${L?'¡Feliz Retorno Solar!':'Happy Solar Return!'}</div>` : ''}
@@ -8709,7 +8709,7 @@ function showPersonalDayDetail(year, month, day) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'personalDayModal';
-        modal.className = 'modal-overlay';
+        modal.className = 'modal';
         modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
         modal.innerHTML = '<div class="modal-content" id="personalDayModalContent" style="max-width:480px;max-height:85vh;overflow-y:auto;"></div>';
         document.body.appendChild(modal);
@@ -12599,7 +12599,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v154';
+const APP_VERSION = 'v155';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
