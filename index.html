@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v157';
+        var REQUIRED_VER = 'v158';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -8513,7 +8513,7 @@ function handleCitySearch(query) {
             return;
         }
         box.innerHTML = results.map((r, i) => `
-            <div class="city-suggestion-item" onclick="selectNatalCity(${i})">
+            <div class="city-suggestion-item" ontouchstart="event.preventDefault();selectNatalCity(${i})" onmousedown="event.preventDefault();selectNatalCity(${i})">
                 <div style="font-weight:600;">${r.city || r.name.split(',')[0]}</div>
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${r.name}</div>
             </div>
@@ -8523,13 +8523,18 @@ function handleCitySearch(query) {
 }
 
 function selectNatalCity(index) {
+    clearTimeout(citySearchTimeout);
     const city = citySuggestions[index];
     if (!city) return;
-    document.getElementById('natalBirthCity').value = city.city + (city.country ? ', ' + city.country : '');
+    const input = document.getElementById('natalBirthCity');
+    const box = document.getElementById('citySuggestionsBox');
+    if (input) input.value = city.city + (city.country ? ', ' + city.country : '');
     document.getElementById('natalCityLat').value = city.lat;
     document.getElementById('natalCityLon').value = city.lon;
     document.getElementById('natalCityCountry').value = city.countryCode;
-    document.getElementById('citySuggestionsBox').style.display = 'none';
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+    // Prevent re-triggering search from input events
+    if (input) input.blur();
 }
 
 function saveNatalForm() {
@@ -8855,6 +8860,600 @@ function copyNatalChartForAI() {
         alert(text);
     });
 }
+
+// ══════════════════════════════════════════════════════════
+// ── ASTROLOGICAL INTERPRETATION ENGINE ──
+// ══════════════════════════════════════════════════════════
+
+const astroInterpretations = {
+    // --- PLANET IN SIGN ---
+    sunSign: {
+        aries: { es: 'Tu Sol en Aries te da una energía pionera, coraje y un espíritu competitivo. Eres directo, impulsivo y necesitas liderar. Tu vitalidad es intensa y te motiva ser el primero en todo.', en: 'Your Aries Sun gives you pioneer energy, courage and a competitive spirit. You are direct, impulsive and need to lead.' },
+        taurus: { es: 'Tu Sol en Tauro te hace estable, sensual y persistente. Valoras la seguridad material y los placeres de los sentidos. Eres leal pero también terco cuando te decides.', en: 'Your Taurus Sun makes you stable, sensual and persistent. You value material security and sensory pleasures.' },
+        gemini: { es: 'Tu Sol en Géminis te hace curioso, comunicativo y versátil. Tu mente es rápida y necesitas variedad constante. Eres el eterno estudiante del zodíaco.', en: 'Your Gemini Sun makes you curious, communicative and versatile. Your mind is quick and you need constant variety.' },
+        cancer: { es: 'Tu Sol en Cáncer te conecta profundamente con las emociones, la familia y el hogar. Eres protector, intuitivo y nutres a quienes amas. Tu sensibilidad es tu mayor fuerza.', en: 'Your Cancer Sun connects you deeply with emotions, family and home. You are protective, intuitive and nurturing.' },
+        leo: { es: 'Tu Sol en Leo te da carisma natural, creatividad y un corazón generoso. Necesitas brillar y expresarte. Eres un líder nato con gran capacidad dramática y lealtad inquebrantable.', en: 'Your Leo Sun gives you natural charisma, creativity and a generous heart. You need to shine and express yourself.' },
+        virgo: { es: 'Tu Sol en Virgo te hace analítico, perfeccionista y orientado al servicio. Tu atención al detalle es extraordinaria. Buscas mejorar constantemente y ayudar a los demás con soluciones prácticas.', en: 'Your Virgo Sun makes you analytical, perfectionist and service-oriented. Your attention to detail is extraordinary.' },
+        libra: { es: 'Tu Sol en Libra te da un sentido innato de la armonía, la justicia y la belleza. Las relaciones son centrales en tu vida. Buscas equilibrio y diplomacia en todo lo que haces.', en: 'Your Libra Sun gives you an innate sense of harmony, justice and beauty. Relationships are central to your life.' },
+        scorpio: { es: 'Tu Sol en Escorpio te da intensidad, poder de transformación y una profundidad emocional única. Ves más allá de las apariencias y no le temes a los procesos de muerte y renacimiento.', en: 'Your Scorpio Sun gives you intensity, transformative power and unique emotional depth.' },
+        sagittarius: { es: 'Tu Sol en Sagitario te hace aventurero, optimista y filosófico. Buscas el sentido de la vida a través de viajes, estudios y experiencias que expandan tu horizonte.', en: 'Your Sagittarius Sun makes you adventurous, optimistic and philosophical.' },
+        capricorn: { es: 'Tu Sol en Capricornio te da ambición, disciplina y una madurez que va más allá de tu edad. Construyes con paciencia y determinación. Tu éxito viene del esfuerzo sostenido.', en: 'Your Capricorn Sun gives you ambition, discipline and wisdom beyond your years.' },
+        aquarius: { es: 'Tu Sol en Acuario te hace innovador, independiente y humanitario. Piensas diferente y valoras la libertad por encima de todo. Tu visión del futuro es tu guía.', en: 'Your Aquarius Sun makes you innovative, independent and humanitarian.' },
+        pisces: { es: 'Tu Sol en Piscis te da una sensibilidad artística y espiritual profunda. Eres empático, intuitivo y conectado con dimensiones sutiles. Tu compasión no tiene límites.', en: 'Your Pisces Sun gives you deep artistic and spiritual sensitivity. You are empathic and intuitive.' }
+    },
+    moonSign: {
+        aries: { es: 'Tu Luna en Aries hace que tus emociones sean intensas e inmediatas. Necesitas acción para procesar lo que sientes. Eres valiente emocionalmente pero impaciente.', en: 'Your Aries Moon makes your emotions intense and immediate. You need action to process feelings.' },
+        taurus: { es: 'Tu Luna en Tauro te da estabilidad emocional profunda. Necesitas seguridad, confort y rutina para sentirte bien. Tus afectos son duraderos y leales.', en: 'Your Taurus Moon gives you deep emotional stability. You need security and comfort.' },
+        gemini: { es: 'Tu Luna en Géminis hace que proceses emociones a través de la comunicación y el pensamiento. Necesitas hablar de lo que sientes y la variedad te estimula emocionalmente.', en: 'Your Gemini Moon processes emotions through communication and thought.' },
+        cancer: { es: 'Tu Luna en Cáncer (su domicilio) amplifica tu sensibilidad y tu conexión con la familia. Tus emociones son profundas como el océano y tu instinto protector es poderoso.', en: 'Your Cancer Moon (in domicile) amplifies your sensitivity and family connection.' },
+        leo: { es: 'Tu Luna en Leo necesita reconocimiento y afecto para sentirse emocionalmente segura. Eres generoso con tus emociones y necesitas expresar tu creatividad para estar en paz.', en: 'Your Leo Moon needs recognition and affection for emotional security.' },
+        virgo: { es: 'Tu Luna en Virgo procesa emociones a través del análisis y la organización. Puedes ser autocrítico pero tu deseo de mejorar es genuino. Cuidas a otros con actos prácticos.', en: 'Your Virgo Moon processes emotions through analysis and organization.' },
+        libra: { es: 'Tu Luna en Libra necesita armonía en las relaciones para sentirse emocionalmente estable. Evitas conflictos y buscas la belleza como refugio emocional.', en: 'Your Libra Moon needs relationship harmony for emotional stability.' },
+        scorpio: { es: 'Tu Luna en Escorpio te da emociones volcánicas y una intuición penetrante. Sientes todo con máxima intensidad y tus vínculos emocionales son transformadores.', en: 'Your Scorpio Moon gives you volcanic emotions and penetrating intuition.' },
+        sagittarius: { es: 'Tu Luna en Sagitario necesita libertad emocional y aventura. Te sientes bien explorando, viajando y aprendiendo. El optimismo es tu refugio natural.', en: 'Your Sagittarius Moon needs emotional freedom and adventure.' },
+        capricorn: { es: 'Tu Luna en Capricornio contiene las emociones con autocontrol. Puedes parecer distante pero tu lealtad es profunda. Necesitas estructura emocional y respeto.', en: 'Your Capricorn Moon contains emotions with self-control. Deep loyalty beneath a reserved exterior.' },
+        aquarius: { es: 'Tu Luna en Acuario procesa emociones de forma racional y necesita espacio. Valoras la amistad y la independencia emocional. Tus sentimientos pueden sorprenderte.', en: 'Your Aquarius Moon processes emotions rationally and needs space.' },
+        pisces: { es: 'Tu Luna en Piscis te hace emocionalmente poroso — absorbes las emociones de todos. Tu intuición es extraordinaria y necesitas momentos de soledad para recargarte.', en: 'Your Pisces Moon makes you emotionally porous — you absorb everyone\'s feelings.' }
+    },
+    mercurySign: {
+        aries: { es: 'Mercurio en Aries: mente rápida, directa y competitiva. Hablas sin filtro y decides al instante. Ideas pioneras pero a veces falta de paciencia para los detalles.', en: 'Mercury in Aries: quick, direct mind. You speak without filter and decide instantly.' },
+        taurus: { es: 'Mercurio en Tauro: pensamiento lento pero sólido. Tus ideas son prácticas y las defiendes con tenacidad. Buena memoria y sentido común.', en: 'Mercury in Taurus: slow but solid thinking. Practical ideas defended with tenacity.' },
+        gemini: { es: 'Mercurio en Géminis (domicilio): mente brillante, curiosa y versátil. Aprendes rápido y te comunicas con facilidad. Puedes hacer varias cosas a la vez.', en: 'Mercury in Gemini (domicile): brilliant, curious, versatile mind.' },
+        cancer: { es: 'Mercurio en Cáncer: piensas con el corazón. Tu memoria emocional es poderosa y te comunicas con empatía. Las palabras pueden herirte profundamente.', en: 'Mercury in Cancer: you think with your heart. Powerful emotional memory.' },
+        leo: { es: 'Mercurio en Leo: comunicación dramática y creativa. Tus ideas son grandes y las expresas con autoridad. Talento para el storytelling y la oratoria.', en: 'Mercury in Leo: dramatic and creative communication. Big ideas expressed with authority.' },
+        virgo: { es: 'Mercurio en Virgo (domicilio y exaltación): mente analítica excepcional. Atención al detalle, capacidad crítica y pensamiento metódico. Tu intelecto es preciso como un bisturí.', en: 'Mercury in Virgo (domicile): exceptional analytical mind. Precise intellect.' },
+        libra: { es: 'Mercurio en Libra: pensamiento diplomático y equilibrado. Ves todos los ángulos de un tema. Excelente para negociar y mediar, aunque la indecisión puede paralizarte.', en: 'Mercury in Libra: diplomatic balanced thinking. You see all angles.' },
+        scorpio: { es: 'Mercurio en Escorpio: mente penetrante que ve lo que otros ocultan. Investigador nato, pensamiento estratégico y palabras que pueden curar o destruir.', en: 'Mercury in Scorpio: penetrating mind that sees what others hide.' },
+        sagittarius: { es: 'Mercurio en Sagitario: pensamiento expansivo y filosófico. Te atraen las grandes ideas y puedes ser profético, aunque a veces descuidas los detalles por ver el panorama completo.', en: 'Mercury in Sagittarius: expansive philosophical thinking.' },
+        capricorn: { es: 'Mercurio en Capricornio: mente estructurada, seria y práctica. Piensas a largo plazo y tus palabras tienen peso. Comunicación sobria pero efectiva.', en: 'Mercury in Capricorn: structured, serious, practical mind.' },
+        aquarius: { es: 'Mercurio en Acuario: mente original y futurista. Tus ideas son revolucionarias y piensas fuera de la caja. Afinidad con la tecnología y lo alternativo.', en: 'Mercury in Aquarius: original futuristic mind. Revolutionary ideas.' },
+        pisces: { es: 'Mercurio en Piscis: pensamiento intuitivo y artístico. Te comunicas con imágenes y metáforas. Tu mente es un océano de creatividad pero puede perderse en la dispersión.', en: 'Mercury in Pisces: intuitive artistic thinking. Communication through images and metaphors.' }
+    },
+    venusSign: {
+        aries: { es: 'Venus en Aries: amas con pasión y conquista. Te atraen las personas fuertes y la chispa del comienzo te enamora. Directo en el amor, a veces impaciente.', en: 'Venus in Aries: you love with passion and conquest.' },
+        taurus: { es: 'Venus en Tauro (domicilio): amor sensual, estable y duradero. Valoras la belleza material y los placeres. Eres el amante más fiel y dedicado del zodíaco.', en: 'Venus in Taurus (domicile): sensual, stable, lasting love.' },
+        gemini: { es: 'Venus en Géminis: el amor pasa por la mente. Necesitas estimulación intelectual y comunicación constante. Te atraen las personas ingeniosas y versátiles.', en: 'Venus in Gemini: love passes through the mind. Need intellectual stimulation.' },
+        cancer: { es: 'Venus en Cáncer: amor tierno, protector y emocional. Cuidas con devoción y necesitas sentirte seguro en el amor. El hogar es tu templo del amor.', en: 'Venus in Cancer: tender, protective, emotional love.' },
+        leo: { es: 'Venus en Leo: amor dramático, generoso y apasionado. Necesitas ser admirado y admiras a tu pareja. El romance es un espectáculo grandioso para ti.', en: 'Venus in Leo: dramatic, generous, passionate love.' },
+        virgo: { es: 'Venus en Virgo: amor servicial y detallista. Demuestras cariño con actos prácticos. Puedes ser crítico pero tu devoción es genuina y constante.', en: 'Venus in Virgo: serviceful, detail-oriented love.' },
+        libra: { es: 'Venus en Libra (domicilio): el amor es arte y equilibrio. Eres el diplomático perfecto en relaciones. La belleza, la elegancia y la justicia guían tu corazón.', en: 'Venus in Libra (domicile): love is art and balance.' },
+        scorpio: { es: 'Venus en Escorpio: amor intenso, transformador y absoluto. Todo o nada en el amor. Tus relaciones son volcánicas y tu lealtad es hasta las últimas consecuencias.', en: 'Venus in Scorpio: intense, transformative, absolute love.' },
+        sagittarius: { es: 'Venus en Sagitario: amor libre, aventurero y filosófico. Necesitas espacio y crecimiento juntos. Te enamoras de quien te muestra nuevos mundos.', en: 'Venus in Sagittarius: free, adventurous, philosophical love.' },
+        capricorn: { es: 'Venus en Capricornio: amor maduro, comprometido y construido sobre bases sólidas. Eres lento para abrirte pero tu amor es para toda la vida.', en: 'Venus in Capricorn: mature love built on solid foundations.' },
+        aquarius: { es: 'Venus en Acuario: amor que rompe moldes. Necesitas libertad y amistad como base. Te atraen las personas únicas y las relaciones poco convencionales.', en: 'Venus in Aquarius: love that breaks molds. Need freedom and friendship.' },
+        pisces: { es: 'Venus en Piscis (exaltación): amor incondicional, romántico y espiritual. Eres el alma más compasiva en el amor. Puedes idealizar a tu pareja pero tu entrega es divina.', en: 'Venus in Pisces (exalted): unconditional, romantic, spiritual love.' }
+    },
+    marsSign: {
+        aries: { es: 'Marte en Aries (domicilio): energía pura, acción directa. Eres un guerrero nato, competitivo y valiente. Tu iniciativa es imparable.', en: 'Mars in Aries (domicile): pure energy, direct action. Born warrior.' },
+        taurus: { es: 'Marte en Tauro: fuerza persistente y determinada. Lento para actuar pero imparable una vez en movimiento. Tu resistencia es legendaria.', en: 'Mars in Taurus: persistent determined force. Slow to start but unstoppable.' },
+        gemini: { es: 'Marte en Géminis: energía mental y verbal. Luchas con las palabras y tu mente es tu arma. Multitarea e inquieto, necesitas variedad en la acción.', en: 'Mars in Gemini: mental and verbal energy. Words are your weapons.' },
+        cancer: { es: 'Marte en Cáncer: actúas desde las emociones. Luchas ferozmente por tu familia y hogar. Tu pasividad es engañosa — proteges como un cangrejo con sus pinzas.', en: 'Mars in Cancer: act from emotions. Fierce protection of family.' },
+        leo: { es: 'Marte en Leo: acción dramática y creativa. Luchas con orgullo y generosidad. Tu energía es solar y magnética, inspiras a otros a actuar.', en: 'Mars in Leo: dramatic creative action. Solar magnetic energy.' },
+        virgo: { es: 'Marte en Virgo: acción precisa y eficiente. Trabajas metódicamente y tu energía está al servicio de mejorar todo. Excelente para resolver problemas.', en: 'Mars in Virgo: precise efficient action. Methodical problem-solving.' },
+        libra: { es: 'Marte en Libra: actúas buscando justicia y equilibrio. Luchas por la paz, paradójicamente. Tu agresividad se canaliza de forma diplomática.', en: 'Mars in Libra: act seeking justice and balance. Fight for peace.' },
+        scorpio: { es: 'Marte en Escorpio (domicilio tradicional): poder intenso, estrategia y resistencia extrema. Cuando decides algo, nada te detiene. Tu fuerza interior es inagotable.', en: 'Mars in Scorpio (traditional domicile): intense power, strategy, extreme endurance.' },
+        sagittarius: { es: 'Marte en Sagitario: acción entusiasta y expansiva. Luchas por tus ideales y creencias. Tu energía es aventurera e inspiradora.', en: 'Mars in Sagittarius: enthusiastic expansive action. Fight for ideals.' },
+        capricorn: { es: 'Marte en Capricornio (exaltación): ambición disciplinada y estratégica. Tu energía es profesional y orientada a metas a largo plazo. El éxito es inevitable.', en: 'Mars in Capricorn (exalted): disciplined strategic ambition.' },
+        aquarius: { es: 'Marte en Acuario: acción innovadora y grupal. Luchas por causas sociales y tu energía se activa con lo diferente y lo tecnológico.', en: 'Mars in Aquarius: innovative group action. Fight for social causes.' },
+        pisces: { es: 'Marte en Piscis: acción intuitiva y compasiva. Tu energía fluye como el agua, adaptándose. Luchas por los vulnerables y tu creatividad es tu motor.', en: 'Mars in Pisces: intuitive compassionate action.' }
+    },
+    jupiterSign: {
+        aries: { es: 'Júpiter en Aries: expansión a través del coraje y la iniciativa. La suerte te favorece cuando lideras y te arriesgas. Crecimiento a través de la acción.', en: 'Jupiter in Aries: expansion through courage and initiative.' },
+        taurus: { es: 'Júpiter en Tauro: abundancia material y placer. La suerte viene a través de la perseverancia y los recursos tangibles. Generosidad con lo material.', en: 'Jupiter in Taurus: material abundance. Luck through persistence.' },
+        gemini: { es: 'Júpiter en Géminis: expansión mental y comunicativa. La suerte viene a través del conocimiento, las conexiones y la versatilidad intelectual.', en: 'Jupiter in Gemini: mental communicative expansion.' },
+        cancer: { es: 'Júpiter en Cáncer (exaltación): abundancia emocional y familiar. La suerte te protege a través del hogar, la intuición y los vínculos afectivos.', en: 'Jupiter in Cancer (exalted): emotional family abundance.' },
+        leo: { es: 'Júpiter en Leo: expansión creativa y carismática. La suerte te favorece cuando brillas y compartes tu generosidad. Talento para el liderazgo expansivo.', en: 'Jupiter in Leo: creative charismatic expansion.' },
+        virgo: { es: 'Júpiter en Virgo: crecimiento a través del servicio y la mejora continua. La suerte viene cuando ayudas a otros y perfeccionas tus habilidades.', en: 'Jupiter in Virgo: growth through service and improvement.' },
+        libra: { es: 'Júpiter en Libra: expansión a través de las relaciones y la justicia. Las asociaciones te traen suerte y crecimiento. Talento diplomático amplificado.', en: 'Jupiter in Libra: expansion through relationships and justice.' },
+        scorpio: { es: 'Júpiter en Escorpio: crecimiento a través de la transformación profunda. La suerte viene cuando enfrentas lo oculto y renaces. Recursos compartidos favorecidos.', en: 'Jupiter in Scorpio: growth through deep transformation.' },
+        sagittarius: { es: 'Júpiter en Sagitario (domicilio): máxima expansión, suerte natural y optimismo. Los viajes, la filosofía y la educación superior son tus vías de crecimiento.', en: 'Jupiter in Sagittarius (domicile): maximum expansion, natural luck.' },
+        capricorn: { es: 'Júpiter en Capricornio: crecimiento disciplinado y profesional. La expansión viene a través del trabajo duro y las estructuras sólidas.', en: 'Jupiter in Capricorn: disciplined professional growth.' },
+        aquarius: { es: 'Júpiter en Acuario: expansión a través de la innovación y lo colectivo. La suerte te favorece en grupos, tecnología y causas humanitarias.', en: 'Jupiter in Aquarius: expansion through innovation and community.' },
+        pisces: { es: 'Júpiter en Piscis (domicilio): expansión espiritual y compasiva. La suerte es mística y te favorece cuando confías en tu intuición y ayudas sin esperar nada.', en: 'Jupiter in Pisces (domicile): spiritual compassionate expansion.' }
+    },
+    saturnSign: {
+        aries: { es: 'Saturno en Aries: lecciones sobre la paciencia y la madurez en la acción. Debes aprender a canalizar tu impulso con disciplina. La autoridad se gana con responsabilidad.', en: 'Saturn in Aries: lessons in patience and mature action.' },
+        taurus: { es: 'Saturno en Tauro: lecciones sobre el valor y la seguridad material. Construyes tu estabilidad con esfuerzo sostenido. Relación madura con el dinero y los recursos.', en: 'Saturn in Taurus: lessons about value and material security.' },
+        gemini: { es: 'Saturno en Géminis: lecciones sobre la comunicación y el pensamiento estructurado. Debes aprender a profundizar en vez de dispersarte. Mente disciplinada.', en: 'Saturn in Gemini: lessons in structured communication and thought.' },
+        cancer: { es: 'Saturno en Cáncer: lecciones emocionales profundas, posible distancia emocional temprana. Aprendes a construir seguridad emocional desde tu interior.', en: 'Saturn in Cancer: deep emotional lessons. Build inner security.' },
+        leo: { es: 'Saturno en Leo: lecciones sobre la autoexpresión y la creatividad disciplinada. Tu brillo debe ganarse con trabajo. Liderazgo que viene de la responsabilidad.', en: 'Saturn in Leo: lessons in disciplined self-expression.' },
+        virgo: { es: 'Saturno en Virgo: perfeccionismo elevado, autocrítica como motor de mejora. Las rutinas y el servicio son tu camino de maestría.', en: 'Saturn in Virgo: elevated perfectionism, self-criticism as growth engine.' },
+        libra: { es: 'Saturno en Libra (exaltación): maestría en las relaciones y la justicia. Tus compromisos son serios y duraderos. Excelente capacidad de mediación.', en: 'Saturn in Libra (exalted): mastery in relationships and justice.' },
+        scorpio: { es: 'Saturno en Escorpio: lecciones sobre el poder, el control y la transformación. Debes enfrentar tus miedos más profundos para alcanzar la verdadera fortaleza.', en: 'Saturn in Scorpio: lessons on power, control and transformation.' },
+        sagittarius: { es: 'Saturno en Sagitario: lecciones sobre las creencias y la verdad. Tu filosofía de vida se forja con experiencia real, no solo teoría.', en: 'Saturn in Sagittarius: lessons about beliefs and truth.' },
+        capricorn: { es: 'Saturno en Capricornio (domicilio): disciplina máxima, ambición estructurada. Eres arquitecto de tu destino. El éxito llega tarde pero sólido y duradero.', en: 'Saturn in Capricorn (domicile): maximum discipline, architect of destiny.' },
+        aquarius: { es: 'Saturno en Acuario (domicilio): estructura al servicio de la innovación. Tus ideas visionarias se concretan con trabajo. Responsabilidad social genuina.', en: 'Saturn in Aquarius (domicile): structure serving innovation.' },
+        pisces: { es: 'Saturno en Piscis: lecciones espirituales y de disolución del ego. Debes aprender los límites de la compasión y dar estructura a tu intuición.', en: 'Saturn in Pisces: spiritual lessons and ego dissolution.' }
+    },
+    // --- PLANET IN HOUSE ---
+    planetHouse: {
+        sun: {
+            1: { es: 'Sol en Casa 1: Tu identidad es luminosa y visible. Irradias presencia y la gente te nota. Liderazgo natural y fuerte sentido del yo.', en: 'Sun in 1st House: Luminous visible identity. Natural leadership.' },
+            2: { es: 'Sol en Casa 2: Tu identidad se construye a través de los recursos y valores. El dinero y la seguridad material son centrales para tu autoestima.', en: 'Sun in 2nd House: Identity through resources and values.' },
+            3: { es: 'Sol en Casa 3: Brillas a través de la comunicación, la escritura y el aprendizaje. Tu mente es tu mayor activo.', en: 'Sun in 3rd House: Shine through communication and learning.' },
+            4: { es: 'Sol en Casa 4: El hogar y la familia son el centro de tu ser. Tu raíz es profunda y necesitas un lugar seguro para florecer.', en: 'Sun in 4th House: Home and family are your center.' },
+            5: { es: 'Sol en Casa 5: Creatividad, romance y diversión definen tu expresión vital. Eres artista de corazón y tu niño interior es poderoso.', en: 'Sun in 5th House: Creativity, romance and joy define you.' },
+            6: { es: 'Sol en Casa 6: Tu propósito se manifiesta en el trabajo diario y el servicio. La salud y la rutina son sagradas para ti.', en: 'Sun in 6th House: Purpose through daily work and service.' },
+            7: { es: 'Sol en Casa 7: Te defines a través de las relaciones. Las asociaciones y el matrimonio son centrales en tu vida.', en: 'Sun in 7th House: Define yourself through relationships.' },
+            8: { es: 'Sol en Casa 8: Transformación profunda, poder oculto y regeneración. Vives intensamente y los recursos compartidos juegan un rol importante.', en: 'Sun in 8th House: Deep transformation and hidden power.' },
+            9: { es: 'Sol en Casa 9: Viajes, filosofía y educación superior iluminan tu camino. Eres un buscador de la verdad con horizonte expandido.', en: 'Sun in 9th House: Travel, philosophy and higher education illuminate your path.' },
+            10: { es: 'Sol en Casa 10: Tu vocación profesional y tu reputación pública son centrales. Naciste para alcanzar reconocimiento y estatus.', en: 'Sun in 10th House: Career and public reputation are central.' },
+            11: { es: 'Sol en Casa 11: Brillas en grupos, amistades y causas colectivas. Tu propósito se conecta con ideales humanitarios y comunidades.', en: 'Sun in 11th House: Shine in groups, friendships, collective causes.' },
+            12: { es: 'Sol en Casa 12: Tu luz es interior y espiritual. Necesitas soledad creativa y tu conexión con lo trascendente es profunda. Vida interior rica.', en: 'Sun in 12th House: Inner spiritual light. Deep transcendent connection.' }
+        },
+        moon: {
+            1: { es: 'Luna en Casa 1: Tus emociones están a flor de piel. La gente percibe tu estado de ánimo inmediatamente. Muy receptivo e intuitivo.', en: 'Moon in 1st: Emotions on the surface. Highly receptive and intuitive.' },
+            2: { es: 'Luna en Casa 2: Seguridad emocional ligada a lo material. Necesitas estabilidad financiera para sentirte bien. Relación emocional con el dinero.', en: 'Moon in 2nd: Emotional security tied to material stability.' },
+            3: { es: 'Luna en Casa 3: Piensas emocionalmente y comunicas con empatía. Tu vecindario y hermanos son importantes emocionalmente.', en: 'Moon in 3rd: Think emotionally, communicate with empathy.' },
+            4: { es: 'Luna en Casa 4 (domicilio): El hogar es tu santuario emocional. Conexión profundísima con la madre, la familia y las raíces.', en: 'Moon in 4th (domicile): Home is your emotional sanctuary.' },
+            5: { es: 'Luna en Casa 5: Emociones expresadas creativamente. Gran conexión emocional con los hijos, el romance y la diversión.', en: 'Moon in 5th: Emotions expressed creatively. Connection with children and romance.' },
+            6: { es: 'Luna en Casa 6: Tu estado emocional afecta tu salud directamente. Necesitas rutinas que nutran tu bienestar. Servicio como nutrición emocional.', en: 'Moon in 6th: Emotional state directly affects health.' },
+            7: { es: 'Luna en Casa 7: Necesitas una pareja emocionalmente presente. Las relaciones son tu espejo emocional y te definen profundamente.', en: 'Moon in 7th: Need emotionally present partner.' },
+            8: { es: 'Luna en Casa 8: Emociones volcánicas y transformadoras. Intuición psíquica poderosa. Relación intensa con la intimidad y lo oculto.', en: 'Moon in 8th: Volcanic transformative emotions. Powerful psychic intuition.' },
+            9: { es: 'Luna en Casa 9: Necesitas aventura y expansión para sentirte emocionalmente pleno. Viajes lejanos te nutren el alma.', en: 'Moon in 9th: Need adventure and expansion for emotional fulfillment.' },
+            10: { es: 'Luna en Casa 10: Tu vida emocional es pública. Necesitas reconocimiento y tu carrera está conectada con nutrir o cuidar a otros.', en: 'Moon in 10th: Emotional life is public. Career connected to nurturing.' },
+            11: { es: 'Luna en Casa 11: Las amistades y los grupos son tu familia elegida. Te nutres emocionalmente de las conexiones sociales y los ideales compartidos.', en: 'Moon in 11th: Friendships and groups are your chosen family.' },
+            12: { es: 'Luna en Casa 12: Emociones profundas y ocultas. Rica vida interior y sensibilidad psíquica. Necesitas soledad para procesar lo que sientes.', en: 'Moon in 12th: Deep hidden emotions. Rich inner life, psychic sensitivity.' }
+        }
+    },
+    // --- ASPECT INTERPRETATIONS ---
+    aspects: {
+        conjunction: { es: 'Conjunción: fusión de energías. Las cualidades de ambos planetas se combinan creando una fuerza potente y concentrada.', en: 'Conjunction: fusion of energies creating a potent concentrated force.' },
+        sextile: { es: 'Sextil: oportunidad armoniosa. Talentos naturales que fluyen fácilmente cuando se activan con esfuerzo mínimo.', en: 'Sextile: harmonious opportunity. Natural talents that flow easily.' },
+        square: { es: 'Cuadratura: tensión creativa y desafío. Genera fricción que impulsa el crecimiento si se maneja con consciencia.', en: 'Square: creative tension and challenge driving growth.' },
+        trine: { es: 'Trígono: armonía natural y fluidez. Talentos innatos que funcionan sin esfuerzo. Gracia y facilidad.', en: 'Trine: natural harmony and fluidity. Effortless innate talents.' },
+        opposition: { es: 'Oposición: polaridad y búsqueda de equilibrio. Aprender a integrar dos fuerzas opuestas para encontrar el punto medio.', en: 'Opposition: polarity and balance-seeking. Integrate opposing forces.' }
+    },
+    // --- TRANSIT INTERPRETATIONS ---
+    transitAspects: {
+        sun: { conjunction: { es: 'El Sol transitando en conjunción con tu {natal}: momento de iluminación y vitalidad en esa área. Tu esencia se activa.', en: 'Sun transiting conjunct your {natal}: illumination and vitality.' },
+               square: { es: 'El Sol en cuadratura con tu {natal}: tensión creativa que te pide ajustar tu expresión personal.', en: 'Sun square your {natal}: creative tension adjusting self-expression.' },
+               trine: { es: 'El Sol en trígono con tu {natal}: fluidez y apoyo para tus talentos naturales. Buen momento para brillar.', en: 'Sun trine your {natal}: flow and support for natural talents.' },
+               opposition: { es: 'El Sol opuesto a tu {natal}: toma de consciencia sobre un equilibrio necesario en tu vida.', en: 'Sun opposite your {natal}: awareness of needed balance.' }},
+        jupiter: { conjunction: { es: 'Júpiter en conjunción con tu {natal}: expansión, suerte y crecimiento en esa área. Momento de abundancia y oportunidades.', en: 'Jupiter conjunct your {natal}: expansion, luck and growth.' },
+                   square: { es: 'Júpiter en cuadratura con tu {natal}: exceso o sobreestimación. Oportunidad de crecimiento si moderas las expectativas.', en: 'Jupiter square your {natal}: excess or overestimation.' },
+                   trine: { es: 'Júpiter en trígono con tu {natal}: período de gracia, facilidad y expansión natural. Aprovecha el viento a favor.', en: 'Jupiter trine your {natal}: period of grace and natural expansion.' },
+                   opposition: { es: 'Júpiter opuesto a tu {natal}: necesidad de equilibrar la expansión con la moderación.', en: 'Jupiter opposite your {natal}: balance expansion with moderation.' }},
+        saturn: { conjunction: { es: 'Saturno en conjunción con tu {natal}: momento de madurez, responsabilidad y estructuración. Lo que construyas ahora será duradero.', en: 'Saturn conjunct your {natal}: maturity, responsibility, lasting structures.' },
+                  square: { es: 'Saturno en cuadratura con tu {natal}: prueba y restricción que fortalece. Momento de esfuerzo necesario para crecer.', en: 'Saturn square your {natal}: test and restriction that strengthens.' },
+                  trine: { es: 'Saturno en trígono con tu {natal}: disciplina que fluye naturalmente. Buen momento para consolidar logros con esfuerzo sostenido.', en: 'Saturn trine your {natal}: discipline flows naturally.' },
+                  opposition: { es: 'Saturno opuesto a tu {natal}: confrontación con la realidad. Momento de tomar responsabilidad y hacer ajustes maduros.', en: 'Saturn opposite your {natal}: confrontation with reality.' }},
+        venus: { conjunction: { es: 'Venus en conjunción con tu {natal}: momento de armonía, amor y belleza. Los placeres y las relaciones fluyen.', en: 'Venus conjunct your {natal}: harmony, love and beauty flow.' },
+                 trine: { es: 'Venus en trígono con tu {natal}: gracia social y atractivo amplificado. Buenos días para el amor y la creatividad.', en: 'Venus trine your {natal}: social grace amplified.' }},
+        mars: { conjunction: { es: 'Marte en conjunción con tu {natal}: activación de energía, motivación e iniciativa. Momento de actuar con determinación.', en: 'Mars conjunct your {natal}: energy activation and initiative.' },
+                square: { es: 'Marte en cuadratura con tu {natal}: tensión, posible irritabilidad o conflicto. Canaliza la energía en acción constructiva.', en: 'Mars square your {natal}: tension, channel energy constructively.' }}
+    }
+};
+
+// --- Sign name mapping ---
+const signNames = {
+    es: ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'],
+    en: ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
+};
+const signKeys = ['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
+
+function getSignKey(longitude) {
+    return signKeys[Math.floor(longitude / 30) % 12];
+}
+
+// ── INTERPRETATION GENERATOR ──
+function generateFullInterpretation(natalChart, natal, transitDate) {
+    const L = currentLang === 'es';
+    const lang = L ? 'es' : 'en';
+    let text = '';
+
+    // Sun
+    const sunKey = getSignKey(natalChart.planets.sun.longitude);
+    const sunHouse = natalChart.houses ? getHouseForLongitude(natalChart.planets.sun.longitude, natalChart.houses.cusps) : null;
+    text += `<div class="interp-section"><h4>☉ ${L?'Sol en ':'Sun in '}${natalChart.planets.sun.formatted}</h4>`;
+    text += `<p>${astroInterpretations.sunSign[sunKey]?.[lang] || ''}</p>`;
+    if (sunHouse && astroInterpretations.planetHouse.sun?.[sunHouse]) {
+        text += `<p>${astroInterpretations.planetHouse.sun[sunHouse][lang]}</p>`;
+    }
+    text += `</div>`;
+
+    // Moon
+    const moonKey = getSignKey(natalChart.planets.moon.longitude);
+    const moonHouse = natalChart.houses ? getHouseForLongitude(natalChart.planets.moon.longitude, natalChart.houses.cusps) : null;
+    text += `<div class="interp-section"><h4>☽ ${L?'Luna en ':'Moon in '}${natalChart.planets.moon.formatted}</h4>`;
+    text += `<p>${astroInterpretations.moonSign[moonKey]?.[lang] || ''}</p>`;
+    if (moonHouse && astroInterpretations.planetHouse.moon?.[moonHouse]) {
+        text += `<p>${astroInterpretations.planetHouse.moon[moonHouse][lang]}</p>`;
+    }
+    text += `</div>`;
+
+    // Mercury
+    if (natalChart.planets.mercury) {
+        const mercKey = getSignKey(natalChart.planets.mercury.longitude);
+        text += `<div class="interp-section"><h4>☿ ${L?'Mercurio en ':'Mercury in '}${natalChart.planets.mercury.formatted}</h4>`;
+        text += `<p>${astroInterpretations.mercurySign[mercKey]?.[lang] || ''}</p></div>`;
+    }
+
+    // Venus
+    if (natalChart.planets.venus) {
+        const venKey = getSignKey(natalChart.planets.venus.longitude);
+        text += `<div class="interp-section"><h4>♀ ${L?'Venus en ':'Venus in '}${natalChart.planets.venus.formatted}</h4>`;
+        text += `<p>${astroInterpretations.venusSign[venKey]?.[lang] || ''}</p></div>`;
+    }
+
+    // Mars
+    if (natalChart.planets.mars) {
+        const marsKey = getSignKey(natalChart.planets.mars.longitude);
+        text += `<div class="interp-section"><h4>♂ ${L?'Marte en ':'Mars in '}${natalChart.planets.mars.formatted}</h4>`;
+        text += `<p>${astroInterpretations.marsSign[marsKey]?.[lang] || ''}</p></div>`;
+    }
+
+    // Jupiter
+    if (natalChart.planets.jupiter) {
+        const jupKey = getSignKey(natalChart.planets.jupiter.longitude);
+        text += `<div class="interp-section"><h4>♃ ${L?'Júpiter en ':'Jupiter in '}${natalChart.planets.jupiter.formatted}</h4>`;
+        text += `<p>${astroInterpretations.jupiterSign[jupKey]?.[lang] || ''}</p></div>`;
+    }
+
+    // Saturn
+    if (natalChart.planets.saturn) {
+        const satKey = getSignKey(natalChart.planets.saturn.longitude);
+        text += `<div class="interp-section"><h4>♄ ${L?'Saturno en ':'Saturn in '}${natalChart.planets.saturn.formatted}</h4>`;
+        text += `<p>${astroInterpretations.saturnSign[satKey]?.[lang] || ''}</p></div>`;
+    }
+
+    // ASC
+    if (natalChart.houses) {
+        text += `<div class="interp-section"><h4>⬆ ${L?'Ascendente':'Ascendant'}: ${natalChart.houses.ascFormatted}</h4>`;
+        const ascKey = getSignKey(natalChart.houses.asc);
+        text += `<p>${L ? 'Tu ascendente define tu máscara social y tu apariencia ante el mundo. Con ascendente en ' + signNames.es[signKeys.indexOf(ascKey)] + ', proyectas una imagen ' : 'Your ascendant defines your social mask. With ' + signNames.en[signKeys.indexOf(ascKey)] + ' rising, you project an image '}`;
+        const ascTraits = { aries:{es:'enérgica, directa y valiente',en:'energetic, direct and brave'}, taurus:{es:'estable, sensual y confiable',en:'stable, sensual and reliable'}, gemini:{es:'curiosa, comunicativa y cambiante',en:'curious, communicative and changeable'}, cancer:{es:'protectora, empática y maternal',en:'protective, empathic and maternal'}, leo:{es:'magnética, orgullosa y dramática',en:'magnetic, proud and dramatic'}, virgo:{es:'ordenada, analítica y servicial',en:'orderly, analytical and helpful'}, libra:{es:'elegante, diplomática y encantadora',en:'elegant, diplomatic and charming'}, scorpio:{es:'intensa, magnética y misteriosa',en:'intense, magnetic and mysterious'}, sagittarius:{es:'aventurera, optimista y filosófica',en:'adventurous, optimistic and philosophical'}, capricorn:{es:'seria, madura y ambiciosa',en:'serious, mature and ambitious'}, aquarius:{es:'única, independiente y futurista',en:'unique, independent and futuristic'}, pisces:{es:'soñadora, empática y etérea',en:'dreamy, empathic and ethereal'}};
+        text += `${ascTraits[ascKey]?.[lang] || ''}.</p></div>`;
+    }
+
+    // Today's transits interpretation
+    if (transitDate) {
+        const transits = calculateTransitsToNatal(transitDate, natalChart);
+        if (transits.length > 0) {
+            text += `<div class="interp-section"><h4>🌟 ${L?'Tránsitos de Hoy':'Today\'s Transits'}</h4>`;
+            transits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).forEach(t => {
+                const tInterp = astroInterpretations.transitAspects[t.transitPlanet]?.[t.type];
+                if (tInterp) {
+                    const natalName = L ? (planetNames[t.natalPlanet] || t.natalPlanet) : t.natalPlanet;
+                    text += `<div class="interp-transit"><span style="color:${t.color};">${t.transitSymbol} ${t.symbol} ${t.natalSymbol}</span> `;
+                    text += `${tInterp[lang].replace('{natal}', natalName)} <span style="color:rgba(255,255,255,0.3);">(${t.orb}°)</span></div>`;
+                }
+            });
+            if (transits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).length === 0) {
+                text += `<p style="color:rgba(255,255,255,0.4);">${L ? 'Sin aspectos mayores hoy — día de integración tranquila.' : 'No major aspects today — quiet integration day.'}</p>`;
+            }
+            text += `</div>`;
+        }
+    }
+
+    return text;
+}
+
+// ── NATAL Q&A ENGINE ──
+function answerNatalQuestion(question, natalChart, natal) {
+    const L = currentLang === 'es';
+    const lang = L ? 'es' : 'en';
+    const q = question.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Planet-specific questions
+    const planetQueries = {
+        sol: 'sun', sun: 'sun', luna: 'moon', moon: 'moon',
+        mercurio: 'mercury', mercury: 'mercury',
+        venus: 'venus', marte: 'mars', mars: 'mars',
+        jupiter: 'jupiter', saturno: 'saturn', saturn: 'saturn',
+        urano: 'uranus', uranus: 'uranus',
+        neptuno: 'neptune', neptune: 'neptune',
+        pluton: 'pluto', pluto: 'pluto'
+    };
+
+    // Check for planet-specific questions
+    for (const [word, planet] of Object.entries(planetQueries)) {
+        if (q.includes(word)) {
+            const pData = natalChart.planets[planet];
+            if (!pData) continue;
+            const signKey = getSignKey(pData.longitude);
+            const house = natalChart.houses ? getHouseForLongitude(pData.longitude, natalChart.houses.cusps) : null;
+            let answer = `<h4>${planetSymbols[planet] || ''} ${planetNames[planet] || planet}: ${pData.formatted}</h4>`;
+
+            // Get interpretation based on planet type
+            const interpMap = { sun: 'sunSign', moon: 'moonSign', mercury: 'mercurySign', venus: 'venusSign', mars: 'marsSign', jupiter: 'jupiterSign', saturn: 'saturnSign' };
+            if (interpMap[planet] && astroInterpretations[interpMap[planet]]?.[signKey]) {
+                answer += `<p>${astroInterpretations[interpMap[planet]][signKey][lang]}</p>`;
+            }
+            if (house && astroInterpretations.planetHouse[planet]?.[house]) {
+                answer += `<p>${astroInterpretations.planetHouse[planet][house][lang]}</p>`;
+            } else if (house) {
+                answer += `<p>${L ? `En Casa ${house}.` : `In House ${house}.`}</p>`;
+            }
+            return answer;
+        }
+    }
+
+    // Ascendant questions
+    if (q.includes('ascend') || q.includes('asc') || q.includes('rising')) {
+        if (natalChart.houses) {
+            const ascKey = getSignKey(natalChart.houses.asc);
+            return `<h4>⬆ ${L?'Ascendente':'Ascendant'}: ${natalChart.houses.ascFormatted}</h4>
+            <p>${L ? 'Tu ascendente es la máscara que presentas al mundo, tu primera impresión y tu cuerpo físico.' : 'Your ascendant is the mask you present to the world, your first impression and physical body.'}</p>`;
+        }
+        return L ? '<p>No se pudo calcular el ascendente. Verifica la hora de nacimiento.</p>' : '<p>Could not calculate ascendant. Verify birth time.</p>';
+    }
+
+    // House questions
+    const houseMatch = q.match(/casa\s*(\d+)|house\s*(\d+)/);
+    if (houseMatch) {
+        const houseNum = parseInt(houseMatch[1] || houseMatch[2]);
+        if (houseNum >= 1 && houseNum <= 12 && natalChart.houses) {
+            const planetsInHouse = Object.entries(natalChart.planets).filter(([p, d]) =>
+                getHouseForLongitude(d.longitude, natalChart.houses.cusps) === houseNum
+            );
+            const houseThemes = {
+                1: { es: 'identidad, apariencia, el yo', en: 'identity, appearance, the self' },
+                2: { es: 'dinero, valores, recursos propios', en: 'money, values, own resources' },
+                3: { es: 'comunicación, hermanos, viajes cortos, mente', en: 'communication, siblings, short trips, mind' },
+                4: { es: 'hogar, familia, raíces, la madre', en: 'home, family, roots, the mother' },
+                5: { es: 'creatividad, romance, hijos, diversión', en: 'creativity, romance, children, fun' },
+                6: { es: 'trabajo diario, salud, servicio, rutinas', en: 'daily work, health, service, routines' },
+                7: { es: 'pareja, matrimonio, socios, el otro', en: 'partner, marriage, associates, the other' },
+                8: { es: 'transformación, sexo, muerte/renacimiento, recursos compartidos', en: 'transformation, sex, death/rebirth, shared resources' },
+                9: { es: 'viajes largos, filosofía, educación superior, espiritualidad', en: 'long trips, philosophy, higher education, spirituality' },
+                10: { es: 'carrera, vocación, estatus público, el padre', en: 'career, vocation, public status, the father' },
+                11: { es: 'amigos, grupos, ideales, el futuro', en: 'friends, groups, ideals, the future' },
+                12: { es: 'inconsciente, espiritualidad, encierros, karma', en: 'unconscious, spirituality, seclusion, karma' }
+            };
+            let answer = `<h4>${L?'Casa':'House'} ${houseNum}</h4>`;
+            answer += `<p>${L?'Temas':'Themes'}: ${houseThemes[houseNum]?.[lang] || ''}</p>`;
+            if (planetsInHouse.length > 0) {
+                answer += `<p>${L?'Planetas en esta casa':'Planets in this house'}: ${planetsInHouse.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+            } else {
+                answer += `<p>${L?'No hay planetas natales en esta casa. La energía de esta casa se expresa a través del signo de la cúspide.':'No natal planets in this house. Its energy expresses through the cusp sign.'}</p>`;
+            }
+            return answer;
+        }
+    }
+
+    // Love/relationship questions
+    if (q.includes('amor') || q.includes('love') || q.includes('pareja') || q.includes('relacion') || q.includes('partner')) {
+        const venusData = natalChart.planets.venus;
+        const marsData = natalChart.planets.mars;
+        let answer = `<h4>💕 ${L?'Amor y Relaciones':'Love & Relationships'}</h4>`;
+        if (venusData) {
+            const vKey = getSignKey(venusData.longitude);
+            answer += `<p><b>♀ Venus ${venusData.formatted}:</b> ${astroInterpretations.venusSign[vKey]?.[lang] || ''}</p>`;
+        }
+        if (marsData) {
+            const mKey = getSignKey(marsData.longitude);
+            answer += `<p><b>♂ ${L?'Marte':'Mars'} ${marsData.formatted}:</b> ${astroInterpretations.marsSign[mKey]?.[lang] || ''}</p>`;
+        }
+        if (natalChart.houses) {
+            const h7planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 7);
+            if (h7planets.length > 0) {
+                answer += `<p>${L?'Planetas en Casa 7 (pareja)':'Planets in 7th House (partnership)'}: ${h7planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p}`).join(', ')}</p>`;
+            }
+        }
+        return answer;
+    }
+
+    // Career/work questions
+    if (q.includes('trabajo') || q.includes('career') || q.includes('profesion') || q.includes('vocacion') || q.includes('work')) {
+        let answer = `<h4>💼 ${L?'Carrera y Vocación':'Career & Vocation'}</h4>`;
+        if (natalChart.houses) {
+            const mc = natalChart.houses.mc;
+            const mcKey = getSignKey(mc);
+            answer += `<p><b>MC (${L?'Medio Cielo':'Midheaven'}):</b> ${natalChart.houses.mcFormatted} — ${L?'Tu vocación pública se expresa con cualidades de ':'Your public vocation expresses with qualities of '}${signNames[lang][signKeys.indexOf(mcKey)]}.</p>`;
+            const h10planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 10);
+            if (h10planets.length > 0) {
+                answer += `<p>${L?'Planetas en Casa 10':'Planets in 10th House'}: ${h10planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+            }
+            const h6planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 6);
+            if (h6planets.length > 0) {
+                answer += `<p>${L?'Planetas en Casa 6 (trabajo diario)':'Planets in 6th House (daily work)'}: ${h6planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+            }
+        }
+        const satData = natalChart.planets.saturn;
+        if (satData) {
+            const satKey = getSignKey(satData.longitude);
+            answer += `<p><b>♄ ${L?'Saturno':'Saturn'} ${satData.formatted}:</b> ${astroInterpretations.saturnSign[satKey]?.[lang] || ''}</p>`;
+        }
+        return answer;
+    }
+
+    // Transit/today questions
+    if (q.includes('transito') || q.includes('transit') || q.includes('hoy') || q.includes('today') || q.includes('energia') || q.includes('energy')) {
+        const today = new Date();
+        const transits = calculateTransitsToNatal(today, natalChart);
+        let answer = `<h4>🌟 ${L?'Energía de Hoy':'Today\'s Energy'} — ${today.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long',year:'numeric'})}</h4>`;
+        const major = transits.filter(t => !['moon','mercury'].includes(t.transitPlanet));
+        if (major.length > 0) {
+            major.forEach(t => {
+                const tInterp = astroInterpretations.transitAspects[t.transitPlanet]?.[t.type];
+                const natalName = L ? (planetNames[t.natalPlanet] || t.natalPlanet) : t.natalPlanet;
+                answer += `<div class="interp-transit"><span style="color:${t.color};">${t.transitSymbol} ${t.symbol} ${t.natalSymbol}</span> `;
+                if (tInterp) {
+                    answer += `${tInterp[lang].replace('{natal}', natalName)}`;
+                } else {
+                    answer += `${planetNames[t.transitPlanet]||t.transitPlanet} ${t.symbol} ${L?'natal':'natal'} ${natalName}`;
+                }
+                answer += ` <span style="opacity:0.4;">(${t.orb}°)</span></div>`;
+            });
+        } else {
+            answer += `<p>${L?'Sin aspectos planetarios mayores hoy. Día tranquilo para integrar energías.':'No major planetary aspects today. Quiet day for integrating energies.'}</p>`;
+        }
+        const moonT = transits.filter(t => t.transitPlanet === 'moon');
+        if (moonT.length > 0) {
+            answer += `<p style="margin-top:8px;font-size:0.85em;color:rgba(255,255,255,0.5);">☽ ${L?'Luna hoy':'Moon today'}: ${moonT.map(t => `${t.symbol} ${L?'natal':'natal'} ${planetNames[t.natalPlanet]||t.natalPlanet}`).join(', ')}</p>`;
+        }
+        return answer;
+    }
+
+    // Compatibility / synastry
+    if (q.includes('compatib') || q.includes('sinastria') || q.includes('synastry')) {
+        const profiles = getNatalProfiles().filter(p => p.date && p.id !== natal.id);
+        if (profiles.length === 0) {
+            return `<p>${L?'Para ver compatibilidad, necesitas agregar otro perfil (pareja, amigo, etc.) con el botón ＋ en la barra de perfiles.':'To check compatibility, add another profile (partner, friend, etc.) using the ＋ button.'}</p>`;
+        }
+        let answer = `<h4>💑 ${L?'Compatibilidad':'Compatibility'}</h4>`;
+        profiles.forEach(p => {
+            const pChart = localStorage.getItem('natalChart_' + p.id);
+            if (!pChart) return;
+            try {
+                const pc = JSON.parse(pChart);
+                answer += `<div class="interp-section"><h4>${p.name || p.cityName}</h4>`;
+                // Sun-Sun comparison
+                const mySun = getSignKey(natalChart.planets.sun.longitude);
+                const theirSun = getSignKey(pc.planets.sun.longitude);
+                const myVenus = natalChart.planets.venus ? getSignKey(natalChart.planets.venus.longitude) : null;
+                const theirVenus = pc.planets.venus ? getSignKey(pc.planets.venus.longitude) : null;
+                const myMoon = getSignKey(natalChart.planets.moon.longitude);
+                const theirMoon = getSignKey(pc.planets.moon.longitude);
+
+                // Element compatibility
+                const elements = { aries:'fire',leo:'fire',sagittarius:'fire', taurus:'earth',virgo:'earth',capricorn:'earth', gemini:'air',libra:'air',aquarius:'air', cancer:'water',scorpio:'water',pisces:'water' };
+                const elemNames = { fire:{es:'Fuego',en:'Fire'}, earth:{es:'Tierra',en:'Earth'}, air:{es:'Aire',en:'Air'}, water:{es:'Agua',en:'Water'} };
+                const mySunElem = elements[mySun];
+                const theirSunElem = elements[theirSun];
+
+                const compat = (mySunElem === theirSunElem) ? (L?'Excelente — mismo elemento':'Excellent — same element') :
+                    ((mySunElem==='fire'&&theirSunElem==='air')||(mySunElem==='air'&&theirSunElem==='fire')||(mySunElem==='earth'&&theirSunElem==='water')||(mySunElem==='water'&&theirSunElem==='earth')) ? (L?'Buena — elementos complementarios':'Good — complementary elements') :
+                    (L?'Desafiante — elementos en tensión, pero con potencial de crecimiento':'Challenging — elements in tension, but growth potential');
+
+                answer += `<p>☉ ${L?'Sol':'Sun'}: ${signNames[lang][signKeys.indexOf(mySun)]} (${elemNames[mySunElem][lang]}) + ${signNames[lang][signKeys.indexOf(theirSun)]} (${elemNames[theirSunElem][lang]}) → ${compat}</p>`;
+                answer += `<p>☽ ${L?'Luna':'Moon'}: ${signNames[lang][signKeys.indexOf(myMoon)]} + ${signNames[lang][signKeys.indexOf(theirMoon)]}</p>`;
+                if (myVenus && theirVenus) {
+                    answer += `<p>♀ Venus: ${signNames[lang][signKeys.indexOf(myVenus)]} + ${signNames[lang][signKeys.indexOf(theirVenus)]}</p>`;
+                }
+                answer += `</div>`;
+            } catch(e) {}
+        });
+        return answer;
+    }
+
+    // General "analyze" / full chart
+    if (q.includes('analiz') || q.includes('analyz') || q.includes('carta') || q.includes('chart') || q.includes('completo') || q.includes('complete') || q.includes('todo') || q.includes('resumen') || q.includes('summary')) {
+        return generateFullInterpretation(natalChart, natal, new Date());
+    }
+
+    // Default: general overview
+    return `<p>${L ? 'Puedes preguntarme sobre:' : 'You can ask me about:'}</p>
+    <div class="chat-suggestions">
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Analiza mi carta completa':'Analyze my full chart'}')">🔮 ${L?'Mi carta completa':'My full chart'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Cómo es mi energía hoy':'How is my energy today'}')">🌟 ${L?'Energía de hoy':'Today\'s energy'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Háblame del amor y relaciones':'Tell me about love and relationships'}')">💕 ${L?'Amor y relaciones':'Love & relationships'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Mi vocación y carrera':'My vocation and career'}')">💼 ${L?'Carrera y vocación':'Career & vocation'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Qué dice mi Luna':'What does my Moon say'}')">☽ ${L?'Mi Luna':'My Moon'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Mi ascendente':'My ascendant'}')">⬆ ${L?'Ascendente':'Ascendant'}</div>
+        ${getNatalProfiles().filter(p=>p.date&&p.id!==natal.id).length > 0 ? `<div class="chat-suggestion" onclick="submitNatalQuestion('${L?'Compatibilidad con otros perfiles':'Compatibility with other profiles'}')">💑 ${L?'Compatibilidad':'Compatibility'}</div>` : ''}
+    </div>`;
+}
+
+// ── CHAT UI ──
+let natalChatHistory = [];
+
+function showNatalInterpretation() {
+    const L = currentLang === 'es';
+    const natal = getNatalData();
+    if (!natal) return;
+
+    let natalChart;
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    natalChatHistory = [];
+
+    let modal = document.getElementById('natalInterpModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'natalInterpModal';
+        modal.className = 'modal';
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+        modal.innerHTML = `<div class="modal-content" id="natalInterpModalContent" style="max-width:520px;max-height:90vh;display:flex;flex-direction:column;padding:0;"></div>`;
+        document.body.appendChild(modal);
+    }
+
+    const profileName = natal.name || natal.cityName || (L?'Tu Carta':'Your Chart');
+
+    document.getElementById('natalInterpModalContent').innerHTML = `
+        <div style="padding:16px 18px 10px;border-bottom:1px solid rgba(155,89,182,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-family:'Cinzel',serif;color:#c39bd3;margin:0;font-size:1em;">🔮 ${profileName}</h3>
+                <span class="close" onclick="var m=document.getElementById('natalInterpModal');if(m)m.classList.remove('show');" style="cursor:pointer;font-size:1.5em;color:rgba(255,255,255,0.4);">&times;</span>
+            </div>
+            <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-top:2px;">${natal.date} · ${natal.time} · ${natal.cityName}</div>
+        </div>
+        <div id="natalChatMessages" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
+        <div style="padding:10px 14px;border-top:1px solid rgba(155,89,182,0.15);display:flex;gap:8px;">
+            <input type="text" id="natalChatInput" placeholder="${L?'Pregúntame sobre tu carta...':'Ask about your chart...'}"
+                style="flex:1;padding:10px 12px;background:rgba(10,3,22,0.8);border:1px solid rgba(155,89,182,0.25);border-radius:8px;color:#e8eaf6;font-size:0.85em;"
+                onkeydown="if(event.key==='Enter')submitNatalQuestion()" />
+            <button onclick="submitNatalQuestion()" style="padding:8px 14px;background:linear-gradient(135deg,rgba(155,89,182,0.3),rgba(78,205,196,0.2));border:1px solid rgba(155,89,182,0.4);border-radius:8px;color:#c39bd3;cursor:pointer;font-size:0.9em;">→</button>
+        </div>
+    `;
+
+    modal.classList.add('show');
+
+    // Show initial suggestions
+    const initialAnswer = answerNatalQuestion('', natalChart, natal);
+    addChatMessage('bot', `<p>${L?'Soy tu astrólogo personal. Puedo analizar tu carta natal, explicar tus planetas, tránsitos de hoy y compatibilidad con otros perfiles.':'I\'m your personal astrologer. I can analyze your natal chart, explain your planets, today\'s transits and compatibility with other profiles.'}</p>${initialAnswer}`);
+}
+
+function addChatMessage(sender, html) {
+    const container = document.getElementById('natalChatMessages');
+    if (!container) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `natal-chat-msg ${sender}`;
+    msgDiv.innerHTML = html;
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+    natalChatHistory.push({ sender, html });
+}
+
+function submitNatalQuestion(predefinedQ) {
+    const L = currentLang === 'es';
+    const input = document.getElementById('natalChatInput');
+    const question = predefinedQ || (input ? input.value.trim() : '');
+    if (!question) return;
+    if (input) input.value = '';
+
+    // Add user message
+    addChatMessage('user', `<p>${question}</p>`);
+
+    // Get chart data
+    const natal = getNatalData();
+    if (!natal) return;
+    let natalChart;
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    // Generate answer
+    const answer = answerNatalQuestion(question, natalChart, natal);
+    setTimeout(() => addChatMessage('bot', answer), 300);
+}
+
+// ── CSS for Interpretation UI ──
+(function addInterpCSS() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .natal-chat-msg { margin-bottom: 12px; padding: 10px 14px; border-radius: 10px; font-size: 0.85em; line-height: 1.5; animation: chatFadeIn 0.3s ease; }
+        .natal-chat-msg.bot { background: rgba(15,5,30,0.95); border: 1px solid rgba(155,89,182,0.2); color: #e8eaf6; }
+        .natal-chat-msg.user { background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.25); color: #4ecdc4; text-align: right; margin-left: 20%; }
+        .natal-chat-msg h4 { font-family: 'Cinzel', serif; color: #c39bd3; margin: 0 0 6px 0; font-size: 0.95em; }
+        .natal-chat-msg p { margin: 4px 0; }
+        .interp-section { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(155,89,182,0.1); }
+        .interp-section:last-child { border-bottom: none; }
+        .interp-transit { padding: 5px 8px; margin: 4px 0; border-radius: 6px; background: rgba(10,3,22,0.5); font-size: 0.9em; }
+        .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .chat-suggestion { padding: 6px 12px; background: rgba(155,89,182,0.1); border: 1px solid rgba(155,89,182,0.25); border-radius: 20px; font-size: 0.78em; color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; }
+        .chat-suggestion:hover { background: rgba(155,89,182,0.2); color: #c39bd3; border-color: rgba(155,89,182,0.4); }
+        @keyframes chatFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    `;
+    document.head.appendChild(style);
+})();
 
 function personalNextMonth() {
     personalCurrentMonth++;
@@ -12842,7 +13441,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v157';
+const APP_VERSION = 'v158';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
