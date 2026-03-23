@@ -258,10 +258,10 @@
             transform: scale(1.02);
         }
         .day-cell.today {
-            background: linear-gradient(160deg, rgba(45,32,5,0.98) 0%, rgba(30,20,3,0.98) 100%);
-            border: 1px solid rgba(201,168,64,0.60);
-            border-top: 3px solid #c9a840;
-            box-shadow: 0 0 22px rgba(201,168,64,0.25), inset 0 1px 0 rgba(201,168,64,0.20);
+            background: linear-gradient(160deg, rgba(10,25,50,0.98) 0%, rgba(8,20,45,0.98) 100%);
+            border: 1px solid rgba(100,181,246,0.60);
+            border-top: 3px solid #64B5F6;
+            box-shadow: 0 0 22px rgba(100,181,246,0.25), inset 0 1px 0 rgba(100,181,246,0.20);
         }
         .day-cell.weekend {
             background: rgba(25,20,8,0.95);
@@ -273,11 +273,11 @@
             border-color: rgba(201,168,64,0.60);
             box-shadow: 0 0 16px rgba(201,168,64,0.30), inset 0 0 15px rgba(201,168,64,0.08);
         }
-        .day-cell.weekend.today { border-top: 3px solid var(--gold-bright) !important; box-shadow: 0 0 22px rgba(201,168,64,0.35), inset 0 0 15px rgba(201,168,64,0.08) !important; }
+        .day-cell.weekend.today { border-top: 3px solid #64B5F6 !important; box-shadow: 0 0 22px rgba(100,181,246,0.35), inset 0 0 15px rgba(100,181,246,0.08) !important; background: linear-gradient(160deg, rgba(10,25,50,0.98) 0%, rgba(8,20,45,0.98) 100%) !important; border-color: rgba(100,181,246,0.60) !important; }
 
         .day-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1px solid rgba(74,158,255,0.10); }
         .day-number { font-size: 0.95em; font-weight: bold; line-height: 1; flex: 0 0 auto; color: var(--blue-bright); }
-        .day-cell.today .day-number { color: var(--gold-bright); }
+        .day-cell.today .day-number { color: #64B5F6; }
         .day-cell.weekend .day-number { color: var(--gold); }
         .day-right { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; }
         .day-date { font-size: 0.95em; color: var(--text-dim); text-align: right; line-height: 1; font-weight: bold; }
@@ -290,7 +290,7 @@
         .day-event-item { background: rgba(74,158,255,0.08); padding: 0px 2px; border-radius: 2px; border-left: 2px solid var(--blue-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; font-size: 0.9em; }
         .day-event-item.type-reminder { border-left-color: #e85d7a; background: rgba(232,93,122,0.08); }
         .day-event-item.type-appointment { border-left-color: var(--gold); background: rgba(201,168,64,0.08); }
-        .day-cell.today .day-event-item { background: rgba(201,168,64,0.10); }
+        .day-cell.today .day-event-item { background: rgba(100,181,246,0.10); }
         .event-time-badge { font-size: 0.75em; font-weight: bold; color: var(--gold); background: rgba(201,168,64,0.10); padding: 1px 3px; border-radius: 2px; margin-right: 3px; }
 
         /* AI Chat */
@@ -415,12 +415,12 @@
         body.solar-mode .lunar-week { background: rgba(18,11,2,0.95); border-color: rgba(212,175,55,0.18) !important; border-left-color: rgba(212,175,55,0.50) !important; }
         body.solar-mode .day-cell { background: rgba(14,9,2,0.95); border: 1px solid rgba(212,175,55,0.16); min-width: 0; min-height: 110px; }
         body.solar-mode .day-cell:hover { background: rgba(22,14,2,0.98); border-color: rgba(212,175,55,0.38); }
-        body.solar-mode .day-cell.today, body.solar-mode .day-cell.today.weekend { background: linear-gradient(160deg, rgba(45,32,5,0.98) 0%, rgba(30,20,3,0.98) 100%) !important; border: 1px solid rgba(201,168,64,0.60) !important; border-top: 3px solid #c9a840 !important; box-shadow: 0 0 22px rgba(201,168,64,0.25), inset 0 1px 0 rgba(201,168,64,0.20) !important; }
+        body.solar-mode .day-cell.today, body.solar-mode .day-cell.today.weekend { background: linear-gradient(160deg, rgba(10,25,50,0.98) 0%, rgba(8,20,45,0.98) 100%) !important; border: 1px solid rgba(100,181,246,0.60) !important; border-top: 3px solid #64B5F6 !important; box-shadow: 0 0 22px rgba(100,181,246,0.25), inset 0 1px 0 rgba(100,181,246,0.20) !important; }
         body.solar-mode .day-cell.weekend { background: rgba(25,18,2,0.95); border: 1px solid rgba(212,175,55,0.35); border-top: 2px solid rgba(212,175,55,0.55); box-shadow: 0 0 8px rgba(212,175,55,0.15), inset 0 0 12px rgba(212,175,55,0.06); }
         body.solar-mode .day-cell.weekend:hover { border-color: rgba(212,175,55,0.55); box-shadow: 0 0 14px rgba(212,175,55,0.25); }
         body.solar-mode .day-number { color: #7ec8ff; }
         body.solar-mode .day-cell.weekend .day-number { color: #c9a840; }
-        body.solar-mode .day-cell.today .day-number { color: #e8c84a; }
+        body.solar-mode .day-cell.today .day-number { color: #64B5F6; }
         body.solar-mode .day-date, body.solar-mode .day-weekday { color: rgba(255,235,180,0.70); }
         body.solar-mode .subtitle { color: #a88040; }
         body.solar-mode .navigation { border-color: rgba(212,175,55,0.32); background: rgba(14,9,2,0.98); }
@@ -491,11 +491,11 @@
         .personal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .personal-day-cell { min-height: 70px; background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; }
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
-        .personal-day-cell.today { background: rgba(25,10,50,0.95); border: 1px solid rgba(201,168,64,0.50); border-top: 3px solid #c9a840; box-shadow: 0 0 18px rgba(201,168,64,0.20); }
+        .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
         .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
         .personal-day-num { font-weight: 700; color: #c39bd3; margin-bottom: 2px; }
-        .personal-day-cell.today .personal-day-num { color: #e8c84a; }
+        .personal-day-cell.today .personal-day-num { color: #64B5F6; }
         .personal-transit-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 1px; }
         .personal-setup-form { max-width: 420px; margin: 20px auto; }
         .personal-setup-form label { display: block; font-size: 0.85em; color: #c39bd3; margin-bottom: 4px; font-weight: 600; }
@@ -515,9 +515,9 @@
         .gregorian-day-cell:hover { background: rgba(10,14,50,0.98); border-color: var(--blue-border); }
         .gregorian-day-cell.empty { background: transparent; cursor: default; }
         .gregorian-day-cell.weekend { background: rgba(20,16,6,0.95); border-color: rgba(201,168,64,0.30); border-top: 2px solid rgba(201,168,64,0.45); box-shadow: 0 0 8px rgba(201,168,64,0.12); }
-        .gregorian-day-cell.today { background: rgba(18,25,85,0.95); border: 1px solid var(--gold-border); border-top: 2px solid var(--gold); box-shadow: 0 0 18px var(--gold-glow); }
+        .gregorian-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.45); border-top: 2px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .greg-day-number { font-size: 1.15em; font-weight: bold; margin-bottom: 4px; color: var(--blue-bright); }
-        .gregorian-day-cell.today .greg-day-number { color: var(--gold-bright); }
+        .gregorian-day-cell.today .greg-day-number { color: #64B5F6; }
         .gregorian-day-cell.weekend .greg-day-number { color: var(--gold); }
         .greg-lunar-day { font-size: 0.68em; color: var(--text-dim); margin-bottom: 4px; }
         .greg-event { font-size: 0.63em; padding: 3px 5px; margin-bottom: 3px; border-radius: 4px; background: rgba(74,158,255,0.12); border-left: 2px solid var(--blue-mid); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3580,6 +3580,109 @@ function saveJournals() {
 }
 
 // ==============================================
+// BACKUP / RESTORE — Diary notes & Events
+// ==============================================
+
+function exportUserData() {
+    const L = currentLang === 'es';
+    const backup = {
+        _version: 'moonsync_backup_v1',
+        _date: new Date().toISOString(),
+        events: null,
+        journals: null,
+        diaryEntries: {},
+        natalProfiles: null,
+        settings: {}
+    };
+
+    // Events
+    try { backup.events = JSON.parse(localStorage.getItem('lunarCalendarEvents') || 'null'); } catch(e) {}
+    // Journals
+    try { backup.journals = JSON.parse(localStorage.getItem('lunarCalendarJournals') || 'null'); } catch(e) {}
+    // Individual diary_ entries
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('diary_')) {
+            backup.diaryEntries[key] = localStorage.getItem(key);
+        }
+    }
+    // Natal profiles
+    try { backup.natalProfiles = JSON.parse(localStorage.getItem('natalProfiles') || 'null'); } catch(e) {}
+    // Settings
+    ['natalLat','natalLon','currentLang','natalBirthDate','natalBirthTime','natalCityName','natalCountryCode','activeProfileId'].forEach(function(k) {
+        const v = localStorage.getItem(k);
+        if (v) backup.settings[k] = v;
+    });
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'moonsync_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(L ? '✅ Backup descargado. Guárdalo en un lugar seguro.' : '✅ Backup downloaded. Keep it in a safe place.');
+}
+
+function importUserData() {
+    const L = currentLang === 'es';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const backup = JSON.parse(ev.target.result);
+                if (!backup._version || !backup._version.startsWith('moonsync_backup')) {
+                    alert(L ? '❌ Este archivo no es un backup válido de Moon Sync.' : '❌ This file is not a valid Moon Sync backup.');
+                    return;
+                }
+                if (!confirm(L ? '¿Restaurar datos desde backup del ' + (backup._date || '?').split('T')[0] + '? Esto reemplazará tus datos actuales.' : 'Restore data from backup dated ' + (backup._date || '?').split('T')[0] + '? This will replace your current data.')) return;
+
+                // Restore events
+                if (backup.events) {
+                    localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events));
+                    events = backup.events;
+                }
+                // Restore journals
+                if (backup.journals) {
+                    localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals));
+                    journals = backup.journals;
+                }
+                // Restore diary entries
+                if (backup.diaryEntries) {
+                    Object.keys(backup.diaryEntries).forEach(function(key) {
+                        localStorage.setItem(key, backup.diaryEntries[key]);
+                    });
+                }
+                // Restore natal profiles
+                if (backup.natalProfiles) {
+                    localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles));
+                }
+                // Restore settings
+                if (backup.settings) {
+                    Object.keys(backup.settings).forEach(function(key) {
+                        localStorage.setItem(key, backup.settings[key]);
+                    });
+                }
+
+                alert(L ? '✅ Datos restaurados exitosamente. La app se recargará.' : '✅ Data restored successfully. The app will reload.');
+                location.reload();
+            } catch(err) {
+                alert(L ? '❌ Error leyendo el backup: ' + err.message : '❌ Error reading backup: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+// ==============================================
 // GOOGLE CALENDAR SYNC
 // ==============================================
 
@@ -4807,6 +4910,7 @@ function closeNatalDetailModal() {
 
 // Global variable to store current natal chart for detail modal access
 let globalNatalChart = null;
+let globalTodayTransits = [];
 
 function showNatalDetail(type, data) {
     const modal = document.getElementById('natalDetailModal');
@@ -5132,6 +5236,57 @@ function showNatalDetail(type, data) {
             html += '<div>';
             html += '<h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">' + (L ? '✦ Significado del Aspecto' : '✦ Aspect Meaning') + '</h4>';
             html += '<p style="line-height:1.6;font-size:0.9em;">' + (aspectMeanings[aspect.aspect.name] || (L ? 'Interpretación no disponible' : 'Interpretation not available')) + '</p>';
+            html += '</div>';
+        }
+
+    } else if (type === 'transit') {
+        // Transit aspect clicked — data is the index in globalTodayTransits
+        const tr = globalTodayTransits[data];
+        if (tr) {
+            const tpName = planetNamesLocal[tr.transitPlanet] || tr.transitPlanet;
+            const npName = planetNamesLocal[tr.natalPlanet] || tr.natalPlanet;
+            titleEl.textContent = tpName + ' ' + tr.symbol + ' natal ' + npName;
+
+            html += '<div style="border-bottom: 2px solid ' + tr.color + '; padding-bottom: 12px; margin-bottom: 15px;">';
+            html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Tránsito:' : 'Transit:') + '</strong> ' + tpName + '</div>';
+            html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Aspecto:' : 'Aspect:') + '</strong> <span style="color:' + tr.color + ';font-weight:700;">' + (tr.type || tr.class || '') + ' ' + tr.symbol + '</span></div>';
+            html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Natal:' : 'Natal:') + '</strong> ' + npName + '</div>';
+            if (tr.orb !== undefined) html += '<div style="font-size:0.9em;"><strong>' + (L ? 'Orbe:' : 'Orb:') + '</strong> ' + (typeof tr.orb === 'number' ? tr.orb.toFixed(2) + '°' : tr.orb) + '</div>';
+            html += '</div>';
+
+            // Transit interpretation by planet pair + aspect type
+            const transitInterp = {
+                'conjunction': L ? 'Conjunción: fusión intensa de energías. El planeta en tránsito activa y amplifica las cualidades del planeta natal. Momento de nuevos comienzos en el área de vida afectada. Energías que se combinan para crear algo nuevo.' : 'Conjunction: intense energy fusion. The transiting planet activates and amplifies the natal planet\'s qualities. Time for new beginnings in the affected life area. Energies combining to create something new.',
+                'opposition': L ? 'Oposición: tensión entre fuerzas opuestas. El tránsito trae confrontación y consciencia de lo que necesitas equilibrar. Relaciones y situaciones externas sirven como espejo. Momento de tomar decisiones y encontrar un punto medio.' : 'Opposition: tension between opposing forces. The transit brings confrontation and awareness of what needs balancing. External relationships and situations serve as mirrors. Time for decisions and finding middle ground.',
+                'trine': L ? 'Trígono: flujo armónico de energía. El tránsito aporta oportunidades naturales y talentos que fluyen sin esfuerzo. Momento favorable para avanzar en proyectos. Las cosas tienden a funcionar con gracia y facilidad.' : 'Trine: harmonic energy flow. The transit brings natural opportunities and effortlessly flowing talents. Favorable time for advancing projects. Things tend to work with grace and ease.',
+                'square': L ? 'Cuadratura: fricción que impulsa el crecimiento. El tránsito genera desafíos que te obligan a actuar y transformarte. Crisis productivas que construyen carácter. Momento de superar obstáculos internos y externos.' : 'Square: friction driving growth. The transit generates challenges forcing action and transformation. Productive crises building character. Time to overcome internal and external obstacles.',
+                'sextile': L ? 'Sextil: oportunidad que requiere acción. El tránsito ofrece puertas abiertas pero debes cruzarlas conscientemente. Cooperación favorable con el entorno. Momento para aprovechar conexiones y recursos disponibles.' : 'Sextile: opportunity requiring action. The transit offers open doors but you must consciously walk through them. Favorable cooperation with surroundings. Time to leverage available connections and resources.'
+            };
+
+            // Specific planet transit meanings
+            const planetTransitMeaning = {
+                'sun': L ? 'El Sol en tránsito ilumina y vitaliza el área donde se encuentra tu planeta natal. Trae consciencia, energía y visibilidad a estos temas durante este período.' : 'The transiting Sun illuminates and vitalizes the area where your natal planet is. It brings awareness, energy, and visibility to these themes during this period.',
+                'moon': L ? 'La Luna en tránsito sensibiliza y activa las emociones conectadas a tu planeta natal. Efectos breves pero intensos. Intuición acentuada en esta área.' : 'The transiting Moon sensitizes and activates emotions connected to your natal planet. Brief but intense effects. Heightened intuition in this area.',
+                'mercury': L ? 'Mercurio en tránsito activa la comunicación y el pensamiento sobre los temas de tu planeta natal. Tiempo favorable para decisiones, escritura y aprendizaje en esta área.' : 'Transiting Mercury activates communication and thinking about your natal planet\'s themes. Favorable time for decisions, writing, and learning in this area.',
+                'venus': L ? 'Venus en tránsito suaviza y armoniza los temas de tu planeta natal. Trae placer, belleza y conexión social. Favorable para amor, arte y finanzas en esta área.' : 'Transiting Venus softens and harmonizes your natal planet\'s themes. Brings pleasure, beauty, and social connection. Favorable for love, art, and finances in this area.',
+                'mars': L ? 'Marte en tránsito energiza y activa con fuerza los temas de tu planeta natal. Impulso para actuar, competir y conquistar. Posible irritabilidad o conflicto constructivo.' : 'Transiting Mars energizes and powerfully activates your natal planet\'s themes. Impulse to act, compete, and conquer. Possible irritability or constructive conflict.',
+                'jupiter': L ? 'Júpiter en tránsito expande y bendice los temas de tu planeta natal. Oportunidades de crecimiento, optimismo y abundancia. Período de expansión favorable que puede durar meses.' : 'Transiting Jupiter expands and blesses your natal planet\'s themes. Opportunities for growth, optimism, and abundance. Favorable expansion period that can last months.',
+                'saturn': L ? 'Saturno en tránsito estructura y prueba los temas de tu planeta natal. Lecciones de madurez, responsabilidad y límites. Lo que sobrevive esta prueba se fortalece permanentemente.' : 'Transiting Saturn structures and tests your natal planet\'s themes. Lessons of maturity, responsibility, and limits. What survives this test is permanently strengthened.',
+                'uranus': L ? 'Urano en tránsito revoluciona los temas de tu planeta natal. Cambios súbitos, liberación de patrones viejos. Lo inesperado abre nuevas posibilidades. Período de despertar.' : 'Transiting Uranus revolutionizes your natal planet\'s themes. Sudden changes, liberation from old patterns. The unexpected opens new possibilities. Awakening period.',
+                'neptune': L ? 'Neptuno en tránsito disuelve y espiritualiza los temas de tu planeta natal. Confusión inicial que lleva a mayor intuición. Idealización posible. Inspiración artística y espiritual.' : 'Transiting Neptune dissolves and spiritualizes your natal planet\'s themes. Initial confusion leading to greater intuition. Possible idealization. Artistic and spiritual inspiration.',
+                'pluto': L ? 'Plutón en tránsito transforma profundamente los temas de tu planeta natal. Muerte y renacimiento simbólico. Poder oculto emerge. Lo que ya no sirve se destruye para renacer más fuerte.' : 'Transiting Pluto deeply transforms your natal planet\'s themes. Symbolic death and rebirth. Hidden power emerges. What no longer serves is destroyed to be reborn stronger.',
+                'chiron': L ? 'Quirón en tránsito toca heridas profundas conectadas a tu planeta natal. Oportunidad para sanar y convertir el dolor en sabiduría. El sanador herido activa tu capacidad curativa.' : 'Transiting Chiron touches deep wounds connected to your natal planet. Opportunity to heal and convert pain into wisdom. The wounded healer activates your healing capacity.'
+            };
+
+            html += '<div style="margin-bottom:15px;">';
+            html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '✦ Significado del Aspecto' : '✦ Aspect Meaning') + '</h4>';
+            const aspectKey = tr.class || tr.type || '';
+            html += '<p style="line-height:1.6;font-size:0.9em;">' + (transitInterp[aspectKey] || aspectMeanings[tr.type] || (L ? 'Aspecto en tránsito activo' : 'Active transit aspect')) + '</p>';
+            html += '</div>';
+
+            html += '<div>';
+            html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '🪐 ' + tpName + ' en Tránsito' : '🪐 Transiting ' + tpName) + '</h4>';
+            html += '<p style="line-height:1.6;font-size:0.9em;">' + (planetTransitMeaning[tr.transitPlanet] || (L ? 'Tránsito planetario activo sobre tu carta natal.' : 'Active planetary transit over your natal chart.')) + '</p>';
             html += '</div>';
         }
     }
@@ -9266,8 +9421,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
     const calendarTransitsTab = `
         <div class="personal-natal-card">
             <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
-            ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t){ return '<div class="transit-aspect-row ' + t.class + '"><span style="font-size:1.1em;">' + t.transitSymbol + '</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span style="font-size:1.1em;">' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.5);margin-left:4px;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores hoy' : 'No major aspects today') + '</div>'}
-            ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t){ return '<div class="transit-aspect-row ' + t.class + '" style="opacity:0.7;"><span>☽</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span>' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.4);margin-left:4px;">' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : ''}
+            ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t, idx){ return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + idx + ')" style="cursor:pointer;" onmouseover="this.style.opacity=\'0.7\'" onmouseout="this.style.opacity=\'1\'"><span style="font-size:1.1em;">' + t.transitSymbol + '</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span style="font-size:1.1em;">' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.5);margin-left:4px;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores hoy' : 'No major aspects today') + '</div>'}
+            ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t, idx){ var gIdx = majorTransits.length + idx; return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + gIdx + ')" style="opacity:0.7;cursor:pointer;" onmouseover="this.style.opacity=\'0.5\'" onmouseout="this.style.opacity=\'0.7\'"><span>☽</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span>' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.4);margin-left:4px;">' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : ''}
         </div>`;
 
     // ===== TAB: TABLES =====
@@ -10462,6 +10617,8 @@ function renderPersonalCalendar() {
     const todayTransits = calculateTransitsToNatal(today, natalChart);
     const majorTransits = todayTransits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).slice(0, 8);
     const moonTransits = todayTransits.filter(t => t.transitPlanet === 'moon').slice(0, 4);
+    // Store all transits globally for clickable interpretation modals
+    globalTodayTransits = [...majorTransits, ...moonTransits];
 
     // Birthday check
     const [birthY, birthM, birthD] = natal.date.split('-').map(Number);
@@ -14313,6 +14470,28 @@ function openPreferencesModal() {
                         ${currentLang==='es'?'Se conecta con tu cuenta de Google para ver y crear eventos':'Connects with your Google account to view and create events'}
                     </div>
                 `}
+            </div>
+        </div>
+
+        <!-- Backup / Restore -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.85em;font-weight:700;color:#66bb6a;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+                💾 ${currentLang==='es'?'Copia de Seguridad':'Backup & Restore'}
+            </div>
+            <div style="padding:10px 12px;background:rgba(102,187,106,0.04);border:1px solid rgba(102,187,106,0.2);border-radius:8px;">
+                <div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">
+                    ${currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.'}
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="exportUserData()"
+                        style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">
+                        📤 ${currentLang==='es'?'Exportar Backup':'Export Backup'}
+                    </button>
+                    <button onclick="importUserData()"
+                        style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">
+                        📥 ${currentLang==='es'?'Restaurar Backup':'Restore Backup'}
+                    </button>
+                </div>
             </div>
         </div>
 
