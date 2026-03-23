@@ -8824,15 +8824,17 @@ function calculateElementsQualities(planets, houses) {
     const elementColors = { Fire: '#e74c3c', Earth: '#f39c12', Air: '#2ecc71', Water: '#3498db' };
     const qualityColors = { Cardinal: '#f39c12', Fixed: '#2ecc71', Mutable: '#e74c3c' };
 
-    // 15-point unweighted system (each point = 1):
-    // 10 planets: sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto
-    // 1 chiron
-    // 1 northnode
-    // 1 lilith
-    // 1 ASC
-    // 1 MC
+    // ELEMENTS: 15-point unweighted system (each point = 1):
+    // 10 planets + chiron + northnode + lilith + ASC + MC = 15
     const countPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith'];
     let total = 0;
+
+    // QUALITIES: Weighted system to match Astrology Master
+    // Sun=3, Moon=2, ASC=2, others=1; exclude Uranus/Neptune/Pluto/Chiron
+    // Included: sun(3), moon(2), mercury(1), venus(1), mars(1), jupiter(1), saturn(1), northnode(1), lilith(1), ASC(2), MC(1) = 15
+    const qualityWeights = { 'sun': 3, 'moon': 2, 'mercury': 1, 'venus': 1, 'mars': 1, 'jupiter': 1, 'saturn': 1, 'northnode': 1, 'lilith': 1 };
+    const qualityExclude = new Set(['uranus', 'neptune', 'pluto', 'chiron']);
+    let qualityTotal = 0;
 
     const planetList = [];
     const signNames = ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'];
@@ -8840,47 +8842,50 @@ function calculateElementsQualities(planets, houses) {
         signStrength[sign] = 0;
     }
 
-    // Count 10 planets + chiron + northnode + lilith (13 points)
+    // Count 10 planets + chiron + northnode + lilith (13 points for elements)
     for (const p of countPlanets) {
         if (!planets[p]) continue;
         const sign = planets[p].sign;
         const el = signElements[sign];
         const qu = signQualities[sign];
-        const w = 1; // Equal weight of 1 for all points
+        const w = 1; // Equal weight of 1 for elements
         if (el) { elements[el] += w; total += w; }
-        if (qu) qualities[qu] += w;
+        // Qualities: weighted, excluding outer planets and chiron
+        if (!qualityExclude.has(p) && qu) {
+            var qw = qualityWeights[p] || 1;
+            qualities[qu] += qw;
+            qualityTotal += qw;
+        }
         if (sign && signStrength[sign] !== undefined) { signStrength[sign] += w; }
         planetList.push({ planet: p, sign: sign, element: el, quality: qu, weight: w });
     }
 
-    // Add ASC and MC if houses data is provided (2 more points = 15 total)
+    // Add ASC and MC if houses data is provided (2 more points for elements = 15 total)
     if (houses) {
-        // ASC (Ascendant) - weight 1
+        // ASC (Ascendant) - element weight 1, quality weight 2
         if (houses.ascendant !== undefined) {
             const ascSign = getZodiacSignFromLongitude(houses.ascendant);
             const ascEl = signElements[ascSign];
             const ascQu = signQualities[ascSign];
-            const ascW = 1;
-            if (ascEl) { elements[ascEl] += ascW; total += ascW; }
-            if (ascQu) qualities[ascQu] += ascW;
-            if (ascSign && signStrength[ascSign] !== undefined) { signStrength[ascSign] += ascW; }
-            planetList.push({ planet: 'asc', sign: ascSign, element: ascEl, quality: ascQu, weight: ascW });
+            if (ascEl) { elements[ascEl] += 1; total += 1; }
+            if (ascQu) { qualities[ascQu] += 2; qualityTotal += 2; }
+            if (ascSign && signStrength[ascSign] !== undefined) { signStrength[ascSign] += 1; }
+            planetList.push({ planet: 'asc', sign: ascSign, element: ascEl, quality: ascQu, weight: 1 });
         }
-        // MC (Midheaven) - weight 1
+        // MC (Midheaven) - element weight 1, quality weight 1
         if (houses.mc !== undefined) {
             const mcSign = getZodiacSignFromLongitude(houses.mc);
             const mcEl = signElements[mcSign];
             const mcQu = signQualities[mcSign];
-            const mcW = 1;
-            if (mcEl) { elements[mcEl] += mcW; total += mcW; }
-            if (mcQu) qualities[mcQu] += mcW;
-            if (mcSign && signStrength[mcSign] !== undefined) { signStrength[mcSign] += mcW; }
-            planetList.push({ planet: 'mc', sign: mcSign, element: mcEl, quality: mcQu, weight: mcW });
+            if (mcEl) { elements[mcEl] += 1; total += 1; }
+            if (mcQu) { qualities[mcQu] += 1; qualityTotal += 1; }
+            if (mcSign && signStrength[mcSign] !== undefined) { signStrength[mcSign] += 1; }
+            planetList.push({ planet: 'mc', sign: mcSign, element: mcEl, quality: mcQu, weight: 1 });
         }
     }
 
     return {
-        elements, qualities, total, planetList, signStrength,
+        elements, qualities, total, qualityTotal, planetList, signStrength,
         elementColors, qualityColors,
         elementPercents: {
             Fire: total ? ((elements.Fire / total) * 100).toFixed(1) : 0,
@@ -8889,9 +8894,9 @@ function calculateElementsQualities(planets, houses) {
             Water: total ? ((elements.Water / total) * 100).toFixed(1) : 0
         },
         qualityPercents: {
-            Cardinal: total ? ((qualities.Cardinal / total) * 100).toFixed(1) : 0,
-            Fixed: total ? ((qualities.Fixed / total) * 100).toFixed(1) : 0,
-            Mutable: total ? ((qualities.Mutable / total) * 100).toFixed(1) : 0
+            Cardinal: qualityTotal ? ((qualities.Cardinal / qualityTotal) * 100).toFixed(1) : 0,
+            Fixed: qualityTotal ? ((qualities.Fixed / qualityTotal) * 100).toFixed(1) : 0,
+            Mutable: qualityTotal ? ((qualities.Mutable / qualityTotal) * 100).toFixed(1) : 0
         }
     };
 }
@@ -10567,7 +10572,7 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v165b';
+    const NATAL_ENGINE_VER = 'v166';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
