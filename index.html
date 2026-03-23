@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v164';
+        var REQUIRED_VER = 'v165';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -444,6 +444,41 @@
         .profile-tab.add-profile:hover { background: rgba(78,205,196,0.15); color: #4ecdc4; }
         .profile-delete-btn { font-size: 1em; color: rgba(255,255,255,0.25); margin-left: 4px; padding: 0 2px; line-height: 1; }
         .profile-delete-btn:hover { color: #e74c3c; }
+        /* Natal Sub-Tabs */
+        .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; overflow: hidden; border: 1px solid rgba(155,89,182,0.2); }
+        .natal-subtab { flex: 1; padding: 8px 6px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; border-bottom: 2px solid transparent; }
+        .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
+        .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); border-bottom: 2px solid #c39bd3; }
+        .natal-tab-content { animation: fadeInTab 0.3s ease; }
+        @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes planetWobble { 0%,100% { transform: perspective(200px) rotateY(-15deg); } 50% { transform: perspective(200px) rotateY(15deg); } }
+        .planet-spin { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite; transform-origin: center; }
+        .planet-spin-reverse { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite reverse; transform-origin: center; }
+        .planet-3d-wrap { perspective: 300px; border-radius: 50%; overflow: hidden; }
+        /* 3D planet sphere canvas */
+        .planet-sphere-canvas { display: block; margin: 0 auto; border-radius: 50%; }
+
+        /* Natal Data Table */
+        .natal-data-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+        .natal-data-table th { text-align: left; padding: 8px 6px; color: rgba(255,255,255,0.4); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(155,89,182,0.2); }
+        .natal-data-table td { padding: 7px 6px; border-bottom: 1px solid rgba(155,89,182,0.08); color: rgba(255,255,255,0.75); }
+        .natal-data-table tr:hover { background: rgba(155,89,182,0.06); }
+        .sortable-th { user-select: none; transition: color 0.2s; }
+        .sortable-th:hover { color: #c39bd3 !important; }
+
+        /* AI Analysis - Master AI style */
+        .natal-ai-select { width: 100%; padding: 9px 10px; border: 1px solid rgba(155,89,182,0.3); border-radius: 8px; background: rgba(20,10,40,0.7); color: rgba(255,255,255,0.8); font-size: 0.82em; cursor: pointer; appearance: auto; -webkit-appearance: auto; }
+        .natal-ai-select:focus { outline: none; border-color: rgba(155,89,182,0.6); }
+        .natal-ai-btn-master { width: 100%; padding: 14px 18px; border: 1px solid rgba(180,180,180,0.25); border-radius: 25px; background: rgba(240,240,240,0.08); color: rgba(255,255,255,0.8); font-size: 0.9em; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .natal-ai-btn-master:hover { background: rgba(240,240,240,0.15); border-color: rgba(255,255,255,0.4); color: #fff; transform: translateY(-1px); }
+        .natal-ai-btn-master:active { transform: translateY(0); }
+        .natal-ai-btn-ask { background: linear-gradient(135deg, rgba(243,156,18,0.35), rgba(230,126,34,0.35)) !important; border-color: rgba(243,156,18,0.6) !important; color: #fff !important; }
+        .natal-ai-btn-ask:hover { background: linear-gradient(135deg, rgba(243,156,18,0.5), rgba(230,126,34,0.5)) !important; }
+        .natal-ai-btn { width: 100%; padding: 12px 16px; border: 1px solid rgba(155,89,182,0.3); border-radius: 8px; background: rgba(20,10,40,0.6); color: rgba(255,255,255,0.7); font-size: 0.85em; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; }
+        .natal-ai-btn:hover { background: rgba(155,89,182,0.15); border-color: rgba(155,89,182,0.5); color: #fff; }
+        .natal-ai-result-content { font-size: 0.85em; line-height: 1.6; }
+        .ai-section { margin-bottom: 10px; padding: 8px 10px; background: rgba(20,10,40,0.4); border-radius: 6px; border-left: 3px solid rgba(155,89,182,0.4); }
+
         .personal-natal-card { background: rgba(15,5,30,0.95); border: 1px solid rgba(155,89,182,0.25); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
         .personal-natal-card h3 { font-family: 'Cinzel', serif; font-size: 0.95em; color: #c39bd3; margin-bottom: 10px; }
         .natal-planet-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(155,89,182,0.10); font-size: 0.82em; }
@@ -6776,6 +6811,12 @@ function renderEarthInfoPanel() {
     fetchEarthWeather(uLat, uLon, weatherId);
     // Fetch seismic data from USGS
     fetchEarthquakes(uLat, uLon, 'earthSeismicData');
+    // Auto-refresh seismic + weather every 3 minutes
+    if (window._earthRefreshInterval) clearInterval(window._earthRefreshInterval);
+    window._earthRefreshInterval = setInterval(function() {
+        fetchEarthquakes(uLat, uLon, 'earthSeismicData');
+        fetchEarthWeather(uLat, uLon, weatherId);
+    }, 180000);
 }
 
 // ── Open-Meteo Weather API ──
@@ -6858,10 +6899,9 @@ function fetchEarthWeather(lat, lon, containerId) {
 function fetchEarthquakes(lat, lon, containerId) {
     const now = new Date();
     const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const fmt = d => d.toISOString().split('T')[0];
     const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson'
-        + '&starttime=' + fmt(start)
-        + '&endtime=' + fmt(now)
+        + '&starttime=' + start.toISOString()
+        + '&endtime=' + now.toISOString()
         + '&limit=50&orderby=magnitude&minmagnitude=2.5';
 
     fetch(url).then(r => {
@@ -6943,8 +6983,10 @@ function fetchEarthquakes(lat, lon, containerId) {
         });
         html += '</div>';
 
+        var updTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
         html += '<div style="text-align:center;font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">'
             + (currentLang==='es'?'Total: ':'Total: ') + quakes.length + (currentLang==='es'?' sismos registrados':' earthquakes recorded')
+            + '<br><span style="font-size:0.85em;">🔄 ' + (currentLang==='es'?'Actualizado':'Updated') + ': ' + updTime + ' (' + (currentLang==='es'?'cada 3 min':'every 3 min') + ')</span>'
             + '</div>';
 
         container.innerHTML = html;
@@ -7141,10 +7183,11 @@ function getSolarSystemData() {
         {
             name: es?'Mercurio':'Mercury', icon: '☿', color: '#b0b0b0', colorBg: 'rgba(176,176,176,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Mercury_in_true_color.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mercury.jpg?width=1024',
             diameter: 4879, mass: '3.30×10²³ kg', gravity: 3.7,
             distSun: 57.9, distSunUnit: 'M km',
             orbitalPeriod: 88, orbitalPeriodUnit: es?'días':'days',
-            rotationPeriod: '58.6 '+(es?'días':'days'),
+            rotationPeriod: '58.6 '+(es?'días':'days'), rotHours: 1406.4,
             orbitalSpeed: 47.4, axialTilt: 0.034,
             tempMin: -180, tempMax: 430, tempAvg: 167,
             moons: 0, moonNames: [],
@@ -7161,10 +7204,11 @@ function getSolarSystemData() {
         {
             name: es?'Venus':'Venus', icon: '♀', color: '#f5deb3', colorBg: 'rgba(245,222,179,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_venus_atmosphere.jpg?width=1024',
             diameter: 12104, mass: '4.87×10²⁴ kg', gravity: 8.87,
             distSun: 108.2, distSunUnit: 'M km',
             orbitalPeriod: 225, orbitalPeriodUnit: es?'días':'days',
-            rotationPeriod: '243 '+(es?'días (retrógrado)':'days (retrograde)'),
+            rotationPeriod: '243 '+(es?'días (retrógrado)':'days (retrograde)'), rotHours: 5832, rotReverse: true,
             orbitalSpeed: 35.0, axialTilt: 177.4,
             tempMin: 462, tempMax: 462, tempAvg: 462,
             moons: 0, moonNames: [],
@@ -7181,10 +7225,11 @@ function getSolarSystemData() {
         {
             name: es?'Tierra':'Earth', icon: '🌍', color: '#4ecdc4', colorBg: 'rgba(78,205,196,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/cb/The_Blue_Marble_%28remastered%29.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_earth_daymap.jpg?width=1024',
             diameter: 12742, mass: '5.97×10²⁴ kg', gravity: 9.81,
             distSun: 149.6, distSunUnit: 'M km',
             orbitalPeriod: 365, orbitalPeriodUnit: es?'días':'days',
-            rotationPeriod: '23.93 '+(es?'horas':'hours'),
+            rotationPeriod: '23.93 '+(es?'horas':'hours'), rotHours: 23.93,
             orbitalSpeed: 29.78, axialTilt: 23.44,
             tempMin: -89.2, tempMax: 56.7, tempAvg: 15,
             moons: 1, moonNames: [es?'Luna (La Luna)':'Moon (The Moon)'],
@@ -7201,10 +7246,11 @@ function getSolarSystemData() {
         {
             name: es?'Marte':'Mars', icon: '♂', color: '#ff6b6b', colorBg: 'rgba(255,107,107,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mars.jpg?width=1024',
             diameter: 6792, mass: '6.42×10²³ kg', gravity: 3.72,
             distSun: 227.9, distSunUnit: 'M km',
             orbitalPeriod: 687, orbitalPeriodUnit: es?'días':'days',
-            rotationPeriod: '24.6 '+(es?'horas':'hours'),
+            rotationPeriod: '24.6 '+(es?'horas':'hours'), rotHours: 24.6,
             orbitalSpeed: 24.1, axialTilt: 25.2,
             tempMin: -140, tempMax: 20, tempAvg: -63,
             moons: 2, moonNames: ['Phobos', 'Deimos'],
@@ -7221,10 +7267,11 @@ function getSolarSystemData() {
         {
             name: es?'Júpiter':'Jupiter', icon: '♃', color: '#f5a623', colorBg: 'rgba(245,166,35,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Jupiter_New_Horizons.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg?width=1024',
             diameter: 142984, mass: '1.90×10²⁷ kg', gravity: 24.79,
             distSun: 778.6, distSunUnit: 'M km',
             orbitalPeriod: 4333, orbitalPeriodUnit: es?'días (11.86 años)':'days (11.86 years)',
-            rotationPeriod: '9.9 '+(es?'horas':'hours'),
+            rotationPeriod: '9.9 '+(es?'horas':'hours'), rotHours: 9.9,
             orbitalSpeed: 13.1, axialTilt: 3.1,
             tempMin: -145, tempMax: -108, tempAvg: -110,
             moons: 95,
@@ -7242,10 +7289,11 @@ function getSolarSystemData() {
         {
             name: es?'Saturno':'Saturn', icon: '♄', color: '#e8c84a', colorBg: 'rgba(232,200,74,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_saturn.jpg?width=1024',
             diameter: 120536, mass: '5.68×10²⁶ kg', gravity: 10.44,
             distSun: 1433.5, distSunUnit: 'M km',
             orbitalPeriod: 10759, orbitalPeriodUnit: es?'días (29.46 años)':'days (29.46 years)',
-            rotationPeriod: '10.7 '+(es?'horas':'hours'),
+            rotationPeriod: '10.7 '+(es?'horas':'hours'), rotHours: 10.7,
             orbitalSpeed: 9.7, axialTilt: 26.7,
             tempMin: -178, tempMax: -139, tempAvg: -140,
             moons: 146,
@@ -7263,10 +7311,11 @@ function getSolarSystemData() {
         {
             name: es?'Urano':'Uranus', icon: '♅', color: '#7ec8ff', colorBg: 'rgba(126,200,255,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/3/3d/Uranus2.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_uranus.jpg?width=1024',
             diameter: 51118, mass: '8.68×10²⁵ kg', gravity: 8.87,
             distSun: 2872.5, distSunUnit: 'M km',
             orbitalPeriod: 30687, orbitalPeriodUnit: es?'días (84 años)':'days (84 years)',
-            rotationPeriod: '17.2 '+(es?'horas (retrógrado)':'hours (retrograde)'),
+            rotationPeriod: '17.2 '+(es?'horas (retrógrado)':'hours (retrograde)'), rotHours: 17.2, rotReverse: true,
             orbitalSpeed: 6.8, axialTilt: 97.8,
             tempMin: -224, tempMax: -197, tempAvg: -195,
             moons: 28,
@@ -7284,10 +7333,11 @@ function getSolarSystemData() {
         {
             name: es?'Neptuno':'Neptune', icon: '♆', color: '#4169e1', colorBg: 'rgba(65,105,225,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Neptune_Voyager2_color_calibrated.png',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_neptune.jpg?width=1024',
             diameter: 49528, mass: '1.02×10²⁶ kg', gravity: 11.15,
             distSun: 4495.1, distSunUnit: 'M km',
             orbitalPeriod: 60190, orbitalPeriodUnit: es?'días (164.8 años)':'days (164.8 years)',
-            rotationPeriod: '16.1 '+(es?'horas':'hours'),
+            rotationPeriod: '16.1 '+(es?'horas':'hours'), rotHours: 16.1,
             orbitalSpeed: 5.4, axialTilt: 28.3,
             tempMin: -218, tempMax: -200, tempAvg: -200,
             moons: 16,
@@ -7305,10 +7355,11 @@ function getSolarSystemData() {
         {
             name: es?'Plutón':'Pluto', icon: '⯓', color: '#c9a87c', colorBg: 'rgba(201,168,124,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg',
+            textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Pluto_in_True_Color_-_High-Res.jpg?width=1024',
             diameter: 2377, mass: '1.30×10²² kg', gravity: 0.62,
             distSun: 5906.4, distSunUnit: 'M km',
             orbitalPeriod: 90560, orbitalPeriodUnit: es?'días (247.9 años)':'days (247.9 years)',
-            rotationPeriod: '6.39 '+(es?'días (retrógrado)':'days (retrograde)'),
+            rotationPeriod: '6.39 '+(es?'días (retrógrado)':'days (retrograde)'), rotHours: 153.3, rotReverse: true,
             orbitalSpeed: 4.7, axialTilt: 122.5,
             tempMin: -240, tempMax: -218, tempAvg: -229,
             moons: 5,
@@ -7515,7 +7566,7 @@ function renderSolarSystemPanel() {
         // Planet header with mini photo
         html += '<div onclick="togglePlanetDetails(' + idx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
             + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + p.colorBg + '0.4);box-shadow:0 0 12px ' + p.colorBg + '0.3);flex-shrink:0;">'
-            + '<img src="' + p.photo + '" alt="' + p.icon + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
+            + '<img src="' + p.photo + '" alt="' + p.icon + '" class="' + (p.rotReverse ? 'planet-spin-reverse' : 'planet-spin') + '" style="--spin-duration:' + Math.max(4, Math.min(120, (p.rotHours || 24) * 0.8)) + 's;width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
             + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + p.colorBg + '0.5),' + p.colorBg + '0.2));font-size:1.6em;">' + p.icon + '</div>'
             + '</div>'
             + '<div style="flex:1;">'
@@ -7556,14 +7607,20 @@ function renderSolarSystemPanel() {
         // Expandable details (hidden by default)
         html += '<div id="planetDetails' + idx + '" style="display:none;margin-top:8px;">';
 
-        // Planet real photo + SVG fallback
-        const planetImgId = 'planetImg' + idx;
+        // Planet 3D sphere canvas
+        var sphereId = 'planetSphere' + idx;
+        var isSaturn = (p.name.toLowerCase() === 'saturn' || p.name.toLowerCase() === 'saturno');
         html += '<div style="text-align:center;margin-bottom:8px;padding:12px;background:radial-gradient(circle,' + p.colorBg + '0.1) 0%,rgba(0,0,0,0) 70%);border-radius:10px;">'
-            + '<div id="' + planetImgId + '" style="width:130px;height:130px;margin:0 auto;border-radius:50%;overflow:hidden;border:2px solid ' + p.colorBg + '0.3);box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);">'
-            + '<img src="' + p.photo + '" alt="' + p.name + '" referrerpolicy="no-referrer" loading="eager" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"/>'
-            + '<div style="display:none;">' + renderPlanetSVG(p, 126) + '</div>'
-            + '</div>'
-            + '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">' + p.name + (p.isDwarf ? ' — '+(es?'Planeta Enano':'Dwarf Planet') : '') + ' <span style="font-size:0.85em;color:rgba(255,255,255,0.15);">NASA</span></div>'
+            + '<canvas id="' + sphereId + '" width="180" height="180" class="planet-sphere-canvas"'
+            + ' style="max-width:180px;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);"'
+            + ' data-texture="' + (p.textureMap || '') + '"'
+            + ' data-photo="' + p.photo + '"'
+            + ' data-rot-hours="' + (p.rotHours || 24) + '"'
+            + ' data-reverse="' + (p.rotReverse ? '1' : '0') + '"'
+            + ' data-planet-color="' + p.color + '"'
+            + ' data-saturn="' + (isSaturn ? '1' : '0') + '"'
+            + '></canvas>'
+            + '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">' + p.name + (p.isDwarf ? ' — '+(es?'Planeta Enano':'Dwarf Planet') : '') + '</div>'
             + '</div>';
 
         // Detail grid
@@ -7790,9 +7847,185 @@ function togglePlanetDetails(idx) {
     if (el.style.display === 'none') {
         el.style.display = 'block';
         if (arrow) arrow.textContent = '▲';
+        startPlanetSphere('planetSphere' + idx);
     } else {
         el.style.display = 'none';
         if (arrow) arrow.textContent = '▼';
+        stopPlanetSphere('planetSphere' + idx);
+    }
+}
+
+// ===== 3D SPHERE RENDERER (drawImage strip projection) =====
+var _planetSphereAnims = {};
+
+function startPlanetSphere(canvasId) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || _planetSphereAnims[canvasId]) return;
+
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var R = Math.min(W, H) / 2 - 4;
+    var cx = W / 2, cy = H / 2;
+
+    var rotHours = parseFloat(canvas.dataset.rotHours) || 24;
+    var reverse = canvas.dataset.reverse === '1';
+    var textureUrl = canvas.dataset.texture || '';
+    var photoUrl = canvas.dataset.photo || '';
+    var planetColor = canvas.dataset.planetColor || '#8888ff';
+    var isSaturn = canvas.dataset.saturn === '1';
+
+    // Rotation speed: Earth (24h) ~ 20s visual cycle
+    var rotPerSec = (2 * Math.PI) / Math.max(4, Math.min(120, rotHours * 0.8));
+    if (reverse) rotPerSec = -rotPerSec;
+
+    var angle = 0, lastTime = 0;
+    var texImg = null, texReady = false, usedFallback = false;
+
+    // Pre-compute per-column sphere geometry
+    var cols = [];
+    for (var x = 0; x < W; x++) {
+        var dx = x - cx + 0.5;
+        var r2 = R * R - dx * dx;
+        if (r2 <= 0) { cols.push(null); continue; }
+        var halfH = Math.sqrt(r2);
+        var sinA = dx / R;
+        var lon = Math.asin(sinA);
+        var cosLon = Math.cos(lon);
+        cols.push({ halfH: halfH, lon: lon, cosLon: cosLon, top: cy - halfH, h: halfH * 2 });
+    }
+
+    // Pre-render lighting overlay (sphere shading + atmosphere)
+    var lightCvs = document.createElement('canvas');
+    lightCvs.width = W; lightCvs.height = H;
+    var lctx = lightCvs.getContext('2d');
+    // Sphere shading: specular highlight + terminator shadow
+    var g1 = lctx.createRadialGradient(cx - R * 0.35, cy - R * 0.25, R * 0.05, cx + R * 0.1, cy, R);
+    g1.addColorStop(0, 'rgba(255,255,255,0.18)');
+    g1.addColorStop(0.25, 'rgba(255,255,255,0.05)');
+    g1.addColorStop(0.55, 'rgba(0,0,0,0.05)');
+    g1.addColorStop(0.8, 'rgba(0,0,0,0.3)');
+    g1.addColorStop(1, 'rgba(0,0,0,0.55)');
+    lctx.beginPath(); lctx.arc(cx, cy, R, 0, Math.PI * 2); lctx.fillStyle = g1; lctx.fill();
+    // Atmosphere glow
+    var g2 = lctx.createRadialGradient(cx, cy, R - 2, cx, cy, R + 5);
+    g2.addColorStop(0, planetColor + '20');
+    g2.addColorStop(0.5, planetColor + '0a');
+    g2.addColorStop(1, 'transparent');
+    lctx.beginPath(); lctx.arc(cx, cy, R + 5, 0, Math.PI * 2); lctx.fillStyle = g2; lctx.fill();
+
+    // Loading animation
+    ctx.fillStyle = '#0a0519';
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Loading 3D...', cx, cy);
+
+    function render(ts) {
+        if (!_planetSphereAnims[canvasId]) return;
+        var dt = lastTime ? (ts - lastTime) / 1000 : 0;
+        if (dt > 0.15) dt = 0.033;
+        lastTime = ts;
+        angle += rotPerSec * dt;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Dark background sphere
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fillStyle = '#050210'; ctx.fill();
+
+        if (texReady && texImg) {
+            var tw = texImg.naturalWidth || texImg.width;
+            var th = texImg.naturalHeight || texImg.height;
+            var TWO_PI = Math.PI * 2;
+
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, TWO_PI); ctx.clip();
+
+            // Draw sphere as vertical strips (1px each for smooth look)
+            for (var x = 0; x < W; x++) {
+                var c = cols[x];
+                if (!c) continue;
+
+                // Texture U coordinate with rotation
+                var u = (c.lon + angle) / TWO_PI + 0.5;
+                u = ((u % 1) + 1) % 1;
+
+                var srcX = Math.floor(u * tw);
+                // Source width: accounts for spherical foreshortening at edges
+                var srcW = Math.max(1, Math.ceil((1.0 / c.cosLon) * (tw / (R * 2)) * 0.55));
+                if (srcX + srcW > tw) {
+                    // Wrap around: draw two parts
+                    var part1 = tw - srcX;
+                    if (part1 > 0) ctx.drawImage(texImg, srcX, 0, part1, th, x, c.top, 1, c.h);
+                    // Rest from beginning
+                    var part2 = srcW - part1;
+                    if (part2 > 0) ctx.drawImage(texImg, 0, 0, part2, th, x, c.top, 1, c.h);
+                } else {
+                    ctx.drawImage(texImg, srcX, 0, srcW, th, x, c.top, 1, c.h);
+                }
+            }
+            ctx.restore();
+        }
+
+        // Lighting overlay
+        ctx.drawImage(lightCvs, 0, 0);
+
+        // Saturn rings
+        if (isSaturn) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(1, 0.3);
+            // Outer ring
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.55, 0, Math.PI * 2);
+            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(180,155,110,0.3)'; ctx.stroke();
+            // Main ring
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.42, 0, Math.PI * 2);
+            ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(210,180,140,0.4)'; ctx.stroke();
+            // Inner ring
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.28, 0, Math.PI * 2);
+            ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(200,170,120,0.35)'; ctx.stroke();
+            // Gap (Cassini division)
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.35, 0, Math.PI * 2);
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(5,2,16,0.5)'; ctx.stroke();
+            ctx.restore();
+        }
+
+        _planetSphereAnims[canvasId] = requestAnimationFrame(render);
+    }
+
+    // Load equirectangular texture
+    function tryLoad() {
+        if (!textureUrl) { tryFallback(); return; }
+        texImg = new Image();
+        texImg.crossOrigin = 'anonymous';
+        texImg.onload = function() { clearTimeout(loadTimeout); texReady = true; };
+        texImg.onerror = function() { clearTimeout(loadTimeout); tryFallback(); };
+        var loadTimeout = setTimeout(function() {
+            if (!texReady) { texImg.src = ''; tryFallback(); }
+        }, 6000);
+        texImg.src = textureUrl;
+    }
+
+    function tryFallback() {
+        if (!photoUrl) { texReady = false; return; }
+        usedFallback = true;
+        texImg = new Image();
+        texImg.crossOrigin = 'anonymous';
+        texImg.onload = function() { texReady = true; };
+        texImg.onerror = function() { texReady = false; };
+        texImg.src = photoUrl;
+    }
+
+    tryLoad();
+    _planetSphereAnims[canvasId] = requestAnimationFrame(render);
+}
+
+function stopPlanetSphere(canvasId) {
+    if (_planetSphereAnims[canvasId]) {
+        if (typeof _planetSphereAnims[canvasId] === 'number') {
+            cancelAnimationFrame(_planetSphereAnims[canvasId]);
+        }
+        delete _planetSphereAnims[canvasId];
     }
 }
 
@@ -8163,23 +8396,180 @@ function calculateNatalChart(birthDate) {
     const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'lilith'];
     const natalPositions = {};
 
+    // Calculate obliquity for declination
+    const jdBirth = getJulianDay(birthDate);
+    const T_birth = (jdBirth - 2451545.0) / 36525;
+    const obliquity_birth = 23.4393 - 0.0130 * T_birth;
+    const oblRad_birth = obliquity_birth * Math.PI / 180;
+
+    // Date +1 day for speed calculation
+    const nextDay = new Date(birthDate.getTime() + 86400000);
+
     for (const p of planets) {
         const lon = getPlanetPosition(p, birthDate);
+        const lonNext = getPlanetPosition(p, nextDay);
         const signInfo = getZodiacSignWithDegree(lon);
+
+        // Speed: degrees per day (handle wraparound at 360)
+        let speed = lonNext - lon;
+        if (speed > 180) speed -= 360;
+        if (speed < -180) speed += 360;
+
+        // Declination: dec = arcsin(sin(obliquity) * sin(longitude))
+        const lonRad = lon * Math.PI / 180;
+        const declination = Math.asin(Math.sin(oblRad_birth) * Math.sin(lonRad)) * 180 / Math.PI;
+
+        // Retrograde status
+        const isRetrograde = speed < 0;
+
         natalPositions[p] = {
             longitude: lon,
             sign: signInfo.sign,
             degree: signInfo.degree,
             minute: signInfo.minute,
-            formatted: signInfo.formatted
+            formatted: signInfo.formatted,
+            speed: speed,
+            speedFormatted: formatDMS(Math.abs(speed)),
+            isRetrograde: isRetrograde,
+            declination: declination,
+            declinationFormatted: formatDMS(Math.abs(declination)) + (declination >= 0 ? ' N' : ' S')
         };
     }
 
-    // Calculate houses (Placidus approximation)
-    // Ascendant calculation using birth time and latitude
+    // Calculate houses
     const houses = calculateHouses(birthDate, parseFloat(localStorage.getItem('natalLat') || '0'));
 
-    return { planets: natalPositions, houses };
+    // Calculate natal aspects (planet-to-planet)
+    const natalAspects = calculateNatalAspects(natalPositions, houses);
+
+    // Calculate elements & qualities distribution
+    const elementQuality = calculateElementsQualities(natalPositions);
+
+    return { planets: natalPositions, houses, natalAspects, elementQuality };
+}
+
+// Format degrees as DDD°MM'SS"
+function formatDMS(decimalDeg) {
+    const d = Math.floor(decimalDeg);
+    const mFull = (decimalDeg - d) * 60;
+    const m = Math.floor(mFull);
+    const s = Math.floor((mFull - m) * 60);
+    return (d < 10 ? '0' : '') + d + '°' + (m < 10 ? '0' : '') + m + "'" + (s < 10 ? '0' : '') + s + '"';
+}
+
+// Calculate all natal planet-to-planet aspects
+function calculateNatalAspects(planets, houses) {
+    const aspectTypes = [
+        { name: 'Conjunción', nameEn: 'Conjunction', symbol: '☌', angle: 0, orb: 8, color: '#e74c3c' },
+        { name: 'Sextil', nameEn: 'Sextile', symbol: '⚹', angle: 60, orb: 6, color: '#3498db' },
+        { name: 'Cuadratura', nameEn: 'Square', symbol: '□', angle: 90, orb: 7, color: '#f1c40f' },
+        { name: 'Trígono', nameEn: 'Trine', symbol: '△', angle: 120, orb: 8, color: '#2ecc71' },
+        { name: 'Oposición', nameEn: 'Opposition', symbol: '☍', angle: 180, orb: 8, color: '#c0392b' },
+        { name: 'Quincuncio', nameEn: 'Quincunx', symbol: '⚻', angle: 150, orb: 3, color: '#9b59b6' }
+    ];
+    const planetKeys = Object.keys(planets);
+    const aspects = [];
+
+    // Planet-to-planet aspects
+    for (let i = 0; i < planetKeys.length; i++) {
+        for (let j = i + 1; j < planetKeys.length; j++) {
+            const p1 = planetKeys[i];
+            const p2 = planetKeys[j];
+            let diff = Math.abs(planets[p1].longitude - planets[p2].longitude);
+            if (diff > 180) diff = 360 - diff;
+
+            for (const asp of aspectTypes) {
+                const orbActual = Math.abs(diff - asp.angle);
+                if (orbActual <= asp.orb) {
+                    aspects.push({
+                        planet1: p1,
+                        planet2: p2,
+                        aspect: asp,
+                        orb: orbActual,
+                        orbFormatted: orbActual.toFixed(2)
+                    });
+                    break;
+                }
+            }
+        }
+    }
+
+    // Aspects to ASC and MC
+    if (houses) {
+        const points = { ASC: houses.ascendant, MC: houses.mc };
+        for (const [pointName, pointLon] of Object.entries(points)) {
+            for (const p of planetKeys) {
+                let diff = Math.abs(planets[p].longitude - pointLon);
+                if (diff > 180) diff = 360 - diff;
+                for (const asp of aspectTypes) {
+                    const orbActual = Math.abs(diff - asp.angle);
+                    if (orbActual <= asp.orb) {
+                        aspects.push({
+                            planet1: p,
+                            planet2: pointName,
+                            aspect: asp,
+                            orb: orbActual,
+                            orbFormatted: orbActual.toFixed(2)
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort by orb (tightest first)
+    aspects.sort((a, b) => a.orb - b.orb);
+    return aspects;
+}
+
+// Calculate elements (Fire/Earth/Air/Water) and qualities (Cardinal/Fixed/Mutable)
+function calculateElementsQualities(planets) {
+    const signElements = {
+        '♈ Aries': 'Fire', '♉ Tauro': 'Earth', '♊ Géminis': 'Air', '♋ Cáncer': 'Water',
+        '♌ Leo': 'Fire', '♍ Virgo': 'Earth', '♎ Libra': 'Air', '♏ Escorpio': 'Water',
+        '♐ Sagitario': 'Fire', '♑ Capricornio': 'Earth', '♒ Acuario': 'Air', '♓ Piscis': 'Water'
+    };
+    const signQualities = {
+        '♈ Aries': 'Cardinal', '♉ Tauro': 'Fixed', '♊ Géminis': 'Mutable', '♋ Cáncer': 'Cardinal',
+        '♌ Leo': 'Fixed', '♍ Virgo': 'Mutable', '♎ Libra': 'Cardinal', '♏ Escorpio': 'Fixed',
+        '♐ Sagitario': 'Mutable', '♑ Capricornio': 'Cardinal', '♒ Acuario': 'Fixed', '♓ Piscis': 'Mutable'
+    };
+
+    const elements = { Fire: 0, Earth: 0, Air: 0, Water: 0 };
+    const qualities = { Cardinal: 0, Fixed: 0, Mutable: 0 };
+    const elementColors = { Fire: '#e74c3c', Earth: '#f39c12', Air: '#2ecc71', Water: '#3498db' };
+    const qualityColors = { Cardinal: '#f39c12', Fixed: '#2ecc71', Mutable: '#e74c3c' };
+    // Use main 10 planets + chiron for distribution (exclude lilith)
+    const countPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron'];
+    let total = 0;
+
+    const planetList = [];
+    for (const p of countPlanets) {
+        if (!planets[p]) continue;
+        const sign = planets[p].sign;
+        const el = signElements[sign];
+        const qu = signQualities[sign];
+        if (el) { elements[el]++; total++; }
+        if (qu) qualities[qu]++;
+        planetList.push({ planet: p, sign: sign, element: el, quality: qu });
+    }
+
+    return {
+        elements, qualities, total, planetList,
+        elementColors, qualityColors,
+        elementPercents: {
+            Fire: total ? ((elements.Fire / total) * 100).toFixed(1) : 0,
+            Earth: total ? ((elements.Earth / total) * 100).toFixed(1) : 0,
+            Air: total ? ((elements.Air / total) * 100).toFixed(1) : 0,
+            Water: total ? ((elements.Water / total) * 100).toFixed(1) : 0
+        },
+        qualityPercents: {
+            Cardinal: total ? ((qualities.Cardinal / total) * 100).toFixed(1) : 0,
+            Fixed: total ? ((qualities.Fixed / total) * 100).toFixed(1) : 0,
+            Mutable: total ? ((qualities.Mutable / total) * 100).toFixed(1) : 0
+        }
+    };
 }
 
 function calculateHouses(date, latitude) {
@@ -8660,6 +9050,963 @@ function saveNatalForm() {
     renderPersonalCalendar();
 }
 
+// --- Natal Sub-Tabs Builder ---
+function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today) {
+    const planetSyms = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','ASC':'↑','MC':'★'};
+    const planetNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+
+    // ===== TAB: CHART (wheel + existing content) =====
+    const chartTab = `
+        <div class="personal-natal-card" style="text-align:center;position:relative;">
+            <h3>🔮 ${profileDisplayName} — ${L ? 'Carta Natal' : 'Natal Chart'}</h3>
+            <div style="font-size:0.75em;color:rgba(255,255,255,0.35);margin-bottom:6px;">
+                ${natal.date || ''} · ${natal.cityName || ''}<br>
+                Lat: ${parseFloat(localStorage.getItem('natalLat')||0).toFixed(2)} · Lng: ${parseFloat(localStorage.getItem('natalLon')||0).toFixed(2)}<br>
+                Geocentric · Tropical · ${L?'Casas Iguales':'Equal Houses'}
+            </div>
+            <!-- Compass toggle button -->
+            <button id="aspectGridToggle" onclick="toggleAspectGrid()" style="position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:rgba(30,40,70,0.9);border:1.5px solid rgba(100,130,200,0.5);color:rgba(200,210,240,0.8);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="${L?'Alternar Grilla de Aspectos':'Toggle Aspect Grid'}">⚲</button>
+            <!-- Wheel view -->
+            <div id="natalWheelView">
+                <canvas id="natalWheelCanvas" width="500" height="500" style="max-width:100%;margin:0 auto;display:block;"></canvas>
+            </div>
+            <!-- Aspect Grid view (hidden by default) -->
+            <div id="natalAspectGridView" style="display:none;">
+                <div id="aspectGridContainer" style="overflow-x:auto;padding:4px;"></div>
+            </div>
+        </div>
+        <div class="personal-natal-card">
+            <h3 style="font-size:0.85em;">📋 ${L ? 'Datos de la Carta' : 'Chart Data'}</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82em;">
+                <div><span style="color:rgba(255,255,255,0.4);">☉ ${L?'Sol':'Sun'}:</span> <span class="natal-planet-sign">${sunSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">☽ ${L?'Luna':'Moon'}:</span> <span class="natal-planet-sign">${moonSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">ASC:</span> <span class="natal-planet-sign">${ascSign}</span></div>
+                <div><span style="color:rgba(255,255,255,0.4);">MC:</span> <span class="natal-planet-sign">${mcSign}</span></div>
+            </div>
+            <div style="margin-top:6px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;">
+                <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.2);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.4);font-size:0.68em;cursor:pointer;">
+                    📋 ${L ? 'Copiar texto' : 'Copy text'}
+                </button>
+                <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
+                    ✏️ ${L ? 'Editar datos' : 'Edit data'}
+                </button>
+            </div>
+        </div>`;
+
+    // ===== TAB: CALENDAR (transits + monthly grid injected later) =====
+    const calendarTransitsTab = `
+        <div class="personal-natal-card">
+            <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
+            ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t){ return '<div class="transit-aspect-row ' + t.class + '"><span style="font-size:1.1em;">' + t.transitSymbol + '</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span style="font-size:1.1em;">' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.5);margin-left:4px;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores hoy' : 'No major aspects today') + '</div>'}
+            ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t){ return '<div class="transit-aspect-row ' + t.class + '" style="opacity:0.7;"><span>☽</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span>' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.4);margin-left:4px;">' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : ''}
+        </div>`;
+
+    // ===== TAB: TABLES =====
+    // --- Planet Table ---
+    let planetsTableRows = '';
+    Object.entries(natalChart.planets).forEach(function(entry) {
+        const p = entry[0], data = entry[1];
+        const house = natalChart.houses ? getHouseForLongitude(data.longitude, natalChart.houses.cusps) : '-';
+        planetsTableRows += '<tr>' +
+            '<td style="white-space:nowrap;"><span style="font-size:1.1em;">' + (planetSyms[p]||'') + '</span> ' + (planetNms[p]||p) + '</td>' +
+            '<td>' + data.sign + '</td>' +
+            '<td>' + data.degree + '°' + (data.minute < 10 ? '0' : '') + data.minute + "'" + '</td>' +
+            '<td style="text-align:center;">' + house + '</td>' +
+            '<td style="text-align:center;">' + (data.speedFormatted || '-') + (data.isRetrograde ? ' <span style="color:#e74c3c;font-weight:700;">R</span>' : '') + '</td>' +
+            '<td style="text-align:center;">' + (data.declinationFormatted || '-') + '</td>' +
+            '</tr>';
+    });
+
+    // --- Houses Table ---
+    let housesTableRows = '';
+    if (natalChart.houses && natalChart.houses.cusps) {
+        natalChart.houses.cusps.forEach(function(cusp, i) {
+            const info = getZodiacSignWithDegree(cusp);
+            housesTableRows += '<tr>' +
+                '<td style="text-align:center;font-weight:600;">' + (i + 1) + '</td>' +
+                '<td>' + info.sign + '</td>' +
+                '<td>' + info.degree + '°' + (info.minute < 10 ? '0' : '') + info.minute + "'" + '</td>' +
+                '</tr>';
+        });
+    }
+
+    // --- Natal Aspects Table ---
+    let aspectsTableRows = '';
+    if (natalChart.natalAspects) {
+        natalChart.natalAspects.forEach(function(a) {
+            aspectsTableRows += '<tr>' +
+                '<td style="white-space:nowrap;">' + (planetSyms[a.planet1]||'') + ' ' + (planetNms[a.planet1]||a.planet1) + '</td>' +
+                '<td style="text-align:center;color:' + a.aspect.color + ';font-weight:600;">' + a.aspect.name + ' <span style="font-size:1.2em;">' + a.aspect.symbol + '</span></td>' +
+                '<td style="white-space:nowrap;">' + (planetSyms[a.planet2]||'') + ' ' + (planetNms[a.planet2]||a.planet2) + '</td>' +
+                '<td style="text-align:center;">' + a.orbFormatted + '</td>' +
+                '</tr>';
+        });
+    }
+
+    const tablesTab = `
+        <div class="personal-natal-card">
+            <h3>📊 ${L ? 'Tabla de Planetas' : 'Planet Table'}</h3>
+            <div style="overflow-x:auto;">
+                <table class="natal-data-table">
+                    <thead><tr>
+                        <th>${L?'Planeta':'Planet'}</th><th>${L?'Signo':'Sign'}</th><th>${L?'Grado':'Degree'}</th>
+                        <th>${L?'Casa':'House'}</th><th>${L?'Velocidad':'Speed'}</th><th>${L?'Declinación':'Declination'}</th>
+                    </tr></thead>
+                    <tbody>${planetsTableRows}</tbody>
+                </table>
+            </div>
+        </div>
+        <div class="personal-natal-card">
+            <h3>🏠 ${L ? 'Cúspides de Casas' : 'House Cusps'}</h3>
+            <div style="overflow-x:auto;">
+                <table class="natal-data-table">
+                    <thead><tr><th>${L?'Casa':'House'}</th><th>${L?'Signo':'Sign'}</th><th>${L?'Grado':'Degree'}</th></tr></thead>
+                    <tbody>${housesTableRows}</tbody>
+                </table>
+            </div>
+        </div>
+        <div class="personal-natal-card">
+            <h3>🔗 ${L ? 'Aspectos Natales' : 'Natal Aspects'}</h3>
+            <div style="overflow-x:auto;">
+                <table class="natal-data-table" id="natalAspectsTable">
+                    <thead><tr>
+                        <th class="sortable-th" onclick="sortAspectsTable(0)" style="cursor:pointer;">${L?'Planeta':'Planet'} <span id="aspSort0" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(1)" style="cursor:pointer;">${L?'Aspecto':'Aspect'} <span id="aspSort1" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(2)" style="cursor:pointer;">${L?'Planeta':'Planet'} <span id="aspSort2" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(3)" style="cursor:pointer;">${L?'Orbe':'Orb'} <span id="aspSort3" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                    </tr></thead>
+                    <tbody>${aspectsTableRows}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+    // ===== TAB: ELEMENTS =====
+    const eq = natalChart.elementQuality || {};
+    const ep = eq.elementPercents || {};
+    const qp = eq.qualityPercents || {};
+    const ec = eq.elementColors || {};
+    const qc = eq.qualityColors || {};
+
+    const elementsTab = `
+        <div class="personal-natal-card">
+            <h3>🔥 ${L ? 'Elementos' : 'Elements'}</h3>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
+                <canvas id="natalElementsChart" width="220" height="220" style="max-width:220px;"></canvas>
+                <div style="font-size:0.85em;">
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Fire||'#e74c3c'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Fuego':'Fire'}: <b>${ep.Fire||0}%</b> (${eq.elements?eq.elements.Fire:0})</div>
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Earth||'#f39c12'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Tierra':'Earth'}: <b>${ep.Earth||0}%</b> (${eq.elements?eq.elements.Earth:0})</div>
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Air||'#2ecc71'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Aire':'Air'}: <b>${ep.Air||0}%</b> (${eq.elements?eq.elements.Air:0})</div>
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Water||'#3498db'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Agua':'Water'}: <b>${ep.Water||0}%</b> (${eq.elements?eq.elements.Water:0})</div>
+                </div>
+            </div>
+        </div>
+        <div class="personal-natal-card">
+            <h3>⚡ ${L ? 'Cualidades' : 'Qualities'}</h3>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
+                <canvas id="natalQualitiesChart" width="220" height="220" style="max-width:220px;"></canvas>
+                <div style="font-size:0.85em;">
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Cardinal||'#f39c12'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Cardinal: <b>${qp.Cardinal||0}%</b> (${eq.qualities?eq.qualities.Cardinal:0})</div>
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Fixed||'#2ecc71'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Fijo':'Fixed'}: <b>${qp.Fixed||0}%</b> (${eq.qualities?eq.qualities.Fixed:0})</div>
+                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Mutable||'#e74c3c'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Mutable':'Mutable'}: <b>${qp.Mutable||0}%</b> (${eq.qualities?eq.qualities.Mutable:0})</div>
+                </div>
+            </div>
+        </div>
+        <div class="personal-natal-card">
+            <h3>🪐 ${L ? 'Distribución por Planeta' : 'Planet Distribution'}</h3>
+            <div style="overflow-x:auto;">
+                <table class="natal-data-table">
+                    <thead><tr><th>${L?'Planeta':'Planet'}</th><th>${L?'Signo':'Sign'}</th><th>${L?'Elemento':'Element'}</th><th>${L?'Cualidad':'Quality'}</th></tr></thead>
+                    <tbody>${(eq.planetList||[]).slice().sort(function(a,b) {
+                        var elOrder = {Fire:0,Earth:1,Air:2,Water:3};
+                        return (elOrder[a.element]||0) - (elOrder[b.element]||0);
+                    }).map(function(pl) {
+                        const elColor = ec[pl.element]||'#fff';
+                        const quColor = qc[pl.quality]||'#fff';
+                        return '<tr><td>' + (planetSyms[pl.planet]||'') + ' ' + (planetNms[pl.planet]||pl.planet) + '</td><td>' + pl.sign + '</td><td style="color:' + elColor + ';">' + (L ? {Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}[pl.element]||pl.element : pl.element) + '</td><td style="color:' + quColor + ';">' + (L ? {Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'}[pl.quality]||pl.quality : pl.quality) + '</td></tr>';
+                    }).join('')}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+    // ===== TAB: AI ANALYSIS (Master AI style) =====
+    const aiTab = `
+        <div class="personal-natal-card">
+            <h3>🤖 Master AI</h3>
+            <p style="font-size:0.78em;color:rgba(255,255,255,0.35);margin-bottom:14px;">${L ? 'El análisis no se guarda. Se reinicia al cambiar de pestaña.' : 'The analysis is not saved. It resets when you switch tabs.'}</p>
+
+            <div style="text-align:center;font-weight:700;font-size:0.88em;color:rgba(255,255,255,0.7);margin-bottom:12px;">${L ? 'Modo de Análisis' : 'Analysis Mode'}</div>
+
+            <!-- Model Selector -->
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.75em;color:rgba(255,255,255,0.4);display:block;margin-bottom:4px;">${L ? 'Modelo' : 'Model'}:</label>
+                <select id="aiModelSelect" class="natal-ai-select">
+                    <option value="moon-sync">${L ? 'Moon Sync Engine' : 'Moon Sync Engine'}</option>
+                    <option value="detailed">${L ? 'Análisis Profundo' : 'Deep Analysis'}</option>
+                    <option value="quick">${L ? 'Rápido' : 'Quick'}</option>
+                </select>
+            </div>
+
+            <!-- Config Dropdowns -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                <select id="aiScopeSelect" class="natal-ai-select">
+                    <option value="all">${L ? 'Todos los planetas' : 'All planets'}</option>
+                    <option value="personal">${L ? 'Solo personales' : 'Personal only'}</option>
+                    <option value="outer">${L ? 'Solo exteriores' : 'Outer only'}</option>
+                </select>
+                <select id="aiStyleSelect" class="natal-ai-select">
+                    <option value="default">${L ? 'Estilo clásico' : 'Classic style'}</option>
+                    <option value="modern">${L ? 'Moderno' : 'Modern'}</option>
+                    <option value="psychological">${L ? 'Psicológico' : 'Psychological'}</option>
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <button onclick="runNatalAIAnalysis('general')" class="natal-ai-btn-master">
+                    ${L ? 'Análisis General' : 'Perform General Analysis'}
+                </button>
+                <button onclick="runNatalAIAnalysis('detail')" class="natal-ai-btn-master">
+                    ${L ? 'Analizar Carta en Detalle' : 'Analyze the Chart in Detail'}
+                </button>
+                <button onclick="runNatalAIAnalysis('aspects')" class="natal-ai-btn-master">
+                    ${L ? 'Analizar los Aspectos' : 'Analyze the Aspects'}
+                </button>
+                <button onclick="showNatalInterpretation()" class="natal-ai-btn-master natal-ai-btn-ask">
+                    ${L ? 'Hacer una Pregunta' : 'Ask A Question'}
+                </button>
+            </div>
+            <div id="natalAIResult" style="margin-top:14px;display:none;"></div>
+        </div>`;
+
+    // ===== COMBINE WITH TABS =====
+    return `
+        <div class="natal-subtabs">
+            <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)">📅 ${L?'Calendario':'Calendar'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('chart',this)">📜 ${L?'Carta':'Chart'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('tables',this)">📊 ${L?'Tablas':'Tables'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('elements',this)">🔥 ${L?'Elementos':'Elements'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ai',this)">🤖 AI</button>
+        </div>
+        <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
+        <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
+        <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
+        <div id="natalTabElements" class="natal-tab-content" style="display:none;">${elementsTab}</div>
+        <div id="natalTabAi" class="natal-tab-content" style="display:none;">${aiTab}</div>`;
+}
+
+// Switch natal sub-tab
+function switchNatalTab(tabName, btn) {
+    document.querySelectorAll('.natal-tab-content').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.natal-subtab').forEach(function(el) { el.classList.remove('active'); });
+    var tabEl = document.getElementById('natalTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    if (tabEl) tabEl.style.display = 'block';
+    if (btn) btn.classList.add('active');
+    // Show/hide calendar grid based on active tab
+    var calGrid = document.getElementById('natalCalendarGrid');
+    if (calGrid) calGrid.style.display = (tabName === 'calendar') ? 'block' : 'none';
+    // Draw charts when tabs are shown
+    if (tabName === 'elements') {
+        setTimeout(drawNatalPieCharts, 100);
+    }
+    if (tabName === 'chart') {
+        setTimeout(drawNatalWheel, 100);
+    }
+    if (tabName === 'tables') {
+        setTimeout(function() {
+            if (aspSortCol === -1) { sortAspectsTable(0); }
+        }, 50);
+    }
+}
+
+// Draw pie charts on canvas
+function drawNatalPieCharts() {
+    try {
+        var stored = localStorage.getItem('natalChart');
+        if (!stored) return;
+        var nc = JSON.parse(stored);
+        if (!nc.elementQuality) return;
+        var eq = nc.elementQuality;
+        // Elements pie
+        drawPieChart('natalElementsChart', [
+            { label: 'Fire', value: eq.elements.Fire, color: '#e74c3c' },
+            { label: 'Earth', value: eq.elements.Earth, color: '#f39c12' },
+            { label: 'Air', value: eq.elements.Air, color: '#2ecc71' },
+            { label: 'Water', value: eq.elements.Water, color: '#3498db' }
+        ]);
+        // Qualities pie
+        drawPieChart('natalQualitiesChart', [
+            { label: 'Mutable', value: eq.qualities.Mutable, color: '#e74c3c' },
+            { label: 'Cardinal', value: eq.qualities.Cardinal, color: '#f39c12' },
+            { label: 'Fixed', value: eq.qualities.Fixed, color: '#2ecc71' }
+        ]);
+    } catch(e) { console.error('Pie chart error:', e); }
+}
+
+function drawPieChart(canvasId, data) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width, h = canvas.height;
+    var cx = w / 2, cy = h / 2, r = Math.min(cx, cy) - 10;
+    var total = 0;
+    data.forEach(function(d) { total += d.value; });
+    if (total === 0) return;
+    ctx.clearRect(0, 0, w, h);
+    var startAngle = -Math.PI / 2;
+    data.forEach(function(d) {
+        var sliceAngle = (d.value / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = d.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Label
+        if (d.value > 0) {
+            var midAngle = startAngle + sliceAngle / 2;
+            var lx = cx + (r * 0.65) * Math.cos(midAngle);
+            var ly = cy + (r * 0.65) * Math.sin(midAngle);
+            var pct = ((d.value / total) * 100).toFixed(1) + '%';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 13px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.7)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(pct, lx, ly);
+            ctx.shadowBlur = 0;
+        }
+        startAngle += sliceAngle;
+    });
+}
+
+// ===== NATAL WHEEL CHART =====
+function drawNatalWheel() {
+    try {
+        var stored = localStorage.getItem('natalChart');
+        if (!stored) return;
+        var nc = JSON.parse(stored);
+        var canvas = document.getElementById('natalWheelCanvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width, H = canvas.height;
+        var cx = W / 2, cy = H / 2;
+
+        // --- Radii with more spacing ---
+        var R_outer = Math.min(cx, cy) - 6;
+        var R_signInner = R_outer - 32;
+        var R_houseOuter = R_signInner - 3;
+        var R_planetRing = R_houseOuter - 36;
+        var R_aspectCircle = R_planetRing - 22;
+        var R_center = 20;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // --- Background gradient ---
+        var bgGrad = ctx.createRadialGradient(cx, cy, R_center, cx, cy, R_outer + 10);
+        bgGrad.addColorStop(0, 'rgba(15,10,35,1)');
+        bgGrad.addColorStop(1, 'rgba(5,2,18,1)');
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_outer + 6, 0, 2 * Math.PI);
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+
+        // ASC on the left = 180°
+        var ascLon = nc.houses ? nc.houses.ascendant : 0;
+        var rotOffset = 180 - ascLon;
+
+        function lonToAngle(lon) {
+            var deg = -(lon + rotOffset) + 180;
+            return deg * Math.PI / 180;
+        }
+
+        // Element colors for signs
+        var elementForSign = [0,1,2,3,0,1,2,3,0,1,2,3]; // Fire,Earth,Air,Water repeating
+        var elementColors = {
+            0: { bg: 'rgba(231,76,60,0.25)', border: '#e74c3c', text: '#ff6b6b' },    // Fire
+            1: { bg: 'rgba(139,105,20,0.25)', border: '#8B6914', text: '#d4a930' },     // Earth
+            2: { bg: 'rgba(241,196,15,0.2)', border: '#f1c40f', text: '#f7dc6f' },      // Air
+            3: { bg: 'rgba(52,152,219,0.25)', border: '#3498db', text: '#5dade2' }       // Water
+        };
+        var signGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+
+        // ========== OUTER ZODIAC RING ==========
+        for (var i = 0; i < 12; i++) {
+            var a1 = lonToAngle(i * 30);
+            var a2 = lonToAngle((i + 1) * 30);
+            var el = elementForSign[i];
+            ctx.beginPath();
+            ctx.arc(cx, cy, R_outer, a1, a2, true);
+            ctx.arc(cx, cy, R_signInner, a2, a1, false);
+            ctx.closePath();
+            ctx.fillStyle = elementColors[el].bg;
+            ctx.fill();
+            // Sign border lines
+            ctx.beginPath();
+            ctx.moveTo(cx + R_outer * Math.cos(a1), cy + R_outer * Math.sin(a1));
+            ctx.lineTo(cx + R_signInner * Math.cos(a1), cy + R_signInner * Math.sin(a1));
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+            // Sign glyph centered in segment
+            var midA = lonToAngle(i * 30 + 15);
+            var gr = (R_outer + R_signInner) / 2;
+            ctx.fillStyle = elementColors[el].text;
+            ctx.font = 'bold 15px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(signGlyphs[i], cx + gr * Math.cos(midA), cy + gr * Math.sin(midA));
+        }
+
+        // Outer / inner ring circles
+        ctx.beginPath(); ctx.arc(cx, cy, R_outer, 0, 2*Math.PI);
+        ctx.strokeStyle = 'rgba(200,180,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, R_signInner, 0, 2*Math.PI);
+        ctx.strokeStyle = 'rgba(200,180,255,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+
+        // ========== DEGREE TICKS (inside sign ring) ==========
+        for (var d = 0; d < 360; d += 1) {
+            var ta = lonToAngle(d);
+            var isMajor = (d % 30 === 0);
+            var isMid = (d % 10 === 0);
+            var is5 = (d % 5 === 0);
+            if (!isMajor && !isMid && !is5) continue;
+            var tickOuter = R_signInner;
+            var tickInner = isMajor ? R_signInner - 6 : (isMid ? R_signInner - 4 : R_signInner - 2);
+            ctx.beginPath();
+            ctx.moveTo(cx + tickOuter * Math.cos(ta), cy + tickOuter * Math.sin(ta));
+            ctx.lineTo(cx + tickInner * Math.cos(ta), cy + tickInner * Math.sin(ta));
+            ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = isMajor ? 1.2 : 0.5;
+            ctx.stroke();
+        }
+
+        // ========== HOUSE CUSPS ==========
+        if (nc.houses && nc.houses.cusps) {
+            // Non-axis cusps first (thinner, behind)
+            nc.houses.cusps.forEach(function(cusp, idx) {
+                var isAxis = (idx === 0 || idx === 3 || idx === 6 || idx === 9);
+                if (isAxis) return;
+                var angle = lonToAngle(cusp);
+                ctx.beginPath();
+                ctx.moveTo(cx + R_houseOuter * Math.cos(angle), cy + R_houseOuter * Math.sin(angle));
+                ctx.lineTo(cx + R_aspectCircle * Math.cos(angle), cy + R_aspectCircle * Math.sin(angle));
+                ctx.strokeStyle = 'rgba(155,120,200,0.2)';
+                ctx.setLineDash([3,4]);
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+            // Axis cusps (ASC/DSC/MC/IC) — bold, solid
+            nc.houses.cusps.forEach(function(cusp, idx) {
+                var isAxis = (idx === 0 || idx === 3 || idx === 6 || idx === 9);
+                if (!isAxis) return;
+                var angle = lonToAngle(cusp);
+                ctx.beginPath();
+                ctx.moveTo(cx + R_houseOuter * Math.cos(angle), cy + R_houseOuter * Math.sin(angle));
+                ctx.lineTo(cx + R_center * Math.cos(angle), cy + R_center * Math.sin(angle));
+                ctx.strokeStyle = 'rgba(201,168,64,0.55)';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+            });
+            // House numbers + cusp degrees
+            var cSignGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+            nc.houses.cusps.forEach(function(cusp, idx) {
+                var nextCusp = nc.houses.cusps[(idx + 1) % 12];
+                var span = nextCusp > cusp ? nextCusp - cusp : nextCusp + 360 - cusp;
+                var midLon = cusp + span / 2;
+                var hAngle = lonToAngle(midLon);
+                var hr = R_aspectCircle + 16;
+                // House number (larger, centered)
+                ctx.fillStyle = 'rgba(200,180,255,0.35)';
+                ctx.font = 'bold 11px system-ui';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(idx + 1), cx + hr * Math.cos(hAngle), cy + hr * Math.sin(hAngle));
+
+                // Cusp degree label (on the cusp line, near the sign ring)
+                var cuspAngle = lonToAngle(cusp);
+                var signIdx = Math.floor(cusp / 30) % 12;
+                var degInSign = Math.floor(cusp % 30);
+                var minInSign = Math.floor(((cusp % 30) - degInSign) * 60);
+                var degLabel = degInSign + '°' + cSignGlyphs[signIdx];
+                var dlr = R_signInner - 12;
+                var dlx = cx + dlr * Math.cos(cuspAngle);
+                var dly = cy + dlr * Math.sin(cuspAngle);
+                ctx.save();
+                ctx.translate(dlx, dly);
+                // Rotate text to follow the cusp line
+                var textAngle = cuspAngle + Math.PI / 2;
+                if (textAngle > Math.PI / 2 && textAngle < 3 * Math.PI / 2) textAngle += Math.PI;
+                ctx.rotate(textAngle);
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                ctx.font = '8px system-ui';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(degLabel, 0, 0);
+                ctx.restore();
+            });
+
+            // ASC / MC / DSC / IC labels
+            var labels = [
+                { lon: nc.houses.ascendant, text: 'ASC', align: 'right' },
+                { lon: nc.houses.mc, text: 'MC', align: 'center' },
+                { lon: (nc.houses.ascendant + 180) % 360, text: 'DSC', align: 'left' },
+                { lon: (nc.houses.mc + 180) % 360, text: 'IC', align: 'center' }
+            ];
+            labels.forEach(function(lb) {
+                var la = lonToAngle(lb.lon);
+                var lx = cx + (R_outer + 14) * Math.cos(la);
+                var ly = cy + (R_outer + 14) * Math.sin(la);
+                // Background pill
+                ctx.font = 'bold 9px system-ui';
+                var tw = ctx.measureText(lb.text).width + 8;
+                ctx.fillStyle = 'rgba(201,168,64,0.2)';
+                ctx.beginPath();
+                ctx.roundRect(lx - tw/2, ly - 7, tw, 14, 3);
+                ctx.fill();
+                ctx.fillStyle = '#c9a840';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(lb.text, lx, ly);
+            });
+        }
+
+        // Aspect circle
+        ctx.beginPath(); ctx.arc(cx, cy, R_aspectCircle, 0, 2*Math.PI);
+        ctx.strokeStyle = 'rgba(155,120,200,0.15)'; ctx.lineWidth = 0.7; ctx.stroke();
+
+        // ========== ASPECT LINES (inside aspect circle) ==========
+        var planetKeys = Object.keys(nc.planets);
+        var aspectDefs = [
+            { angle: 0,   orb: 8, solid: true,  color: [231,76,60],   name: 'conj' },
+            { angle: 60,  orb: 6, solid: false, color: [52,152,219],  name: 'sext' },
+            { angle: 90,  orb: 7, solid: false, color: [241,196,15],  name: 'sqr'  },
+            { angle: 120, orb: 8, solid: true,  color: [46,204,113],  name: 'tri'  },
+            { angle: 150, orb: 3, solid: false, color: [155,89,182],  name: 'qcx'  },
+            { angle: 180, orb: 8, solid: false, color: [192,57,43],   name: 'opp'  }
+        ];
+        // Collect aspects first, then draw sorted by orb (widest=dimmest first)
+        var drawnAspects = [];
+        for (var pi = 0; pi < planetKeys.length; pi++) {
+            for (var pj = pi + 1; pj < planetKeys.length; pj++) {
+                var p1 = nc.planets[planetKeys[pi]];
+                var p2 = nc.planets[planetKeys[pj]];
+                if (!p1 || !p2) continue;
+                var diff = Math.abs(p1.longitude - p2.longitude);
+                if (diff > 180) diff = 360 - diff;
+                for (var ai = 0; ai < aspectDefs.length; ai++) {
+                    var asp = aspectDefs[ai];
+                    var orbVal = Math.abs(diff - asp.angle);
+                    if (orbVal <= asp.orb) {
+                        drawnAspects.push({ p1lon: p1.longitude, p2lon: p2.longitude, asp: asp, orb: orbVal });
+                        break;
+                    }
+                }
+            }
+        }
+        // Draw widest orb first (behind), tightest last (in front)
+        drawnAspects.sort(function(a,b) { return b.orb - a.orb; });
+        drawnAspects.forEach(function(da) {
+            var a1a = lonToAngle(da.p1lon);
+            var a2a = lonToAngle(da.p2lon);
+            var strength = 1 - (da.orb / da.asp.orb); // 1=exact, 0=widest
+            var alpha = 0.12 + strength * 0.35;
+            var lw = 0.5 + strength * 1.5;
+            var c = da.asp.color;
+            ctx.beginPath();
+            ctx.setLineDash(da.asp.solid ? [] : [4, 3]);
+            ctx.moveTo(cx + R_aspectCircle * Math.cos(a1a), cy + R_aspectCircle * Math.sin(a1a));
+            ctx.lineTo(cx + R_aspectCircle * Math.cos(a2a), cy + R_aspectCircle * Math.sin(a2a));
+            ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha.toFixed(2) + ')';
+            ctx.lineWidth = lw;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+
+        // ========== PLANETS ==========
+        var planetGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸'};
+        var planetClrs = {'sun':'#f39c12','moon':'#dfe6e9','mercury':'#e67e22','venus':'#fd79a8','mars':'#e74c3c','jupiter':'#a29bfe','saturn':'#636e72','uranus':'#00cec9','neptune':'#0984e3','pluto':'#6c5ce7','chiron':'#00b894','lilith':'#b2bec3'};
+
+        var planetPositions = [];
+        planetKeys.forEach(function(p) {
+            if (!nc.planets[p]) return;
+            planetPositions.push({ key: p, lon: nc.planets[p].longitude, nudge: 0 });
+        });
+        planetPositions.sort(function(a, b) { return a.lon - b.lon; });
+
+        // Multi-pass nudge for clusters
+        var minSep = 8; // degrees
+        for (var pass = 0; pass < 5; pass++) {
+            for (var ni = 1; ni < planetPositions.length; ni++) {
+                var prev = planetPositions[ni - 1];
+                var cur = planetPositions[ni];
+                var sepDeg = cur.lon - prev.lon;
+                if (sepDeg < 0) sepDeg += 360;
+                if (sepDeg < minSep) {
+                    cur.nudge = prev.nudge + 16;
+                }
+            }
+        }
+
+        planetPositions.forEach(function(pp) {
+            var angle = lonToAngle(pp.lon);
+            var pr = R_planetRing - pp.nudge;
+            if (pr < R_aspectCircle + 14) pr = R_aspectCircle + 14;
+            var px = cx + pr * Math.cos(angle);
+            var py = cy + pr * Math.sin(angle);
+
+            // Pointer line from sign ring to planet
+            ctx.beginPath();
+            ctx.moveTo(cx + (R_signInner - 1) * Math.cos(angle), cy + (R_signInner - 1) * Math.sin(angle));
+            ctx.lineTo(cx + (pr + 12) * Math.cos(angle), cy + (pr + 12) * Math.sin(angle));
+            ctx.strokeStyle = (planetClrs[pp.key] || '#fff') + '40';
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+
+            // Planet disc (opaque background)
+            ctx.beginPath();
+            ctx.arc(px, py, 11, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(15,10,35,0.92)';
+            ctx.fill();
+            ctx.strokeStyle = (planetClrs[pp.key] || '#fff') + '90';
+            ctx.lineWidth = 1.3;
+            ctx.stroke();
+
+            // Glyph
+            ctx.fillStyle = planetClrs[pp.key] || '#fff';
+            ctx.font = 'bold 14px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(planetGlyphs[pp.key] || pp.key[0].toUpperCase(), px, py);
+
+            // Retrograde indicator
+            if (nc.planets[pp.key].isRetrograde) {
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 8px system-ui';
+                ctx.fillText('R', px + 9, py - 8);
+            }
+        });
+
+        // ========== CENTER ==========
+        ctx.beginPath(); ctx.arc(cx, cy, R_center, 0, 2*Math.PI);
+        var cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R_center);
+        cGrad.addColorStop(0, 'rgba(30,20,60,1)');
+        cGrad.addColorStop(1, 'rgba(15,10,35,1)');
+        ctx.fillStyle = cGrad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(200,180,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // ========== LEGEND (below chart) ==========
+        var legendY = H - 12;
+        var aspects4 = [
+            { sym: '━', label: 'Conj', c: '#e74c3c' },
+            { sym: '━', label: 'Tri', c: '#2ecc71' },
+            { sym: '╌', label: 'Sqr', c: '#f1c40f' },
+            { sym: '╌', label: 'Opp', c: '#c0392b' },
+            { sym: '╌', label: 'Sxt', c: '#3498db' }
+        ];
+        var lx = 20;
+        ctx.font = '9px system-ui';
+        aspects4.forEach(function(a) {
+            ctx.fillStyle = a.c;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(a.sym + ' ' + a.label, lx, legendY);
+            lx += ctx.measureText(a.sym + ' ' + a.label).width + 14;
+        });
+
+    } catch(e) { console.error('Wheel chart error:', e); }
+}
+
+// ===== ASPECT GRID (Triangular Matrix) =====
+var aspectGridVisible = false;
+function toggleAspectGrid() {
+    aspectGridVisible = !aspectGridVisible;
+    var wheelView = document.getElementById('natalWheelView');
+    var gridView = document.getElementById('natalAspectGridView');
+    var toggleBtn = document.getElementById('aspectGridToggle');
+    if (wheelView) wheelView.style.display = aspectGridVisible ? 'none' : 'block';
+    if (gridView) gridView.style.display = aspectGridVisible ? 'block' : 'none';
+    if (toggleBtn) {
+        toggleBtn.style.background = aspectGridVisible ? 'rgba(100,130,200,0.3)' : 'rgba(30,40,70,0.9)';
+        toggleBtn.style.borderColor = aspectGridVisible ? 'rgba(100,130,200,0.8)' : 'rgba(100,130,200,0.5)';
+    }
+    if (aspectGridVisible) {
+        buildAspectGrid();
+    }
+}
+
+// ===== SORTABLE ASPECTS TABLE =====
+var aspSortCol = -1;
+var aspSortAsc = true;
+function sortAspectsTable(colIdx) {
+    var table = document.getElementById('natalAspectsTable');
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    // Toggle direction
+    if (aspSortCol === colIdx) {
+        aspSortAsc = !aspSortAsc;
+    } else {
+        aspSortCol = colIdx;
+        aspSortAsc = true;
+    }
+    // Update header indicators
+    for (var i = 0; i < 4; i++) {
+        var sp = document.getElementById('aspSort' + i);
+        if (sp) {
+            sp.style.opacity = (i === colIdx) ? '1' : '0.4';
+            sp.textContent = (i === colIdx) ? (aspSortAsc ? '▲' : '▼') : '▼';
+        }
+    }
+    // Get rows as array
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var cellA = a.cells[colIdx];
+        var cellB = b.cells[colIdx];
+        if (!cellA || !cellB) return 0;
+        var valA = cellA.textContent.trim();
+        var valB = cellB.textContent.trim();
+        // Orb column (3) = numeric sort
+        if (colIdx === 3) {
+            var nA = parseFloat(valA) || 0;
+            var nB = parseFloat(valB) || 0;
+            return aspSortAsc ? nA - nB : nB - nA;
+        }
+        // Text sort
+        var cmp = valA.localeCompare(valB, 'es', {sensitivity: 'base'});
+        return aspSortAsc ? cmp : -cmp;
+    });
+    // Re-append sorted rows
+    rows.forEach(function(row) { tbody.appendChild(row); });
+}
+
+function buildAspectGrid() {
+    var container = document.getElementById('aspectGridContainer');
+    if (!container) return;
+    try {
+        var stored = localStorage.getItem('natalChart');
+        if (!stored) { container.innerHTML = '<p>No data</p>'; return; }
+        var nc = JSON.parse(stored);
+        var planets = nc.planets || {};
+
+        var pKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','lilith'];
+        // Filter to only existing planets
+        pKeys = pKeys.filter(function(k) { return planets[k]; });
+
+        var glyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸'};
+        var pColors = {'sun':'#f39c12','moon':'#bdc3c7','mercury':'#e67e22','venus':'#e91e8c','mars':'#e74c3c','jupiter':'#9b59b6','saturn':'#7f8c8d','uranus':'#1abc9c','neptune':'#2980b9','pluto':'#8e44ad','chiron':'#27ae60','lilith':'#95a5a6'};
+
+        var aspectDefs = [
+            { angle: 0, orb: 8, symbol: '☌', color: '#7f8aec', name: 'Conjunction' },
+            { angle: 30, orb: 2, symbol: '⚺', color: '#2ecc71', name: 'Semi-sextile' },
+            { angle: 60, orb: 6, symbol: '⚹', color: '#2ecc71', name: 'Sextile' },
+            { angle: 90, orb: 7, symbol: '□', color: '#e74c3c', name: 'Square' },
+            { angle: 120, orb: 8, symbol: '△', color: '#2ecc71', name: 'Trine' },
+            { angle: 150, orb: 3, symbol: '⚻', color: '#e74c3c', name: 'Quincunx' },
+            { angle: 180, orb: 8, symbol: '☍', color: '#e74c3c', name: 'Opposition' }
+        ];
+
+        function getAspect(lon1, lon2) {
+            var diff = Math.abs(lon1 - lon2);
+            if (diff > 180) diff = 360 - diff;
+            for (var i = 0; i < aspectDefs.length; i++) {
+                if (Math.abs(diff - aspectDefs[i].angle) <= aspectDefs[i].orb) {
+                    return aspectDefs[i];
+                }
+            }
+            return null;
+        }
+
+        var cellSize = 32;
+        var html = '<table style="border-collapse:collapse;margin:0 auto;">';
+
+        // Header row with planet glyphs
+        html += '<tr><td style="width:' + cellSize + 'px;height:' + cellSize + 'px;"></td>';
+        for (var c = 0; c < pKeys.length; c++) {
+            html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;text-align:center;vertical-align:middle;color:' + (pColors[pKeys[c]]||'#fff') + ';font-size:14px;font-weight:bold;">' + (glyphs[pKeys[c]]||'?') + '</td>';
+        }
+        html += '</tr>';
+
+        // Grid rows (triangular)
+        for (var r = 0; r < pKeys.length; r++) {
+            html += '<tr>';
+            // Row header = planet glyph
+            html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;text-align:center;vertical-align:middle;color:' + (pColors[pKeys[r]]||'#fff') + ';font-size:14px;font-weight:bold;">' + (glyphs[pKeys[r]]||'?') + '</td>';
+
+            for (var c = 0; c < pKeys.length; c++) {
+                if (c >= r) {
+                    // Upper triangle + diagonal = empty (no border)
+                    html += '<td></td>';
+                } else {
+                    // Lower triangle = aspect cell
+                    var asp = getAspect(planets[pKeys[r]].longitude, planets[pKeys[c]].longitude);
+                    var cellContent = '';
+                    var cellColor = 'transparent';
+                    if (asp) {
+                        cellContent = asp.symbol;
+                        cellColor = asp.color;
+                    }
+                    html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;border:1px solid rgba(155,89,182,0.15);text-align:center;vertical-align:middle;font-size:15px;color:' + cellColor + ';font-weight:bold;" title="' + (pKeys[r]) + ' - ' + (pKeys[c]) + (asp ? ': ' + asp.name : '') + '">' + cellContent + '</td>';
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</table>';
+
+        // Legend
+        html += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;font-size:0.72em;color:rgba(255,255,255,0.5);">';
+        aspectDefs.forEach(function(a) {
+            html += '<span><span style="color:' + a.color + ';font-weight:bold;font-size:1.2em;">' + a.symbol + '</span> ' + a.name + '</span>';
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = '<p style="color:#e74c3c;">Error: ' + e.message + '</p>';
+        console.error('Aspect grid error:', e);
+    }
+}
+
+// AI Analysis runner
+function runNatalAIAnalysis(type) {
+    var L = currentLang === 'es';
+    var resultDiv = document.getElementById('natalAIResult');
+    if (!resultDiv) return;
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">⏳ ' + (L ? 'Analizando...' : 'Analyzing...') + '</div>';
+    setTimeout(function() {
+        try {
+            var stored = localStorage.getItem('natalChart');
+            if (!stored) { resultDiv.innerHTML = '<p style="color:#e74c3c;">No natal chart data</p>'; return; }
+            var nc = JSON.parse(stored);
+            var analysis = generateNatalAIAnalysis(nc, type, L);
+            resultDiv.innerHTML = '<div class="natal-ai-result-content">' + analysis + '</div>';
+        } catch(e) {
+            resultDiv.innerHTML = '<p style="color:#e74c3c;">Error: ' + e.message + '</p>';
+        }
+    }, 300);
+}
+
+function generateNatalAIAnalysis(nc, type, L) {
+    var planets = nc.planets || {};
+    var houses = nc.houses || {};
+    var aspects = nc.natalAspects || [];
+    var eq = nc.elementQuality || {};
+    var html = '';
+
+    var signMeanings = {
+        '♈ Aries': L ? 'Pionero, impulsivo, valiente, independiente' : 'Pioneer, impulsive, brave, independent',
+        '♉ Tauro': L ? 'Estable, sensual, persistente, materialista' : 'Stable, sensual, persistent, materialistic',
+        '♊ Géminis': L ? 'Comunicativo, curioso, adaptable, dual' : 'Communicative, curious, adaptable, dual',
+        '♋ Cáncer': L ? 'Emocional, protector, intuitivo, hogareño' : 'Emotional, protective, intuitive, homey',
+        '♌ Leo': L ? 'Creativo, generoso, dramático, líder nato' : 'Creative, generous, dramatic, natural leader',
+        '♍ Virgo': L ? 'Analítico, perfeccionista, servicial, práctico' : 'Analytical, perfectionist, helpful, practical',
+        '♎ Libra': L ? 'Diplomático, estético, indeciso, sociable' : 'Diplomatic, aesthetic, indecisive, sociable',
+        '♏ Escorpio': L ? 'Intenso, transformador, misterioso, apasionado' : 'Intense, transformative, mysterious, passionate',
+        '♐ Sagitario': L ? 'Aventurero, filosófico, optimista, libre' : 'Adventurous, philosophical, optimistic, free',
+        '♑ Capricornio': L ? 'Ambicioso, disciplinado, responsable, estructurado' : 'Ambitious, disciplined, responsible, structured',
+        '♒ Acuario': L ? 'Innovador, humanitario, rebelde, original' : 'Innovative, humanitarian, rebellious, original',
+        '♓ Piscis': L ? 'Intuitivo, compasivo, soñador, espiritual' : 'Intuitive, compassionate, dreamy, spiritual'
+    };
+
+    var houseMeanings = {
+        1: L?'Identidad, apariencia, yo':'Identity, appearance, self',
+        2: L?'Recursos, valores, dinero':'Resources, values, money',
+        3: L?'Comunicación, hermanos, mente':'Communication, siblings, mind',
+        4: L?'Hogar, familia, raíces':'Home, family, roots',
+        5: L?'Creatividad, romance, hijos':'Creativity, romance, children',
+        6: L?'Salud, trabajo, servicio':'Health, work, service',
+        7: L?'Relaciones, socios, otros':'Relationships, partners, others',
+        8: L?'Transformación, sexo, muerte':'Transformation, sex, death',
+        9: L?'Filosofía, viajes, expansión':'Philosophy, travel, expansion',
+        10: L?'Carrera, estatus, vocación':'Career, status, vocation',
+        11: L?'Amigos, grupos, ideales':'Friends, groups, ideals',
+        12: L?'Subconsciente, espiritualidad, karma':'Subconscious, spirituality, karma'
+    };
+
+    var planetNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','lilith':'Lilith'};
+
+    if (type === 'general' || type === 'detail') {
+        html += '<h4 style="color:#f0c040;margin-bottom:8px;">' + (L?'🔮 Análisis de la Carta Natal':'🔮 Natal Chart Analysis') + '</h4>';
+        // Sun
+        if (planets.sun) {
+            var sunH = houses.cusps ? getHouseForLongitude(planets.sun.longitude, houses.cusps) : 1;
+            html += '<div class="ai-section"><b>☉ ' + (L?'Sol en ':'Sun in ') + planets.sun.sign + ' (' + (L?'Casa ':'House ') + sunH + ')</b><br>' +
+                '<span style="color:rgba(255,255,255,0.6);">' + (signMeanings[planets.sun.sign]||'') + '</span><br>' +
+                '<span style="color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Área de vida: ':'Life area: ') + (houseMeanings[sunH]||'') + '</span></div>';
+        }
+        // Moon
+        if (planets.moon) {
+            var moonH = houses.cusps ? getHouseForLongitude(planets.moon.longitude, houses.cusps) : 1;
+            html += '<div class="ai-section"><b>☽ ' + (L?'Luna en ':'Moon in ') + planets.moon.sign + ' (' + (L?'Casa ':'House ') + moonH + ')</b><br>' +
+                '<span style="color:rgba(255,255,255,0.6);">' + (signMeanings[planets.moon.sign]||'') + '</span><br>' +
+                '<span style="color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Área emocional: ':'Emotional area: ') + (houseMeanings[moonH]||'') + '</span></div>';
+        }
+        // ASC
+        if (houses.ascendant !== undefined) {
+            var ascInfo = getZodiacSignWithDegree(houses.ascendant);
+            html += '<div class="ai-section"><b>ASC ' + (L?'en ':'in ') + ascInfo.sign + '</b><br>' +
+                '<span style="color:rgba(255,255,255,0.6);">' + (signMeanings[ascInfo.sign]||'') + '</span><br>' +
+                '<span style="color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Tu máscara social y primera impresión':'Your social mask and first impression') + '</span></div>';
+        }
+        if (type === 'detail') {
+            // All other planets
+            ['mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron'].forEach(function(p) {
+                if (!planets[p]) return;
+                var pH = houses.cusps ? getHouseForLongitude(planets[p].longitude, houses.cusps) : 1;
+                html += '<div class="ai-section"><b>' + (planetNms[p]||p) + ' ' + (L?'en ':'in ') + planets[p].sign + ' (' + (L?'Casa ':'House ') + pH + ')</b><br>' +
+                    '<span style="color:rgba(255,255,255,0.6);">' + (signMeanings[planets[p].sign]||'') + '</span>' +
+                    (planets[p].isRetrograde ? '<br><span style="color:#e74c3c;">⟲ ' + (L?'Retrógrado — energía hacia adentro':'Retrograde — inward energy') + '</span>' : '') +
+                    '</div>';
+            });
+        }
+    }
+
+    if (type === 'aspects') {
+        html += '<h4 style="color:#f0c040;margin-bottom:8px;">' + (L?'🔗 Análisis de Aspectos':'🔗 Aspects Analysis') + '</h4>';
+        if (aspects.length === 0) {
+            html += '<p>' + (L?'No se encontraron aspectos natales.':'No natal aspects found.') + '</p>';
+        } else {
+            aspects.slice(0, 20).forEach(function(a) {
+                html += '<div class="ai-section" style="border-left:3px solid ' + a.aspect.color + ';">' +
+                    '<b>' + (planetNms[a.planet1]||a.planet1) + ' ' + a.aspect.symbol + ' ' + (planetNms[a.planet2]||a.planet2) + '</b>' +
+                    ' <span style="color:rgba(255,255,255,0.4);">(' + a.aspect.name + ', ' + (L?'orbe':'orb') + ': ' + a.orbFormatted + '°)</span></div>';
+            });
+        }
+    }
+
+    if (type === 'elements') {
+        html += '<h4 style="color:#f0c040;margin-bottom:8px;">' + (L?'🔥 Análisis Elemental':'🔥 Elemental Analysis') + '</h4>';
+        var dominant = '';
+        var maxEl = 0;
+        if (eq.elements) {
+            Object.entries(eq.elements).forEach(function(entry) {
+                if (entry[1] > maxEl) { maxEl = entry[1]; dominant = entry[0]; }
+            });
+        }
+        var elNames = L ? {Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'} : {Fire:'Fire',Earth:'Earth',Air:'Air',Water:'Water'};
+        html += '<div class="ai-section"><b>' + (L?'Elemento dominante: ':'Dominant element: ') + (elNames[dominant]||dominant) + '</b></div>';
+
+        var maxQu = 0, domQu = '';
+        if (eq.qualities) {
+            Object.entries(eq.qualities).forEach(function(entry) {
+                if (entry[1] > maxQu) { maxQu = entry[1]; domQu = entry[0]; }
+            });
+        }
+        var quNames = L ? {Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'} : {Cardinal:'Cardinal',Fixed:'Fixed',Mutable:'Mutable'};
+        html += '<div class="ai-section"><b>' + (L?'Cualidad dominante: ':'Dominant quality: ') + (quNames[domQu]||domQu) + '</b></div>';
+    }
+
+    return html || '<p style="color:rgba(255,255,255,0.4);">' + (L?'Sin datos disponibles':'No data available') + '</p>';
+}
+
 // --- Personal Calendar Rendering ---
 function renderPersonalCalendar() {
     const natal = getNatalData();
@@ -8674,7 +10021,7 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v164';
+    const NATAL_ENGINE_VER = 'v165';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -8737,73 +10084,13 @@ function renderPersonalCalendar() {
 
     const profileDisplayName = natal.name || natal.cityName || (L ? 'Mi Carta' : 'My Chart');
 
+    // --- Build sub-tab content for Natal section ---
+    const natalSubTabsHTML = buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today);
+
     let calendarHTML = `
         ${buildProfileSelector()}
-        <div class="personal-natal-card">
-            <h3>🔮 ${profileDisplayName} — ${L ? 'Carta Natal' : 'Natal Chart'}</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82em;">
-                <div><span style="color:rgba(255,255,255,0.4);">☉ ${L?'Sol':'Sun'}:</span> <span class="natal-planet-sign">${sunSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">☽ ${L?'Luna':'Moon'}:</span> <span class="natal-planet-sign">${moonSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">ASC:</span> <span class="natal-planet-sign">${ascSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">MC:</span> <span class="natal-planet-sign">${mcSign}</span></div>
-            </div>
-            <details style="margin-top:10px;">
-                <summary style="cursor:pointer;font-size:0.78em;color:rgba(255,255,255,0.4);">▸ ${L ? 'Ver todos los planetas' : 'View all planets'}</summary>
-                <div style="margin-top:8px;">
-                    ${Object.entries(natalChart.planets).map(([p, data]) => `
-                        <div class="natal-planet-row">
-                            <span class="natal-planet-symbol">${planetSymbols[p] || p[0]}</span>
-                            <span style="color:rgba(255,255,255,0.5);min-width:60px;">${planetNames[p] || p}</span>
-                            <span class="natal-planet-sign">${data.formatted}</span>
-                            ${natalChart.houses ? `<span class="natal-house-label">${L?'Casa':'House'} ${getHouseForLongitude(data.longitude, natalChart.houses.cusps)}</span>` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </details>
-            <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-                <button onclick="showNatalInterpretation()" style="background:linear-gradient(135deg,rgba(78,205,196,0.15),rgba(155,89,182,0.15));border:1px solid rgba(78,205,196,0.4);border-radius:6px;padding:5px 12px;color:#4ecdc4;font-size:0.75em;cursor:pointer;font-weight:600;">
-                    🔮 ${L ? 'Interpretar Carta' : 'Interpret Chart'}
-                </button>
-                <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.2);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.4);font-size:0.68em;cursor:pointer;">
-                    📋 ${L ? 'Copiar texto' : 'Copy text'}
-                </button>
-                <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
-                    ✏️ ${L ? 'Editar datos' : 'Edit data'}
-                </button>
-            </div>
-        </div>
-
-        <!-- Today's Transits -->
-        <div class="personal-natal-card">
-            <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
-            ${majorTransits.length > 0 ? `
-                <div style="margin-bottom:8px;">
-                    <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Aspectos Mayores' : 'Major Aspects'}</div>
-                    ${majorTransits.map(t => `
-                        <div class="transit-aspect-row ${t.class}">
-                            <span style="font-size:1.1em;">${t.transitSymbol}</span>
-                            <span style="color:${t.color};">${t.symbol}</span>
-                            <span style="font-size:1.1em;">${t.natalSymbol}</span>
-                            <span style="color:rgba(255,255,255,0.5);margin-left:4px;">${planetNames[t.transitPlanet] || t.transitPlanet} ${t.symbol} ${L?'natal':'natal'} ${planetNames[t.natalPlanet] || t.natalPlanet}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : `<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">${L ? 'Sin aspectos mayores hoy' : 'No major aspects today'}</div>`}
-            ${moonTransits.length > 0 ? `
-                <div>
-                    <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ${L ? 'Luna transitando' : 'Moon transiting'}</div>
-                    ${moonTransits.map(t => `
-                        <div class="transit-aspect-row ${t.class}" style="opacity:0.7;">
-                            <span>☽</span>
-                            <span style="color:${t.color};">${t.symbol}</span>
-                            <span>${t.natalSymbol}</span>
-                            <span style="color:rgba(255,255,255,0.4);margin-left:4px;">${t.symbol} ${L?'natal':'natal'} ${planetNames[t.natalPlanet] || t.natalPlanet}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-        </div>
-
+        ${natalSubTabsHTML}
+        <div id="natalCalendarGrid">
         <!-- Monthly Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
             <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px;">
@@ -8864,6 +10151,7 @@ function renderPersonalCalendar() {
             <span><span class="personal-transit-dot" style="background:#f1c40f;"></span> ${L?'Cuadratura':'Square'}</span>
             <span><span class="personal-transit-dot" style="background:#2ecc71;"></span> ${L?'Trígono':'Trine'}</span>
         </div>
+        </div><!-- close natalCalendarGrid -->
     `;
 
     container.innerHTML = calendarHTML;
@@ -13554,7 +14842,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v164';
+const APP_VERSION = 'v165';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
