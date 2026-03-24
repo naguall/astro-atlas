@@ -1554,6 +1554,8 @@ function calculateAspects(date) {
             if (aspectDiff <= aspect.orb) {
                 const planetSign = getZodiacSignFromLongitude(planetLongitude);
                 
+                var aspNameEs = {conjunction:'Conjunción',sextile:'Sextil',square:'Cuadratura',trine:'Trígono',opposition:'Oposición'}[aspect.name] || aspect.name;
+                var aspNameEn = {conjunction:'Conjunction',sextile:'Sextile',square:'Square',trine:'Trine',opposition:'Opposition'}[aspect.name] || aspect.name;
                 aspects.push({
                     type: aspect.name,
                     symbol: aspect.symbol,
@@ -1562,6 +1564,9 @@ function calculateAspects(date) {
                     planetName: planetNames[planet],
                     planetSign: planetSign,
                     exactness: aspect.orb - aspectDiff,
+                    orb: aspectDiff.toFixed(2),
+                    aspectNameEs: aspNameEs,
+                    aspectNameEn: aspNameEn,
                     class: aspect.class,
                     description: getAspectDescription(aspect.name)
                 });
@@ -4803,8 +4808,9 @@ function openAspectsModal(date, lunarDay, dayData) {
     if (eclipse) {
         const eclipseIcon = eclipse.type === 'solar' ? '☀️' : '🌒';
         const timeStr = eclipse.time ? `<span style="color: #f0e68c; font-weight: bold;">${eclipse.time}</span> - ` : '';
+        const eclClickText = (eclipseIcon + ' ' + eclipse.name + ' ' + (eclipse.degree||'')).replace(/'/g, "\\'");
         htmlContent += `
-        <div class="aspect-detail" style="border-left-color: #FFD700; background: rgba(255,215,0,0.1);">
+        <div class="aspect-detail" style="border-left-color: #FFD700; background: rgba(255,215,0,0.1); cursor:pointer;" onclick="showBannerAspectDetail('${eclClickText}')">
             <div class="aspect-planets">
                 ${timeStr}${eclipseIcon} ${eclipse.name}
             </div>
@@ -4829,10 +4835,12 @@ function openAspectsModal(date, lunarDay, dayData) {
             const badgeColor = asp.isGenerational ? '#d4a5f5' : asp.isMajor ? '#ff8a80' : asp.isImportant ? '#80cbc4' : '';
             const badgeExplain = asp.badgeInfo ? `<div style="font-size:0.72em;color:${badgeColor};margin-bottom:4px;line-height:1.3;font-style:italic;">${asp.badgeInfo}</div>` : '';
 
+            const aspWordLabel = asp.aspect ? `<span style="font-size:0.82em;color:rgba(255,255,255,0.55);">${asp.aspect}</span> ` : '';
+            const ipaClickText = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
             return `
-            <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2);">
+            <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2); cursor:pointer;" onclick="showBannerAspectDetail('${ipaClickText}')">
                 <div class="aspect-planets">
-                    ${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}${asp.time ? `<span style="color: #f0e68c; font-weight: bold; float:right;">${asp.time}</span>` : ''}
+                    ${tp(asp.planet1)} ${asp.symbol} ${aspWordLabel}${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}${asp.time ? `<span style="color: #f0e68c; font-weight: bold; float:right;">${asp.time}</span>` : ''}
                 </div>
                 <div class="aspect-description">
                     ${badgeExplain}${translateMeaning(asp.meaning)}
@@ -4865,8 +4873,9 @@ function openAspectsModal(date, lunarDay, dayData) {
                     ⚡ ${currentLang==='es'?'Aspectos cercanos':'Nearby aspects'}: ${aspList}
                 </div>`;
             }
+            const chgClickText = (tp(change.planet) + ' → ' + ts(change.toSign) + ' ' + change.symbol).replace(/'/g, "\\'");
             return `
-            <div class="aspect-detail" style="border-left-color: ${change.color};">
+            <div class="aspect-detail" style="border-left-color: ${change.color}; cursor:pointer;" onclick="showBannerAspectDetail('${chgClickText}')">
                 <div class="aspect-planets">
                     ${timeStr}${change.symbol} ${tp(change.planet)} → ${ts(change.toSign)}
                 </div>
@@ -4881,31 +4890,39 @@ function openAspectsModal(date, lunarDay, dayData) {
 
     // 3. Retrogradaciones (PLANETARIOS antes que lunares)
     if (retrogrades.length > 0) {
-        htmlContent += retrogrades.map(retro => `
-            <div class="aspect-detail" style="border-left-color: #ff6b6b;">
+        htmlContent += retrogrades.map(retro => {
+            const retLabel = retro.isStart ? (currentLang === 'es' ? 'Retrógrado INICIA' : 'Retrograde STARTS') : (currentLang === 'es' ? 'Directo' : 'Direct');
+            const retClickText = (retro.planet + ' ' + retLabel).replace(/'/g, "\\'");
+            return `
+            <div class="aspect-detail" style="border-left-color: #ff6b6b; cursor:pointer;" onclick="showBannerAspectDetail('${retClickText}')">
                 <div class="aspect-planets">
-                    ${retro.planet} ${retro.isStart ? (currentLang === 'es' ? 'Retrógrado INICIA' : 'Retrograde STARTS') : (currentLang === 'es' ? 'Directo' : 'Direct')}
+                    ${retro.planet} ${retLabel}
                 </div>
                 <div class="aspect-description">
                     ${translateMeaning(retro.meaning)}
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     // 4. Aspectos Luna-Planeta (ÚLTIMOS - después de todos los planetarios)
     if (dayData.aspects && dayData.aspects.length > 0) {
         htmlContent += `<div style="font-size:0.68em;color:#7ec8ff;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(126,200,255,0.15);">${currentLang==='es'?'Aspectos Lunares':'Lunar Aspects'}</div>`;
-        htmlContent += dayData.aspects.map(aspect => `
-            <div class="aspect-detail ${aspect.class}">
+        htmlContent += dayData.aspects.map(aspect => {
+            var aspLabel = currentLang==='es' ? (aspect.aspectNameEs||aspect.type) : (aspect.aspectNameEn||aspect.type);
+            var orbStr = aspect.orb ? `(${aspect.orb}°)` : '';
+            var signPart = aspect.planetSign || '';
+            var aspText = ('Luna ' + aspect.symbol + ' ' + aspLabel + ' ' + (aspect.planetName||aspect.planet) + ' ' + signPart).replace(/'/g, "\\'");
+            return `
+            <div class="aspect-detail ${aspect.class}" onclick="showBannerAspectDetail('${aspText}')" style="cursor:pointer;">
                 <div class="aspect-planets">
-                    ${tp('Luna')} ${aspect.symbol} ${tp(aspect.planetName)} (${ts(aspect.planetSign.split(' ')[1])})
+                    ${tp('Luna')} ${aspect.symbol} <span style="font-size:0.82em;color:rgba(255,255,255,0.55);">${aspLabel}</span> ${tp(aspect.planetName)} ${orbStr} <span style="color:rgba(255,255,255,0.35);font-size:0.82em;">${signPart}</span>
                 </div>
                 <div class="aspect-description">
                     ${aspect.description}
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
     
     if (htmlContent) {
@@ -5055,13 +5072,15 @@ function openInterAspectsOnlyModal(date, lunarDay, interAspects) {
         const badgeExplain = asp.badgeInfo ? `<div style="font-size:0.72em;color:${badgeColor};margin-bottom:4px;line-height:1.3;font-style:italic;">${translateMeaning(asp.badgeInfo)}</div>` : '';
         const meaningText = asp.meaning ? translateMeaning(asp.meaning) : '';
 
+        const ipaClickText2 = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
+        const aspWordLabel2 = asp.aspect ? `<span style="font-size:0.82em;color:rgba(255,255,255,0.55);">${asp.aspect}</span> ` : '';
         return `
-        <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2);">
+        <div class="aspect-detail" style="border-left-color: ${asp.color}; background: rgba(0,0,0,0.2); cursor:pointer;" onclick="showBannerAspectDetail('${ipaClickText2}')">
             <div class="aspect-planets">
-                ${timeStr}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}
+                ${timeStr}${tp(asp.planet1)} ${asp.symbol} ${aspWordLabel2}${tp(asp.planet2)} ${degreeStr}${signsStr}${badge}
             </div>
             ${(badgeExplain || meaningText) ? `
-            <details style="margin-top:6px;">
+            <details style="margin-top:6px;" onclick="event.stopPropagation();">
                 <summary style="cursor:pointer;font-size:0.8em;color:rgba(255,255,255,0.5);outline:none;user-select:none;">
                     ▸ ${t('meaning')}
                 </summary>
@@ -6753,12 +6772,14 @@ function showEclipseModal(type, name, dateTime) {
         ${eclipseData.aspects && eclipseData.aspects.length > 0 ? `
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
             <h4 style="margin-top: 0; color: #f0e68c; font-size: 1em;">⭐ ${t('planetaryAspectsLabel')}</h4>
-            ${eclipseData.aspects.map(asp => `
-                <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px; border-left: 2px solid rgba(240,230,140,0.5);">
+            ${eclipseData.aspects.map(asp => {
+                const eclAspClick = (asp.planet + ' ' + asp.aspect).replace(/'/g, "\\'");
+                return `
+                <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px; border-left: 2px solid rgba(240,230,140,0.5); cursor:pointer;" onclick="showBannerAspectDetail('${eclAspClick}')">
                     <div style="font-weight: bold; margin-bottom: 4px;">${asp.planet} - ${asp.aspect}</div>
                     <div style="font-size: 0.9em; color: rgba(255,255,255,0.7);">${asp.description}</div>
                 </div>
-            `).join('')}
+            `}).join('')}
         </div>
         ` : ''}
     `;
@@ -17425,7 +17446,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v223';
+const APP_VERSION = 'v224';
 var _pendingSW = null;
 
 function showUpdateBanner() {
