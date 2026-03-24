@@ -5245,14 +5245,15 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
         }
 
         var astroCtx = gatherAstroContext();
+        // Short summary prompt first
         var systemPrompt = L
-            ? 'Eres un astrólogo profesional profundo. Tienes acceso a la carta natal completa del usuario. Da una interpretación PERSONALIZADA, profunda pero concisa (3-4 párrafos). Usa los datos reales de la carta. No repitas datos que ya se muestran en pantalla — ve directo a la interpretación psicológica, espiritual y práctica. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a deep professional astrologer. You have access to the user\'s complete natal chart. Give a PERSONALIZED, deep but concise interpretation (3-4 paragraphs). Use real chart data. Don\'t repeat data already shown on screen — go straight to psychological, spiritual and practical interpretation. Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo profesional profundo. Tienes acceso a la carta natal completa del usuario. Da una interpretación PERSONALIZADA y CONCISA en MÁXIMO 1 párrafo (3-5 oraciones). Ve directo al punto más importante: el significado clave y un consejo práctico. No repitas datos que ya se muestran en pantalla. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a deep professional astrologer. You have access to the user\'s complete natal chart. Give a PERSONALIZED and CONCISE interpretation in MAXIMUM 1 paragraph (3-5 sentences). Go straight to the most important point: the key meaning and practical advice. Don\'t repeat data already shown on screen. Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ role: 'user', parts: [{ text: specificPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+            generationConfig: { temperature: 0.8, maxOutputTokens: 512 }
         };
 
         var apiUrl;
@@ -5285,9 +5286,10 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
                 .replace(/\n/g, '<br>');
             // Store reading data globally for safe button access
             var readingKey = '_aiReading_' + Date.now();
-            window[readingKey] = { title: _readingTitle, text: text, html: '<p>' + formattedHtml + '</p>' };
+            window[readingKey] = { title: _readingTitle, text: text, html: '<p>' + formattedHtml + '</p>', prompt: specificPrompt };
             div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + formattedHtml + '</p></div>'
-                + '<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
+                + '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
+                + '<button onclick="expandAIReading(\'' + readingKey + '\',this)" style="padding:6px 14px;background:rgba(102,126,234,0.12);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.8em;cursor:pointer;">🔮 ' + (L ? 'Ver más' : 'Expand') + '</button>'
                 + '<button onclick="var d=window[\'' + readingKey + '\'];if(d){saveReading(d.title,d.text,d.html);this.disabled=true;this.innerHTML=\'' + (L ? '✅ Guardada' : '✅ Saved') + '\';}" style="padding:6px 14px;background:rgba(201,168,64,0.12);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>'
                 + '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="padding:6px 14px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.8em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>'
                 + '</div>';
@@ -5297,6 +5299,74 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
     } catch(e) {
         console.warn('AI interpretation error:', e);
         div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'Error al consultar AI: ' + e.message : 'AI query error: ' + e.message) + '</p>';
+    }
+}
+
+// Expand short reading into full deep reading
+async function expandAIReading(readingKey, btn) {
+    var data = window[readingKey];
+    if (!data || !data.prompt) return;
+    var L = currentLang === 'es';
+    var parentDiv = btn.closest('#aiInterpDiv') || btn.parentElement.parentElement;
+    var contentDiv = parentDiv.querySelector('div:first-child');
+
+    // Disable button, show loading
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(102,126,234,0.3);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:4px;"></span>' + (L ? 'Expandiendo...' : 'Expanding...');
+
+    try {
+        var astroCtx = gatherAstroContext();
+        var systemPrompt = L
+            ? 'Eres un astrólogo profesional profundo. Tienes acceso a la carta natal completa del usuario. Da una interpretación EXHAUSTIVA y PROFUNDA (5-8 párrafos). Incluye: significado psicológico profundo, capa espiritual/kármica, cómo afecta la vida cotidiana, relación con otros aspectos de la carta, y consejos prácticos detallados. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a deep professional astrologer. You have access to the user\'s complete natal chart. Give an EXHAUSTIVE and DEEP interpretation (5-8 paragraphs). Include: deep psychological meaning, spiritual/karmic layer, how it affects daily life, relationship with other chart aspects, and detailed practical advice. Respond in English.\n\nDATA:\n' + astroCtx;
+
+        var requestBody = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: data.prompt }] }],
+            generationConfig: { temperature: 0.8, maxOutputTokens: 4096 }
+        };
+
+        var apiUrl;
+        var personalKey = getGeminiKey();
+        if (personalKey) {
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
+        } else {
+            apiUrl = AI_PROXY_URL;
+        }
+
+        var response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) throw new Error('API error: ' + response.status);
+
+        var result = await response.json();
+        var text = '';
+        if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+            text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+        }
+
+        if (text) {
+            var formattedHtml = text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            contentDiv.innerHTML = '<p>' + formattedHtml + '</p>';
+            // Update stored data for save/share
+            window[readingKey].text = text;
+            window[readingKey].html = '<p>' + formattedHtml + '</p>';
+            // Remove expand button, keep save/share
+            btn.remove();
+        } else {
+            btn.innerHTML = '❌ ' + (L ? 'Error' : 'Error');
+        }
+    } catch(e) {
+        console.warn('Expand error:', e);
+        btn.disabled = false;
+        btn.innerHTML = '🔮 ' + (L ? 'Reintentar' : 'Retry');
     }
 }
 
@@ -5686,6 +5756,12 @@ function openDiarioModal(date, lunarDay) {
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             localStorage.setItem(`diary_${dateKey}`, textarea.value);
+            // Save astro snapshot for this diary date
+            try {
+                var diaryDate = new Date(dateKey + 'T12:00:00');
+                var snap = typeof getAstroSnapshot === 'function' ? getAstroSnapshot(diaryDate) : {};
+                localStorage.setItem('diary_astro_' + dateKey, JSON.stringify(snap));
+            } catch(e) {}
             if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
             document.getElementById('diarioSaveStatus').textContent = t('saved');
             setTimeout(() => {
@@ -5823,11 +5899,22 @@ function showEventsList(dayEvents) {
             </div>`;
         }
         // Local event
+        var astroLine = '';
+        if (event.astro) {
+            var a = event.astro;
+            var parts = [];
+            if (a.moonPhase) parts.push('🌙 ' + a.moonPhase);
+            if (a.lunarDay) parts.push((currentLang==='es'?'Día ':'Day ') + a.lunarDay);
+            if (a.moonSign) parts.push('☽ ' + a.moonSign);
+            if (a.sunSign) parts.push('☀️ ' + a.sunSign);
+            if (parts.length > 0) astroLine = '<div style="font-size:0.75em;color:rgba(201,168,64,0.65);margin-top:4px;">' + parts.join(' · ') + '</div>';
+        }
         return `
         <div class="event-item type-${event.type}" style="position: relative; padding-right: 10px;">
             <div class="event-title">${event.title}</div>
             ${event.time ? `<div class="event-time">⏰ ${event.time}</div>` : ''}
             ${event.description ? `<div class="event-description">${event.description}</div>` : ''}
+            ${astroLine}
             <div class="event-actions" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
                 ${gcalIsConnected() ? `<button class="btn" onclick="sendEventToGcal(${index}, this)" style="font-size:0.85em;padding:8px 12px;background:rgba(66,133,244,0.15);border:1px solid rgba(66,133,244,0.4);color:#4285f4;">📅 Google</button>` : ''}
                 <button class="btn btn-secondary" onclick="editEvent(${index})" style="font-size: 0.9em; padding: 8px 15px;">✏️ ${currentLang === 'es' ? 'Editar' : 'Edit'}</button>
@@ -5857,6 +5944,50 @@ async function sendEventToGcal(localIndex, btn) {
     setTimeout(() => { btn.textContent = '📅 Google'; btn.style.color = '#4285f4'; btn.disabled = false; }, 2500);
 }
 
+// Get astro snapshot for a given date (lunar day, moon phase, sun sign, transits)
+function getAstroSnapshot(date) {
+    var snap = {};
+    try {
+        var ld = getLunarDayForDate(date);
+        if (ld) snap.lunarDay = ld;
+    } catch(e) {}
+    try {
+        var phase = getMoonPhaseName(date);
+        if (phase) snap.moonPhase = phase;
+    } catch(e) {}
+    try {
+        var illum = getMoonIllumination(date);
+        if (illum !== undefined) snap.moonIllumination = (illum * 100).toFixed(1) + '%';
+    } catch(e) {}
+    try {
+        // Sun position
+        var sunPos = getSunLongitude ? getSunLongitude(date) : null;
+        if (sunPos !== null) {
+            var sunInfo = getZodiacSignWithDegree(sunPos);
+            snap.sunSign = sunInfo.sign;
+            snap.sunDegree = sunInfo.degree + '°' + (sunInfo.minute < 10 ? '0' : '') + sunInfo.minute + "'";
+        }
+    } catch(e) {}
+    try {
+        // Moon sign
+        var moonPos = getMoonLongitude ? getMoonLongitude(date) : null;
+        if (moonPos !== null) {
+            var moonInfo = getZodiacSignWithDegree(moonPos);
+            snap.moonSign = moonInfo.sign;
+        }
+    } catch(e) {}
+    try {
+        // Active transits
+        if (globalTodayTransits && globalTodayTransits.length > 0) {
+            var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'N.Norte','lilith':'Lilith'};
+            snap.transits = globalTodayTransits.slice(0,5).map(function(t) {
+                return (pN[t.transitPlanet]||t.transitPlanet) + ' ' + (t.type||'') + ' ' + (pN[t.natalPlanet]||t.natalPlanet);
+            });
+        }
+    } catch(e) {}
+    return snap;
+}
+
 function saveEvent() {
     const title = document.getElementById('eventTitle').value.trim();
     if (!title) {
@@ -5873,13 +6004,17 @@ function saveEvent() {
         });
     });
 
+    // Gather astro context for the event date
+    var astroSnap = getAstroSnapshot(selectedDate || new Date());
+
     const event = {
         title: title,
         type: document.getElementById('eventType').value,
         time: document.getElementById('eventTime').value,
         description: document.getElementById('eventDescription').value.trim(),
         reminders: reminders,
-        created: new Date().toISOString()
+        created: new Date().toISOString(),
+        astro: astroSnap
     };
 
     const key = getDateKey(selectedDate);
@@ -15981,7 +16116,9 @@ DOMTokenList.prototype.add = function() {
     </div>
     <div class="ai-chat-messages" id="aiChatMessages"></div>
     <div class="ai-chat-input-bar">
+        <button id="aiVoiceBtn" onclick="toggleVoiceInput()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1.2em;cursor:pointer;flex-shrink:0;" title="Voice input">🎙️</button>
         <textarea id="aiChatInput" rows="1" placeholder="Pregunta sobre ciclos lunares, mareas, aspectos..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"></textarea>
+        <button id="aiTTSToggle" onclick="toggleTTS()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1.1em;cursor:pointer;flex-shrink:0;" title="Voice responses">🔇</button>
         <button onclick="sendAIMessage()">➤</button>
     </div>
 </div>
@@ -15991,6 +16128,124 @@ DOMTokenList.prototype.add = function() {
 
 let aiChatHistory = [];
 let aiIsTyping = false;
+let aiTTSEnabled = false;
+let aiVoiceRecognition = null;
+let aiVoiceIsListening = false;
+
+// ===== VOICE INPUT (Speech-to-Text) =====
+function toggleVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert(currentLang === 'es' ? 'Tu navegador no soporta reconocimiento de voz. Usa Chrome o Safari.' : 'Your browser does not support speech recognition. Use Chrome or Safari.');
+        return;
+    }
+    if (aiVoiceIsListening) {
+        stopVoiceInput();
+        return;
+    }
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    aiVoiceRecognition = new SpeechRecognition();
+    aiVoiceRecognition.continuous = true;
+    aiVoiceRecognition.interimResults = true;
+    aiVoiceRecognition.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+    var finalTranscript = '';
+    var input = document.getElementById('aiChatInput');
+    var btn = document.getElementById('aiVoiceBtn');
+
+    aiVoiceRecognition.onstart = function() {
+        aiVoiceIsListening = true;
+        btn.style.background = 'rgba(255,59,48,0.3)';
+        btn.style.borderColor = '#ff3b30';
+        btn.innerHTML = '⏹️';
+        btn.title = currentLang === 'es' ? 'Detener' : 'Stop';
+    };
+    aiVoiceRecognition.onresult = function(event) {
+        var interim = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript + ' ';
+            } else {
+                interim += event.results[i][0].transcript;
+            }
+        }
+        input.value = finalTranscript + interim;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    };
+    aiVoiceRecognition.onerror = function(event) {
+        console.warn('Voice error:', event.error);
+        stopVoiceInput();
+    };
+    aiVoiceRecognition.onend = function() {
+        // If still supposed to be listening (can stop due to silence), auto-stop
+        if (aiVoiceIsListening) {
+            stopVoiceInput();
+            // Auto-send if we have content
+            if (input.value.trim()) {
+                sendAIMessage();
+            }
+        }
+    };
+    aiVoiceRecognition.start();
+}
+function stopVoiceInput() {
+    aiVoiceIsListening = false;
+    if (aiVoiceRecognition) { try { aiVoiceRecognition.stop(); } catch(e) {} }
+    var btn = document.getElementById('aiVoiceBtn');
+    btn.style.background = 'rgba(255,255,255,0.08)';
+    btn.style.borderColor = 'rgba(255,255,255,0.15)';
+    btn.innerHTML = '🎙️';
+    btn.title = currentLang === 'es' ? 'Entrada de voz' : 'Voice input';
+}
+
+// ===== TEXT-TO-SPEECH (Voice Responses) =====
+function toggleTTS() {
+    aiTTSEnabled = !aiTTSEnabled;
+    var btn = document.getElementById('aiTTSToggle');
+    if (aiTTSEnabled) {
+        btn.innerHTML = '🔊';
+        btn.style.background = 'rgba(102,126,234,0.2)';
+        btn.style.borderColor = '#667eea';
+    } else {
+        btn.innerHTML = '🔇';
+        btn.style.background = 'rgba(255,255,255,0.08)';
+        btn.style.borderColor = 'rgba(255,255,255,0.15)';
+        window.speechSynthesis.cancel();
+    }
+}
+function speakText(text) {
+    if (!aiTTSEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    // Clean markdown/tags
+    var clean = text.replace(/\*\*?/g, '').replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
+    // Split long text into chunks (max ~200 chars per utterance for reliability)
+    var sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [clean];
+    var chunks = [];
+    var current = '';
+    sentences.forEach(function(s) {
+        if ((current + s).length > 200) {
+            if (current) chunks.push(current.trim());
+            current = s;
+        } else {
+            current += s;
+        }
+    });
+    if (current.trim()) chunks.push(current.trim());
+
+    chunks.forEach(function(chunk, i) {
+        var utter = new SpeechSynthesisUtterance(chunk);
+        utter.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+        // Try to find a good voice
+        var voices = window.speechSynthesis.getVoices();
+        var langCode = currentLang === 'es' ? 'es' : 'en';
+        var preferred = voices.find(function(v) { return v.lang.startsWith(langCode) && v.name.includes('Google'); })
+                     || voices.find(function(v) { return v.lang.startsWith(langCode) && !v.localService; })
+                     || voices.find(function(v) { return v.lang.startsWith(langCode); });
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+    });
+}
 
 // Built-in Gemini API key (free tier) — users don't need to configure anything
 // AI Proxy URL — Cloudflare Worker keeps the API key secret
@@ -16061,6 +16316,8 @@ function showAIWelcome() {
                 <p>❤️ ${isEs ? '"¿Cómo es mi Venus para el amor?"' : '"How does my Venus affect love?"'}</p>
                 <p>🌙 ${isEs ? '"¿Qué significa la Luna en esta fase para mí?"' : '"What does the Moon in this phase mean for me?"'}</p>
                 <p>🔮 ${isEs ? '"Dame una lectura completa de mi carta"' : '"Give me a complete reading of my chart"'}</p>
+                <p>📅 ${isEs ? '"¿Qué eventos tengo este mes?"' : '"What events do I have this month?"'}</p>
+                <p>✍️ ${isEs ? '"Crea un evento de meditación para la luna llena"' : '"Create a meditation event for the full moon"'}</p>
             </div>`;
     }
 }
@@ -16176,6 +16433,54 @@ function gatherAstroContext() {
         }
     } catch(e) {}
 
+    // ========== USER EVENTS & DIARY ==========
+    try {
+        var eventsData = JSON.parse(localStorage.getItem('lunarCalendarEvents') || '{}');
+        var today = new Date();
+        var monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        var upcomingEvents = [];
+        Object.entries(eventsData).forEach(function(entry) {
+            var dateKey = entry[0], evList = entry[1];
+            var d = new Date(dateKey + 'T12:00:00');
+            // Include events from this month and next 30 days
+            if (d >= monthStart && d <= new Date(today.getTime() + 30*86400000)) {
+                evList.forEach(function(ev) {
+                    upcomingEvents.push({ date: dateKey, title: ev.title, type: ev.type, time: ev.time || '', desc: ev.description || '' });
+                });
+            }
+        });
+        if (upcomingEvents.length > 0) {
+            upcomingEvents.sort(function(a,b) { return a.date.localeCompare(b.date); });
+            ctx += 'EVENTOS/AGENDA DEL USUARIO (próximos 30 días):\n';
+            upcomingEvents.forEach(function(ev) {
+                ctx += ev.date + ': ' + ev.title + (ev.time ? ' a las ' + ev.time : '') + (ev.type ? ' [' + ev.type + ']' : '') + (ev.desc ? ' — ' + ev.desc : '') + '\n';
+            });
+            ctx += '\n';
+        }
+    } catch(e) {}
+
+    // Diary entries (last 7 days + today)
+    try {
+        var diaryEntries = [];
+        for (var di = -7; di <= 0; di++) {
+            var dd = new Date();
+            dd.setDate(dd.getDate() + di);
+            var dk = dd.toISOString().split('T')[0];
+            var entry = localStorage.getItem('diary_' + dk);
+            if (entry && entry.trim()) {
+                diaryEntries.push({ date: dk, text: entry.trim().substring(0, 300) });
+            }
+        }
+        if (diaryEntries.length > 0) {
+            ctx += 'NOTAS DE DIARIO RECIENTES DEL USUARIO:\n';
+            diaryEntries.forEach(function(e) {
+                ctx += e.date + ': ' + e.text + '\n';
+            });
+            ctx += '\n';
+        }
+    } catch(e) {}
+
     return ctx;
 }
 
@@ -16200,6 +16505,13 @@ CAPACIDADES:
 - Significado kármico: Nodo Norte, Quirón, Lilith, planetas retrógrados
 - Ciclos lunares y su efecto en la carta personal
 - Consejos prácticos basados en la energía del momento
+- LEER los eventos de la agenda y notas de diario del usuario (ya los tienes en los datos)
+- CREAR eventos y notas de diario cuando el usuario lo pida
+
+ACCIONES — Puedes crear eventos y notas de diario. Cuando el usuario te pida crear algo, incluye estas etiquetas EXACTAS al final de tu respuesta (después de tu texto normal):
+- Para crear un evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]
+- Para crear nota de diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto de la nota]
+Puedes incluir múltiples etiquetas. Ejemplo: [CREATE_EVENT|2026-03-25|Meditación Luna Llena|21:00|ritual|Meditar bajo la luna llena para canalizar energía]
 
 ESTILO:
 - Habla como un astrólogo sabio, cálido y profundo
@@ -16226,6 +16538,13 @@ CAPABILITIES:
 - Karmic meaning: North Node, Chiron, Lilith, retrograde planets
 - Lunar cycles and their effect on the personal chart
 - Practical advice based on the current energy
+- READ the user's agenda events and diary notes (already in the data)
+- CREATE events and diary notes when the user asks
+
+ACTIONS — You can create events and diary notes. When the user asks you to create something, include these EXACT tags at the end of your response (after your normal text):
+- To create an event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]
+- To create a diary note: [CREATE_DIARY|date YYYY-MM-DD|note text]
+You can include multiple tags. Example: [CREATE_EVENT|2026-03-25|Full Moon Meditation|21:00|ritual|Meditate under the full moon to channel energy]
 
 STYLE:
 - Speak like a wise, warm, and deep astrologer
@@ -16362,10 +16681,47 @@ async function sendAIMessage() {
         }
 
         const data = await response.json();
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
+        let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
 
-        addAIMessage('assistant', reply);
+        // Parse and execute AI actions (create events/diary)
+        var actionsExecuted = [];
+        var eventRegex = /\[CREATE_EVENT\|([^|]+)\|([^|]+)(?:\|([^|]*))?(?:\|([^|]*))?(?:\|([^\]]*))?\]/g;
+        var diaryRegex = /\[CREATE_DIARY\|([^|]+)\|([^\]]+)\]/g;
+        var match;
+        while ((match = eventRegex.exec(reply)) !== null) {
+            try {
+                var evDate = match[1].trim();
+                var evTitle = match[2].trim();
+                var evTime = (match[3] || '').trim();
+                var evType = (match[4] || 'otro').trim();
+                var evDesc = (match[5] || '').trim();
+                var evKey = evDate;
+                if (!events[evKey]) events[evKey] = [];
+                events[evKey].push({ title: evTitle, type: evType, time: evTime, description: evDesc, created: new Date().toISOString() });
+                saveEvents();
+                actionsExecuted.push((currentLang === 'es' ? '✅ Evento creado: ' : '✅ Event created: ') + evTitle + ' (' + evDate + ')');
+            } catch(ae) { console.warn('AI create event error:', ae); }
+        }
+        while ((match = diaryRegex.exec(reply)) !== null) {
+            try {
+                var diDate = match[1].trim();
+                var diText = match[2].trim();
+                var existingDiary = localStorage.getItem('diary_' + diDate) || '';
+                localStorage.setItem('diary_' + diDate, existingDiary + (existingDiary ? '\n\n' : '') + '✨ AI: ' + diText);
+                if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
+                actionsExecuted.push((currentLang === 'es' ? '✅ Nota de diario creada: ' : '✅ Diary note created: ') + diDate);
+            } catch(ae) { console.warn('AI create diary error:', ae); }
+        }
+        // Remove action tags from displayed message
+        var cleanReply = reply.replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').trim();
+        if (actionsExecuted.length > 0) {
+            cleanReply += '\n\n---\n' + actionsExecuted.join('\n');
+        }
+
+        addAIMessage('assistant', cleanReply);
         aiChatHistory.push({role: 'model', parts: [{text: reply}]});
+        // Speak the response if TTS is enabled
+        speakText(cleanReply);
 
     } catch(err) {
         removeTypingIndicator();
