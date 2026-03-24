@@ -432,14 +432,13 @@
         /* Personal mode */
         body.personal-mode { background: radial-gradient(ellipse 70% 50% at 20% 15%, rgba(60,0,80,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 80% 80%, rgba(40,0,90,0.50) 0%, transparent 55%), linear-gradient(170deg, #0a0020 0%, #120030 40%, #0a0020 100%); }
         body.personal-mode h1 { background: linear-gradient(135deg, #9b59b6 0%, #e8c84a 50%, #c39bd3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .profile-selector-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding: 6px; background: rgba(10,3,22,0.7); border-radius: 10px; border: 1px solid rgba(155,89,182,0.15); }
-        .profile-tab { display: flex; align-items: center; gap: 4px; padding: 7px 14px; border-radius: 8px; font-size: 0.82em; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.2s; background: rgba(155,89,182,0.08); border: 1px solid rgba(155,89,182,0.15); }
-        .profile-tab:hover { background: rgba(155,89,182,0.15); color: rgba(255,255,255,0.7); }
-        .profile-tab.active { background: rgba(155,89,182,0.25); border-color: rgba(155,89,182,0.5); color: #c39bd3; font-weight: 600; }
-        .profile-tab.add-profile { background: rgba(78,205,196,0.08); border-color: rgba(78,205,196,0.2); color: rgba(78,205,196,0.6); font-size: 1.1em; padding: 5px 12px; }
-        .profile-tab.add-profile:hover { background: rgba(78,205,196,0.15); color: #4ecdc4; }
-        .profile-delete-btn { font-size: 1em; color: rgba(255,255,255,0.25); margin-left: 4px; padding: 0 2px; line-height: 1; }
-        .profile-delete-btn:hover { color: #e74c3c; }
+        .profile-header-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 8px 10px; background: rgba(10,3,22,0.7); border-radius: 10px; border: 1px solid rgba(155,89,182,0.15); }
+        .profile-select-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+        .profile-dropdown { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid rgba(155,89,182,0.3); border-radius: 8px; background: rgba(20,10,40,0.8); color: #c39bd3; font-size: 0.85em; font-weight: 600; cursor: pointer; appearance: auto; -webkit-appearance: auto; font-family: inherit; }
+        .profile-dropdown:focus { outline: none; border-color: rgba(155,89,182,0.6); }
+        .profile-actions-right { display: flex; gap: 4px; flex-shrink: 0; }
+        .profile-action-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(155,89,182,0.2); background: rgba(155,89,182,0.08); color: rgba(255,255,255,0.6); font-size: 0.9em; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; }
+        .profile-action-btn:hover { background: rgba(155,89,182,0.2); color: #c39bd3; border-color: rgba(155,89,182,0.4); }
         /* Natal Sub-Tabs */
         .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; overflow: hidden; border: 1px solid rgba(155,89,182,0.2); }
         .natal-subtab { flex: 1; padding: 8px 6px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; border-bottom: 2px solid transparent; }
@@ -9697,19 +9696,80 @@ function buildProfileSelector() {
     const activeId = getActiveProfileId();
     if (profiles.length === 0) return '';
 
-    const tabs = profiles.map(p => {
-        const isActive = p.id === activeId;
+    const options = profiles.map(p => {
         const displayName = p.name || p.cityName || (L ? 'Sin nombre' : 'Unnamed');
-        return `<div class="profile-tab${isActive ? ' active' : ''}" onclick="switchProfile('${p.id}')" title="${p.cityName} · ${p.date}">
-            <span>${displayName}</span>
-            ${profiles.length > 1 ? `<span class="profile-delete-btn" onclick="event.stopPropagation();deleteProfile('${p.id}')" title="${L?'Eliminar':'Delete'}">×</span>` : ''}
-        </div>`;
+        return `<option value="${p.id}" ${p.id === activeId ? 'selected' : ''}>${displayName}</option>`;
     }).join('');
 
-    return `<div class="profile-selector-bar">
-        ${tabs}
-        <div class="profile-tab add-profile" onclick="addNewProfile()" title="${L?'Agregar perfil':'Add profile'}">＋</div>
+    return `<div class="profile-header-bar">
+        <div class="profile-select-wrap">
+            <select id="profileDropdown" onchange="switchProfile(this.value)" class="profile-dropdown">${options}</select>
+            <button onclick="addNewProfile()" class="profile-action-btn" title="${L?'Agregar perfil':'Add profile'}">＋</button>
+        </div>
+        <div class="profile-actions-right">
+            <button onclick="showProfileChartData()" class="profile-action-btn" title="${L?'Datos de la carta':'Chart data'}">📊</button>
+            <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${L?'Editar datos':'Edit data'}">✏️</button>
+            <button onclick="shareNatalProfile()" class="profile-action-btn" title="${L?'Compartir':'Share'}">📤</button>
+        </div>
     </div>`;
+}
+
+function showProfileChartData() {
+    const L = currentLang === 'es';
+    const natal = getNatalData();
+    if (!natal) return;
+    let natalChart;
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+    const p = natalChart.planets || {};
+    const h = natalChart.houses || {};
+    var lines = [];
+    lines.push('🔮 ' + (natal.name || natal.cityName) + ' — ' + (L ? 'Carta Natal' : 'Natal Chart'));
+    lines.push(natal.date + ' · ' + (natal.time || '') + ' · ' + (natal.cityName || ''));
+    lines.push('');
+    for (var k in p) {
+        if (p[k] && p[k].sign) lines.push((p[k].symbol || k) + ' ' + k + ': ' + p[k].sign + ' ' + (p[k].degree || '').toString().substring(0,5) + '°' + (p[k].house ? ' — ' + (L?'Casa':'House') + ' ' + p[k].house : ''));
+    }
+    var modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:10002;';
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = '<div style="background:rgba(15,5,30,0.98);border:1px solid rgba(155,89,182,0.3);border-radius:14px;padding:20px;max-width:380px;width:90%;max-height:80vh;overflow-y:auto;"><pre style="font-size:0.78em;color:rgba(255,255,255,0.7);white-space:pre-wrap;line-height:1.6;">' + lines.join('\n') + '</pre><div style="text-align:center;margin-top:12px;"><button onclick="this.closest(\'.modal\').remove()" style="padding:6px 20px;background:rgba(155,89,182,0.2);border:1px solid rgba(155,89,182,0.3);border-radius:8px;color:#c39bd3;cursor:pointer;">' + (L?'Cerrar':'Close') + '</button></div></div>';
+    document.body.appendChild(modal);
+}
+
+function shareNatalProfile() {
+    const L = currentLang === 'es';
+    const natal = getNatalData();
+    if (!natal) return;
+    let natalChart;
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+    const p = natalChart.planets || {};
+    var text = '🔮 ' + (natal.name || natal.cityName) + '\n';
+    text += natal.date + ' · ' + (natal.time || '') + ' · ' + (natal.cityName || '') + '\n\n';
+    var keys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith'];
+    keys.forEach(function(k) {
+        if (p[k] && p[k].sign) text += (p[k].symbol || '•') + ' ' + k.charAt(0).toUpperCase() + k.slice(1) + ': ' + p[k].sign + (p[k].house ? ' (H' + p[k].house + ')' : '') + '\n';
+    });
+    text += '\n— Moon Sync 🌙';
+    if (navigator.share) {
+        navigator.share({ title: (natal.name || 'Natal Chart'), text: text }).catch(function(){});
+    } else {
+        navigator.clipboard.writeText(text).then(function() {
+            var toast = document.createElement('div');
+            toast.textContent = L ? '📋 Copiado al portapapeles' : '📋 Copied to clipboard';
+            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(155,89,182,0.9);color:white;padding:10px 20px;border-radius:20px;z-index:10003;font-size:0.85em;';
+            document.body.appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 2000);
+        });
+    }
 }
 
 let personalCurrentMonth = new Date().getMonth();
@@ -9932,10 +9992,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             </div>
             <div style="margin-top:6px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;">
                 <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.2);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.4);font-size:0.68em;cursor:pointer;">
-                    📋 ${L ? 'Copiar texto' : 'Copy text'}
-                </button>
-                <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
-                    ✏️ ${L ? 'Editar datos' : 'Edit data'}
+                    📋 ${L ? 'Copiar para AI' : 'Copy for AI'}
                 </button>
             </div>
         </div>`;
