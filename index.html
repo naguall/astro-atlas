@@ -446,6 +446,7 @@
         .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
         .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); border-bottom: 2px solid #c39bd3; }
         .natal-tab-content { animation: fadeInTab 0.3s ease; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes planetWobble { 0%,100% { transform: perspective(200px) rotateY(-15deg); } 50% { transform: perspective(200px) rotateY(15deg); } }
         .planet-spin { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite; transform-origin: center; }
@@ -5074,6 +5075,68 @@ function closeNatalDetailModal() {
 let globalNatalChart = null;
 let globalTodayTransits = [];
 
+// AI interpretation for modals — sends specific prompt + full chart context
+async function fetchAIInterpretation(specificPrompt, targetDivId) {
+    var div = document.getElementById(targetDivId);
+    if (!div) return;
+    var L = currentLang === 'es';
+    div.innerHTML = '<div style="text-align:center;padding:15px;"><div style="display:inline-block;width:24px;height:24px;border:3px solid rgba(201,168,64,0.3);border-top-color:#c9a840;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:8px;font-size:0.8em;color:rgba(255,255,255,0.4);">' + (L ? 'Consultando las estrellas...' : 'Consulting the stars...') + '</div></div>';
+
+    try {
+        if (!aiIsConfigured()) {
+            div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;text-align:center;">' + (L ? 'Configura tu API key de Gemini en ⚙️ Preferencias para obtener interpretaciones AI personalizadas.' : 'Set up your Gemini API key in ⚙️ Preferences for personalized AI interpretations.') + '</p>';
+            return;
+        }
+
+        var astroCtx = gatherAstroContext();
+        var systemPrompt = L
+            ? 'Eres un astrólogo profesional profundo. Tienes acceso a la carta natal completa del usuario. Da una interpretación PERSONALIZADA, profunda pero concisa (3-4 párrafos). Usa los datos reales de la carta. No repitas datos que ya se muestran en pantalla — ve directo a la interpretación psicológica, espiritual y práctica. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a deep professional astrologer. You have access to the user\'s complete natal chart. Give a PERSONALIZED, deep but concise interpretation (3-4 paragraphs). Use real chart data. Don\'t repeat data already shown on screen — go straight to psychological, spiritual and practical interpretation. Respond in English.\n\nDATA:\n' + astroCtx;
+
+        var requestBody = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: specificPrompt }] }],
+            generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+        };
+
+        var apiUrl;
+        var personalKey = getGeminiKey();
+        if (personalKey) {
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
+        } else {
+            apiUrl = AI_PROXY_URL;
+        }
+
+        var response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) throw new Error('API error: ' + response.status);
+
+        var result = await response.json();
+        var text = '';
+        if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+            text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+        }
+
+        if (text) {
+            var html = text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + html + '</p></div>';
+        } else {
+            div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'No se pudo generar interpretación.' : 'Could not generate interpretation.') + '</p>';
+        }
+    } catch(e) {
+        console.warn('AI interpretation error:', e);
+        div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'Error al consultar AI: ' + e.message : 'AI query error: ' + e.message) + '</p>';
+    }
+}
+
 function showNatalDetail(type, data) {
     const modal = document.getElementById('natalDetailModal');
     const titleEl = document.getElementById('natalDetailTitle');
@@ -5318,22 +5381,19 @@ function showNatalDetail(type, data) {
         }
         html += '</div>';
 
-        html += '<div style="margin-bottom: 15px;">';
-        html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '✦ Interpretación del Planeta en el Signo' : '✦ Planet in Sign Interpretation') + '</h4>';
+        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
-        if (data === 'sun') {
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + (sunSign[planetData.sign] || (L ? 'Interpretación no disponible' : 'Interpretation not available')) + '</p>';
-        } else if (deepPlanet[data] && deepPlanet[data][planetData.sign]) {
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + deepPlanet[data][planetData.sign] + '</p>';
-        } else {
-            html += '<p style="line-height:1.6;font-size:0.9em;color:rgba(255,255,255,0.5);">' + (L ? 'Interpretación personalizada disponible en análisis completo' : 'Personalized interpretation available in full analysis') + '</p>';
-        }
-        html += '</div>';
-
-        html += '<div>';
-        html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '🏠 Significado de la Casa' : '🏠 House Meaning') + '</h4>';
-        html += '<p style="line-height:1.6;font-size:0.9em;">' + (houseDeep[houseNum] || (L ? 'Casa ' + houseNum : 'House ' + houseNum)) + '</p>';
-        html += '</div>';
+        // After rendering, trigger AI interpretation
+        var _planetName = planetNamesLocal[data] || data;
+        var _planetSign = planetData.sign;
+        var _houseNum = houseNum;
+        var _retro = planetData.isRetrograde;
+        setTimeout(function() {
+            var prompt = L
+                ? 'Interpreta mi ' + _planetName + ' en ' + _planetSign + ' en Casa ' + _houseNum + (_retro ? ' (retrógrado)' : '') + '. Incluye: significado psicológico profundo, cómo afecta mi personalidad, qué área de vida activa en esa casa, y un consejo práctico.'
+                : 'Interpret my ' + _planetName + ' in ' + _planetSign + ' in House ' + _houseNum + (_retro ? ' (retrograde)' : '') + '. Include: deep psychological meaning, how it affects my personality, which life area it activates in that house, and practical advice.';
+            fetchAIInterpretation(prompt, 'aiInterpDiv');
+        }, 100);
 
     } else if (type === 'house' && globalNatalChart && globalNatalChart.houses) {
         const houseNum = data;
@@ -5347,33 +5407,6 @@ function showNatalDetail(type, data) {
         html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Signo en Cúspide:' : 'Sign on Cusp:') + '</strong> ' + info.sign + '</div>';
         html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Grado:' : 'Degree:') + '</strong> ' + info.degree + '°' + (info.minute < 10 ? '0' : '') + info.minute + "'</div>";
         html += '</div>';
-
-        html += '<div style="margin-bottom: 15px;">';
-        html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '✦ Significado de la Casa' : '✦ House Meaning') + '</h4>';
-        html += '<p style="line-height:1.6;font-size:0.9em;">' + (houseDeep[houseNum] || (L ? 'Casa ' + houseNum : 'House ' + houseNum)) + '</p>';
-        html += '</div>';
-
-        // Sign on cusp interpretation
-        var signOnCusp = {
-            'Aries':L?'Con Aries en esta cúspide, abordas este área de vida con iniciativa, valentía y energía directa. Eres pionero aquí, actúas primero y piensas después. Necesitas independencia en estos temas.':'With Aries on this cusp, you approach this life area with initiative, courage and direct energy. You are a pioneer here, acting first and thinking later. You need independence in these matters.',
-            'Tauro':L?'Con Tauro en esta cúspide, buscas estabilidad, seguridad y placer en este área. Tu enfoque es paciente y persistente. Valoras lo tangible y construyes lentamente pero con solidez.':'With Taurus on this cusp, you seek stability, security and pleasure in this area. Your approach is patient and persistent. You value the tangible and build slowly but solidly.',
-            'Géminis':L?'Con Géminis en esta cúspide, abordas este área con curiosidad mental y versatilidad. Comunicación y aprendizaje son claves aquí. Necesitas variedad e intercambio intelectual.':'With Gemini on this cusp, you approach this area with mental curiosity and versatility. Communication and learning are key here. You need variety and intellectual exchange.',
-            'Cáncer':L?'Con Cáncer en esta cúspide, tu enfoque es emocional, protector e intuitivo. Buscas seguridad emocional aquí. Cuidas y nutres todo lo relacionado con estos temas.':'With Cancer on this cusp, your approach is emotional, protective and intuitive. You seek emotional security here. You care for and nurture everything related to these matters.',
-            'Leo':L?'Con Leo en esta cúspide, brillas con creatividad y generosidad en este área. Buscas reconocimiento y expresión personal. Tu liderazgo natural se manifiesta aquí.':'With Leo on this cusp, you shine with creativity and generosity in this area. You seek recognition and personal expression. Your natural leadership manifests here.',
-            'Virgo':L?'Con Virgo en esta cúspide, tu enfoque es analítico, práctico y perfeccionista. Buscas mejorar y servir en este área. Atención al detalle y eficiencia son tu marca.':'With Virgo on this cusp, your approach is analytical, practical and perfectionist. You seek to improve and serve in this area. Attention to detail and efficiency are your mark.',
-            'Libra':L?'Con Libra en esta cúspide, buscas equilibrio, armonía y justicia en este área. Las relaciones y la estética son importantes aquí. Tu enfoque es diplomático y cooperativo.':'With Libra on this cusp, you seek balance, harmony and justice in this area. Relationships and aesthetics are important here. Your approach is diplomatic and cooperative.',
-            'Escorpio':L?'Con Escorpio en esta cúspide, tu enfoque es intenso, profundo y transformador. Buscas la verdad oculta en este área. Poder, regeneración y pasión marcan estos temas.':'With Scorpio on this cusp, your approach is intense, deep and transformative. You seek hidden truth in this area. Power, regeneration and passion mark these matters.',
-            'Sagitario':L?'Con Sagitario en esta cúspide, buscas expansión, aventura y significado en este área. Tu enfoque es optimista y filosófico. Necesitas libertad y crecimiento aquí.':'With Sagittarius on this cusp, you seek expansion, adventure and meaning in this area. Your approach is optimistic and philosophical. You need freedom and growth here.',
-            'Capricornio':L?'Con Capricornio en esta cúspide, tu enfoque es ambicioso, estructurado y disciplinado. Buscas logros duraderos aquí. Responsabilidad y madurez marcan este área.':'With Capricorn on this cusp, your approach is ambitious, structured and disciplined. You seek lasting achievements here. Responsibility and maturity mark this area.',
-            'Acuario':L?'Con Acuario en esta cúspide, tu enfoque es innovador, independiente y humanitario. Buscas originalidad y libertad en este área. Rompes esquemas convencionales aquí.':'With Aquarius on this cusp, your approach is innovative, independent and humanitarian. You seek originality and freedom in this area. You break conventional patterns here.',
-            'Piscis':L?'Con Piscis en esta cúspide, tu enfoque es intuitivo, compasivo y espiritual. Buscas trascendencia y conexión mística en este área. Sensibilidad y creatividad fluyen aquí.':'With Pisces on this cusp, your approach is intuitive, compassionate and spiritual. You seek transcendence and mystical connection in this area. Sensitivity and creativity flow here.'
-        };
-        if (signOnCusp[info.sign]) {
-            html += '<div style="margin-bottom:15px;">';
-            html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '♈ ' + info.sign + ' en la Cúspide' : '♈ ' + info.sign + ' on the Cusp') + '</h4>';
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + signOnCusp[info.sign] + '</p>';
-            html += '</div>';
-        }
 
         // Show planets in this house
         let planetsInHouse = [];
@@ -5399,6 +5432,18 @@ function showNatalDetail(type, data) {
             html += '</div>';
         }
 
+        // AI interpretation for house
+        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+        var _hNum = houseNum;
+        var _hSign = info.sign;
+        var _hPlanets = planetsInHouse.map(function(p) { return (planetNamesLocal[p.name]||p.name) + ' en ' + p.sign; }).join(', ');
+        setTimeout(function() {
+            var prompt = L
+                ? 'Interpreta mi Casa ' + _hNum + ' con ' + _hSign + ' en la cúspide' + (_hPlanets ? ' y estos planetas dentro: ' + _hPlanets : ', vacía de planetas') + '. Explica qué área de vida representa, cómo el signo en la cúspide la colorea, y qué significa para mi vida cotidiana.'
+                : 'Interpret my House ' + _hNum + ' with ' + _hSign + ' on the cusp' + (_hPlanets ? ' and these planets inside: ' + _hPlanets : ', empty of planets') + '. Explain what life area it represents, how the sign on the cusp colors it, and what it means for my daily life.';
+            fetchAIInterpretation(prompt, 'aiInterpDiv');
+        }, 100);
+
     } else if (type === 'aspect' && globalNatalChart && globalNatalChart.natalAspects) {
         const aspect = globalNatalChart.natalAspects[data];
         if (aspect) {
@@ -5413,79 +5458,16 @@ function showNatalDetail(type, data) {
             html += '<div style="font-size:0.9em;"><strong>' + (L ? 'Planetas:' : 'Planets:') + '</strong> ' + (planetSymbols[aspect.planet1] || '') + ' ' + planet1Name + ' — ' + (planetSymbols[aspect.planet2] || '') + ' ' + planet2Name + '</div>';
             html += '</div>';
 
-            // Generic aspect meaning
-            html += '<div style="margin-bottom:15px;">';
-            html += '<h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">' + (L ? '✦ Significado del Aspecto' : '✦ Aspect Meaning') + '</h4>';
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + (aspectMeanings[aspect.aspect.name] || (L ? 'Interpretación no disponible' : 'Interpretation not available')) + '</p>';
-            html += '</div>';
+            // AI interpretation
+            html += '<div style="margin-top:12px;"><h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
-            // Specific planet-pair interpretation
-            var pairInterp = {
-                'sun-moon':L?'Sol-Luna: la relación entre tu identidad consciente y tu mundo emocional. Define cómo tu voluntad y tus sentimientos se integran o entran en conflicto. Es la base de tu personalidad completa.':'Sun-Moon: the relationship between your conscious identity and emotional world. Defines how your will and feelings integrate or conflict. The foundation of your complete personality.',
-                'sun-mercury':L?'Sol-Mercurio: conexión entre tu identidad y tu mente. Define tu estilo de pensamiento y comunicación personal. Tu intelecto al servicio de tu propósito vital.':'Sun-Mercury: connection between identity and mind. Defines your thinking style and personal communication. Your intellect serving your vital purpose.',
-                'sun-venus':L?'Sol-Venus: relación entre tu ser esencial y tus valores, amor y estética. Define cómo atraes y qué valoras. Tu capacidad de dar y recibir amor.':'Sun-Venus: relationship between your essential self and values, love and aesthetics. Defines how you attract and what you value. Your capacity for giving and receiving love.',
-                'sun-mars':L?'Sol-Marte: tu voluntad y tu acción. Define tu energía vital, ambición y capacidad de lucha. Cómo persigues tus objetivos y te defiendes.':'Sun-Mars: your will and action. Defines your vital energy, ambition and fighting capacity. How you pursue goals and defend yourself.',
-                'sun-jupiter':L?'Sol-Júpiter: expansión de tu identidad. Optimismo, fe y crecimiento personal. Tu capacidad de ver el panorama general y generar abundancia.':'Sun-Jupiter: expansion of your identity. Optimism, faith and personal growth. Your ability to see the big picture and generate abundance.',
-                'sun-saturn':L?'Sol-Saturno: tu identidad frente a la disciplina y los límites. Define tu madurez, responsabilidad y relación con la autoridad. Logros ganados con esfuerzo.':'Sun-Saturn: your identity facing discipline and limits. Defines maturity, responsibility and relationship with authority. Achievements earned through effort.',
-                'sun-uranus':L?'Sol-Urano: tu individualidad radical. Define tu originalidad, rebeldía e innovación. Necesidad de libertad y autenticidad absoluta.':'Sun-Uranus: your radical individuality. Defines originality, rebellion and innovation. Need for freedom and absolute authenticity.',
-                'sun-neptune':L?'Sol-Neptuno: tu identidad espiritual y creativa. Sensibilidad artística, intuición y conexión mística. Riesgo de confusión pero don para la inspiración.':'Sun-Neptune: your spiritual and creative identity. Artistic sensitivity, intuition and mystical connection. Risk of confusion but gift for inspiration.',
-                'sun-pluto':L?'Sol-Plutón: poder transformador intenso. Tu identidad pasa por muertes y renacimientos. Magnetismo, control y capacidad de regeneración profunda.':'Sun-Pluto: intense transformative power. Your identity passes through deaths and rebirths. Magnetism, control and deep regeneration capacity.',
-                'moon-mercury':L?'Luna-Mercurio: conexión emocional-mental. Piensas con el corazón o racionalizas sentimientos. Comunicación emotiva. Memoria ligada a emociones.':'Moon-Mercury: emotional-mental connection. You think with the heart or rationalize feelings. Emotive communication. Memory linked to emotions.',
-                'moon-venus':L?'Luna-Venus: armonía emocional y afectiva. Amor dulce y necesidad de belleza. Sensibilidad artística innata. Relaciones nutridas por ternura.':'Moon-Venus: emotional and affective harmony. Sweet love and need for beauty. Innate artistic sensitivity. Relationships nurtured by tenderness.',
-                'moon-mars':L?'Luna-Mars: emociones intensas y reactivas. Pasión emocional que impulsa a la acción. Valentía sentimental pero riesgo de impulsividad.':'Moon-Mars: intense and reactive emotions. Emotional passion driving action. Sentimental courage but risk of impulsiveness.',
-                'moon-jupiter':L?'Luna-Júpiter: generosidad emocional y optimismo sentimental. Fe en la vida y capacidad de nutrir. Expansión a través del cuidado.':'Moon-Jupiter: emotional generosity and sentimental optimism. Faith in life and nurturing capacity. Expansion through care.',
-                'moon-saturn':L?'Luna-Saturno: emociones contenidas y madurez emocional. Responsabilidad afectiva. Miedos emocionales que se superan con el tiempo. Fortaleza interior.':'Moon-Saturn: contained emotions and emotional maturity. Affective responsibility. Emotional fears overcome with time. Inner strength.',
-                'moon-uranus':L?'Luna-Urano: emociones impredecibles y necesidad de libertad emocional. Intuición eléctrica. Cambios emocionales súbitos. Originalidad en la vida íntima.':'Moon-Uranus: unpredictable emotions and need for emotional freedom. Electric intuition. Sudden emotional changes. Originality in intimate life.',
-                'moon-neptune':L?'Luna-Neptuno: sensibilidad psíquica extraordinaria. Emociones oceánicas y permeables. Intuición mística. Riesgo de confusión emocional pero don artístico.':'Moon-Neptune: extraordinary psychic sensitivity. Oceanic and permeable emotions. Mystical intuition. Risk of emotional confusion but artistic gift.',
-                'moon-pluto':L?'Luna-Plutón: emociones intensas y transformadoras. Psique poderosa que siente todo profundamente. Capacidad de regeneración emocional. Relaciones kármicas.':'Moon-Pluto: intense transformative emotions. Powerful psyche feeling everything deeply. Emotional regeneration capacity. Karmic relationships.',
-                'mercury-venus':L?'Mercurio-Venus: mente artística y comunicación encantadora. Talento para escribir, cantar o la diplomacia. Pensamiento estético.':'Mercury-Venus: artistic mind and charming communication. Talent for writing, singing or diplomacy. Aesthetic thinking.',
-                'mercury-mars':L?'Mercurio-Marte: mente aguda y combativa. Comunicación directa y a veces cortante. Pensamiento rápido y estratégico. Debates y polémica.':'Mercury-Mars: sharp, combative mind. Direct and sometimes cutting communication. Quick strategic thinking. Debates and controversy.',
-                'mercury-jupiter':L?'Mercurio-Júpiter: mente expansiva y filosófica. Comunicación inspiradora. Facilidad para idiomas y enseñanza. Pensamiento global.':'Mercury-Jupiter: expansive philosophical mind. Inspiring communication. Facility for languages and teaching. Global thinking.',
-                'mercury-saturn':L?'Mercurio-Saturno: mente disciplinada y profunda. Pensamiento estructurado. Comunicación seria y autorizada. Logros intelectuales duraderos.':'Mercury-Saturn: disciplined deep mind. Structured thinking. Serious authoritative communication. Lasting intellectual achievements.',
-                'venus-mars':L?'Venus-Marte: pasión amorosa intensa. Atracción magnética entre lo femenino y masculino interior. Creatividad fogosa. Sexualidad vibrante.':'Venus-Mars: intense love passion. Magnetic attraction between inner feminine and masculine. Fiery creativity. Vibrant sexuality.',
-                'venus-jupiter':L?'Venus-Júpiter: amor expansivo y generoso. Suerte en relaciones y finanzas. Gusto por el lujo y la abundancia. Optimismo afectivo.':'Venus-Jupiter: expansive generous love. Luck in relationships and finances. Taste for luxury and abundance. Affective optimism.',
-                'venus-saturn':L?'Venus-Saturno: amor maduro y comprometido. Relaciones con estructura y lealtad. Dificultad para expresar afecto pero duración y fidelidad.':'Venus-Saturn: mature committed love. Relationships with structure and loyalty. Difficulty expressing affection but duration and fidelity.',
-                'mars-jupiter':L?'Marte-Júpiter: energía expansiva y acción afortunada. Entusiasmo contagioso. Éxito en deportes y empresas. Valentía con buena estrella.':'Mars-Jupiter: expansive energy and fortunate action. Contagious enthusiasm. Success in sports and enterprise. Courage with good fortune.',
-                'mars-saturn':L?'Marte-Saturno: acción disciplinada y resistencia. Fuerza controlada. Ambición con estrategia. Logros difíciles pero permanentes.':'Mars-Saturn: disciplined action and endurance. Controlled strength. Ambition with strategy. Difficult but permanent achievements.',
-                'jupiter-saturn':L?'Júpiter-Saturno: expansión con estructura. Equilibrio entre optimismo y realismo. Crecimiento sostenible. Sabiduría práctica.':'Jupiter-Saturn: expansion with structure. Balance between optimism and realism. Sustainable growth. Practical wisdom.',
-                'sun-chiron':L?'Sol-Quirón: tu identidad marcada por una herida profunda que se transforma en don de sanación. El dolor te convierte en maestro y curador.':'Sun-Chiron: your identity marked by a deep wound transforming into a healing gift. Pain turns you into teacher and healer.',
-                'moon-chiron':L?'Luna-Quirón: herida emocional profunda con capacidad de sanar a otros emocionalmente. Sensibilidad que transforma el sufrimiento en compasión.':'Moon-Chiron: deep emotional wound with capacity to heal others emotionally. Sensitivity transforming suffering into compassion.',
-                'venus-pluto':L?'Venus-Plutón: amor intenso y transformador. Atracción magnética irresistible. Relaciones profundas que cambian la vida. Pasión que regenera.':'Venus-Pluto: intense transformative love. Irresistible magnetic attraction. Deep life-changing relationships. Passion that regenerates.',
-                'mars-pluto':L?'Marte-Plutón: poder de acción extraordinario. Voluntad de hierro. Capacidad de transformar cualquier situación. Fuerza regenerativa intensa.':'Mars-Pluto: extraordinary action power. Iron will. Capacity to transform any situation. Intense regenerative force.'
-            };
-
-            // Try both key orders
-            var key1 = aspect.planet1 + '-' + aspect.planet2;
-            var key2 = aspect.planet2 + '-' + aspect.planet1;
-            var pairText = pairInterp[key1] || pairInterp[key2] || '';
-
-            if (pairText) {
-                html += '<div style="margin-bottom:15px;">';
-                html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '🪐 Interpretación Específica' : '🪐 Specific Interpretation') + '</h4>';
-                html += '<p style="line-height:1.6;font-size:0.9em;">' + pairText + '</p>';
-                html += '</div>';
-            }
-
-            // Effect of this aspect type on this pair
-            var aspectEffect = '';
-            var aName = aspect.aspect.name;
-            if (aName === 'Conjunction') {
-                aspectEffect = L ? 'En conjunción, estas energías se fusionan y amplifican mutuamente. El efecto es poderoso y concentrado.' : 'In conjunction, these energies merge and mutually amplify. The effect is powerful and concentrated.';
-            } else if (aName === 'Opposition') {
-                aspectEffect = L ? 'En oposición, estas energías crean tensión que demanda equilibrio. La consciencia surge del contraste entre ambas fuerzas.' : 'In opposition, these energies create tension demanding balance. Awareness arises from the contrast between both forces.';
-            } else if (aName === 'Trine') {
-                aspectEffect = L ? 'En trígono, estas energías fluyen armoniosamente. Talento natural que se expresa con facilidad y gracia.' : 'In trine, these energies flow harmoniously. Natural talent expressing with ease and grace.';
-            } else if (aName === 'Square') {
-                aspectEffect = L ? 'En cuadratura, estas energías generan fricción creativa. El desafío impulsa crecimiento y desarrollo de carácter.' : 'In square, these energies generate creative friction. The challenge drives growth and character development.';
-            } else if (aName === 'Sextile') {
-                aspectEffect = L ? 'En sextil, estas energías cooperan cuando las activas conscientemente. Oportunidad que requiere tu participación.' : 'In sextile, these energies cooperate when you consciously activate them. Opportunity requiring your participation.';
-            }
-            if (aspectEffect) {
-                html += '<div>';
-                html += '<h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">' + (L ? '⚡ Efecto del ' + aName : '⚡ Effect of ' + aName) + '</h4>';
-                html += '<p style="line-height:1.6;font-size:0.9em;">' + aspectEffect + '</p>';
-                html += '</div>';
-            }
+            var _p1 = planet1Name, _p2 = planet2Name, _aType = aspect.aspect.name, _orb = aspect.orbFormatted;
+            setTimeout(function() {
+                var prompt = L
+                    ? 'Interpreta el aspecto natal ' + _p1 + ' ' + _aType + ' ' + _p2 + ' (orbe: ' + _orb + ') en mi carta natal. Explica: qué energías se combinan, cómo se manifiesta en mi personalidad y vida, si es un aspecto tenso o armónico y qué desafíos o talentos genera, y un consejo práctico para aprovecharlo.'
+                    : 'Interpret the natal aspect ' + _p1 + ' ' + _aType + ' ' + _p2 + ' (orb: ' + _orb + ') in my natal chart. Explain: what energies combine, how it manifests in my personality and life, whether it\'s a tense or harmonic aspect and what challenges or talents it generates, and practical advice.';
+                fetchAIInterpretation(prompt, 'aiInterpDiv');
+            }, 100);
         }
 
     } else if (type === 'transit') {
@@ -5503,40 +5485,16 @@ function showNatalDetail(type, data) {
             if (tr.orb !== undefined) html += '<div style="font-size:0.9em;"><strong>' + (L ? 'Orbe:' : 'Orb:') + '</strong> ' + (typeof tr.orb === 'number' ? tr.orb.toFixed(2) + '°' : tr.orb) + '</div>';
             html += '</div>';
 
-            // Transit interpretation by planet pair + aspect type
-            const transitInterp = {
-                'conjunction': L ? 'Conjunción: fusión intensa de energías. El planeta en tránsito activa y amplifica las cualidades del planeta natal. Momento de nuevos comienzos en el área de vida afectada. Energías que se combinan para crear algo nuevo.' : 'Conjunction: intense energy fusion. The transiting planet activates and amplifies the natal planet\'s qualities. Time for new beginnings in the affected life area. Energies combining to create something new.',
-                'opposition': L ? 'Oposición: tensión entre fuerzas opuestas. El tránsito trae confrontación y consciencia de lo que necesitas equilibrar. Relaciones y situaciones externas sirven como espejo. Momento de tomar decisiones y encontrar un punto medio.' : 'Opposition: tension between opposing forces. The transit brings confrontation and awareness of what needs balancing. External relationships and situations serve as mirrors. Time for decisions and finding middle ground.',
-                'trine': L ? 'Trígono: flujo armónico de energía. El tránsito aporta oportunidades naturales y talentos que fluyen sin esfuerzo. Momento favorable para avanzar en proyectos. Las cosas tienden a funcionar con gracia y facilidad.' : 'Trine: harmonic energy flow. The transit brings natural opportunities and effortlessly flowing talents. Favorable time for advancing projects. Things tend to work with grace and ease.',
-                'square': L ? 'Cuadratura: fricción que impulsa el crecimiento. El tránsito genera desafíos que te obligan a actuar y transformarte. Crisis productivas que construyen carácter. Momento de superar obstáculos internos y externos.' : 'Square: friction driving growth. The transit generates challenges forcing action and transformation. Productive crises building character. Time to overcome internal and external obstacles.',
-                'sextile': L ? 'Sextil: oportunidad que requiere acción. El tránsito ofrece puertas abiertas pero debes cruzarlas conscientemente. Cooperación favorable con el entorno. Momento para aprovechar conexiones y recursos disponibles.' : 'Sextile: opportunity requiring action. The transit offers open doors but you must consciously walk through them. Favorable cooperation with surroundings. Time to leverage available connections and resources.'
-            };
+            // AI interpretation for transit
+            html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
-            // Specific planet transit meanings
-            const planetTransitMeaning = {
-                'sun': L ? 'El Sol en tránsito ilumina y vitaliza el área donde se encuentra tu planeta natal. Trae consciencia, energía y visibilidad a estos temas durante este período.' : 'The transiting Sun illuminates and vitalizes the area where your natal planet is. It brings awareness, energy, and visibility to these themes during this period.',
-                'moon': L ? 'La Luna en tránsito sensibiliza y activa las emociones conectadas a tu planeta natal. Efectos breves pero intensos. Intuición acentuada en esta área.' : 'The transiting Moon sensitizes and activates emotions connected to your natal planet. Brief but intense effects. Heightened intuition in this area.',
-                'mercury': L ? 'Mercurio en tránsito activa la comunicación y el pensamiento sobre los temas de tu planeta natal. Tiempo favorable para decisiones, escritura y aprendizaje en esta área.' : 'Transiting Mercury activates communication and thinking about your natal planet\'s themes. Favorable time for decisions, writing, and learning in this area.',
-                'venus': L ? 'Venus en tránsito suaviza y armoniza los temas de tu planeta natal. Trae placer, belleza y conexión social. Favorable para amor, arte y finanzas en esta área.' : 'Transiting Venus softens and harmonizes your natal planet\'s themes. Brings pleasure, beauty, and social connection. Favorable for love, art, and finances in this area.',
-                'mars': L ? 'Marte en tránsito energiza y activa con fuerza los temas de tu planeta natal. Impulso para actuar, competir y conquistar. Posible irritabilidad o conflicto constructivo.' : 'Transiting Mars energizes and powerfully activates your natal planet\'s themes. Impulse to act, compete, and conquer. Possible irritability or constructive conflict.',
-                'jupiter': L ? 'Júpiter en tránsito expande y bendice los temas de tu planeta natal. Oportunidades de crecimiento, optimismo y abundancia. Período de expansión favorable que puede durar meses.' : 'Transiting Jupiter expands and blesses your natal planet\'s themes. Opportunities for growth, optimism, and abundance. Favorable expansion period that can last months.',
-                'saturn': L ? 'Saturno en tránsito estructura y prueba los temas de tu planeta natal. Lecciones de madurez, responsabilidad y límites. Lo que sobrevive esta prueba se fortalece permanentemente.' : 'Transiting Saturn structures and tests your natal planet\'s themes. Lessons of maturity, responsibility, and limits. What survives this test is permanently strengthened.',
-                'uranus': L ? 'Urano en tránsito revoluciona los temas de tu planeta natal. Cambios súbitos, liberación de patrones viejos. Lo inesperado abre nuevas posibilidades. Período de despertar.' : 'Transiting Uranus revolutionizes your natal planet\'s themes. Sudden changes, liberation from old patterns. The unexpected opens new possibilities. Awakening period.',
-                'neptune': L ? 'Neptuno en tránsito disuelve y espiritualiza los temas de tu planeta natal. Confusión inicial que lleva a mayor intuición. Idealización posible. Inspiración artística y espiritual.' : 'Transiting Neptune dissolves and spiritualizes your natal planet\'s themes. Initial confusion leading to greater intuition. Possible idealization. Artistic and spiritual inspiration.',
-                'pluto': L ? 'Plutón en tránsito transforma profundamente los temas de tu planeta natal. Muerte y renacimiento simbólico. Poder oculto emerge. Lo que ya no sirve se destruye para renacer más fuerte.' : 'Transiting Pluto deeply transforms your natal planet\'s themes. Symbolic death and rebirth. Hidden power emerges. What no longer serves is destroyed to be reborn stronger.',
-                'chiron': L ? 'Quirón en tránsito toca heridas profundas conectadas a tu planeta natal. Oportunidad para sanar y convertir el dolor en sabiduría. El sanador herido activa tu capacidad curativa.' : 'Transiting Chiron touches deep wounds connected to your natal planet. Opportunity to heal and convert pain into wisdom. The wounded healer activates your healing capacity.'
-            };
-
-            html += '<div style="margin-bottom:15px;">';
-            html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '✦ Significado del Aspecto' : '✦ Aspect Meaning') + '</h4>';
-            const aspectKey = tr.class || tr.type || '';
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + (transitInterp[aspectKey] || aspectMeanings[tr.type] || (L ? 'Aspecto en tránsito activo' : 'Active transit aspect')) + '</p>';
-            html += '</div>';
-
-            html += '<div>';
-            html += '<h4 style="color:#c9a840;margin-bottom:8px;">' + (L ? '🪐 ' + tpName + ' en Tránsito' : '🪐 Transiting ' + tpName) + '</h4>';
-            html += '<p style="line-height:1.6;font-size:0.9em;">' + (planetTransitMeaning[tr.transitPlanet] || (L ? 'Tránsito planetario activo sobre tu carta natal.' : 'Active planetary transit over your natal chart.')) + '</p>';
-            html += '</div>';
+            var _tpN = tpName, _npN = npName, _tType = tr.type || tr.class || '', _tOrb = tr.orb;
+            setTimeout(function() {
+                var prompt = L
+                    ? 'Interpreta el tránsito de HOY: ' + _tpN + ' en ' + _tType + ' con mi ' + _npN + ' natal (orbe: ' + _tOrb + '°). Explica: qué energía trae este tránsito específicamente HOY, cómo afecta mi vida en este momento, qué áreas de vida activa, y un consejo práctico para hoy.'
+                    : 'Interpret TODAY\'s transit: ' + _tpN + ' in ' + _tType + ' with my natal ' + _npN + ' (orb: ' + _tOrb + '°). Explain: what energy this transit brings specifically TODAY, how it affects my life right now, which life areas it activates, and practical advice for today.';
+                fetchAIInterpretation(prompt, 'aiInterpDiv');
+            }, 100);
         }
     }
 
