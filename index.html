@@ -11251,6 +11251,8 @@ function switchNatalTab(tabName, btn) {
     if (tabName === 'chart') {
         setTimeout(drawNatalWheel, 100);
         setTimeout(function() {
+            var L = currentLang === 'es';
+            var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
             var tbody = document.getElementById('chartPlanetsBody');
             if (tbody && globalNatalChart && globalNatalChart.planets && !tbody.hasChildNodes()) {
                 var html = '';
@@ -11258,7 +11260,7 @@ function switchNatalTab(tabName, btn) {
                     var p = entry[0], data = entry[1];
                     var house = globalNatalChart.houses ? getHouseForLongitude(data.longitude, globalNatalChart.houses.cusps) : '-';
                     html += '<tr onclick="showNatalDetail(\'planet\', \'' + p + '\')" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.backgroundColor=\'rgba(201,168,64,0.15)\';" onmouseout="this.style.backgroundColor=\'\';">' +
-                        '<td style="white-space:nowrap;">' + (planetNms[p]||p) + '</td>' +
+                        '<td style="white-space:nowrap;">' + (pNms[p]||p) + '</td>' +
                         '<td>' + data.sign + '</td>' +
                         '<td>' + data.degree + '°' + (data.minute < 10 ? '0' : '') + data.minute + "'" + '</td>' +
                         '<td style="text-align:center;">' + house + '</td>' +
@@ -17424,7 +17426,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v219';
+const APP_VERSION = 'v220';
 var _pendingSW = null;
 
 function showUpdateBanner() {
