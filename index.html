@@ -648,7 +648,7 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:5px 12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:20px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Solar</button>
                 <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="personalButtonLabel">Natal</span></button>
-                <button id="earthModeBtn" onclick="switchToEarthMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span></button>
+                <button id="earthModeBtn" onclick="switchToEarthMode()" style="position:relative;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span><span id="earthUpdateBadge" style="display:none;position:absolute;top:-6px;right:-4px;background:#FF3B30;color:#fff;font-size:0.5em;font-weight:800;padding:1px 4px;border-radius:6px;line-height:1.2;box-shadow:0 1px 4px rgba(255,59,48,0.6);border:1.5px solid #0a0a2e;letter-spacing:0.3px;">NEW</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="ssButtonLabel">S.S</span></button>
                 <!-- HIDDEN: Gregorian button (kept for future use) -->
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="display:none;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
@@ -7901,8 +7901,8 @@ function fetchEarthquakes(lat, lon, containerId) {
             return { mag: p.mag, place: p.place, dist: dist, depth: c[2], time: time, url: p.url };
         });
 
-        // Sort: nearest first, show all
-        quakes.sort((a, b) => a.dist - b.dist);
+        // Sort: most recent first
+        quakes.sort((a, b) => b.time - a.time);
         const nearest = quakes;
 
         // Summary stats
@@ -7929,7 +7929,7 @@ function fetchEarthquakes(lat, lon, containerId) {
                 ? ago + (currentLang==='es'?' min':' min')
                 : Math.round(ago / 60) + (currentLang==='es'?' h':' h');
             const timeStr = q.time.getHours().toString().padStart(2,'0') + ':' + q.time.getMinutes().toString().padStart(2,'0');
-            const distStr = q.dist < 100 ? q.dist.toFixed(0) + ' km' : (q.dist / 1000).toFixed(1) + 'k km';
+            const distStr = Math.round(q.dist) + ' km';
 
             html += '<div style="display:grid;grid-template-columns:42px 1fr auto;gap:6px;align-items:center;padding:4px 6px;background:' + magBg(q.mag) + ';border-radius:6px;border-left:3px solid ' + magColor(q.mag) + ';">'
                 + '<div style="text-align:center;">'
@@ -7955,6 +7955,8 @@ function fetchEarthquakes(lat, lon, containerId) {
             + '</div>';
 
         container.innerHTML = html;
+        // Show update badge on Earth tab if user is not on Earth mode
+        showEarthUpdateBadge();
     }).catch(err => {
         console.log('Earthquake fetch error:', err);
         const container = document.getElementById(containerId);
@@ -7964,6 +7966,17 @@ function fetchEarthquakes(lat, lon, containerId) {
             + '<br><button onclick="fetchEarthquakes(' + lat + ',' + lon + ',\'' + containerId + '\')" style="margin-top:6px;padding:4px 12px;background:rgba(255,107,107,0.2);border:1px solid rgba(255,107,107,0.4);border-radius:6px;color:#ff6b6b;cursor:pointer;font-size:0.9em;">'
             + (currentLang==='es'?'🔄 Reintentar':'🔄 Retry') + '</button></div>';
     });
+}
+
+function showEarthUpdateBadge() {
+    if (calendarMode === 'earth') return; // Don't show if already on Earth tab
+    var badge = document.getElementById('earthUpdateBadge');
+    if (badge) badge.style.display = 'inline-block';
+}
+
+function clearEarthUpdateBadge() {
+    var badge = document.getElementById('earthUpdateBadge');
+    if (badge) badge.style.display = 'none';
 }
 
 function switchToSolarMode() {
@@ -8014,6 +8027,7 @@ function switchToGregorianMode() {
 function switchToEarthMode() {
     calendarMode = 'earth';
     localStorage.setItem('calendarMode', 'earth');
+    clearEarthUpdateBadge();
 
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
