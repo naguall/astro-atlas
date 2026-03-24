@@ -5365,7 +5365,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
         var apiUrl;
         var personalKey = getGeminiKey();
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }
@@ -5443,7 +5443,7 @@ async function expandAIReading(readingKey, btn) {
         var apiUrl;
         var personalKey = getGeminiKey();
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }
@@ -16189,7 +16189,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v184';
+const APP_VERSION = 'v185';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -16618,17 +16618,13 @@ function showAIWelcome() {
         const hasNatal = !!localStorage.getItem('natalChart');
         container.innerHTML = `
             <div class="ai-msg assistant">
-                <p><strong>${isEs ? '✨ Soy tu astrólogo personal. Conozco tu carta natal completa.' : '✨ I\'m your personal astrologer. I know your complete natal chart.'}</strong></p>
-                ${hasNatal ? '<p style="color:#66bb6a;font-size:0.85em;">✅ ' + (isEs ? 'Carta natal cargada — lectura personalizada activa' : 'Natal chart loaded — personalized reading active') + '</p>' : '<p style="color:#f39c12;font-size:0.85em;">⚠️ ' + (isEs ? 'Configura tu carta natal para lecturas personalizadas' : 'Set up your natal chart for personalized readings') + '</p>'}
-                <p style="margin-top:8px;">${isEs ? 'Pregúntame sobre:' : 'Ask me about:'}</p>
-                <p>🪐 ${isEs ? '"¿Cómo me afectan los tránsitos de hoy?"' : '"How do today\'s transits affect me?"'}</p>
-                <p>☀️ ${isEs ? '"Analiza mi Sol en Leo en Casa X"' : '"Analyze my Sun in Leo in House X"'}</p>
-                <p>💫 ${isEs ? '"¿Qué dice mi Nodo Norte sobre mi destino?"' : '"What does my North Node say about my destiny?"'}</p>
-                <p>❤️ ${isEs ? '"¿Cómo es mi Venus para el amor?"' : '"How does my Venus affect love?"'}</p>
-                <p>🌙 ${isEs ? '"¿Qué significa la Luna en esta fase para mí?"' : '"What does the Moon in this phase mean for me?"'}</p>
-                <p>🔮 ${isEs ? '"Dame una lectura completa de mi carta"' : '"Give me a complete reading of my chart"'}</p>
-                <p>📅 ${isEs ? '"¿Qué eventos tengo este mes?"' : '"What events do I have this month?"'}</p>
-                <p>✍️ ${isEs ? '"Crea un evento de meditación para la luna llena"' : '"Create a meditation event for the full moon"'}</p>
+                ${hasNatal ? '<p style="color:#66bb6a;font-size:0.85em;">✅ ' + (isEs ? 'Carta natal cargada' : 'Natal chart loaded') + '</p>' : '<p style="color:#f39c12;font-size:0.85em;">⚠️ ' + (isEs ? 'Configura tu carta natal en la pestaña Natal' : 'Set up your natal chart in the Natal tab') + '</p>'}
+                <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? 'Dame una lectura completa de mi carta astral' : 'Give me a complete reading of my natal chart'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🔮 ${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
+                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? '¿Qué eventos astronómicos hay en este ciclo lunar?' : 'What astronomical events are in this lunar cycle?'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(102,126,234,0.15));border:1px solid rgba(78,205,196,0.35);border-radius:10px;color:#7dd3c8;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🌙 ${isEs ? 'Eventos de este ciclo' : 'This cycle\'s events'}</button>
+                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? '¿Cómo me afectan los tránsitos planetarios de hoy?' : 'How do today\\'s planetary transits affect me?'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🪐 ${isEs ? 'Tránsitos de hoy' : 'Today\'s transits'}</button>
+                </div>
+                <p style="font-size:0.78em;color:rgba(255,255,255,0.4);line-height:1.5;margin-top:4px;">${isEs ? 'Puedes añadir eventos a tu calendario, preguntarme sobre cualquier aspecto de tu carta natal, tránsitos, fases lunares y más.' : 'You can add events to your calendar, ask me about any aspect of your natal chart, transits, lunar phases and more.'}</p>
             </div>`;
     }
 }
@@ -16954,7 +16950,7 @@ async function sendAIMessage() {
         let apiUrl;
         const personalKey = getGeminiKey();
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }

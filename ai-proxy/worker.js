@@ -11,7 +11,8 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1'
 ];
 
-const MODEL = 'gemini-2.0-flash';
+// Try models in order — fallback if first fails
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const RATE_LIMIT = 30; // max requests per IP per minute
 const rateLimitMap = new Map();
 
@@ -97,20 +98,28 @@ export default {
         return new Response(JSON.stringify({ error: 'Invalid request format' }), { status: 400, headers: jsonHeaders });
       }
 
-      // Forward to Gemini API
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-      const geminiResp = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const bodyStr = JSON.stringify(body);
 
-      const data = await geminiResp.json();
+      // Try each model, fallback on 429/503
+      for (const model of MODELS) {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const geminiResp = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: bodyStr
+        });
 
-      return new Response(JSON.stringify(data), {
-        status: geminiResp.status,
-        headers: jsonHeaders
-      });
+        // If this model fails with 429 or 503, try next model
+        if ((geminiResp.status === 429 || geminiResp.status === 503) && model !== MODELS[MODELS.length - 1]) {
+          continue;
+        }
+
+        const data = await geminiResp.json();
+        return new Response(JSON.stringify(data), {
+          status: geminiResp.status,
+          headers: jsonHeaders
+        });
+      }
     } catch (err) {
       return new Response(JSON.stringify({ error: 'Proxy error: ' + err.message }), { status: 500, headers: jsonHeaders });
     }
