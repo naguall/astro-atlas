@@ -11,7 +11,7 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1'
 ];
 
-const MODEL = 'gemini-2.5-flash-lite';
+const MODEL = 'gemini-2.0-flash';
 const RATE_LIMIT = 30; // max requests per IP per minute
 const rateLimitMap = new Map();
 
