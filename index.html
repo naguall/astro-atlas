@@ -15021,7 +15021,8 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
     if (!banner) return;
     if (!currentDayInCycle) { banner.style.display = 'none'; return; }
 
-    const astro         = getAstroData(today);
+    const nowRealTime   = new Date(); // Use real current time for astronomical positions, not midnight
+    const astro         = getAstroData(nowRealTime);
     const tideCurve     = getTideCurveForLocation(today, ASTRO_USER_LAT, ASTRO_USER_LON);
     const tideExtremes  = getTideExtremes(tideCurve);
     const distColor     = astro.isPerigee ? '#FF6B6B' : astro.isApogee ? '#7E57C2' : '#7ec8ff';
@@ -15048,13 +15049,13 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(74,158,255,0.15);">
             <div style="font-family:'Cinzel',serif;color:#7ec8ff;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
                 📍 ${currentLang==='es'?'Posición Sublunar — Punto sobre la Tierra':'Sublunar Point — Position over Earth'}
-                <span id="sublunaryHeaderCoords" style="font-size:0.78em;color:#8899cc;font-weight:400;margin-left:8px;">${currentLang==='es'?'Lat':'Lat'}: ${astro.sublunarLat}°${astro.sublunarDir} · ${currentLang==='es'?'Lon':'Lon'}: ${getSublunaryLon(today)}</span>
+                <span id="sublunaryHeaderCoords" style="font-size:0.78em;color:#8899cc;font-weight:400;margin-left:8px;">${currentLang==='es'?'Lat':'Lat'}: ${astro.sublunarLat}°${astro.sublunarDir} · ${currentLang==='es'?'Lon':'Lon'}: ${getSublunaryLon(nowRealTime)}</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <!-- Mapa 2D SVG -->
                 <div>
                     <div id="sublunaryMapContainer" style="border-radius:8px;overflow:hidden;border:1px solid rgba(74,158,255,0.25);">
-                        ${renderSublunaryMap(astro.sublunarLat, getSublunaryLonDeg(today), ASTRO_USER_LAT, ASTRO_USER_LON)}
+                        ${renderSublunaryMap(astro.sublunarLat, getSublunaryLonDeg(nowRealTime), ASTRO_USER_LAT, ASTRO_USER_LON)}
                     </div>
                 </div>
                 <!-- Globo 3D -->
@@ -15064,7 +15065,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             </div>
             <!-- Info box separado debajo de ambos mapas -->
             <div id="sublunaryInfoBox" style="margin-top:8px;">
-                ${renderSublunaryInfoBox(astro.sublunarLat, getSublunaryLonDeg(today), ASTRO_USER_LAT, ASTRO_USER_LON)}
+                ${renderSublunaryInfoBox(astro.sublunarLat, getSublunaryLonDeg(nowRealTime), ASTRO_USER_LAT, ASTRO_USER_LON)}
             </div>
         </div>
 
@@ -15126,7 +15127,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             const mapH = mapC.offsetHeight;
             if (mapH > 0) { canvas.style.height = mapH + 'px'; }
         }
-        renderSublunaryGlobe(parseFloat(astro.sublunarLat), getSublunaryLonDeg(today));
+        renderSublunaryGlobe(parseFloat(astro.sublunarLat), getSublunaryLonDeg(nowRealTime));
         startSublunaryRefresh();
         // Fetch real tide data from Open-Meteo
         refreshTidesFromAPI(today, currentDayInCycle, todayWeeks, currentWeekIndex).then(() => {
@@ -17422,7 +17423,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v217';
+const APP_VERSION = 'v218';
 var _pendingSW = null;
 
 function showUpdateBanner() {
