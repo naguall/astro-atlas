@@ -238,7 +238,7 @@
         .perfection-time { color: var(--gold); font-style: italic; white-space: nowrap; }
         .zodiac-sign { color: var(--gold); white-space: nowrap; }
 
-        .days-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 4px; padding: 2px 0; width: 100%; }
+        .days-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--day-cell-grid-min, 90px), 1fr)); gap: var(--day-cell-gap, 4px); padding: 2px 0; width: 100%; }
 
         .day-cell {
             min-width: var(--day-cell-min-width, 0); min-height: var(--day-cell-min-height, 110px);
@@ -246,8 +246,8 @@
             background: rgba(5,7,30,0.95);
             border: 1px solid rgba(74,158,255,0.18);
             border-top: 2px solid rgba(74,158,255,0.22);
-            border-radius: 7px; font-size: 0.75em;
-            transition: all 0.2s; cursor: pointer; padding: 6px;
+            border-radius: 7px; font-size: var(--day-cell-font-size, 0.75em);
+            transition: all 0.2s; cursor: pointer; padding: var(--day-cell-padding, 6px);
             position: relative; overflow: visible;
         }
         .day-cell:hover {
@@ -582,9 +582,9 @@
             .week-title { font-size: 0.62em; }
             .week-details { display: none; }
             .moon-icon { font-size: 0.7em; }
-            .days-container { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 3px; }
+            .days-container { grid-template-columns: repeat(auto-fill, minmax(var(--day-cell-grid-min, 70px), 1fr)); gap: var(--day-cell-gap, 3px); }
             .lunar-week > div:not(.week-header) { gap: 2px; }
-            .day-cell { min-width: 0; min-height: 85px; font-size: 0.7em; padding: 4px; overflow: visible; }
+            .day-cell { min-width: var(--day-cell-min-width, 0); min-height: var(--day-cell-min-height, 85px); font-size: var(--day-cell-font-size, 0.7em); padding: var(--day-cell-padding, 4px); overflow: visible; }
             .day-number { font-size: 1em; }
             .day-date { font-size: 0.62em; }
             .day-weekday { font-size: 0.52em; }
@@ -594,7 +594,7 @@
             
             /* ── Solar/Gregorian ── */
             body.solar-mode .lunar-week { min-width: unset; }
-            body.solar-mode .day-cell { min-width: 0; min-height: 85px; }
+            body.solar-mode .day-cell { min-width: var(--day-cell-min-width, 0); min-height: var(--day-cell-min-height, 85px); }
             /* Gregorian mobile: horizontally scrollable with larger cells */
             body.gregorian-mode .gregorian-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             body.gregorian-mode .gregorian-header-row { min-width: 750px; }
@@ -5408,8 +5408,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
         var astroCtx = gatherAstroContext();
         // Summary prompt — ~12 short paragraphs, complete sentences, no user names
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. REGLAS ESTRICTAS:\n- Formato DIRECTO: usa bullets cortos (•) con los puntos clave. Cada bullet 1-2 frases máximo.\n- Agrupa por temas: Esencia, Desafíos, Potencial, Consejo práctico.\n- Ve AL GRANO. Sin rodeos ni introducciones largas.\n- Aproximadamente 10-15 bullets en total.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Usa datos reales de la carta. No repitas datos ya en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. STRICT RULES:\n- DIRECT format: use short bullets (•) with key points. Each bullet 1-2 sentences max.\n- Group by themes: Essence, Challenges, Potential, Practical advice.\n- Get TO THE POINT. No long introductions or filler.\n- Approximately 10-15 bullets total.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Use real chart data. Don\'t repeat data already on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. REGLAS ESTRICTAS:\n- Formato DIRECTO: usa bullets cortos (•) con los puntos clave. Cada bullet 1-2 frases máximo.\n- Agrupa por temas: Esencia, Desafíos, Potencial, Consejo práctico.\n- Ve AL GRANO. NUNCA empieces con introducciones como "Aquí tienes..." o "Te presento..." o "Veamos..." — empieza DIRECTAMENTE con el primer bullet.\n- Aproximadamente 10-15 bullets en total.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Usa datos reales de la carta. No repitas datos ya en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. STRICT RULES:\n- DIRECT format: use short bullets (•) with key points. Each bullet 1-2 sentences max.\n- Group by themes: Essence, Challenges, Potential, Practical advice.\n- Get TO THE POINT. NEVER start with introductions like "Here is..." or "Let me present..." — start DIRECTLY with the first bullet.\n- Approximately 10-15 bullets total.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Use real chart data. Don\'t repeat data already on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -5486,8 +5486,8 @@ async function expandAIReading(readingKey, btn) {
     try {
         var astroCtx = gatherAstroContext();
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda (astrología evolutiva, transpersonal, arquetipal, psicología profunda). REGLAS ESTRICTAS:\n- Formato DIRECTO con bullets (•). Cada bullet 1-3 frases máximo.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Estructura por secciones con encabezados en MAYÚSCULA:\n  • PROPÓSITO EVOLUTIVO (3-4 bullets)\n  • PATRÓN KÁRMICO (3-4 bullets)\n  • DINÁMICA PSICOLÓGICA (3-4 bullets)\n  • POTENCIAL DE TRANSFORMACIÓN (3-4 bullets)\n  • CONEXIONES EN LA CARTA (3-4 bullets)\n  • PRAXIS CONCRETA (3-4 bullets: rituales, meditaciones, prácticas)\n- Ve AL GRANO. Sin rodeos. Cada bullet debe aportar información concreta.\n- Usa datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer with deep mastery (evolutionary, transpersonal, archetypal astrology, depth psychology). STRICT RULES:\n- DIRECT format with bullets (•). Each bullet 1-3 sentences max.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Structure by sections with UPPERCASE headers:\n  • EVOLUTIONARY PURPOSE (3-4 bullets)\n  • KARMIC PATTERN (3-4 bullets)\n  • PSYCHOLOGICAL DYNAMICS (3-4 bullets)\n  • TRANSFORMATION POTENTIAL (3-4 bullets)\n  • CHART CONNECTIONS (3-4 bullets)\n  • CONCRETE PRAXIS (3-4 bullets: rituals, meditations, practices)\n- Get TO THE POINT. No filler. Each bullet must provide concrete information.\n- Use REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda (astrología evolutiva, transpersonal, arquetipal, psicología profunda). REGLAS ESTRICTAS:\n- Formato DIRECTO con bullets (•). Cada bullet 1-3 frases máximo.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Estructura por secciones con encabezados en MAYÚSCULA:\n  • PROPÓSITO EVOLUTIVO (3-4 bullets)\n  • PATRÓN KÁRMICO (3-4 bullets)\n  • DINÁMICA PSICOLÓGICA (3-4 bullets)\n  • POTENCIAL DE TRANSFORMACIÓN (3-4 bullets)\n  • CONEXIONES EN LA CARTA (3-4 bullets)\n  • PRAXIS CONCRETA (3-4 bullets: rituales, meditaciones, prácticas)\n- Ve AL GRANO. NUNCA empieces con introducciones como "Aquí tienes..." o "Te presento..." — empieza DIRECTAMENTE con la primera sección.\n- Cada bullet debe aportar información concreta.\n- Usa datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer with deep mastery (evolutionary, transpersonal, archetypal astrology, depth psychology). STRICT RULES:\n- DIRECT format with bullets (•). Each bullet 1-3 sentences max.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Structure by sections with UPPERCASE headers:\n  • EVOLUTIONARY PURPOSE (3-4 bullets)\n  • KARMIC PATTERN (3-4 bullets)\n  • PSYCHOLOGICAL DYNAMICS (3-4 bullets)\n  • TRANSFORMATION POTENTIAL (3-4 bullets)\n  • CHART CONNECTIONS (3-4 bullets)\n  • CONCRETE PRAXIS (3-4 bullets: rituals, meditations, practices)\n- Get TO THE POINT. NEVER start with introductions like "Here is..." — start DIRECTLY with the first section.\n- Each bullet must provide concrete information.\n- Use REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -7519,6 +7519,20 @@ function getCurrentSign() {
     return 0; // Default to first sign
 }
 
+function getCurrentSignForDate(date) {
+    var d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    for (var i = 0; i < solarSigns2026.length; i++) {
+        var sign = solarSigns2026[i];
+        var start = new Date(sign.start);
+        var end = new Date(sign.end);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        if (d >= start && d <= end) return i;
+    }
+    return 0;
+}
+
 // ══════════════════════════════════════════════════════════════
 // ██  EARTH INFO PANEL — Real-time Earth data
 // ══════════════════════════════════════════════════════════════
@@ -8253,7 +8267,8 @@ function switchToLunarMode() {
     // Force refresh moon position, tide data, and astro info
     updateCurrentDayInfoForMode('lunar');
     refreshAllLiveData();
-    setTimeout(reapplyCellSize, 300);
+    reapplyCellSize();
+    setTimeout(reapplyCellSize, 500);
 }
 
 // ══════════════════════════════════════════════════
@@ -9551,7 +9566,7 @@ function updateCurrentDayInfoForMode(mode) {
                         <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
-                    ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
+                    ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
 
                 </div>
@@ -12006,14 +12021,26 @@ function renderPersonalCalendar() {
         let personalDay = Math.floor((date - birthAnniversary) / 86400000) + 1;
         if (personalDay <= 0) personalDay += 365;
 
+        // Solar day: day within current zodiac sign
+        let solarDay = '';
+        try {
+            const signIdx = getCurrentSignForDate(date);
+            const sign = solarSigns2026[signIdx];
+            if (sign) {
+                const signStart = new Date(sign.start);
+                signStart.setHours(0,0,0,0);
+                solarDay = Math.floor((date - signStart) / 86400000) + 1;
+            }
+        } catch(e) { solarDay = ''; }
+
         calendarHTML += `
             <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${isBirthday ? '🎂 ' : ''}${date.toLocaleDateString(L?'es':'en')}">
-                <div class="personal-day-num">${isBirthday ? '🎂 ' : ''}${day}</div>
-                <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:0.6em;line-height:1;">
+                <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
+                <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
+                <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:0.55em;line-height:1;">
                     <span style="color:rgba(192,192,255,0.5);" title="${L?'Día lunar':'Lunar day'}">☽${lunarDay}</span>
-                    <span style="color:rgba(255,255,255,0.7);" title="${L?'Día personal':'Personal day'}">☉${personalDay}</span>
+                    <span style="color:rgba(212,175,55,0.6);" title="${L?'Día solar':'Solar day'}">☉${solarDay}</span>
                 </div>
-                ${majorCount > 0 ? `<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:1px;">${majorCount} ${L?'asp.':'asp.'}</div>` : ''}
             </div>
         `;
     }
@@ -12024,8 +12051,9 @@ function renderPersonalCalendar() {
 
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
+            <span style="color:#e8c84a;font-weight:600;"># = ${L?'Día personal (cumpleaños)':'Personal day (birthday)'}</span>
             <span style="color:rgba(192,192,255,0.6);">☽ = ${L?'Día lunar':'Lunar day'}</span>
-            <span style="color:rgba(255,255,255,0.7);">☉ = ${L?'Día personal (desde cumpleaños)':'Personal day (from birthday)'}</span>
+            <span style="color:rgba(212,175,55,0.6);">☉ = ${L?'Día solar (signo)':'Solar day (sign)'}</span>
         </div>
         </div><!-- close natalCalendarGrid -->
     `;
@@ -14822,7 +14850,7 @@ function renderCalendar() {
                         
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji || (calendarMode === 'lunar' ? getMoonSVG(calculateLunarPhase(today), 30) : '☉')}</div>
-                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
+                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     
                 </div>
@@ -16038,17 +16066,33 @@ async function handleNotifToggle(enable) {
 }
 
 function setCellSize(size) {
-    const dims = { small: '85px', medium: '110px', large: '140px' };
-    const fonts = { small: '0.7em', medium: '0.82em', large: '0.95em' };
+    const dims = { small: '55px', medium: '110px', large: '160px' };
+    const fonts = { small: '0.55em', medium: '0.82em', large: '1em' };
+    const gridMins = { small: '40px', medium: '90px', large: '120px' };
+    const gaps = { small: '2px', medium: '4px', large: '5px' };
+    const paddings = { small: '3px', medium: '6px', large: '8px' };
     localStorage.setItem('dayCellSize', size);
     document.documentElement.style.setProperty('--day-cell-min-height', dims[size] || '110px');
     document.documentElement.style.setProperty('--day-cell-min-width', dims[size] || '0');
     document.documentElement.style.setProperty('--day-cell-font-size', fonts[size] || '0.82em');
-    // Also apply to existing cells directly for immediate effect
+    document.documentElement.style.setProperty('--day-cell-grid-min', gridMins[size] || '90px');
+    document.documentElement.style.setProperty('--day-cell-gap', gaps[size] || '4px');
+    document.documentElement.style.setProperty('--day-cell-padding', paddings[size] || '6px');
+    // Apply to existing cells directly for immediate effect
     document.querySelectorAll('.day-cell').forEach(function(cell) {
         cell.style.minHeight = dims[size] || '110px';
         cell.style.minWidth = dims[size] || '0';
         cell.style.fontSize = fonts[size] || '0.82em';
+        cell.style.padding = paddings[size] || '6px';
+    });
+    // Apply grid settings to containers
+    document.querySelectorAll('.days-container').forEach(function(container) {
+        if (size === 'small') {
+            container.style.gridTemplateColumns = 'repeat(7, 1fr)';
+        } else {
+            container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + (gridMins[size] || '90px') + ', 1fr))';
+        }
+        container.style.gap = gaps[size] || '4px';
     });
 }
 
@@ -16906,7 +16950,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v208';
+const APP_VERSION = 'v209';
 var _pendingSW = null;
 
 function showUpdateBanner() {
