@@ -5266,7 +5266,7 @@ function openSavedReadingsModal() {
         html = '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);">'
             + '<div style="font-size:3em;margin-bottom:15px;">📚</div>'
             + '<p style="font-size:1.1em;margin-bottom:8px;">' + (L ? 'No tienes lecturas guardadas aún' : 'No saved readings yet') + '</p>'
-            + '<p style="font-size:0.85em;">' + (L ? 'Cuando consultes una interpretación AI, presiona el botón 💾 para guardarla aquí.' : 'When you view an AI interpretation, press the 💾 button to save it here.') + '</p>'
+            + '<p style="font-size:0.85em;">' + (L ? 'Cuando consultes una interpretación, presiona el botón 💾 para guardarla aquí.' : 'When you view an AI interpretation, press the 💾 button to save it here.') + '</p>'
             + '</div>';
     } else {
         html += '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">';
@@ -5356,15 +5356,15 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
 
     try {
         if (!aiIsConfigured()) {
-            div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;text-align:center;">' + (L ? 'Configura tu API key de Gemini en ⚙️ Preferencias para obtener interpretaciones AI personalizadas.' : 'Set up your Gemini API key in ⚙️ Preferences for personalized AI interpretations.') + '</p>';
+            div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;text-align:center;">' + (L ? 'Configura tu API key de Gemini en ⚙️ Preferencias para obtener interpretaciones personalizadas.' : 'Set up your Gemini API key in ⚙️ Preferences for personalized interpretations.') + '</p>';
             return;
         }
 
         var astroCtx = gatherAstroContext();
         // Summary prompt — ~12 short paragraphs, complete sentences, no user names
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. REGLAS ESTRICTAS:\n- Escribe aproximadamente 12 párrafos cortos (2-3 frases cada uno) que capturen la esencia de lo que se analiza.\n- NUNCA uses el nombre del usuario ni nombres propios. Usa "tú", "tu carta", "tu alma", etc.\n- SIEMPRE termina cada frase completa. NUNCA cortes una frase a la mitad.\n- Sé sobrio, sabio y directo. Usa datos reales de la carta.\n- No repitas datos que ya se muestran en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. STRICT RULES:\n- Write approximately 12 short paragraphs (2-3 sentences each) capturing the essence of what is being analyzed.\n- NEVER use the user\'s name or proper names. Use "you", "your chart", "your soul", etc.\n- ALWAYS finish every sentence completely. NEVER cut a sentence in the middle.\n- Be sober, wise and direct. Use real chart data.\n- Don\'t repeat data already shown on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. REGLAS ESTRICTAS:\n- Formato DIRECTO: usa bullets cortos (•) con los puntos clave. Cada bullet 1-2 frases máximo.\n- Agrupa por temas: Esencia, Desafíos, Potencial, Consejo práctico.\n- Ve AL GRANO. Sin rodeos ni introducciones largas.\n- Aproximadamente 10-15 bullets en total.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Usa datos reales de la carta. No repitas datos ya en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. STRICT RULES:\n- DIRECT format: use short bullets (•) with key points. Each bullet 1-2 sentences max.\n- Group by themes: Essence, Challenges, Potential, Practical advice.\n- Get TO THE POINT. No long introductions or filler.\n- Approximately 10-15 bullets total.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Use real chart data. Don\'t repeat data already on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -5441,8 +5441,8 @@ async function expandAIReading(readingKey, btn) {
     try {
         var astroCtx = gatherAstroContext();
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda. Tu marco teórico integra:\n- ASTROLOGÍA EVOLUTIVA (Jeff Green, Steven Forrest): el alma elige su carta natal para evolucionar. Plutón y los Nodos Lunares revelan el viaje kármico.\n- PERSPECTIVA TRANSPERSONAL (Dane Rudhyar): los planetas exteriores como agentes de transformación colectiva.\n- ASTROLOGÍA ARQUETIPAL (Richard Tarnas): correlaciones entre tránsitos y grandes ciclos de transformación.\n- PSICOLOGÍA PROFUNDA (Liz Greene): complejos inconscientes, la sombra, la individuación junguiana.\n\nREGLAS ESTRICTAS:\n- NUNCA uses el nombre del usuario ni nombres propios. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa. NUNCA cortes una frase a la mitad.\n\nDa una interpretación EXHAUSTIVA y PROFUNDA que incluya:\n1. PROPÓSITO EVOLUTIVO: ¿Qué está aprendiendo el alma?\n2. PATRÓN KÁRMICO: ¿Qué patrón inconsciente o herida ancestral revela?\n3. DINÁMICA PSICOLÓGICA: Complejos, proyecciones y mecanismos de defensa.\n4. POTENCIAL DE TRANSFORMACIÓN: ¿Cómo transmutar esta energía?\n5. CONEXIONES EN LA CARTA: ¿Cómo dialoga con otros aspectos y casas?\n6. PRAXIS: Rituales, meditaciones o prácticas concretas.\n\nUsa los datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer with deep mastery. Your framework integrates:\n- EVOLUTIONARY ASTROLOGY (Jeff Green, Steven Forrest): the soul chooses its natal chart to evolve.\n- TRANSPERSONAL PERSPECTIVE (Dane Rudhyar): outer planets as agents of collective transformation.\n- ARCHETYPAL ASTROLOGY (Richard Tarnas): correlations between transits and transformation cycles.\n- DEPTH PSYCHOLOGY (Liz Greene): unconscious complexes, the shadow, Jungian individuation.\n\nSTRICT RULES:\n- NEVER use the user\'s name or proper names. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely. NEVER cut a sentence in the middle.\n\nGive an EXHAUSTIVE and DEEP interpretation including:\n1. EVOLUTIONARY PURPOSE: What is the soul learning?\n2. KARMIC PATTERN: What unconscious pattern or ancestral wound does it reveal?\n3. PSYCHOLOGICAL DYNAMICS: Complexes, projections and defense mechanisms.\n4. TRANSFORMATION POTENTIAL: How to transmute this energy?\n5. CHART CONNECTIONS: How does it dialogue with other aspects and houses?\n6. PRAXIS: Rituals, meditations or concrete practices.\n\nUse REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda (astrología evolutiva, transpersonal, arquetipal, psicología profunda). REGLAS ESTRICTAS:\n- Formato DIRECTO con bullets (•). Cada bullet 1-3 frases máximo.\n- NUNCA uses el nombre del usuario. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa.\n- Estructura por secciones con encabezados en MAYÚSCULA:\n  • PROPÓSITO EVOLUTIVO (3-4 bullets)\n  • PATRÓN KÁRMICO (3-4 bullets)\n  • DINÁMICA PSICOLÓGICA (3-4 bullets)\n  • POTENCIAL DE TRANSFORMACIÓN (3-4 bullets)\n  • CONEXIONES EN LA CARTA (3-4 bullets)\n  • PRAXIS CONCRETA (3-4 bullets: rituales, meditaciones, prácticas)\n- Ve AL GRANO. Sin rodeos. Cada bullet debe aportar información concreta.\n- Usa datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer with deep mastery (evolutionary, transpersonal, archetypal astrology, depth psychology). STRICT RULES:\n- DIRECT format with bullets (•). Each bullet 1-3 sentences max.\n- NEVER use the user\'s name. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely.\n- Structure by sections with UPPERCASE headers:\n  • EVOLUTIONARY PURPOSE (3-4 bullets)\n  • KARMIC PATTERN (3-4 bullets)\n  • PSYCHOLOGICAL DYNAMICS (3-4 bullets)\n  • TRANSFORMATION POTENTIAL (3-4 bullets)\n  • CHART CONNECTIONS (3-4 bullets)\n  • CONCRETE PRAXIS (3-4 bullets: rituals, meditations, practices)\n- Get TO THE POINT. No filler. Each bullet must provide concrete information.\n- Use REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -5748,7 +5748,7 @@ function showNatalDetail(type, data) {
         }
         html += '</div>';
 
-        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
         // After rendering, trigger AI interpretation
         var _planetName = planetNamesLocal[data] || data;
@@ -5800,7 +5800,7 @@ function showNatalDetail(type, data) {
         }
 
         // AI interpretation for house
-        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+        html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
         var _hNum = houseNum;
         var _hSign = info.sign;
         var _hPlanets = planetsInHouse.map(function(p) { return (planetNamesLocal[p.name]||p.name) + ' en ' + p.sign; }).join(', ');
@@ -5826,7 +5826,7 @@ function showNatalDetail(type, data) {
             html += '</div>';
 
             // AI interpretation
-            html += '<div style="margin-top:12px;"><h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+            html += '<div style="margin-top:12px;"><h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
             var _p1 = planet1Name, _p2 = planet2Name, _aType = aspect.aspect.name, _orb = aspect.orbFormatted;
             setTimeout(function() {
@@ -5853,7 +5853,7 @@ function showNatalDetail(type, data) {
             html += '</div>';
 
             // AI interpretation for transit
-            html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+            html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
             var _tpN = tpName, _npN = npName, _tType = tr.type || tr.class || '', _tOrb = tr.orb;
             setTimeout(function() {
@@ -9233,7 +9233,7 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
     html += '</div>';
 
     // AI interpretation
-    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
     bodyEl.innerHTML = html;
     modal.classList.add('show');
@@ -9269,7 +9269,7 @@ function showAI2026Summary(type) {
     }
 
     titleEl.textContent = title;
-    var html = '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    var html = '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
@@ -16640,7 +16640,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v202';
+const APP_VERSION = 'v203';
 var _pendingSW = null;
 
 function showUpdateBanner() {
