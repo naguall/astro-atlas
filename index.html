@@ -10692,73 +10692,107 @@ function renderNatalLunarCal() {
     if (!container) return;
     var L = currentLang === 'es';
     var today = new Date();
-    today.setHours(12, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
-    // Find current lunar cycle (new moon to new moon)
-    var cycleStart = null, cycleEnd = null;
-    for (var i = 0; i < newMoonsLocal.length - 1; i++) {
-        if (newMoonsLocal[i] <= today && newMoonsLocal[i + 1] > today) {
-            cycleStart = new Date(newMoonsLocal[i]);
-            cycleEnd = new Date(newMoonsLocal[i + 1]);
-            break;
-        }
-    }
+    // Use the same lunar cycle engine as the main Lunar calendar
+    var cycleStart = findNearestNewMoon(today);
     if (!cycleStart) { container.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;">' + (L ? 'No se pudo calcular el ciclo lunar' : 'Could not calculate lunar cycle') + '</p>'; return; }
 
-    var cycleDays = Math.round((cycleEnd - cycleStart) / (1000 * 60 * 60 * 24));
-    var currentLunarDay = Math.floor((today - cycleStart) / (1000 * 60 * 60 * 24)) + 1;
+    var weeks = calculateLunarCycle(cycleStart);
+    if (!weeks || weeks.length === 0) return;
 
-    // Phase names by day range
-    function getPhaseInfo(day, total) {
-        var q = total / 4;
-        if (day <= 1) return { name: L ? 'Luna Nueva' : 'New Moon', icon: '🌑', color: '#a8b2d1' };
-        if (day < q) return { name: L ? 'Creciente' : 'Waxing Crescent', icon: '🌒', color: '#7ec8ff' };
-        if (day < q + 1.5) return { name: L ? 'Cuarto Creciente' : 'First Quarter', icon: '🌓', color: '#c9a840' };
-        if (day < q * 2) return { name: L ? 'Gibosa Creciente' : 'Waxing Gibbous', icon: '🌔', color: '#f0e68c' };
-        if (day < q * 2 + 1.5) return { name: L ? 'Luna Llena' : 'Full Moon', icon: '🌕', color: '#ffd700' };
-        if (day < q * 3) return { name: L ? 'Gibosa Menguante' : 'Waning Gibbous', icon: '🌖', color: '#f0c040' };
-        if (day < q * 3 + 1.5) return { name: L ? 'Cuarto Menguante' : 'Last Quarter', icon: '🌗', color: '#c9a840' };
-        return { name: L ? 'Menguante' : 'Waning Crescent', icon: '🌘', color: '#8899aa' };
-    }
+    var cycleEnd = weeks[weeks.length - 1].endDate;
+    var cycleTotalDays = weeks.reduce(function(s, w) { return s + w.days.length; }, 0);
 
-    var html = '<div class="personal-natal-card" style="padding:10px;">';
-    html += '<div style="text-align:center;margin-bottom:10px;">';
-    html += '<div style="font-size:0.85em;color:#c9a840;font-weight:600;">' + (L ? 'Ciclo Lunar Actual' : 'Current Lunar Cycle') + '</div>';
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);">' + cycleStart.toLocaleDateString(L ? 'es' : 'en', { day: 'numeric', month: 'short' }) + ' → ' + cycleEnd.toLocaleDateString(L ? 'es' : 'en', { day: 'numeric', month: 'short' }) + ' · ' + cycleDays + (L ? ' días' : ' days') + '</div>';
-    html += '</div>';
+    // Render using the same lunar-week structure as the main calendar
+    container.innerHTML = '';
+    var wrapDiv = document.createElement('div');
+    wrapDiv.className = 'lunar-weeks';
+    wrapDiv.style.cssText = 'margin:0;';
 
-    // Grid: 7 columns
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+    weeks.forEach(function(week, index) {
+        var weekDiv = document.createElement('div');
+        weekDiv.className = 'lunar-week';
 
-    for (var d = 1; d <= cycleDays; d++) {
-        var dayDate = new Date(cycleStart.getTime() + (d - 1) * 86400000);
-        var isToday = dayDate.toDateString() === today.toDateString();
-        var phase = getPhaseInfo(d, cycleDays);
-        var isPast = dayDate < today && !isToday;
+        // Check if this week contains today
+        var isActiveWeek = false;
+        week.days.forEach(function(day) {
+            if (day.date.toDateString() === today.toDateString()) isActiveWeek = true;
+        });
+        if (isActiveWeek) weekDiv.classList.add('active');
 
-        html += '<div onclick="showPersonalDayDetail(' + dayDate.getFullYear() + ',' + dayDate.getMonth() + ',' + dayDate.getDate() + ')" style="'
-            + 'background:' + (isToday ? 'rgba(201,168,64,0.25)' : 'rgba(255,255,255,0.03)') + ';'
-            + 'border:1px solid ' + (isToday ? 'rgba(201,168,64,0.6)' : 'rgba(255,255,255,0.08)') + ';'
-            + 'border-radius:8px;padding:4px 2px;text-align:center;cursor:pointer;'
-            + (isPast ? 'opacity:0.45;' : '') + '">'
-            + '<div style="font-size:1.1em;">' + phase.icon + '</div>'
-            + '<div style="font-size:0.75em;font-weight:' + (isToday ? '700' : '400') + ';color:' + (isToday ? '#c9a840' : 'rgba(255,255,255,0.7)') + ';">' + d + '</div>'
-            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);">' + dayDate.getDate() + '/' + (dayDate.getMonth() + 1) + '</div>'
-            + '</div>';
-    }
+        var daysHTML = week.days.map(function(day) {
+            var isToday = day.date.toDateString() === today.toDateString();
+            var dayEvents = getAllEventsForDate(day.date);
+            var hasEvents = dayEvents.length > 0;
+            var weekend = isWeekend(day.date);
+            var weekday = getWeekdayName(day.date);
+            var eclipse = getEclipseInfo(day.date);
+            var retrogrades = getRetrogrades(day.date);
+            var signChanges = getSignChanges(day.date);
+            var interAspects = getInterPlanetaryAspects(day.date);
+            var stellium = getStellium(day.date);
 
-    html += '</div>';
+            var eventsHTML = dayEvents.slice(0, 3).map(function(evt) {
+                return '<div class="day-event-item type-' + evt.type + '">' + evt.title + '</div>';
+            }).join('');
 
-    // Phase legend
-    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px;font-size:0.68em;color:rgba(255,255,255,0.4);margin-top:6px;">';
-    html += '<span>🌑 ' + (L ? 'Nueva' : 'New') + '</span>';
-    html += '<span>🌓 ' + (L ? 'Creciente' : '1st Qtr') + '</span>';
-    html += '<span>🌕 ' + (L ? 'Llena' : 'Full') + '</span>';
-    html += '<span>🌗 ' + (L ? 'Menguante' : 'Last Qtr') + '</span>';
-    html += '</div>';
+            var moreEvents = dayEvents.length > 3 ? '<div style="text-align:center;font-style:italic;font-size:0.85em;margin-top:2px;color:#a8b2d1;">+' + (dayEvents.length - 3) + '</div>' : '';
 
-    html += '</div>';
-    container.innerHTML = html;
+            var dayDataStr = JSON.stringify(day).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            // Right-side astro symbols
+            var astroSymbols = '';
+            if (eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium) {
+                astroSymbols = '<div style="display:flex;flex-direction:column;gap:2px;font-size:1.2em;flex-shrink:0;margin-left:auto;padding-top:' + Math.min(dayEvents.length, 3) * 13 + 'px;">';
+                if (eclipse) astroSymbols += '<div style="line-height:1.2;font-size:0.7em;font-weight:bold;color:#FFD700;text-align:right;">' + (eclipse.type === 'solar' ? '☀️' : '🌒') + ' Eclipse</div>';
+                interAspects.forEach(function(asp) {
+                    astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.75em;white-space:nowrap;text-align:right;">' + getPlanetInitial(asp.planet1) + ' ' + asp.symbol + ' ' + getPlanetInitial(asp.planet2) + '</div>';
+                });
+                retrogrades.forEach(function(r) {
+                    astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.85em;text-align:right;">' + getPlanetInitial(r.planet) + (r.isStart ? 'R' : 'D') + '</div>';
+                });
+                signChanges.forEach(function(sc) {
+                    astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.85em;text-align:right;">' + getPlanetInitial(sc.planet) + '→' + sc.toSign.substring(0, 3) + '</div>';
+                });
+                if (stellium) astroSymbols += '<div style="color:' + (stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c') + ';font-weight:bold;font-size:1.1em;">★</div>';
+                astroSymbols += '</div>';
+            }
+
+            return '<div class="day-cell ' + (isToday ? 'today' : '') + ' ' + (weekend ? 'weekend' : '') + '"'
+                + ' data-date="' + day.date.getTime() + '"'
+                + ' data-lunar-day="' + day.lunarDay + '"'
+                + ' data-has-aspects="' + (day.aspects.length > 0) + '"'
+                + " data-day-data='" + dayDataStr + "'"
+                + ' onclick="handleDayClick(this)">'
+                + '<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;width:100%;">'
+                + '<div class="day-number">' + day.lunarDay + '</div>'
+                + '<div style="font-size:0.7em;color:rgba(255,255,255,0.6);font-weight:600;white-space:nowrap;">' + weekday + ' ' + formatShortDate(day.date) + '</div>'
+                + '</div>'
+                + '<div class="day-content">'
+                + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;align-items:flex-start;">' + eventsHTML + moreEvents + '</div>'
+                + astroSymbols
+                + '</div></div>';
+        }).join('');
+
+        weekDiv.innerHTML = '<div class="week-header">'
+            + '<div class="moon-icon">' + week.emoji + '</div>'
+            + '<div class="week-info">'
+            + '<div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;font-size:0.65em;width:100%;overflow:hidden;">'
+            + '<span style="font-weight:bold;white-space:nowrap;color:#e8c84a;">' + week.name + '</span>'
+            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
+            + '<span style="white-space:nowrap;color:#8899cc;">' + week.days.length + 'd</span>'
+            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
+            + '<span style="white-space:nowrap;font-size:0.95em;color:#8899cc;">' + formatDate(week.startDate) + ' - ' + formatDate(week.endDate) + '</span>'
+            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
+            + '<span style="color:#c9a840;white-space:nowrap;font-size:0.95em;">' + week.zodiacSign + '</span>'
+            + '</div></div></div>'
+            + '<div class="days-container">' + daysHTML + '</div>';
+
+        wrapDiv.appendChild(weekDiv);
+    });
+
+    container.appendChild(wrapDiv);
 }
 
 // Draw pie charts on canvas
@@ -11702,15 +11736,10 @@ function renderPersonalCalendar() {
         ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dayNames = L ? ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-    // Navigation
+    // Navigation — hidden in Natal mode
     const nav = document.querySelector('.navigation');
-    nav.style.display = '';
-    nav.innerHTML = `
-        <div class="cycle-info">
-            <div class="cycle-number" id="cycleNumber">${monthNames[month]} ${year}</div>
-            <div class="cycle-dates" id="cycleDates">${natal.cityName} · ${natal.date}</div>
-        </div>
-    `;
+    nav.innerHTML = '';
+    nav.style.display = 'none';
 
     // Calendar container
     let container = document.getElementById('personalCalendar');
@@ -16625,7 +16654,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v200';
+const APP_VERSION = 'v201';
 var _pendingSW = null;
 
 function showUpdateBanner() {
