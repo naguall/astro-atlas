@@ -1983,7 +1983,7 @@ function getAstroData(date) {
         distancePct: Math.max(0, Math.min(100, distPct)),
         declination: dec,
         decStr: (dec > 0 ? '+' : '') + dec.toFixed(2) + '°',
-        sublunarLat: dec.toFixed(1),
+        sublunarLat: dec.toFixed(2),
         sublunarDir: dec > 0 ? 'N' : 'S',
         distFromUser: distFromUser.toFixed(1),
         isZenith: isZenith,
@@ -9292,6 +9292,27 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
     }, 100);
 }
 
+function showBannerAspectDetail(text) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    var L = currentLang === 'es';
+
+    titleEl.textContent = text;
+    var html = '<div style="border-bottom:2px solid #c9a840;padding-bottom:12px;margin-bottom:15px;">';
+    html += '<div style="font-size:0.95em;color:rgba(255,255,255,0.8);line-height:1.5;">' + text + '</div>';
+    html += '</div>';
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var prompt = L
+        ? 'Interpreta este aspecto o evento astrológico de hoy y cómo me afecta según mi carta natal: ' + text
+        : 'Interpret this astrological aspect or event today and how it affects me based on my natal chart: ' + text;
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', text); }, 100);
+}
+window.showBannerAspectDetail = showBannerAspectDetail;
+
 function showAI2026Summary(type) {
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
@@ -9440,8 +9461,9 @@ function updateCurrentDayInfoForMode(mode) {
                         <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
+                    ${mode === 'lunar' ? `<div style="font-size: 2.2em; margin: 4px 0; color: rgba(255,255,255,0.9); font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 12px rgba(201,168,64,0.3);">${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
-                    
+
                 </div>
                 <!-- Info según modo -->
                 <div style="background: rgba(20,10,40,0.85); padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(201,168,64,0.28); border-top: 2px solid rgba(201,168,64,0.55); min-width: 0; overflow: hidden;">
@@ -9476,7 +9498,7 @@ function updateCurrentDayInfoForMode(mode) {
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
-                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${color};border-right:2px solid ${color};text-align:center;width:100%;"><span style="color:#e8eaf6">☽ ${asp.symbol} ${tp(asp.planetName)}</span></div>`;
+                                return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${color};border-right:2px solid ${color};text-align:center;width:100%;"><span style="color:#e8eaf6">${asp.symbol} ${tp(asp.planetName)}</span></div>`;
                             }
                             return '';
                         }).join('')}
@@ -11887,7 +11909,7 @@ function renderPersonalCalendar() {
                 <div class="personal-day-num">${isBirthday ? '🎂 ' : ''}${day}</div>
                 <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:0.6em;line-height:1;">
                     <span style="color:rgba(192,192,255,0.5);" title="${L?'Día lunar':'Lunar day'}">☽${lunarDay}</span>
-                    <span style="color:rgba(255,200,100,0.5);" title="${L?'Día solar':'Solar day'}">☉${solarDay}</span>
+                    <span style="color:rgba(255,255,255,0.7);" title="${L?'Día solar':'Solar day'}">☉${solarDay}</span>
                 </div>
                 ${majorCount > 0 ? `<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:1px;">${majorCount} ${L?'asp.':'asp.'}</div>` : ''}
             </div>
@@ -11901,7 +11923,7 @@ function renderPersonalCalendar() {
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
             <span style="color:rgba(192,192,255,0.6);">☽ = ${L?'Día lunar':'Lunar day'}</span>
-            <span style="color:rgba(255,200,100,0.6);">☉ = ${L?'Día solar':'Solar day'}</span>
+            <span style="color:rgba(255,255,255,0.7);">☉ = ${L?'Día solar':'Solar day'}</span>
         </div>
         </div><!-- close natalCalendarGrid -->
     `;
@@ -14699,35 +14721,35 @@ function renderCalendar() {
                             if (event.type === 'eclipse') {
                                 const ecl = event.data;
                                 const eclText = (ecl.type || 'Eclipse').replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${eclText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.2);border-radius:4px;border-left:2px solid #f5576c;font-weight:bold;text-align:center;width:100%;cursor:pointer;">🌑 ${ecl.type || 'Eclipse'}</div>`;
+                                return `<div onclick="showBannerAspectDetail('${eclText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.2);border-radius:4px;border-left:2px solid #f5576c;font-weight:bold;text-align:center;width:100%;cursor:pointer;">🌑 ${ecl.type || 'Eclipse'}</div>`;
                             } else if (event.type === 'astroEvent') {
                                 const ae = event.data;
                                 const lbl = currentLang==='es'?(ae.esName||'Evento'):(ae.enName||'Event');
                                 const timeStr = ae.date ? ae.date.toLocaleTimeString(currentLang==='es'?'es':'en',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
                                 const aeText = (lbl + (timeStr ? ' ' + timeStr : '')).replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${aeText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(255,215,0,0.15);border-radius:4px;border-left:2px solid #FFD700;font-weight:bold;text-align:center;width:100%;cursor:pointer;">☀️ ${lbl}${timeStr?' · '+timeStr:''}</div>`;
+                                return `<div onclick="showBannerAspectDetail('${aeText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(255,215,0,0.15);border-radius:4px;border-left:2px solid #FFD700;font-weight:bold;text-align:center;width:100%;cursor:pointer;">☀️ ${lbl}${timeStr?' · '+timeStr:''}</div>`;
                             } else if (event.type === 'stellium') {
                                 const st = event.data;
                                 const stText = ('Stellium en ' + (st.sign||'')).replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${stText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(201,168,64,0.15);border-radius:4px;border-left:2px solid #c9a840;text-align:center;width:100%;cursor:pointer;">✨ Stellium ${st.sign||''}</div>`;
+                                return `<div onclick="showBannerAspectDetail('${stText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(201,168,64,0.15);border-radius:4px;border-left:2px solid #c9a840;text-align:center;width:100%;cursor:pointer;">✨ Stellium ${st.sign||''}</div>`;
                             } else if (event.type === 'signChange') {
                                 const ch = event.data;
                                 const chText = (tp(ch.planet) + ' entra en ' + ts(ch.toSign)).replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${chText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${ch.color};"><span style="color:#e8eaf6">${tp(ch.planet)} → ${ts(ch.toSign)}${ch.time?' <span style="font-weight:bold;color:#c9a840">'+ch.time+'</span>':''}</span></div>`;
+                                return `<div onclick="showBannerAspectDetail('${chText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${ch.color};"><span style="color:#e8eaf6">${tp(ch.planet)} → ${ts(ch.toSign)}${ch.time?' <span style="font-weight:bold;color:#c9a840">'+ch.time+'</span>':''}</span></div>`;
                             } else if (event.type === 'retrograde') {
                                 const ret = event.data;
                                 const retText = (tp(ret.planet) + (ret.isStart ? ' entra en retrogradación' : ' se pone directo')).replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${retText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid #ff6b6b;"><span style="color:#e8eaf6">${tp(ret.planet)} ${ret.isStart?'R':'D'}</span></div>`;
+                                return `<div onclick="showBannerAspectDetail('${retText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid #ff6b6b;"><span style="color:#e8eaf6">${tp(ret.planet)} ${ret.isStart?'R':'D'}</span></div>`;
                             } else if (event.type === 'interPlanetaryAspect') {
                                 const asp = event.data;
                                 const ts2 = asp.time?`<span style="font-weight:bold;color:#c9a840">${asp.time}</span> `:'';
                                 const ipaText = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + tp(asp.planet2) + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${ipaText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${asp.color};"><span style="color:#e8eaf6">${ts2}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</span></div>`;
+                                return `<div onclick="showBannerAspectDetail('${ipaText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${asp.color};"><span style="color:#e8eaf6">${ts2}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
                                 const aspText = ('Luna ' + asp.symbol + ' ' + tp(asp.planetName) + ' (' + (asp.class||'') + ')').replace(/'/g, "\\'");
-                                return `<div onclick="aiInterpretAspect('${aspText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${color};border-right:2px solid ${color};"><span style="color:#e8eaf6">☽ ${asp.symbol} ${tp(asp.planetName)}</span></div>`;
+                                return `<div onclick="showBannerAspectDetail('${aspText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${color};border-right:2px solid ${color};"><span style="color:#e8eaf6">${asp.symbol} ${tp(asp.planetName)}</span></div>`;
                             }
                         }).join('')}
                         ${allPlanetaryEvents.length > 6 ? `<div style="font-size:0.6em;text-align:center;color:#8899cc;">+${allPlanetaryEvents.length - 6}</div>` : ''}
@@ -15778,6 +15800,36 @@ function openPreferencesModal() {
             </div>
         </div>
 
+        <!-- Cell Size -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+                📏 ${currentLang==='es'?'Tamaño de Celdas':'Cell Size'}
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="setCellSize('small');openPreferencesModal();"
+                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
+                    background:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
+                    border:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
+                    color:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                    S ${currentLang==='es'?'Pequeño':'Small'}
+                </button>
+                <button onclick="setCellSize('medium');openPreferencesModal();"
+                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
+                    background:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
+                    border:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
+                    color:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                    M ${currentLang==='es'?'Medio':'Medium'}
+                </button>
+                <button onclick="setCellSize('large');openPreferencesModal();"
+                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
+                    background:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
+                    border:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
+                    color:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                    L ${currentLang==='es'?'Grande':'Large'}
+                </button>
+            </div>
+        </div>
+
         <!-- Backup / Restore -->
         <div style="margin-bottom:16px;">
             <div style="font-size:0.85em;font-weight:700;color:#66bb6a;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
@@ -15862,6 +15914,24 @@ async function handleNotifToggle(enable) {
     }
     updateNotificationButton();
     openPreferencesModal(); // refresh UI
+}
+
+function setCellSize(size) {
+    const sizes = { small: '85px', medium: '110px', large: '140px' };
+    localStorage.setItem('dayCellSize', size);
+    document.documentElement.style.setProperty('--day-cell-min-height', sizes[size] || '110px');
+    // Update all day-cell elements if they exist
+    const dayCells = document.querySelectorAll('.day-cell');
+    dayCells.forEach(cell => {
+        cell.style.minHeight = sizes[size] || '110px';
+    });
+}
+
+// Apply saved cell size on load
+if (!window._cellSizeApplied) {
+    window._cellSizeApplied = true;
+    const savedSize = localStorage.getItem('dayCellSize') || 'medium';
+    setTimeout(() => setCellSize(savedSize), 100);
 }
 
 // Notification history system
@@ -16706,7 +16776,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v205';
+const APP_VERSION = 'v206';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -16769,10 +16839,10 @@ if ('serviceWorker' in navigator) {
                 .catch(function(e) { console.log('❌ SW failed completely:', e); });
         });
 
-    // When new SW takes control, reload
+    // When new SW takes control, show update banner instead of auto-reloading
     navigator.serviceWorker.addEventListener('controllerchange', function() {
-        console.log('🔄 New SW active, reloading...');
-        window.location.reload();
+        console.log('🔄 New SW active');
+        showUpdateBanner();
     });
 
     // Periodically check for updates (every 30 minutes)
