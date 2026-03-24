@@ -5268,15 +5268,14 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
         }
 
         var response;
-        for (var _retry = 0; _retry < 3; _retry++) {
+        for (var _retry = 0; _retry < 5; _retry++) {
             response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
-            if (response.status === 429 && _retry < 2) {
-                await new Promise(function(r) { setTimeout(r, 5000 * (_retry + 1)); });
-
+            if (response.status === 429 && _retry < 4) {
+                await new Promise(function(r) { setTimeout(r, Math.min(3000 * (_retry + 1), 15000)); });
                 continue;
             }
             break;
@@ -5347,16 +5346,15 @@ async function expandAIReading(readingKey, btn) {
         }
 
         var response;
-        for (var _retry = 0; _retry < 3; _retry++) {
+        for (var _retry = 0; _retry < 5; _retry++) {
             response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
-            if (response.status === 429 && _retry < 2) {
+            if (response.status === 429 && _retry < 4) {
                 btn.innerHTML = '⏳ ' + (L ? 'Esperando...' : 'Waiting...');
-                await new Promise(function(r) { setTimeout(r, 5000 * (_retry + 1)); });
-
+                await new Promise(function(r) { setTimeout(r, Math.min(3000 * (_retry + 1), 15000)); });
                 btn.innerHTML = '🔮 ' + (L ? 'Reintentando...' : 'Retrying...');
                 continue;
             }
@@ -16824,20 +16822,21 @@ async function sendAIMessage() {
             apiUrl = AI_PROXY_URL;
         }
 
-        // Retry logic for rate limits
+        // Retry logic for rate limits (up to 5 retries with progressive delays)
         let response;
         let retries = 0;
-        while (retries < 4) {
+        const maxRetries = 5;
+        while (retries <= maxRetries) {
             response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(requestBody)
             });
-            if (response.status === 429 && retries < 3) {
+            if (response.status === 429 && retries < maxRetries) {
                 retries++;
-                var waitSec = 5 * retries;
+                var waitSec = Math.min(3 * retries, 15);
                 removeTypingIndicator();
-                addAIMessage('system', currentLang === 'es' ? '⏳ Reintentando en ' + waitSec + 's...' : '⏳ Retrying in ' + waitSec + 's...');
+                addAIMessage('system', currentLang === 'es' ? '⏳ Reintentando en ' + waitSec + 's... (' + retries + '/' + maxRetries + ')' : '⏳ Retrying in ' + waitSec + 's... (' + retries + '/' + maxRetries + ')');
                 await new Promise(r => setTimeout(r, waitSec * 1000));
                 showTypingIndicator();
                 continue;

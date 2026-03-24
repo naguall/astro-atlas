@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 const MODEL = 'gemini-2.5-flash-lite';
-const RATE_LIMIT = 12; // max requests per IP per minute
+const RATE_LIMIT = 30; // max requests per IP per minute
 const rateLimitMap = new Map();
 
 // Cleanup old rate limit entries every 5 minutes
