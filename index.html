@@ -432,7 +432,7 @@
         /* Personal mode */
         body.personal-mode { background: radial-gradient(ellipse 70% 50% at 20% 15%, rgba(60,0,80,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 80% 80%, rgba(40,0,90,0.50) 0%, transparent 55%), linear-gradient(170deg, #0a0020 0%, #120030 40%, #0a0020 100%); }
         body.personal-mode h1 { background: linear-gradient(135deg, #9b59b6 0%, #e8c84a 50%, #c39bd3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .profile-header-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 8px 10px; background: rgba(10,3,22,0.7); border-radius: 10px; border: 1px solid rgba(155,89,182,0.15); }
+        .profile-header-bar { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding: 8px 10px; background: rgba(10,3,22,0.7); border-radius: 10px; border: 1px solid rgba(155,89,182,0.15); }
         .profile-select-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
         .profile-dropdown { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid rgba(155,89,182,0.3); border-radius: 8px; background: rgba(20,10,40,0.8); color: #c39bd3; font-size: 0.85em; font-weight: 600; cursor: pointer; appearance: auto; -webkit-appearance: auto; font-family: inherit; }
         .profile-dropdown:focus { outline: none; border-color: rgba(155,89,182,0.6); }
@@ -4161,112 +4161,118 @@ async function gcalExportAstroEvents(btn) {
         return;
     }
     const origText = btn.textContent;
-    btn.textContent = currentLang === 'es' ? '⏳ Exportando...' : '⏳ Exporting...';
+    btn.textContent = currentLang === 'es' ? '⏳ Exportando 2026...' : '⏳ Exporting 2026...';
     btn.disabled = true;
 
+    // Get selected color
+    const colorPicker = document.getElementById('gcalColorPicker');
+    const colorId = colorPicker ? colorPicker.value : '2'; // default green
+
     try {
-        // Get current lunar cycle
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const nearestNM = findNearestNewMoon(today);
-        const weeks = calculateLunarCycle(nearestNM);
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         let created = 0;
         let skipped = 0;
-
-        // Collect astro events for the cycle
         const astroEvents = [];
+        const L = currentLang === 'es';
 
-        weeks.forEach((week, wIdx) => {
-            // Add phase marker for week start
-            if (wIdx === 0 || wIdx === 2) {
-                const phaseName = wIdx === 0 ?
-                    (currentLang === 'es' ? '🌑 Luna Nueva' : '🌑 New Moon') :
-                    (currentLang === 'es' ? '🌕 Luna Llena' : '🌕 Full Moon');
-                astroEvents.push({
-                    date: week.startDate,
-                    title: phaseName,
-                    description: `${week.name} - ${week.zodiacSign}`
-                });
-            }
-            if (wIdx === 1) {
-                astroEvents.push({
-                    date: week.startDate,
-                    title: currentLang === 'es' ? '🌓 Cuarto Creciente' : '🌓 First Quarter',
-                    description: week.name
-                });
-            }
-            if (wIdx === 3) {
-                astroEvents.push({
-                    date: week.startDate,
-                    title: currentLang === 'es' ? '🌗 Cuarto Menguante' : '🌗 Last Quarter',
-                    description: week.name
-                });
-            }
+        // ── 1. ALL LUNAR PHASES FOR 2026 ──
+        // Iterate through all months of 2026 to find new moons and generate cycles
+        const processedPhases = new Set(); // avoid duplicates
+        for (let m = 0; m < 12; m++) {
+            const d = new Date(2026, m, 15);
+            const nm = findNearestNewMoon(d);
+            const nmKey = getDateKey(nm);
+            if (processedPhases.has(nmKey)) continue;
+            processedPhases.add(nmKey);
 
-            // Check each day for eclipses, sign changes, retrogrades, major aspects
-            week.days.forEach(day => {
-                const eclipse = getEclipseInfo(day.date);
-                if (eclipse) {
-                    astroEvents.push({
-                        date: day.date,
-                        title: `${eclipse.type === 'solar' ? '☀️' : '🌒'} Eclipse: ${eclipse.name}`,
-                        description: currentLang === 'es' ? 'Eclipse visible - evento astronómico importante' : 'Eclipse - major astronomical event'
-                    });
-                }
-
-                const signChanges = getSignChanges(day.date);
-                signChanges.forEach(sc => {
-                    astroEvents.push({
-                        date: day.date,
-                        title: `${sc.symbol} ${sc.planet} → ${sc.toSign}`,
-                        description: sc.meaning || '',
-                        time: sc.time || ''
-                    });
-                });
-
-                const retrogrades = getRetrogrades(day.date);
-                retrogrades.forEach(r => {
-                    astroEvents.push({
-                        date: day.date,
-                        title: `${r.symbol} ${r.planet} ${r.isStart ? (currentLang==='es'?'Retrógrado':'Retrograde') : (currentLang==='es'?'Directo':'Direct')}`,
-                        description: currentLang==='es' ? `${r.planet} cambia de dirección` : `${r.planet} changes direction`
-                    });
-                });
-
-                const astroEvent = isAstronomicalEvent(day.date);
-                if (astroEvent) {
-                    astroEvents.push({
-                        date: day.date,
-                        title: `☀️ ${astroEvent[currentLang === 'es' ? 'es' : 'en']}`,
-                        description: currentLang==='es' ? 'Evento astronómico' : 'Astronomical event'
-                    });
+            const weeks = calculateLunarCycle(nm);
+            weeks.forEach((week, wIdx) => {
+                if (wIdx === 0) {
+                    astroEvents.push({ date: week.startDate, title: L?'🌑 Luna Nueva':'🌑 New Moon', description: `${week.name} - ${week.zodiacSign}` });
+                } else if (wIdx === 1) {
+                    astroEvents.push({ date: week.startDate, title: L?'🌓 Cuarto Creciente':'🌓 First Quarter', description: week.name });
+                } else if (wIdx === 2) {
+                    astroEvents.push({ date: week.startDate, title: L?'🌕 Luna Llena':'🌕 Full Moon', description: `${week.name} - ${week.zodiacSign}` });
+                } else if (wIdx === 3) {
+                    astroEvents.push({ date: week.startDate, title: L?'🌗 Cuarto Menguante':'🌗 Last Quarter', description: week.name });
                 }
             });
+        }
+
+        // ── 2. ALL INTERPLANETARY ASPECTS 2026 ──
+        interPlanetaryAspects2026.forEach(asp => {
+            const title = `${asp.symbol} ${asp.planet1} ${asp.aspect} ${asp.planet2}`;
+            const desc = asp.meaning || `${asp.planet1} ${asp.aspect} ${asp.planet2} (${asp.degrees} - ${asp.signs})`;
+            astroEvents.push({ date: asp.date, title: title, description: desc, time: asp.time || '' });
         });
 
-        // Create events in batches (avoid rate limits)
-        for (const evt of astroEvents) {
+        // ── 3. ECLIPSES, SIGN CHANGES, RETROGRADES, SOLSTICES/EQUINOXES ──
+        const processedDates = new Set();
+        for (let dayOffset = 0; dayOffset < 365; dayOffset++) {
+            const d = new Date(2026, 0, 1 + dayOffset);
+            if (d.getFullYear() !== 2026) break;
+            const dk = getDateKey(d);
+            if (processedDates.has(dk)) continue;
+            processedDates.add(dk);
+
+            const eclipse = getEclipseInfo(d);
+            if (eclipse) {
+                astroEvents.push({ date: d, title: `${eclipse.type === 'solar' ? '☀️' : '🌒'} Eclipse: ${eclipse.name}`, description: L ? 'Eclipse - evento astronómico importante' : 'Eclipse - major astronomical event' });
+            }
+
+            const signChanges = getSignChanges(d);
+            signChanges.forEach(sc => {
+                astroEvents.push({ date: d, title: `${sc.symbol} ${sc.planet} → ${sc.toSign}`, description: sc.meaning || '', time: sc.time || '' });
+            });
+
+            const retrogrades = getRetrogrades(d);
+            retrogrades.forEach(r => {
+                astroEvents.push({ date: d, title: `${r.symbol} ${r.planet} ${r.isStart ? (L?'Retrógrado':'Retrograde') : (L?'Directo':'Direct')}`, description: L ? `${r.planet} cambia de dirección` : `${r.planet} changes direction` });
+            });
+
+            const astroEvent = isAstronomicalEvent(d);
+            if (astroEvent) {
+                astroEvents.push({ date: d, title: `☀️ ${astroEvent[L ? 'es' : 'en']}`, description: L ? 'Evento astronómico' : 'Astronomical event' });
+            }
+        }
+
+        // ── 4. MAJOR ASPECTS 2026 ──
+        if (typeof majorAspects2026 !== 'undefined') {
+            majorAspects2026.forEach(asp => {
+                if (asp.planet1 && asp.planet2) {
+                    astroEvents.push({ date: new Date(asp.date), title: `⭐ ${asp.planet1} ${asp.aspect||''} ${asp.planet2}`, description: asp.meaning || asp.description || '' });
+                }
+            });
+        }
+
+        // Update progress
+        btn.textContent = `⏳ 0/${astroEvents.length}`;
+
+        // Create events in batches
+        for (let i = 0; i < astroEvents.length; i++) {
+            const evt = astroEvents[i];
             const dateStr = getDateKey(evt.date);
             let gcalEvent;
 
             if (evt.time) {
-                const [h, m] = evt.time.split(':');
+                const [h, m_] = evt.time.split(':');
                 const start = new Date(evt.date);
-                start.setHours(parseInt(h), parseInt(m || 0), 0, 0);
+                start.setHours(parseInt(h), parseInt(m_ || 0), 0, 0);
                 const end = new Date(start.getTime() + 30 * 60 * 1000);
                 gcalEvent = {
                     summary: evt.title,
                     description: `[Moon Sync] ${evt.description}`,
                     start: { dateTime: start.toISOString(), timeZone: tz },
-                    end: { dateTime: end.toISOString(), timeZone: tz }
+                    end: { dateTime: end.toISOString(), timeZone: tz },
+                    colorId: colorId
                 };
             } else {
                 gcalEvent = {
                     summary: evt.title,
                     description: `[Moon Sync] ${evt.description}`,
                     start: { date: dateStr },
-                    end: { date: dateStr }
+                    end: { date: dateStr },
+                    colorId: colorId
                 };
             }
 
@@ -4284,27 +4290,37 @@ async function gcalExportAstroEvents(btn) {
                 } else {
                     skipped++;
                     if (resp.status === 429) {
-                        // Rate limited, wait and retry
-                        await new Promise(r => setTimeout(r, 2000));
+                        await new Promise(r => setTimeout(r, 3000));
+                        // Retry once
+                        const retry = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + gcalAccessToken, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(gcalEvent)
+                        });
+                        if (retry.ok) { created++; skipped--; }
                     }
                 }
             } catch(e) {
                 skipped++;
             }
 
+            // Progress update every 10 events
+            if (i % 10 === 0) {
+                btn.textContent = `⏳ ${created}/${astroEvents.length}`;
+                await new Promise(r => setTimeout(r, 50));
+            }
             // Small delay between requests
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise(r => setTimeout(r, 150));
         }
 
-        btn.textContent = `✓ ${created} ${currentLang === 'es' ? 'eventos creados' : 'events created'}`;
+        btn.textContent = `✓ ${created} ${L ? 'eventos creados' : 'events created'}`;
         btn.style.color = '#4ecdc4';
         setTimeout(() => {
             btn.textContent = origText;
             btn.style.color = '#c9a840';
             btn.disabled = false;
-        }, 3000);
+        }, 4000);
 
-        // Re-sync to show the new events
         gcalFetchEvents();
 
     } catch(e) {
@@ -7987,6 +8003,7 @@ function switchToSolarMode() {
 
     updateModeButtons();
     renderSolarCalendar();
+    refreshAllLiveData();
 }
 
 function switchToGregorianMode() {
@@ -8010,6 +8027,7 @@ function switchToGregorianMode() {
 
     updateModeButtons();
     renderGregorianCalendar();
+    refreshAllLiveData();
 }
 
 function switchToEarthMode() {
@@ -8052,6 +8070,7 @@ function switchToEarthMode() {
     var oldEip = document.getElementById('earthInfoPanel');
     if (oldEip) oldEip.remove();
     renderEarthInfoPanel();
+    refreshAllLiveData();
 }
 
 function switchToLunarMode() {
@@ -8107,6 +8126,7 @@ function switchToLunarMode() {
     renderCalendar();
     // Force refresh moon position, tide data, and astro info
     updateCurrentDayInfoForMode('lunar');
+    refreshAllLiveData();
 }
 
 // ══════════════════════════════════════════════════
@@ -8150,6 +8170,7 @@ function switchToSolarSystemMode() {
 
     updateModeButtons();
     renderSolarSystemPanel();
+    refreshAllLiveData();
 }
 
 function getSolarSystemData() {
@@ -9691,7 +9712,7 @@ function deleteProfile(id) {
     }
 }
 
-function buildProfileSelector() {
+function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
     const L = currentLang === 'es';
     const profiles = getNatalProfiles();
     const activeId = getActiveProfileId();
@@ -9702,44 +9723,26 @@ function buildProfileSelector() {
         return `<option value="${p.id}" ${p.id === activeId ? 'selected' : ''}>${displayName}</option>`;
     }).join('');
 
+    var chartInfo = '';
+    if (natal && sunSign) {
+        chartInfo = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:0.78em;padding:0 2px;">
+            <div><span style="color:rgba(255,255,255,0.35);">☉</span> <span style="color:#c39bd3;">${sunSign}</span></div>
+            <div><span style="color:rgba(255,255,255,0.35);">☽</span> <span style="color:#c39bd3;">${moonSign}</span></div>
+            <div><span style="color:rgba(255,255,255,0.35);">ASC</span> <span style="color:#c39bd3;">${ascSign}</span></div>
+            <div><span style="color:rgba(255,255,255,0.35);">MC</span> <span style="color:#c39bd3;">${mcSign}</span></div>
+        </div>
+        <div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:2px;">${natal.date || ''} · ${natal.time || ''} · ${natal.cityName || ''}</div>`;
+    }
+
     return `<div class="profile-header-bar">
-        <div class="profile-select-wrap">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <select id="profileDropdown" onchange="switchProfile(this.value)" class="profile-dropdown">${options}</select>
             <button onclick="addNewProfile()" class="profile-action-btn" title="${L?'Agregar perfil':'Add profile'}">＋</button>
-        </div>
-        <div class="profile-actions-right">
-            <button onclick="showProfileChartData()" class="profile-action-btn" title="${L?'Datos de la carta':'Chart data'}">📊</button>
             <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${L?'Editar datos':'Edit data'}">✏️</button>
             <button onclick="shareNatalProfile()" class="profile-action-btn" title="${L?'Compartir':'Share'}">📤</button>
         </div>
+        ${chartInfo}
     </div>`;
-}
-
-function showProfileChartData() {
-    const L = currentLang === 'es';
-    const natal = getNatalData();
-    if (!natal) return;
-    let natalChart;
-    try {
-        const profileChart = localStorage.getItem('natalChart_' + natal.id);
-        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
-    } catch(e) { return; }
-    if (!natalChart) return;
-    const p = natalChart.planets || {};
-    const h = natalChart.houses || {};
-    var lines = [];
-    lines.push('🔮 ' + (natal.name || natal.cityName) + ' — ' + (L ? 'Carta Natal' : 'Natal Chart'));
-    lines.push(natal.date + ' · ' + (natal.time || '') + ' · ' + (natal.cityName || ''));
-    lines.push('');
-    for (var k in p) {
-        if (p[k] && p[k].sign) lines.push((p[k].symbol || k) + ' ' + k + ': ' + p[k].sign + ' ' + (p[k].degree || '').toString().substring(0,5) + '°' + (p[k].house ? ' — ' + (L?'Casa':'House') + ' ' + p[k].house : ''));
-    }
-    var modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:10002;';
-    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
-    modal.innerHTML = '<div style="background:rgba(15,5,30,0.98);border:1px solid rgba(155,89,182,0.3);border-radius:14px;padding:20px;max-width:380px;width:90%;max-height:80vh;overflow-y:auto;"><pre style="font-size:0.78em;color:rgba(255,255,255,0.7);white-space:pre-wrap;line-height:1.6;">' + lines.join('\n') + '</pre><div style="text-align:center;margin-top:12px;"><button onclick="this.closest(\'.modal\').remove()" style="padding:6px 20px;background:rgba(155,89,182,0.2);border:1px solid rgba(155,89,182,0.3);border-radius:8px;color:#c39bd3;cursor:pointer;">' + (L?'Cerrar':'Close') + '</button></div></div>';
-    document.body.appendChild(modal);
 }
 
 function shareNatalProfile() {
@@ -9801,6 +9804,7 @@ function switchToPersonalMode() {
     } else {
         renderPersonalCalendar();
     }
+    refreshAllLiveData();
 }
 
 // --- Birth Data Setup Form ---
@@ -9827,7 +9831,7 @@ function renderPersonalSetupForm() {
     // If editing existing profile, load its data; otherwise blank for new profile
     const existing = profiles.find(p => p.id === activeId) || null;
 
-    const profileSelector = profiles.length > 0 ? buildProfileSelector() : '';
+    const profileSelector = profiles.length > 0 ? buildProfileSelector(null, null, null, null, null) : '';
 
     container.innerHTML = `
         ${profileSelector}
@@ -9983,19 +9987,10 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 <div id="aspectGridContainer" style="overflow-x:auto;padding:4px;"></div>
             </div>
         </div>
-        <div class="personal-natal-card">
-            <h3 style="font-size:0.85em;">📋 ${L ? 'Datos de la Carta' : 'Chart Data'}</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82em;">
-                <div><span style="color:rgba(255,255,255,0.4);">☉ ${L?'Sol':'Sun'}:</span> <span class="natal-planet-sign">${sunSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">☽ ${L?'Luna':'Moon'}:</span> <span class="natal-planet-sign">${moonSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">ASC:</span> <span class="natal-planet-sign">${ascSign}</span></div>
-                <div><span style="color:rgba(255,255,255,0.4);">MC:</span> <span class="natal-planet-sign">${mcSign}</span></div>
-            </div>
-            <div style="margin-top:6px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;justify-content:center;padding:4px;">
                 <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.2);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.4);font-size:0.68em;cursor:pointer;">
                     📋 ${L ? 'Copiar para AI' : 'Copy for AI'}
                 </button>
-            </div>
         </div>`;
 
     // ===== TAB: CALENDAR (transits + monthly grid injected later) =====
@@ -10040,12 +10035,25 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
 
     // --- Natal Aspects Table ---
     let aspectsTableRows = '';
+    const signGlyphs = {'Aries':'♈','Taurus':'♉','Gemini':'♊','Cancer':'♋','Leo':'♌','Virgo':'♍','Libra':'♎','Scorpio':'♏','Sagittarius':'♐','Capricorn':'♑','Aquarius':'♒','Pisces':'♓'};
+    function getSignForKey(key) {
+        if (!natalChart.planets) return '';
+        var p = natalChart.planets[key.toLowerCase()];
+        if (p && p.sign) return (signGlyphs[p.sign] || '') + ' ' + p.sign;
+        if (key === 'ASC' && natalChart.houses) return (signGlyphs[natalChart.houses.ascSign]||'') + ' ' + (natalChart.houses.ascSign||'');
+        if (key === 'MC' && natalChart.houses) return (signGlyphs[natalChart.houses.mcSign]||'') + ' ' + (natalChart.houses.mcSign||'');
+        return '';
+    }
     if (natalChart.natalAspects) {
         natalChart.natalAspects.forEach(function(a, idx) {
+            var sign1 = getSignForKey(a.planet1);
+            var sign2 = getSignForKey(a.planet2);
             aspectsTableRows += '<tr onclick="showNatalDetail(\'aspect\', ' + idx + ')" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.backgroundColor=\'rgba(201,168,64,0.15)\';" onmouseout="this.style.backgroundColor=\'\';">' +
                 '<td style="white-space:nowrap;">' + (planetNms[a.planet1]||a.planet1) + '</td>' +
+                '<td style="white-space:nowrap;font-size:0.8em;color:rgba(255,255,255,0.5);">' + sign1 + '</td>' +
                 '<td style="text-align:center;color:' + a.aspect.color + ';font-weight:600;">' + a.aspect.name + '</td>' +
                 '<td style="white-space:nowrap;">' + (planetNms[a.planet2]||a.planet2) + '</td>' +
+                '<td style="white-space:nowrap;font-size:0.8em;color:rgba(255,255,255,0.5);">' + sign2 + '</td>' +
                 '<td style="text-align:center;">' + a.orbFormatted + '</td>' +
                 '</tr>';
         });
@@ -10079,9 +10087,11 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 <table class="natal-data-table" id="natalAspectsTable">
                     <thead><tr>
                         <th class="sortable-th" onclick="sortAspectsTable(0)" style="cursor:pointer;">${L?'Planeta':'Planet'} <span id="aspSort0" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(1)" style="cursor:pointer;">${L?'Aspecto':'Aspect'} <span id="aspSort1" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(2)" style="cursor:pointer;">${L?'Planeta':'Planet'} <span id="aspSort2" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(3)" style="cursor:pointer;">${L?'Orbe':'Orb'} <span id="aspSort3" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(1)" style="cursor:pointer;">${L?'Signo':'Sign'} <span id="aspSort1" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(2)" style="cursor:pointer;">${L?'Aspecto':'Aspect'} <span id="aspSort2" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(3)" style="cursor:pointer;">${L?'Planeta':'Planet'} <span id="aspSort3" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(4)" style="cursor:pointer;">${L?'Signo':'Sign'} <span id="aspSort4" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(5)" style="cursor:pointer;">${L?'Orbe':'Orb'} <span id="aspSort5" style="font-size:0.7em;opacity:0.4;">▼</span></th>
                     </tr></thead>
                     <tbody>${aspectsTableRows}</tbody>
                 </table>
@@ -10692,7 +10702,7 @@ function sortAspectsTable(colIdx) {
         aspSortAsc = true;
     }
     // Update header indicators
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 6; i++) {
         var sp = document.getElementById('aspSort' + i);
         if (sp) {
             sp.style.opacity = (i === colIdx) ? '1' : '0.4';
@@ -10707,8 +10717,8 @@ function sortAspectsTable(colIdx) {
         if (!cellA || !cellB) return 0;
         var valA = cellA.textContent.trim();
         var valB = cellB.textContent.trim();
-        // Orb column (3) = numeric sort
-        if (colIdx === 3) {
+        // Orb column (5) = numeric sort
+        if (colIdx === 5) {
             var nA = parseFloat(valA) || 0;
             var nB = parseFloat(valB) || 0;
             return aspSortAsc ? nA - nB : nB - nA;
@@ -11205,7 +11215,7 @@ function renderPersonalCalendar() {
     const natalSubTabsHTML = buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today);
 
     let calendarHTML = `
-        ${buildProfileSelector()}
+        ${buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
         ${natalSubTabsHTML}
         <div id="natalCalendarGrid">
         <!-- Monthly Calendar Grid -->
@@ -13530,6 +13540,35 @@ function renderSubsolarGlobe(lat, lon) {
     ctx.stroke();
 }
 
+// ── Refresh all live data on tab click ──────────
+function refreshAllLiveData() {
+    const now = new Date();
+    // Refresh sublunar position
+    const lat = parseFloat(getAstroData(now).sublunarLat);
+    const lon = getSublunaryLonDeg(now);
+    console.log(`[Tab Click Refresh] ${now.toLocaleTimeString()} - Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`);
+    const mapEl = document.getElementById('sublunaryMapContainer');
+    if (mapEl) mapEl.innerHTML = renderSublunaryMap(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
+    const infoEl = document.getElementById('sublunaryInfoBox');
+    if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
+    renderSublunaryGlobe(lat, lon);
+    // Refresh earth panel if visible (seismic, weather, tides)
+    const earthPanel = document.getElementById('earthInfoPanel');
+    if (earthPanel && earthPanel.style.display !== 'none') {
+        renderEarthInfoPanel();
+    }
+    // Refresh solar panel if visible
+    const solarPanel = document.getElementById('solarInfoPanel');
+    if (solarPanel && solarPanel.style.display !== 'none') {
+        renderSolarInfoPanel();
+    }
+    // Refresh solar system panel if visible
+    const ssPanel = document.getElementById('solarSystemPanel');
+    if (ssPanel && ssPanel.style.display !== 'none') {
+        renderSolarSystemPanel();
+    }
+}
+
 // ── Auto-refresh sublunar position every 3 minutes ──────────
 let _sublunaryTimer = null;
 function startSublunaryRefresh() {
@@ -15036,11 +15075,22 @@ function openPreferencesModal() {
                             ${t('gcalDisconnect')}
                         </button>
                     </div>
-                    <button onclick="gcalExportAstroEvents(this)" style="width:100%;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;margin-bottom:4px;">
-                        🌙 ${currentLang==='es'?'Exportar aspectos lunares a Google Calendar':'Export lunar aspects to Google Calendar'}
-                    </button>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <select id="gcalColorPicker" style="padding:6px;background:rgba(20,10,40,0.8);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#c39bd3;font-size:0.78em;">
+                            <option value="2" style="color:#0b8043;">🟢 ${currentLang==='es'?'Verde':'Green'}</option>
+                            <option value="1" style="color:#7986cb;">🟣 ${currentLang==='es'?'Lavanda':'Lavender'}</option>
+                            <option value="3" style="color:#8e24aa;">🍇 ${currentLang==='es'?'Uva':'Grape'}</option>
+                            <option value="5" style="color:#f6bf26;">🟡 ${currentLang==='es'?'Plátano':'Banana'}</option>
+                            <option value="6" style="color:#f4511e;">🍊 ${currentLang==='es'?'Mandarina':'Tangerine'}</option>
+                            <option value="9" style="color:#3f51b5;">🫐 ${currentLang==='es'?'Arándano':'Blueberry'}</option>
+                            <option value="11" style="color:#d50000;">🍅 ${currentLang==='es'?'Tomate':'Tomato'}</option>
+                        </select>
+                        <button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">
+                            🌙⭐ ${currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar'}
+                        </button>
+                    </div>
                     <div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;">
-                        ${currentLang==='es'?'Agrega fases lunares, eclipses y aspectos del ciclo actual':'Adds lunar phases, eclipses, and aspects from current cycle'}
+                        ${currentLang==='es'?'Fases lunares, eclipses, aspectos planetarios — todo 2026':'Lunar phases, eclipses, planetary aspects — all 2026'}
                     </div>
                 ` : `
                     <div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">${t('gcalDisconnected')}</div>
@@ -15897,6 +15947,16 @@ function setUserLocation(lat, lon, name) {
     let cwi = -1, cday = null;
     todayWks.forEach((w,i) => w.days.forEach(d => { if(d.date.toDateString()===today.toDateString()){cwi=i;cday=d;} }));
     if (cday) renderLunarInfoBanner(today, cday, todayWks, cwi);
+    // Re-render Earth panel if currently in earth mode (weather, seismic, tides use location)
+    if (calendarMode === 'earth') {
+        var oldEip = document.getElementById('earthInfoPanel');
+        if (oldEip) oldEip.remove();
+        renderEarthInfoPanel();
+    }
+    // Re-render solar panel if in solar mode
+    if (calendarMode === 'solar') {
+        renderSolarInfoPanel();
+    }
 }
 
 window.openLocationSelector = openLocationSelector;
@@ -15962,7 +16022,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v178';
+const APP_VERSION = 'v179';
 var _pendingSW = null;
 
 function showUpdateBanner() {
