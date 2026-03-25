@@ -8616,12 +8616,12 @@ function renderEarthInfoPanel() {
     fetchEarthWeather(uLat, uLon, weatherId);
     // Fetch seismic data from USGS
     fetchEarthquakes(uLat, uLon, 'earthSeismicData');
-    // Auto-refresh seismic + weather every 3 minutes
-    if (window._earthRefreshInterval) clearInterval(window._earthRefreshInterval);
-    window._earthRefreshInterval = setInterval(function() {
-        fetchEarthquakes(uLat, uLon, 'earthSeismicData');
-        fetchEarthWeather(uLat, uLon, weatherId);
-    }, 180000);
+    // Auto-refresh seismic + weather — DISABLED to prevent UI flicker
+    // if (window._earthRefreshInterval) clearInterval(window._earthRefreshInterval);
+    // window._earthRefreshInterval = setInterval(function() {
+    //     fetchEarthquakes(uLat, uLon, 'earthSeismicData');
+    //     fetchEarthWeather(uLat, uLon, weatherId);
+    // }, 180000);
 }
 
 // ── Open-Meteo Weather API ──
