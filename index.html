@@ -701,7 +701,7 @@
             })();
         </script>
 
-        <div class="navigation" id="lunarNavigation">
+        <div class="navigation" id="lunarNavigation" style="display:none;">
             <div class="cycle-info">
                 <div class="cycle-number" id="cycleNumber">Lunar Cycle</div>
                 <div class="cycle-dates" id="cycleDates"></div>
@@ -10343,6 +10343,19 @@ function updateCurrentDayInfoForMode(mode) {
 
         currentDayInfoDiv.style.display = 'block';
 
+        // Calculate lunar cycle dates for HOY box bottom
+        let cycleDatesHTML = '';
+        if (mode === 'lunar') {
+            try {
+                const nmCycle = findNearestNewMoon(today);
+                const wksCycle = calculateLunarCycle(nmCycle);
+                const cEnd = wksCycle[wksCycle.length - 1].endDate;
+                const cTotal = wksCycle.reduce((s, w) => s + w.days.length, 0);
+                const cStart = wksCycle[0].startDate;
+                cycleDatesHTML = '<div style="margin-top:auto;padding-top:5px;border-top:1px solid rgba(126,200,255,0.2);width:100%;"><div style="font-size:0.55em;color:#7ec8ff;opacity:0.8;">' + formatDate(cStart) + ' - ' + formatDate(cEnd) + ' · ' + cTotal + (currentLang==='es'?' días':' days') + '</div></div>';
+            } catch(e) {}
+        }
+
         currentDayInfoDiv.innerHTML = `
             <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
                 <!-- Eventos -->
@@ -10370,7 +10383,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
-                    ${(() => { var sg = getSignForDate(today); if(sg) { var sd = sg.start; var ed = sg.end; var sm = currentLang==='es' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return '<div style="margin-top:auto;padding-top:5px;border-top:1px solid '+sg.color+'30;width:100%;"><div style="font-size:0.85em;color:'+sg.color+';font-weight:800;">'+sg.symbol+' '+sg.name+'</div><div style="font-size:0.55em;color:'+sg.color+';opacity:0.7;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+'</div></div>'; } return ''; })()}
+                    ${cycleDatesHTML}
                 </div>
                 <!-- Info según modo -->
                 <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden;">
@@ -15898,7 +15911,7 @@ function renderCalendar() {
                     <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
-                    ${(() => { var sg = getSignForDate(today); if(sg) { var sd = sg.start; var ed = sg.end; var sm = currentLang==='es' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return '<div style="margin-top:auto;padding-top:5px;border-top:1px solid '+sg.color+'30;width:100%;"><div style="font-size:0.85em;color:'+sg.color+';font-weight:800;">'+sg.symbol+' '+sg.name+'</div><div style="font-size:0.55em;color:'+sg.color+';opacity:0.7;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+'</div></div>'; } return ''; })()}
+                    <div style="margin-top:auto;padding-top:5px;border-top:1px solid rgba(126,200,255,0.2);width:100%;"><div style="font-size:0.55em;color:#7ec8ff;opacity:0.8;">${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}</div></div>
                 </div>
 
                 <!-- Luna/Sol/Info Hoy -->
@@ -18603,7 +18616,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v300';
+const APP_VERSION = 'v301';
 var _pendingSW = null;
 
 function showUpdateBanner() {
