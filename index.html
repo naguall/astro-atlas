@@ -7569,7 +7569,7 @@ function showHistoricAspectsModal() {
         if (ev.history && ev.history.length) {
             var hid = 'hist_' + ev.planet1.replace(/[^a-z]/gi,'') + '_' + ev.symbol.charCodeAt(0);
             html += '<div style="margin-top:8px;">';
-            html += '<div onclick="var el=document.getElementById(\'' + hid + '\');var ar=this.querySelector(\'.hist-arrow\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▼\';}else{el.style.display=\'none\';ar.textContent=\'▶\';}" style="font-size:0.78em;color:' + ev.badgeColor + ';font-weight:700;letter-spacing:0.3px;cursor:pointer;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid ' + ev.badgeColor + '30;display:flex;align-items:center;gap:6px;">';
+            html += '<div onclick="event.stopPropagation();var el=document.getElementById(\'' + hid + '\');var ar=this.querySelector(\'.hist-arrow\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▼\';}else{el.style.display=\'none\';ar.textContent=\'▶\';}" style="font-size:0.78em;color:' + ev.badgeColor + ';font-weight:700;letter-spacing:0.3px;cursor:pointer;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid ' + ev.badgeColor + '30;display:flex;align-items:center;gap:6px;">';
             html += '<span class="hist-arrow" style="font-size:0.9em;">▶</span> 📜 ' + (L ? 'Eventos Históricos en Ciclos Anteriores' : 'Historical Events in Previous Cycles') + ' <span style="opacity:0.5;font-weight:400;margin-left:auto;">(' + ev.history.length + ')</span></div>';
             html += '<div id="' + hid + '" style="display:none;margin-top:6px;">';
             ev.history.forEach(function(h) {
@@ -7625,7 +7625,7 @@ function renderHistoricEventCard(ev, cfg) {
     var badgeColor = ev.badgeColor || cfg.color;
     var badgeBg = ev.badgeBg || cfg.bg;
 
-    var html = '<div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + badgeColor + ';">';
+    var html = '<div onclick="showBannerAspectDetail(\'' + clickText + '\')" style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + badgeColor + ';cursor:pointer;">';
     // Title row
     html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
     html += '<div style="font-size:1.05em;font-weight:700;color:#e8eaf6;">' + titleLine + '</div>';
@@ -7645,7 +7645,7 @@ function renderHistoricEventCard(ev, cfg) {
     if (ev.history && ev.history.length) {
         var hid = 'catHist_' + ev.planet1.replace(/[^a-z]/gi,'') + '_' + ev.symbol.charCodeAt(0) + '_' + Math.random().toString(36).substr(2,4);
         html += '<div style="margin-top:8px;">';
-        html += '<div onclick="var el=document.getElementById(\'' + hid + '\');var ar=this.querySelector(\'.hist-arrow\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▼\';}else{el.style.display=\'none\';ar.textContent=\'▶\';}" style="font-size:0.78em;color:' + badgeColor + ';font-weight:700;letter-spacing:0.3px;cursor:pointer;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid ' + badgeColor + '30;display:flex;align-items:center;gap:6px;">';
+        html += '<div onclick="event.stopPropagation();var el=document.getElementById(\'' + hid + '\');var ar=this.querySelector(\'.hist-arrow\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▼\';}else{el.style.display=\'none\';ar.textContent=\'▶\';}" style="font-size:0.78em;color:' + badgeColor + ';font-weight:700;letter-spacing:0.3px;cursor:pointer;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid ' + badgeColor + '30;display:flex;align-items:center;gap:6px;">';
         html += '<span class="hist-arrow" style="font-size:0.9em;">▶</span> 📜 ' + (L ? 'Eventos Históricos en Ciclos Anteriores' : 'Historical Events in Previous Cycles') + ' <span style="opacity:0.5;font-weight:400;margin-left:auto;">(' + ev.history.length + ')</span></div>';
         html += '<div id="' + hid + '" style="display:none;margin-top:6px;">';
         ev.history.forEach(function(h) {
@@ -7654,10 +7654,6 @@ function renderHistoricEventCard(ev, cfg) {
         });
         html += '</div></div>';
     }
-    // AI button
-    html += '<div style="margin-top:8px;text-align:center;">';
-    html += '<button onclick="event.stopPropagation();showBannerAspectDetail(\'' + clickText + '\')" style="padding:6px 14px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.35);border-radius:6px;color:#c9a840;font-size:0.78em;cursor:pointer;font-weight:600;">✦ ' + (L ? 'Interpretación AI + Chat' : 'AI Interpretation + Chat') + '</button>';
-    html += '</div>';
     html += '</div>';
     return html;
 }
@@ -17531,7 +17527,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v235';
+const APP_VERSION = 'v236';
 var _pendingSW = null;
 
 function showUpdateBanner() {
