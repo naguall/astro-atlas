@@ -2130,7 +2130,7 @@ function openTideCycleModal() {
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
     html += '<h3 style="color:#c9a840;font-size:0.95em;margin:0;font-family:Cinzel,serif;">' + (L ? 'Mareas 2026' : 'Tides 2026') + '</h3>';
     if (locationName) {
-        html += '<span onclick="closeTideCycleModal();setTimeout(function(){openLocationSelector();window._reopenTideAfterLoc=true;},250);" style="font-size:0.75em;color:rgba(255,255,255,0.4);cursor:pointer;">' + locationName + ' ▾</span>';
+        html += '<span onclick="closeTideCycleModal();setTimeout(function(){openLocationSelector();window._reopenTideAfterLoc=true;},250);" style="font-size:0.75em;color:rgba(255,255,255,0.4);cursor:pointer;">📍 ' + locationName + ' ▾</span>';
     }
     html += '</div>';
 
@@ -2174,7 +2174,10 @@ function openTideCycleModal() {
         var fDate = new Date(startDate);
         fDate.setDate(fDate.getDate() + d);
         fDate.setHours(0,0,0,0);
-        var fExtremes = getTideExtremes(getTideCurveForLocation(fDate, ASTRO_USER_LAT, ASTRO_USER_LON));
+        var fDateStr = getDateStr(fDate);
+        var fRealExtremes = _tideCache['ext_' + fDateStr] || null;
+        var fExtremes = fRealExtremes || getTideExtremes(getTideCurveForLocation(fDate, ASTRO_USER_LAT, ASTRO_USER_LON));
+        var fIsReal = !!fRealExtremes;
         var fAstro = getAstroData(fDate);
         var isToday = (fDate.getTime() === today.getTime());
         var dayLabel = isToday ? (L ? 'HOY' : 'TODAY') : fDate.toLocaleDateString(L ? 'es' : 'en', {weekday:'short', day:'numeric', month:'short'});
@@ -2216,9 +2219,13 @@ function openTideCycleModal() {
         fExtremes.forEach(function(e) {
             var icon = e.type === 'alta' ? '▲' : '▼';
             var col = e.type === 'alta' ? '#4FC3F7' : '#01579B';
-            html += '<span style="color:' + col + ';">' + icon + ' ' + (e.hour < 10 ? '0' : '') + e.hour + ':00 (' + e.level.toFixed(1) + 'm)</span>';
+            var timeLabel = e.timeStr ? e.timeStr : ((e.hour < 10 ? '0' : '') + e.hour + ':00');
+            html += '<span style="color:' + col + ';">' + icon + ' ' + timeLabel + ' (' + e.level.toFixed(1) + 'm)</span>';
         });
-        html += '<span style="color:rgba(255,255,255,0.35);margin-left:auto;font-size:0.92em;">' + fAstro.distance.toLocaleString() + ' km</span>';
+        if (fIsReal) {
+            html += '<span style="color:rgba(78,205,196,0.5);margin-left:auto;font-size:0.85em;">✓</span>';
+        }
+        html += '<span style="color:rgba(255,255,255,0.35);margin-left:' + (fIsReal ? '4px' : 'auto') + ';font-size:0.92em;">' + fAstro.distance.toLocaleString() + ' km</span>';
         html += '</div>';
 
         html += '</div>';
@@ -7807,6 +7814,9 @@ function showHistoricAspectsModal() {
         html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + ev.lastTime + '</span>';
         html += '</div>';
         html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + ev.meaning + '</div>';
+        // AI interpretation button
+        var evClickText = (ev.planet1 + ' ' + ev.symbol + ' ' + ev.planet2 + ' ' + ev.date + ' ' + ev.meaning).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += '<div onclick="event.stopPropagation();closeHistoricAspectsModal();setTimeout(function(){showBannerAspectDetail(\'' + evClickText + '\');},300);" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;margin-bottom:10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:8px;font-size:0.78em;color:#c9a840;font-weight:600;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(201,168,64,0.25)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.15)\'">' + (L ? '✨ Interpretar con IA' : '✨ Interpret with AI') + '</div>';
         if (ev.history && ev.history.length) {
             var hid = 'hist_' + ev.planet1.replace(/[^a-z]/gi,'') + '_' + ev.symbol.charCodeAt(0);
             html += '<div style="margin-top:8px;">';
@@ -15372,42 +15382,12 @@ function getTideCurveForLocation(date, lat, lon) {
 
 
 // ══════════════════════════════════════════════════
-// OPEN-METEO MARINE API — Real tide data (free, unlimited)
+// WORLDTIDES API — Real tide data (global coverage)
 // ══════════════════════════════════════════════════
-const _tideCache = {}; // { "lat,lon,date": [...96pts] }
-
-async function fetchOpenMeteoTides(lat, lon, dateStr) {
-    const key = lat.toFixed(2) + ',' + lon.toFixed(2) + ',' + dateStr;
-    if (_tideCache[key]) return _tideCache[key];
-
-    const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_level_height_msl&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
-    try {
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.hourly && data.hourly.sea_level_height_msl && data.hourly.sea_level_height_msl.some(v => v !== null && v !== undefined)) {
-            const hours = data.hourly.time.map((t, i) => ({
-                hour: new Date(t).getHours() + new Date(t).getMinutes()/60,
-                level: (data.hourly.sea_level_height_msl[i] !== null && data.hourly.sea_level_height_msl[i] !== undefined) ? data.hourly.sea_level_height_msl[i] : 0
-            }));
-            // Interpolate to 15-min resolution
-            const pts = [];
-            for (let i = 0; i < hours.length - 1; i++) {
-                for (let q = 0; q < 4; q++) {
-                    const h = hours[i].hour + q * 0.25;
-                    const t = q / 4;
-                    const level = hours[i].level * (1-t) + hours[i+1].level * t;
-                    pts.push({ hour: h, level });
-                }
-            }
-            pts.push(hours[hours.length-1]);
-            _tideCache[key] = pts;
-            return pts;
-        }
-    } catch(e) {
-        console.log('Open-Meteo tide fetch failed:', e.message);
-    }
-    return null;
-}
+const WORLDTIDES_KEY = '66f398a0-31c7-4aa0-a24b-d77a796216e9';
+const _tideCache = {}; // in-memory cache
+var _wtStation = ''; // station name from last fetch
+var _wtCopyright = ''; // copyright from last fetch
 
 function getDateStr(date) {
     return date.getFullYear() + '-'
@@ -15415,39 +15395,185 @@ function getDateStr(date) {
         + String(date.getDate()).padStart(2,'0');
 }
 
-// Override getTideCurveForLocation to use Open-Meteo async
-// Render banner with real data when available
+// Check localStorage cache for WorldTides data (7-day cache)
+function getWTCache(lat, lon, dateStr) {
+    try {
+        var cacheKey = 'wt_' + lat.toFixed(2) + '_' + lon.toFixed(2) + '_' + dateStr;
+        var cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            var data = JSON.parse(cached);
+            // Check if cache is less than 7 days old
+            if (data.ts && (Date.now() - data.ts) < 7 * 24 * 3600 * 1000) {
+                return data;
+            }
+            localStorage.removeItem(cacheKey);
+        }
+    } catch(e) {}
+    return null;
+}
+
+function setWTCache(lat, lon, dateStr, data) {
+    try {
+        var cacheKey = 'wt_' + lat.toFixed(2) + '_' + lon.toFixed(2) + '_' + dateStr;
+        data.ts = Date.now();
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+    } catch(e) {}
+}
+
+// Fetch 7 days of heights + extremes from WorldTides
+async function fetchWorldTides(lat, lon, dateStr) {
+    // Check localStorage cache first
+    var cached = getWTCache(lat, lon, dateStr);
+    if (cached) {
+        _wtStation = cached.station || '';
+        _wtCopyright = cached.copyright || '';
+        return cached;
+    }
+
+    var url = 'https://www.worldtides.info/api/v3?heights&extremes&localtime'
+        + '&date=' + dateStr
+        + '&days=7'
+        + '&lat=' + lat
+        + '&lon=' + lon
+        + '&key=' + WORLDTIDES_KEY;
+
+    try {
+        var res = await fetch(url);
+        var data = await res.json();
+        if (data.status !== 200) {
+            console.log('WorldTides error:', data.error);
+            return null;
+        }
+        _wtStation = data.station || '';
+        _wtCopyright = data.copyright || '';
+        // Save to localStorage cache
+        var cacheData = {
+            heights: data.heights,
+            extremes: data.extremes,
+            station: data.station || '',
+            copyright: data.copyright || '',
+            responseLat: data.responseLat,
+            responseLon: data.responseLon,
+            callCount: data.callCount
+        };
+        setWTCache(lat, lon, dateStr, cacheData);
+        return cacheData;
+    } catch(e) {
+        console.log('WorldTides fetch failed:', e.message);
+        return null;
+    }
+}
+
+// Convert WorldTides heights to curve format for a specific date
+function wtHeightsToCurve(wtData, dateStr) {
+    if (!wtData || !wtData.heights) return null;
+    var dayStart = new Date(dateStr + 'T00:00:00');
+    var dayEnd = new Date(dateStr + 'T23:59:59');
+    var pts = [];
+    for (var i = 0; i < wtData.heights.length; i++) {
+        var h = wtData.heights[i];
+        var d = new Date(h.date || h.dt * 1000);
+        if (d >= dayStart && d <= dayEnd) {
+            pts.push({
+                hour: d.getHours() + d.getMinutes() / 60,
+                level: h.height
+            });
+        }
+    }
+    return pts.length > 4 ? pts : null;
+}
+
+// Convert WorldTides extremes for a specific date
+function wtExtremesForDate(wtData, dateStr) {
+    if (!wtData || !wtData.extremes) return null;
+    var dayStart = new Date(dateStr + 'T00:00:00');
+    var dayEnd = new Date(dateStr + 'T23:59:59');
+    var exts = [];
+    for (var i = 0; i < wtData.extremes.length; i++) {
+        var e = wtData.extremes[i];
+        var d = new Date(e.date || e.dt * 1000);
+        if (d >= dayStart && d <= dayEnd) {
+            var hh = d.getHours();
+            var mm = d.getMinutes();
+            exts.push({
+                hour: hh,
+                minute: mm,
+                timeStr: (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm,
+                level: e.height,
+                type: e.type === 'High' ? 'alta' : 'baja'
+            });
+        }
+    }
+    return exts.length > 0 ? exts : null;
+}
+
+// Main refresh function — replaces Open-Meteo
 async function refreshTidesFromAPI(today, currentDayInCycle, todayWeeks, currentWeekIndex) {
-    const dateStr = getDateStr(today);
-    const realTides = await fetchOpenMeteoTides(ASTRO_USER_LAT, ASTRO_USER_LON, dateStr);
-    if (!realTides) {
-        // API failed — keep harmonic model, update status
-        const statusEl = document.getElementById('tideApiStatus');
-        if (statusEl) statusEl.innerHTML = currentLang === 'es' ? '📐 Modelo armónico (estación más cercana)' : '📐 Harmonic model (nearest station)';
+    var dateStr = getDateStr(today);
+    var wtData = await fetchWorldTides(ASTRO_USER_LAT, ASTRO_USER_LON, dateStr);
+
+    if (!wtData) {
+        var statusEl = document.getElementById('tideApiStatus');
+        if (statusEl) statusEl.innerHTML = currentLang === 'es' ? '📐 Modelo armónico (estimación astronómica)' : '📐 Harmonic model (astronomical estimate)';
         return;
     }
-    
-    // Update the tide curve container in place
-    const tideContainer = document.querySelector('.tide-curve-container');
-    if (tideContainer) {
-        tideContainer.innerHTML = renderTideSVG(realTides, 400, 60);
+
+    // Convert heights to curve for today
+    var realCurve = wtHeightsToCurve(wtData, dateStr);
+    if (realCurve && realCurve.length > 4) {
+        // Update the tide curve SVG
+        var tideContainer = document.querySelector('.tide-curve-container');
+        if (tideContainer) {
+            tideContainer.innerHTML = renderTideSVG(realCurve, 400, 60);
+        }
+        // Store in memory cache for modal use
+        _tideCache[dateStr] = realCurve;
     }
-    // Update extremes display
-    const extremesDiv = document.getElementById('tideExtremesDisplay');
-    if (extremesDiv) {
-        const ext = getTideExtremes(realTides);
-        extremesDiv.innerHTML = ext.slice(0,4).map(e =>
-            `<span style="margin-right:8px;color:${e.type==='alta'?'#4FC3F7':'#01579B'}">${e.type==='alta'?'▲':'▼'} <strong>${e.timeStr||e.hour+':00'}</strong> ${e.level.toFixed(2)}m</span>`
-        ).join('') || 'Sin datos';
+
+    // Update extremes display with real data
+    var realExtremes = wtExtremesForDate(wtData, dateStr);
+    if (realExtremes) {
+        var extremesDiv = document.getElementById('tideExtremesDisplay');
+        if (extremesDiv) {
+            extremesDiv.innerHTML = realExtremes.slice(0, 4).map(function(e) {
+                return '<span style="margin-right:8px;color:' + (e.type === 'alta' ? '#4FC3F7' : '#01579B') + '">'
+                    + (e.type === 'alta' ? '▲' : '▼') + ' <strong>' + e.timeStr + '</strong> ' + e.level.toFixed(2) + 'm</span>';
+            }).join('') || 'Sin datos';
+        }
     }
-    // Store for next render
-    _tideCache['__lastReal__'] = realTides;
+
+    // Cache all 7 days of data in memory for the tide modal
+    if (wtData.heights) {
+        for (var d = 0; d < 7; d++) {
+            var futureDate = new Date(today);
+            futureDate.setDate(futureDate.getDate() + d);
+            var fDateStr = getDateStr(futureDate);
+            var dayCurve = wtHeightsToCurve(wtData, fDateStr);
+            if (dayCurve) _tideCache[fDateStr] = dayCurve;
+        }
+    }
+    if (wtData.extremes) {
+        for (var d = 0; d < 7; d++) {
+            var futureDate = new Date(today);
+            futureDate.setDate(futureDate.getDate() + d);
+            var fDateStr = getDateStr(futureDate);
+            var dayExts = wtExtremesForDate(wtData, fDateStr);
+            if (dayExts) _tideCache['ext_' + fDateStr] = dayExts;
+        }
+    }
+
+    // Update status with station info
+    var statusEl = document.getElementById('tideApiStatus');
+    if (statusEl) {
+        var stationInfo = _wtStation ? ' · ' + _wtStation : '';
+        statusEl.innerHTML = (currentLang === 'es' ? '✓ Datos reales WorldTides' : '✓ Real data WorldTides') + stationInfo;
+        statusEl.style.color = 'rgba(78,205,196,0.7)';
+    }
 }
 
 function getLatestTideCurve(date) {
-    const dateStr = getDateStr(date);
-    const key = ASTRO_USER_LAT.toFixed(2) + ',' + ASTRO_USER_LON.toFixed(2) + ',' + dateStr;
-    return _tideCache[key] || getTideCurveForLocation(date, ASTRO_USER_LAT, ASTRO_USER_LON);
+    var dateStr = getDateStr(date);
+    return _tideCache[dateStr] || getTideCurveForLocation(date, ASTRO_USER_LAT, ASTRO_USER_LON);
 }
 
 
@@ -15487,7 +15613,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
                 <span style="color:#7ec8ff;font-size:0.78em;font-weight:bold;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet}</span>
-                <span onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;">· ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
+                <span onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;">📍 ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
             </div>
         </div>
 
@@ -18141,7 +18267,7 @@ function setUserLocation(lat, lon, name) {
     }
 }
 
-// ========== LEAFLET MAP + GOOGLE PLACES ==========
+// ========== GOOGLE MAPS + GOOGLE PLACES ==========
 var _locGoogleMap = null;
 var _locMapMarker = null;
 var _locMapPendingLatLon = null;
@@ -18414,7 +18540,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v289';
+const APP_VERSION = 'v290';
 var _pendingSW = null;
 
 function showUpdateBanner() {
