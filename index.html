@@ -12208,14 +12208,14 @@ function drawNatalWheel(canvasId) {
                 }
             });
 
-            // House numbers INSIDE inner circle (centered in each house sector)
+            // House numbers INSIDE inner circle — near the edge like Astroly Master
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var nextCusp = nc.houses.cusps[(idx+1)%12];
                 var span = nextCusp > cusp ? nextCusp-cusp : nextCusp+360-cusp;
                 var midLon = cusp + span/2;
                 var hA = L2A(midLon);
-                var hr = R_innerCircle * 0.62; // inside inner circle
-                svg += '<text x="'+px(hr,hA)+'" y="'+py(hr,hA)+'" fill="#888" font-size="13" font-weight="bold" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+(idx+1)+'</text>';
+                var hr = R_innerCircle - 12; // just inside the inner circle edge
+                svg += '<text x="'+px(hr,hA)+'" y="'+py(hr,hA)+'" fill="#999" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+(idx+1)+'</text>';
             });
 
             // Cusp degree labels (between tick ring and planet ring, near the cusp line)
@@ -18771,7 +18771,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v326';
+const APP_VERSION = 'v327';
 var _pendingSW = null;
 
 function showUpdateBanner() {
