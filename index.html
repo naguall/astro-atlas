@@ -14063,8 +14063,8 @@ function renderSolarInfoPanel() {
         + '</div>'
         // Box 3: Amanecer / Atardecer
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">🌅 ' + (currentLang==='es'?'Duración del Día':'Day Length') + '</h4>'
-        + '<div class="astro-value" style="color:#ffc800;font-size:1.5em;">⏱ ' + dayDurStr + '</div>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Duración del Día':'Day Length') + '</h4>'
+        + '<div class="astro-value" style="color:#ffc800;font-size:1.5em;">' + dayDurStr + '</div>'
         + '<div style="display:flex;justify-content:space-around;margin-top:6px;font-size:0.85em;">'
         + '<span style="color:#ff9500;">☀️↑ ' + sunRiseStr + '</span>'
         + '<span style="color:#ff6600;">☀️↓ ' + sunSetStr + '</span>'
@@ -14072,7 +14072,7 @@ function renderSolarInfoPanel() {
         + '</div>'
         // Box 4: Altitud Solar Máxima
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">☀️ ' + (currentLang==='es'?'Altitud Máxima':'Max Altitude') + '</h4>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Altitud Máxima':'Max Altitude') + '</h4>'
         + '<div class="astro-value" style="color:#ffe066;">' + maxAlt.toFixed(1) + '°</div>'
         + '<div class="astro-label">' + (maxAlt > 80 ? (currentLang==='es'?'Sol casi cenital':'Near-zenith sun') : maxAlt > 60 ? (currentLang==='es'?'Sol alto':'High sun') : maxAlt > 40 ? (currentLang==='es'?'Sol moderado':'Moderate sun') : (currentLang==='es'?'Sol bajo':'Low sun')) + '</div>'
         + '<div class="astro-bar-bg"><div class="astro-bar-fill" style="width:' + (maxAlt/90*100).toFixed(0) + '%;background:linear-gradient(90deg,#ff6600,#ffe066);"></div></div>'
@@ -14106,8 +14106,8 @@ function renderSolarInfoPanel() {
 
     // Subsolar position title
     const titleHTML = '<div style="font-family:\'Cinzel\',serif;color:#ff9500;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">'
-        + '☀ ' + (currentLang==='es'?'Posición Subsolar — Punto sobre la Tierra':'Subsolar Point — Position over Earth')
-        + '<span style="font-size:0.78em;color:#a08040;font-weight:400;margin-left:8px;">' + (currentLang==='es'?'Lat':'Lat') + ': ' + sunDecl.toFixed(1) + '°' + (sunDecl>=0?'N':'S') + ' · ' + (currentLang==='es'?'Lon':'Lon') + ': ' + Math.abs(subsolarLon).toFixed(1) + '°' + (subsolarLon>=0?'E':'W') + '</span>'
+        + (currentLang==='es'?'Posición Subsolar — Punto sobre la Tierra':'Subsolar Point — Position over Earth')
+        + '<span style="font-size:0.78em;color:#a08040;font-weight:400;margin-left:8px;">' + (currentLang==='es'?'Dec':'Dec') + ': ' + sunDecl.toFixed(1) + '°' + (sunDecl>=0?'N':'S') + ' · ' + (currentLang==='es'?'Lon':'Lon') + ': ' + Math.abs(subsolarLon).toFixed(1) + '°' + (subsolarLon>=0?'E':'W') + '</span>'
         + '</div>';
     const gridHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">'
         + '<div id="subsolarMapContainer">' + mapSVG + '</div>'
@@ -18077,7 +18077,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v272';
+const APP_VERSION = 'v273';
 var _pendingSW = null;
 
 function showUpdateBanner() {
