@@ -16548,9 +16548,51 @@ function checkNotifications() {
     }
 }
 
-// Check if today is the start of a lunar phase
+// Check if today is the start of a lunar phase (perfection day)
 function checkLunarPhaseStart(date) {
-    // TODO: Fix getCurrentLunarCycle function - DISABLED for now
+    var today = new Date(date);
+    today.setHours(12, 0, 0, 0); // noon for stable calculation
+    var elong = calculateLunarPhase(today);
+    var targets = [
+        { deg: 0,   es: 'Luna Nueva',        en: 'New Moon',        icon: '🌑', svg: 0   },
+        { deg: 90,  es: 'Cuarto Creciente',   en: 'First Quarter',   icon: '🌓', svg: 90  },
+        { deg: 180, es: 'Luna Llena',         en: 'Full Moon',       icon: '🌕', svg: 180 },
+        { deg: 270, es: 'Cuarto Menguante',   en: 'Last Quarter',    icon: '🌗', svg: 270 }
+    ];
+    var L = currentLang === 'es';
+    for (var i = 0; i < targets.length; i++) {
+        var t = targets[i];
+        var diff = Math.abs(elong - t.deg);
+        if (diff > 180) diff = 360 - diff;
+        if (diff < 8) {
+            // Verify this is the closest day (perfection day)
+            var prevD = new Date(today); prevD.setDate(prevD.getDate() - 1);
+            var nextD = new Date(today); nextD.setDate(nextD.getDate() + 1);
+            var prevElong = calculateLunarPhase(prevD);
+            var nextElong = calculateLunarPhase(nextD);
+            var prevDiff = Math.abs(prevElong - t.deg); if (prevDiff > 180) prevDiff = 360 - prevDiff;
+            var nextDiff = Math.abs(nextElong - t.deg); if (nextDiff > 180) nextDiff = 360 - nextDiff;
+            if (diff <= prevDiff && diff <= nextDiff) {
+                var todayKey = getDateKey(today);
+                var notifKey = 'notified-lunarphase-' + todayKey;
+                if (!localStorage.getItem(notifKey)) {
+                    var phaseName = L ? t.es : t.en;
+                    sendNotif(t.icon + ' ' + phaseName, {
+                        body: L
+                            ? 'Hoy se perfecciona la ' + phaseName + '. Observa cómo influye en tu energía y emociones.'
+                            : 'Today the ' + phaseName + ' is exact. Notice how it influences your energy and emotions.',
+                        icon: 'data:image/svg+xml,' + encodeURIComponent(getMoonSVG(t.svg, 64)),
+                        tag: 'lunar-phase-' + todayKey,
+                        requireInteraction: true
+                    });
+                    localStorage.setItem(notifKey, 'true');
+                    console.log('🌙 Lunar phase notification sent:', phaseName);
+                    return true;
+                }
+                return false; // already notified today
+            }
+        }
+    }
     return false;
 }
 
@@ -18561,7 +18603,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v298';
+const APP_VERSION = 'v299';
 var _pendingSW = null;
 
 function showUpdateBanner() {
