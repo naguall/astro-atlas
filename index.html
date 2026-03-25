@@ -298,6 +298,12 @@
         #aiChatFab:active { transform: scale(0.92); }
         #aiChatModal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.95); flex-direction: column; }
         #aiChatModal.show { display: flex; }
+        #hoyInterpModal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.97); flex-direction: column; }
+        #hoyInterpModal.show { display: flex; }
+        .hoy-interp-messages { flex: 1; overflow-y: auto; padding: 12px; }
+        .hoy-interp-messages .ai-msg { margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.88em; line-height: 1.55; }
+        .hoy-interp-messages .ai-msg.assistant { background: rgba(74,158,255,0.08); color: #e0e0e0; border: 1px solid rgba(74,158,255,0.15); }
+        .hoy-interp-messages .ai-msg.loading { background: rgba(201,168,64,0.08); color: #c9a840; border: 1px solid rgba(201,168,64,0.15); text-align: center; }
         .ai-chat-header { padding: 12px 16px; background: rgba(5,7,30,0.98); border-bottom: 1px solid rgba(102,126,234,0.3); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
         .ai-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
         .ai-chat-messages::-webkit-scrollbar { display: none; }
@@ -14167,7 +14173,7 @@ function renderSolarInfoPanel() {
         + (currentLang==='es' ? 'Info Solar' : 'Solar Info')
         + '</span></div>'
         + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'
-        + '<span style="color:#ff9500;font-size:0.78em;font-weight:bold;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + '</span>'
+        + '<span onclick="toggleSolarRiseSetList()" style="color:#ff9500;font-size:0.78em;font-weight:bold;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + ' ▾</span>'
         + '<span onclick="openLocationSelector()" style="color:#a08040;font-size:0.68em;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">· ' + ASTRO_USER_NAME.split(',')[0] + ' ▾</span>'
         + '</div></div>';
 
@@ -14179,7 +14185,8 @@ function renderSolarInfoPanel() {
     const gridHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">'
         + '<div id="subsolarMapContainer">' + mapSVG + '</div>'
         + '<div><canvas id="subsolarGlobe" width="260" height="180" style="border-radius:8px;border:1px solid rgba(255,149,0,0.25);display:block;width:100%;"></canvas></div>'
-        + '</div>';
+        + '</div>'
+        + '<div id="solarRiseSetListContainer" style="display:none;max-height:300px;overflow-y:auto;margin-bottom:10px;padding:8px;background:rgba(255,149,0,0.04);border:1px solid rgba(255,149,0,0.15);border-radius:8px;"></div>';
 
     panel.innerHTML = '<div style="background:linear-gradient(160deg,rgba(25,15,0,0.98) 0%,rgba(15,8,0,0.98) 100%); border-radius:12px; border:1px solid rgba(255,149,0,0.28); border-top:2px solid rgba(255,149,0,0.55); box-shadow:0 0 22px rgba(255,149,0,0.09); padding:8px 10px; font-size:0.78em;">'
         + headerHTML + titleHTML + gridHTML + infoHTML + '</div>';
@@ -15607,10 +15614,11 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 </span>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-                <span style="color:#7ec8ff;font-size:0.78em;font-weight:bold;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet}</span>
+                <span onclick="toggleLunarRiseSetList()" style="color:#7ec8ff;font-size:0.78em;font-weight:bold;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet} ▾</span>
                 <span onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;">📍 ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
             </div>
         </div>
+        <div id="lunarRiseSetListContainer" style="display:none;max-height:300px;overflow-y:auto;margin-bottom:10px;padding:8px;background:rgba(74,158,255,0.04);border:1px solid rgba(74,158,255,0.15);border-radius:8px;"></div>
 
         <!-- Posición Sublunar: Mapa 2D + Globo 3D (arriba, como en solar) -->
         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(74,158,255,0.15);">
@@ -18550,7 +18558,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v293';
+const APP_VERSION = 'v294';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -18784,6 +18792,29 @@ DOMTokenList.prototype.add = function() {
 
 <!-- AI Chat FAB Button -->
 <button id="aiChatFab" onclick="openAIChat()" title="AI Assistant">✨</button>
+
+<!-- Hoy Interpretation Modal -->
+<div id="hoyInterpModal">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(201,168,64,0.2);background:rgba(5,5,25,0.95);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3em;">✨</span>
+            <div>
+                <div style="font-weight:700;color:#ffd54f;font-size:0.95em;" id="hoyInterpTitle">Interpretación de Hoy</div>
+                <div style="font-size:0.7em;color:rgba(255,255,255,0.4);" id="hoyInterpDate"></div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="shareHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Compartir">📤</button>
+            <button onclick="saveHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Guardar">💾</button>
+            <button onclick="closeHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.85em;cursor:pointer;">✕</button>
+        </div>
+    </div>
+    <div class="hoy-interp-messages" id="hoyInterpMessages"></div>
+    <div style="padding:10px 16px;border-top:1px solid rgba(201,168,64,0.15);background:rgba(5,5,25,0.95);display:flex;gap:8px;">
+        <textarea id="hoyInterpInput" rows="1" placeholder="Pregunta sobre tu día..." style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,64,0.2);border-radius:10px;color:white;padding:10px 12px;font-size:0.85em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHoyInterpMessage();}"></textarea>
+        <button onclick="sendHoyInterpMessage()" style="background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.4);border-radius:10px;color:#ffd54f;padding:8px 14px;font-size:1em;cursor:pointer;">➤</button>
+    </div>
+</div>
 
 <!-- AI Chat Modal -->
 <div id="aiChatModal">
@@ -19022,21 +19053,224 @@ function aiInterpretHoyTransit(idx) {
     aiInterpretAspect(text);
 }
 
+var hoyInterpHistory = [];
+var hoyInterpTyping = false;
+
 function interpretarHoyCompleto() {
-    const isEs = currentLang === 'es';
-    const prompt = isEs
-        ? 'Dame una interpretación completa y detallada del día de hoy para mi perfil natal. Incluye: todos los tránsitos planetarios activos hoy y cómo me afectan personalmente, la fase lunar actual y su influencia, la energía general del día, consejos prácticos, y cualquier advertencia importante. Hazlo personalizado según mi carta natal.'
-        : 'Give me a complete and detailed interpretation of today for my natal profile. Include: all active planetary transits today and how they affect me personally, the current lunar phase and its influence, the general energy of the day, practical advice, and any important warnings. Make it personalized based on my natal chart.';
-    openAIChat();
-    setTimeout(function() {
-        var input = document.getElementById('aiChatInput');
-        if (input) {
-            input.value = prompt;
-            sendAIMessage();
-        }
-    }, 300);
+    var isEs = currentLang === 'es';
+    var modal = document.getElementById('hoyInterpModal');
+    modal.classList.add('show');
+    var today = new Date();
+    document.getElementById('hoyInterpTitle').textContent = isEs ? 'Interpretación de Hoy' : "Today's Interpretation";
+    document.getElementById('hoyInterpDate').textContent = today.toLocaleDateString(isEs?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    // Reset
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div class="ai-msg loading">✨ ' + (isEs ? 'Analizando los cielos para ti...' : 'Analyzing the skies for you...') + '</div>';
+    // Auto-send interpretation request
+    var prompt = isEs
+        ? 'Dame una interpretación completa y detallada del día de hoy para mi perfil natal. Incluye: 1) Todos los tránsitos planetarios activos hoy y cómo me afectan personalmente, 2) La fase lunar actual y su influencia, 3) La energía general del día, 4) Consejos prácticos para hoy, 5) Cualquier advertencia importante. Hazlo personalizado según mi carta natal.'
+        : 'Give me a complete and detailed interpretation of today for my natal profile. Include: 1) All active planetary transits today and how they affect me personally, 2) The current lunar phase and its influence, 3) The general energy of the day, 4) Practical advice for today, 5) Any important warnings. Make it personalized based on my natal chart.';
+    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
+    sendHoyInterpRequest();
 }
+
+function closeHoyInterp() {
+    document.getElementById('hoyInterpModal').classList.remove('show');
+}
+
+function addHoyInterpMessage(role, html) {
+    var container = document.getElementById('hoyInterpMessages');
+    var div = document.createElement('div');
+    div.className = 'ai-msg ' + role;
+    div.innerHTML = typeof marked !== 'undefined' ? marked.parse(html) : html.replace(/\n/g, '<br>');
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendHoyInterpRequest() {
+    hoyInterpTyping = true;
+    try {
+        var systemPrompt = buildSystemPrompt();
+        var requestBody = {
+            system_instruction: {parts: [{text: systemPrompt}]},
+            contents: hoyInterpHistory,
+            generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
+        };
+        var personalKey = getGeminiKey();
+        var apiUrl = personalKey
+            ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey
+            : AI_PROXY_URL;
+        var response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(requestBody)
+        });
+        var container = document.getElementById('hoyInterpMessages');
+        container.innerHTML = '';
+        if (!response.ok) {
+            addHoyInterpMessage('assistant', currentLang === 'es' ? '❌ Error al obtener la interpretación. Intenta de nuevo.' : '❌ Error getting interpretation. Try again.');
+            hoyInterpTyping = false;
+            return;
+        }
+        var data = await response.json();
+        var reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
+        hoyInterpHistory.push({role: 'model', parts: [{text: reply}]});
+        addHoyInterpMessage('assistant', reply);
+    } catch(e) {
+        var container = document.getElementById('hoyInterpMessages');
+        container.innerHTML = '';
+        addHoyInterpMessage('assistant', '❌ ' + (e.message || 'Error'));
+    }
+    hoyInterpTyping = false;
+}
+
+async function sendHoyInterpMessage() {
+    if (hoyInterpTyping) return;
+    var input = document.getElementById('hoyInterpInput');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    input.style.height = 'auto';
+    addHoyInterpMessage('user', text);
+    hoyInterpHistory.push({role: 'user', parts: [{text: text}]});
+    var container = document.getElementById('hoyInterpMessages');
+    var loadDiv = document.createElement('div');
+    loadDiv.className = 'ai-msg loading';
+    loadDiv.id = 'hoyInterpTyping';
+    loadDiv.textContent = '...';
+    container.appendChild(loadDiv);
+    container.scrollTop = container.scrollHeight;
+    await sendHoyInterpRequest();
+    var t = document.getElementById('hoyInterpTyping');
+    if (t) t.remove();
+}
+
+function shareHoyInterp() {
+    var container = document.getElementById('hoyInterpMessages');
+    var msgs = container.querySelectorAll('.ai-msg.assistant');
+    var text = '';
+    msgs.forEach(function(m) { text += m.innerText + '\n\n'; });
+    if (!text) return;
+    text = '✨ Moon Sync — ' + (currentLang==='es'?'Interpretación de Hoy':'Today\'s Interpretation') + '\n' + new Date().toLocaleDateString() + '\n\n' + text.trim();
+    if (navigator.share) {
+        navigator.share({ title: 'Moon Sync', text: text }).catch(function(){});
+    } else {
+        navigator.clipboard.writeText(text).then(function() {
+            alert(currentLang==='es'?'Copiado al portapapeles':'Copied to clipboard');
+        });
+    }
+}
+
+function saveHoyInterp() {
+    var container = document.getElementById('hoyInterpMessages');
+    var msgs = container.querySelectorAll('.ai-msg.assistant');
+    var text = '';
+    msgs.forEach(function(m) { text += m.innerText + '\n\n'; });
+    if (!text) return;
+    var dateKey = getDateStr(new Date());
+    var existing = localStorage.getItem('diary_' + dateKey) || '';
+    var entry = '✨ ' + (currentLang==='es'?'Interpretación del Día':'Day Interpretation') + ':\n' + text.trim();
+    localStorage.setItem('diary_' + dateKey, existing + (existing ? '\n\n' : '') + entry);
+    if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
+    alert(currentLang==='es'?'Guardado en tu diario de hoy':'Saved to today\'s diary');
+}
+
 window.interpretarHoyCompleto = interpretarHoyCompleto;
+window.closeHoyInterp = closeHoyInterp;
+window.sendHoyInterpMessage = sendHoyInterpMessage;
+window.shareHoyInterp = shareHoyInterp;
+window.saveHoyInterp = saveHoyInterp;
+
+function toggleLunarRiseSetList() {
+    var container = document.getElementById('lunarRiseSetListContainer');
+    if (!container) return;
+    if (container.style.display !== 'none') {
+        container.style.display = 'none';
+        return;
+    }
+    var isEs = currentLang === 'es';
+    var year = new Date().getFullYear();
+    var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
+    var locale = isEs ? 'es' : 'en';
+    var html = '<div style="font-size:0.72em;color:#7ec8ff;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Amaneceres y Anocheceres Lunares ' : 'Moonrise & Moonset ') + year + '</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.72em;">';
+    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(74,158,255,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">🌙↑</th><th style="padding:3px 6px;">🌙↓</th></tr></thead><tbody>';
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    for (var i = 0; i < 365; i++) {
+        var d = new Date(year, 0, 1 + i);
+        if (d.getFullYear() !== year) break;
+        var mrs = getMoonRiseSet(d, ASTRO_USER_LAT, ASTRO_USER_LON);
+        var rStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
+        var sStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+        var isToday = d.getTime() === today.getTime();
+        var bg = isToday ? 'background:rgba(74,158,255,0.15);font-weight:700;' : (i%2===0 ? 'background:rgba(255,255,255,0.02);' : '');
+        html += '<tr style="' + bg + 'color:#ccc;"><td style="padding:3px 6px;">' + d.toLocaleDateString(locale, {day:'2-digit',month:'short'}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;color:#7ec8ff;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#5a9abf;">' + sStr + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+    // Scroll to today
+    setTimeout(function() {
+        var rows = container.querySelectorAll('tr');
+        for (var r = 0; r < rows.length; r++) {
+            if (rows[r].innerText.indexOf('◀') >= 0) {
+                rows[r].scrollIntoView({block:'center',behavior:'smooth'});
+                break;
+            }
+        }
+    }, 100);
+}
+window.toggleLunarRiseSetList = toggleLunarRiseSetList;
+
+function toggleSolarRiseSetList() {
+    var container = document.getElementById('solarRiseSetListContainer');
+    if (!container) return;
+    if (container.style.display !== 'none') {
+        container.style.display = 'none';
+        return;
+    }
+    var isEs = currentLang === 'es';
+    var year = new Date().getFullYear();
+    var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
+    var locale = isEs ? 'es' : 'en';
+    var html = '<div style="font-size:0.72em;color:#ff9500;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Amaneceres y Atardeceres Solares ' : 'Sunrise & Sunset ') + year + '</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.72em;">';
+    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,149,0,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">☀️↑</th><th style="padding:3px 6px;">☀️↓</th><th style="padding:3px 6px;">' + (isEs?'Duración':'Duration') + '</th></tr></thead><tbody>';
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    for (var i = 0; i < 365; i++) {
+        var d = new Date(year, 0, 1 + i);
+        if (d.getFullYear() !== year) break;
+        var srs = getSunRiseSet(d, ASTRO_USER_LAT, ASTRO_USER_LON);
+        var rStr = srs.rise ? srs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
+        var sStr = srs.set ? srs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+        var dur = '';
+        if (srs.rise && srs.set) {
+            var mins = Math.round((srs.set - srs.rise) / 60000);
+            dur = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+        }
+        var isToday = d.getTime() === today.getTime();
+        var bg = isToday ? 'background:rgba(255,149,0,0.15);font-weight:700;' : (i%2===0 ? 'background:rgba(255,255,255,0.02);' : '');
+        html += '<tr style="' + bg + 'color:#ccc;"><td style="padding:3px 6px;">' + d.toLocaleDateString(locale, {day:'2-digit',month:'short'}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;color:#ff9500;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#ff6600;">' + sStr + '</td><td style="padding:3px 6px;text-align:center;color:rgba(255,255,255,0.5);">' + dur + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+    // Scroll to today
+    setTimeout(function() {
+        var rows = container.querySelectorAll('tr');
+        for (var r = 0; r < rows.length; r++) {
+            if (rows[r].innerText.indexOf('◀') >= 0) {
+                rows[r].scrollIntoView({block:'center',behavior:'smooth'});
+                break;
+            }
+        }
+    }, 100);
+}
+window.toggleSolarRiseSetList = toggleSolarRiseSetList;
 
 function showAIWelcome() {
     const container = document.getElementById('aiChatMessages');
