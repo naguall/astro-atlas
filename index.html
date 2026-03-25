@@ -12126,19 +12126,20 @@ function drawNatalWheel(canvasId) {
         }
 
         // ===== RADII (Astroly Master proportions) =====
-        var R_outer      = S/2 - 20;   // outermost edge
-        var R_signOuter  = R_outer;     // zodiac outer
-        var R_signInner  = R_outer - 36;// zodiac inner
-        var R_tickOuter  = R_signInner; // degree ticks outer
-        var R_tickInner  = R_signInner - 18; // degree ticks inner
-        var R_planetOuter= R_tickInner; // planet ring outer boundary
-        var R_planetInner= R_planetOuter - 65; // planet ring inner boundary
-        var R_innerCircle= R_planetInner - 2; // inner circle (house numbers + aspects)
+        var R_outer       = S/2 - 20;   // outermost edge
+        var R_signOuter   = R_outer;     // zodiac outer
+        var R_signInner   = R_outer - 36;// zodiac inner
+        var R_tickOuter   = R_signInner; // degree ticks outer
+        var R_tickInner   = R_signInner - 18; // degree ticks inner
+        var R_planetOuter = R_tickInner; // planet ring outer boundary
+        var R_planetInner = R_planetOuter - 65; // planet ring inner boundary
+        var R_houseOuter  = R_planetInner - 2;  // house number ring outer circle
+        var R_houseInner  = R_houseOuter - 22;  // house number ring inner circle
+        var R_aspectCircle= R_houseInner;       // aspect lines drawn inside this
 
-        // ===== ROTATION: ASC on left =====
+        // ===== ROTATION: ASC on left (9 o'clock), MC at top =====
         var ascLon = nc.houses ? nc.houses.ascendant : 0;
-        var rotOff = 180 - ascLon;
-        function L2A(lon){ return (-(lon+rotOff)+180)*Math.PI/180; }
+        function L2A(lon){ return (180 + ascLon - lon)*Math.PI/180; }
 
         var signGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
         // Astroly colors: Fire=red/orange, Earth=green/olive, Air=yellow/gold, Water=blue
@@ -12189,33 +12190,35 @@ function drawNatalWheel(canvasId) {
             svg += '<text x="'+px(numR,ta)+'" y="'+py(numR,ta)+'" fill="#aaa" font-size="5" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central" transform="rotate('+rotDeg.toFixed(1)+','+px(numR,ta)+','+py(numR,ta)+')">'+degInSign+'</text>';
         }
 
-        // ===== PLANET RING (white area between tick ring and inner circle) =====
+        // ===== PLANET RING (white area between tick ring and house ring) =====
         svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_planetOuter+'" fill="#fff"/>';
-        svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_innerCircle+'" fill="#fefefe" stroke="#999" stroke-width="0.8"/>';
+        // ===== HOUSE NUMBER RING (two concentric circles) =====
+        svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_houseOuter+'" fill="#fafafa" stroke="#999" stroke-width="0.8"/>';
+        svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_houseInner+'" fill="#fefefe" stroke="#999" stroke-width="0.8"/>';
 
         // ===== HOUSE CUSPS =====
         if (nc.houses && nc.houses.cusps) {
-            // All cusps: lines from tick ring to inner circle
+            // All cusps: lines from tick ring through house ring
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var a = L2A(cusp);
                 var isAxis = (idx===0||idx===3||idx===6||idx===9);
                 if (isAxis) {
-                    // Axis cusps: bold, extend through inner circle to center
+                    // Axis cusps: bold, extend through everything to center
                     svg += line(R_tickInner,a,0.01,a,'#333',1.8);
                 } else {
-                    // Regular cusps: thin line from tick ring to inner circle
-                    svg += line(R_tickInner,a,R_innerCircle,a,'#999',0.5);
+                    // Regular cusps: thin line from tick ring to inner house circle
+                    svg += line(R_tickInner,a,R_houseInner,a,'#999',0.5);
                 }
             });
 
-            // House numbers INSIDE inner circle — near the edge like Astroly Master
+            // House numbers centered in the house ring band (between two circles)
+            var R_hMid = (R_houseOuter + R_houseInner) / 2;
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var nextCusp = nc.houses.cusps[(idx+1)%12];
                 var span = nextCusp > cusp ? nextCusp-cusp : nextCusp+360-cusp;
                 var midLon = cusp + span/2;
                 var hA = L2A(midLon);
-                var hr = R_innerCircle - 12; // just inside the inner circle edge
-                svg += '<text x="'+px(hr,hA)+'" y="'+py(hr,hA)+'" fill="#999" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+(idx+1)+'</text>';
+                svg += '<text x="'+px(R_hMid,hA)+'" y="'+py(R_hMid,hA)+'" fill="#888" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+(idx+1)+'</text>';
             });
 
             // Cusp degree labels (between tick ring and planet ring, near the cusp line)
@@ -12240,7 +12243,7 @@ function drawNatalWheel(canvasId) {
             });
         }
 
-        // ===== ASPECT LINES (inside inner circle) =====
+        // ===== ASPECT LINES (inside house ring) =====
         var planetKeys = Object.keys(nc.planets);
         var aspectDefs = [
             {angle:0,orb:8,color:'#555',dash:false,w:1.0},
@@ -12271,7 +12274,7 @@ function drawNatalWheel(canvasId) {
             var str=1-(da.orb/da.asp.orb);
             var alpha=(0.25+str*0.55).toFixed(2);
             var dashA=da.asp.dash?' stroke-dasharray="4,3"':'';
-            svg += '<line x1="'+px(R_innerCircle,a1)+'" y1="'+py(R_innerCircle,a1)+'" x2="'+px(R_innerCircle,a2)+'" y2="'+py(R_innerCircle,a2)+'" stroke="'+da.asp.color+'" stroke-width="'+da.asp.w+'" opacity="'+alpha+'"'+dashA+'/>';
+            svg += '<line x1="'+px(R_aspectCircle,a1)+'" y1="'+py(R_aspectCircle,a1)+'" x2="'+px(R_aspectCircle,a2)+'" y2="'+py(R_aspectCircle,a2)+'" stroke="'+da.asp.color+'" stroke-width="'+da.asp.w+'" opacity="'+alpha+'"'+dashA+'/>';
         });
 
         // ===== PLANETS (in planet ring between tick ring and inner circle) =====
@@ -12309,8 +12312,8 @@ function drawNatalWheel(canvasId) {
             // Thin pointer line from tick ring to planet
             svg += '<line x1="'+px(R_tickInner,angle)+'" y1="'+py(R_tickInner,angle)+'" x2="'+ppx.toFixed(1)+'" y2="'+ppy.toFixed(1)+'" stroke="#bbb" stroke-width="0.4"/>';
 
-            // Small tick on inner circle pointing to planet
-            svg += '<line x1="'+px(R_innerCircle,angle)+'" y1="'+py(R_innerCircle,angle)+'" x2="'+px(R_innerCircle+4,angle)+'" y2="'+py(R_innerCircle+4,angle)+'" stroke="#bbb" stroke-width="0.4"/>';
+            // Small tick on house ring pointing to planet
+            svg += '<line x1="'+px(R_houseOuter,angle)+'" y1="'+py(R_houseOuter,angle)+'" x2="'+px(R_houseOuter+4,angle)+'" y2="'+py(R_houseOuter+4,angle)+'" stroke="#bbb" stroke-width="0.4"/>';
 
             // Planet glyph
             var col = planetClrs[pp.key]||'#333';
@@ -18771,7 +18774,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v327';
+const APP_VERSION = 'v328';
 var _pendingSW = null;
 
 function showUpdateBanner() {
