@@ -18851,7 +18851,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v314';
+const APP_VERSION = 'v315';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19285,7 +19285,7 @@ function openAIChat() {
     if (aiChatHistory.length === 0) {
         showAIWelcome();
     }
-    setTimeout(() => document.getElementById('aiChatInput').focus(), 200);
+    // Don't auto-focus to prevent keyboard from pushing buttons off screen
 }
 
 function closeAIChat() {
@@ -19612,15 +19612,15 @@ function showAIWelcome() {
             </div>`;
     } else {
         container.innerHTML = `
-            <div class="ai-msg assistant">
-                <p style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;">${isEs ? 'Escribe una pregunta o usa los botones de abajo' : 'Type a question or use the buttons below'}</p>
+            <div class="ai-msg assistant" style="margin-top:0;">
+                <div style="display:flex;flex-direction:column;gap:8px;margin:8px 0;">
+                    <button onclick="aiQuickAction(1)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
+                    <button onclick="aiQuickAction(3)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Tránsitos de hoy' : 'Today transits'}</button>
+                </div>
             </div>`;
-        // Show quick action buttons in the sticky area above input
+        // Hide the sticky quick actions area (not needed)
         var qa = document.getElementById('aiQuickActions');
-        if (qa) {
-            qa.style.display = 'flex';
-            qa.innerHTML = '<div style="display:flex;gap:8px;width:100%;"><button onclick="aiQuickAction(1)" style="flex:1;padding:10px 12px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.82em;font-weight:600;cursor:pointer;text-align:center;">' + (isEs ? 'Lectura completa' : 'Full reading') + '</button><button onclick="aiQuickAction(3)" style="flex:1;padding:10px 12px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.82em;font-weight:600;cursor:pointer;text-align:center;">' + (isEs ? 'Tránsitos de hoy' : 'Today transits') + '</button></div>';
-        }
+        if (qa) qa.style.display = 'none';
     }
 }
 
