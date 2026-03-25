@@ -17974,48 +17974,80 @@ function filterCities(q) {
 
 function searchNominatimPlaces(q, listEl, localResults) {
     var lang = currentLang === 'es' ? 'es' : 'en';
-    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=15&addressdetails=1&accept-language=' + lang, {
-        headers: { 'Accept-Language': lang }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (!data || !data.length) return;
-        // Build results from Nominatim
-        var seen = {};
-        // Mark local results as seen to avoid duplicates
-        localResults.forEach(function(c) { seen[Math.round(c.lat*10) + ',' + Math.round(c.lon*10)] = true; });
-        var nominatimResults = [];
+    var seen = {};
+    localResults.forEach(function(c) { seen[Math.round(c.lat*10) + ',' + Math.round(c.lon*10)] = true; });
+
+    function parseNominatimResults(data) {
+        var results = [];
+        if (!data || !data.length) return results;
         data.forEach(function(item) {
             var lat = parseFloat(parseFloat(item.lat).toFixed(2));
             var lon = parseFloat(parseFloat(item.lon).toFixed(2));
             var key = Math.round(lat*10) + ',' + Math.round(lon*10);
             if (seen[key]) return;
             seen[key] = true;
+            // Use item.name as primary (preserves beach/place names)
+            var itemName = item.name || '';
             var a = item.address || {};
-            var place = a.city || a.town || a.village || a.hamlet || a.municipality || a.county || item.name || '';
+            var place = itemName || a.city || a.town || a.village || a.hamlet || a.municipality || a.county || '';
             var country = a.country || '';
             var region = a.state || a.region || '';
+            // Build descriptive name
             var name = place;
-            if (region && region !== place) name += ', ' + region;
+            var parentPlace = a.city || a.town || a.village || a.municipality || '';
+            if (parentPlace && parentPlace !== place) name += ', ' + parentPlace;
+            else if (region && region !== place) name += ', ' + region;
             if (country) name += ', ' + country;
-            if (!name) name = item.display_name ? item.display_name.split(',').slice(0,3).join(',') : (lat + '°, ' + lon + '°');
-            nominatimResults.push({ lat: lat, lon: lon, n: name });
+            if (!name) name = item.display_name ? item.display_name.split(',').slice(0,3).join(',').trim() : (lat + '°, ' + lon + '°');
+            // Add type hint for non-city features
+            var typeHint = '';
+            var cls = item.class || '';
+            var typ = item.type || '';
+            if (cls === 'natural' && typ === 'beach') typeHint = lang === 'es' ? 'playa' : 'beach';
+            else if (typ === 'island') typeHint = lang === 'es' ? 'isla' : 'island';
+            else if (cls === 'waterway') typeHint = lang === 'es' ? 'río' : 'river';
+            else if (typ === 'bay') typeHint = lang === 'es' ? 'bahía' : 'bay';
+            else if (typ === 'cape' || typ === 'peninsula') typeHint = lang === 'es' ? 'cabo' : 'cape';
+            else if (typ === 'harbour' || typ === 'port') typeHint = lang === 'es' ? 'puerto' : 'port';
+            results.push({ lat: lat, lon: lon, n: name, hint: typeHint });
         });
-        // Combine: local first, then Nominatim
-        var combined = localResults.concat(nominatimResults).slice(0, 25);
+        return results;
+    }
+
+    // Launch multiple searches in parallel for broader coverage
+    var baseUrl = 'https://nominatim.openstreetmap.org/search?format=json&limit=20&addressdetails=1&accept-language=' + lang;
+    var searches = [
+        fetch(baseUrl + '&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': lang } }).then(function(r) { return r.json(); })
+    ];
+    // If query doesn't already contain beach/playa keywords, add a second search
+    var lq = q.toLowerCase();
+    if (lq.indexOf('playa') === -1 && lq.indexOf('beach') === -1 && lq.indexOf('isla') === -1 && lq.indexOf('island') === -1) {
+        var prefix = lang === 'es' ? 'playa ' : 'beach ';
+        searches.push(
+            fetch(baseUrl + '&q=' + encodeURIComponent(prefix + q), { headers: { 'Accept-Language': lang } })
+            .then(function(r) { return r.json(); }).catch(function() { return []; })
+        );
+    }
+
+    Promise.all(searches).then(function(allData) {
+        var allResults = [];
+        allData.forEach(function(data) {
+            allResults = allResults.concat(parseNominatimResults(data));
+        });
+        var combined = localResults.concat(allResults).slice(0, 30);
         renderCityResults(combined, listEl);
-    })
-    .catch(function() { /* keep local results on error */ });
+    }).catch(function() { /* keep local results */ });
 }
 
 function renderCityResults(cities, listEl) {
     listEl.innerHTML = cities.map(function(city) {
         var safeName = city.n.replace(/'/g, "\\'");
+        var hintTag = city.hint ? ' <span style="color:#4ecdc4;font-size:0.78em;background:rgba(78,205,196,0.12);padding:1px 5px;border-radius:3px;">' + city.hint + '</span>' : '';
         return '<button onclick="selectCity(' + city.lat + ',' + city.lon + ',\'' + safeName + '\')"'
             + ' style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e8eaf6;padding:7px 10px;cursor:pointer;text-align:left;font-size:0.82em;transition:all 0.15s;"'
             + ' onmouseover="this.style.background=\'rgba(74,158,255,0.15)\'"'
             + ' onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'">'
-            + city.n + ' <span style="color:#8899cc;font-size:0.85em;">(' + city.lat + '°, ' + city.lon + '°)</span>'
+            + city.n + hintTag + ' <span style="color:#8899cc;font-size:0.78em;">(' + city.lat + '°, ' + city.lon + '°)</span>'
             + '</button>';
     }).join('');
 }
@@ -18183,7 +18215,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v284';
+const APP_VERSION = 'v285';
 var _pendingSW = null;
 
 function showUpdateBanner() {
