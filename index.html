@@ -5712,6 +5712,14 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
             for (var ci = 0; ci < chatSrc.length; ci++) { chatHash = ((chatHash << 5) - chatHash) + chatSrc.charCodeAt(ci); chatHash |= 0; }
             var chatId = 'ic_' + Math.abs(chatHash).toString(36);
             window[readingKey] = { title: _readingTitle, text: text, html: '<p>' + formattedHtml + '</p>', prompt: specificPrompt };
+            // Cache initial AI response so reopening loads instantly from memory
+            var _existChat = getInterpChat(chatId);
+            if (!_existChat) {
+                saveInterpChat(chatId, { initialResponse: text, messages: [] });
+            } else if (!_existChat.initialResponse) {
+                _existChat.initialResponse = text;
+                saveInterpChat(chatId, _existChat);
+            }
             div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + formattedHtml + '</p></div>'
                 + '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
                 + '<button onclick="openInterpretationChat(\'' + readingKey + '\',\'' + chatId + '\',this)" style="flex:1;padding:6px 10px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.35);border-radius:6px;color:#667eea;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">💬 ' + (L ? 'Chat' : 'Chat') + '</button>'
@@ -17960,7 +17968,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v265';
+const APP_VERSION = 'v266';
 var _pendingSW = null;
 
 function showUpdateBanner() {
