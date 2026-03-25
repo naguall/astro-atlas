@@ -15068,6 +15068,36 @@ function startSublunaryRefresh() {
     _sublunaryTimer = setInterval(refreshSublunaryFull, 30 * 1000);
 }
 
+// ── Resize handler for globe canvases on orientation change ──
+let _resizeDebounce = null;
+window.addEventListener('resize', function() {
+    clearTimeout(_resizeDebounce);
+    _resizeDebounce = setTimeout(function() {
+        // Re-render sublunary globe
+        const sublunaryCanvas = document.getElementById('sublunaryGlobe');
+        if (sublunaryCanvas && sublunaryCanvas.offsetWidth > 0) {
+            // Match height to 2D map
+            const mapC = document.getElementById('sublunaryMapContainer');
+            if (mapC && mapC.offsetHeight > 0) {
+                sublunaryCanvas.style.height = mapC.offsetHeight + 'px';
+            }
+            const now = new Date();
+            const astroNow = getAstroData(now);
+            renderSublunaryGlobe(parseFloat(astroNow.sublunarLat), getSublunaryLonDeg(now));
+        }
+        // Re-render subsolar globe
+        const subsolarCanvas = document.getElementById('subsolarGlobe');
+        if (subsolarCanvas && subsolarCanvas.offsetWidth > 0) {
+            const mapC2 = document.getElementById('subsolarMapContainer');
+            if (mapC2 && mapC2.offsetHeight > 0) {
+                subsolarCanvas.style.height = mapC2.offsetHeight + 'px';
+            }
+            const now2 = new Date();
+            renderSubsolarGlobe(getSunDeclination(now2), getSubsolarLonDeg(now2));
+        }
+    }, 150);
+});
+
 
 // ── TIDE STATIONS — Real harmonic constants (IHO/NOAA data) ──
 // Amplitudes in meters, phases in degrees (UTC)
@@ -17673,7 +17703,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v259';
+const APP_VERSION = 'v260';
 var _pendingSW = null;
 
 function showUpdateBanner() {
