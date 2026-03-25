@@ -1095,7 +1095,7 @@
                     <h2 id="tideCycleTitle" style="margin:0;font-size:1.1em;">Ciclo de Mareas</h2>
                     <span class="close" onclick="closeTideCycleModal()" style="position:static;font-size:1.5em;">&times;</span>
                 </div>
-                <div id="tideCycleLocationHeader" style="text-align:center;font-size:0.78em;color:rgba(78,205,196,0.7);margin-top:4px;font-weight:600;letter-spacing:0.5px;"></div>
+                <div id="tideCycleLocationHeader" onclick="closeTideCycleModal();setTimeout(function(){openLocationSelector();window._reopenTideAfterLoc=true;},250);" style="text-align:center;font-size:0.78em;color:rgba(78,205,196,0.7);margin-top:4px;font-weight:600;letter-spacing:0.5px;cursor:pointer;"></div>
             </div>
             <div id="tideCycleBody" style="padding: 15px; overflow-y:auto; flex:1;">
                 <!-- Filled by JS -->
@@ -2134,7 +2134,7 @@ function openTideCycleModal() {
     var locHeader = document.getElementById('tideCycleLocationHeader');
     if (locHeader) {
         var locName = ASTRO_USER_NAME ? ASTRO_USER_NAME.split(',')[0] : '';
-        locHeader.textContent = locName ? '📍 ' + locName : '';
+        locHeader.innerHTML = locName ? '<span style="color:#e53935;">📍</span> ' + locName + ' <span style="color:rgba(255,255,255,0.3);">▾</span>' : '';
     }
 
     // Find first new moon of 2026 and first new moon of 2027 from newMoonsLocal
@@ -18851,7 +18851,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v315';
+const APP_VERSION = 'v316';
 var _pendingSW = null;
 
 function showUpdateBanner() {
