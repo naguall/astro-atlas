@@ -788,6 +788,16 @@
         </div>
     </div>
 
+    <!-- Panel lateral de categoría (Notable/Generacional/Mayor) -->
+    <div id="categorySlidePanel" style="display:none;position:fixed;top:0;right:-100%;width:min(420px,90vw);height:100vh;background:linear-gradient(180deg,#0a0c2e 0%,#0d1033 100%);z-index:10001;box-shadow:-4px 0 30px rgba(0,0,0,0.6);transition:right 0.35s cubic-bezier(.4,0,.2,1);overflow-y:auto;border-left:2px solid rgba(201,168,64,0.3);">
+        <div style="position:sticky;top:0;background:linear-gradient(180deg,#0a0c2e 0%,#0d1033 100%);padding:16px 18px 12px;border-bottom:1px solid rgba(201,168,64,0.2);z-index:2;display:flex;align-items:center;justify-content:space-between;">
+            <h3 id="categoryPanelTitle" style="margin:0;font-family:'Cinzel',serif;color:#e8c84a;font-size:1.05em;letter-spacing:0.5px;"></h3>
+            <span onclick="closeCategoryPanel()" style="font-size:1.6em;color:rgba(255,255,255,0.5);cursor:pointer;padding:0 6px;line-height:1;">&times;</span>
+        </div>
+        <div id="categoryPanelBody" style="padding:14px 16px;"></div>
+    </div>
+    <div id="categoryPanelOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;" onclick="closeCategoryPanel()"></div>
+
     <!-- Modal de Opciones del Día -->
     <div id="dayOptionsModal" class="modal" onclick="if(event.target===this)closeDayOptionsModal()"
         <div class="modal-content" style="max-width: 400px;">
@@ -4828,9 +4838,9 @@ function openAspectsModal(date, lunarDay, dayData) {
         htmlContent += interAspects.map(asp => {
             const degreeStr = asp.degrees ? `<span style="color: #a8b2d1; font-size: 0.85em;">(${asp.degrees})</span>` : '';
             const signsStr = asp.signs ? `<span style="color: rgba(255,255,255,0.4); font-size: 0.82em;"> — ${asp.signs}</span>` : '';
-            const badge = asp.isGenerational ? '<span style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);" title="Aspecto entre planetas lentos que marca toda una generación">GENERACIONAL</span>' :
-                         asp.isMajor ? '<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);" title="Aspecto mayor: alineación poco frecuente entre planetas exteriores con impacto colectivo profundo">MAYOR</span>' :
-                         asp.isImportant ? '<span style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);" title="Aspecto notable: involucra planetas sociales o exteriores en ángulo significativo">NOTABLE</span>' : '';
+            const badge = asp.isGenerational ? '<span onclick="event.stopPropagation();showCategoryPanel(\'generational\')" style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);cursor:pointer;" title="Ver todos los eventos generacionales">GENERACIONAL</span>' :
+                         asp.isMajor ? '<span onclick="event.stopPropagation();showCategoryPanel(\'major\')" style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);cursor:pointer;" title="Ver todos los aspectos mayores">MAYOR</span>' :
+                         asp.isImportant ? '<span onclick="event.stopPropagation();showCategoryPanel(\'notable\')" style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);cursor:pointer;" title="Ver todos los aspectos notables">NOTABLE</span>' : '';
 
             const badgeColor = asp.isGenerational ? '#d4a5f5' : asp.isMajor ? '#ff8a80' : asp.isImportant ? '#80cbc4' : '';
             const badgeExplain = asp.badgeInfo ? `<div style="font-size:0.72em;color:${badgeColor};margin-bottom:4px;line-height:1.3;font-style:italic;">${asp.badgeInfo}</div>` : '';
@@ -5064,9 +5074,9 @@ function openInterAspectsOnlyModal(date, lunarDay, interAspects) {
         const timeStr = asp.time ? `<span style="color: #f0e68c; font-weight: bold;">${asp.time}</span> - ` : '';
         const degreeStr = asp.degrees ? `<span style="color: #a8b2d1; font-size: 0.85em;">(${asp.degrees})</span>` : '';
         const signsStr = asp.signs ? `<span style="color: rgba(255,255,255,0.4); font-size: 0.82em;"> — ${asp.signs}</span>` : '';
-        const badge = asp.isGenerational ? `<span style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);">${t('badgeGenerational')}</span>` :
-                     asp.isMajor ? `<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);">${t('badgeMajor')}</span>` :
-                     asp.isImportant ? `<span style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);">${t('badgeNotable')}</span>` : '';
+        const badge = asp.isGenerational ? `<span onclick="event.stopPropagation();showCategoryPanel('generational')" style="background:rgba(155,89,182,0.25);color:#d4a5f5;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(155,89,182,0.4);cursor:pointer;">${t('badgeGenerational')}</span>` :
+                     asp.isMajor ? `<span onclick="event.stopPropagation();showCategoryPanel('major')" style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(231,76,60,0.35);cursor:pointer;">${t('badgeMajor')}</span>` :
+                     asp.isImportant ? `<span onclick="event.stopPropagation();showCategoryPanel('notable')" style="background:rgba(78,205,196,0.2);color:#80cbc4;padding:2px 6px;border-radius:3px;font-size:0.7em;margin-left:5px;border:1px solid rgba(78,205,196,0.35);cursor:pointer;">${t('badgeNotable')}</span>` : '';
 
         const badgeColor = asp.isGenerational ? '#d4a5f5' : asp.isMajor ? '#ff8a80' : asp.isImportant ? '#80cbc4' : '';
         const badgeExplain = asp.badgeInfo ? `<div style="font-size:0.72em;color:${badgeColor};margin-bottom:4px;line-height:1.3;font-style:italic;">${translateMeaning(asp.badgeInfo)}</div>` : '';
@@ -7044,8 +7054,8 @@ function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
             const dayDiff = Math.round((aspDate.setHours(0,0,0,0) - new Date(date).setHours(0,0,0,0)) / 86400000);
             const when = dayDiff === 0 ? t('today') : dayDiff > 0 ? `+${dayDiff}d` : `${dayDiff}d`;
             const dateStr = `${aspDate.getDate()} ${Array.isArray(monthNames) ? monthNames[aspDate.getMonth()] : ''}`;
-            const badge = a.isMajor ? `<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">${t('badgeMajor')}</span>` :
-                         a.isImportant ? `<span style="background:rgba(78,205,196,0.15);color:#80cbc4;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">${t('badgeNotable')}</span>` : '';
+            const badge = a.isMajor ? `<span onclick="event.stopPropagation();showCategoryPanel('major')" style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;cursor:pointer;">${t('badgeMajor')}</span>` :
+                         a.isImportant ? `<span onclick="event.stopPropagation();showCategoryPanel('notable')" style="background:rgba(78,205,196,0.15);color:#80cbc4;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;cursor:pointer;">${t('badgeNotable')}</span>` : '';
             const meaningText = a.meaning ? translateMeaning(a.meaning) : '';
             return `<div style="padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;margin-bottom:6px;border-left:3px solid ${a.color || '#666'};">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -7617,7 +7627,7 @@ function showHistoricAspectsModal() {
         html += '<div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + ev.badgeColor + ';">';
         html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
         html += '<div style="font-size:1.05em;font-weight:700;color:#e8eaf6;">' + titleLine + '</div>';
-        html += '<span style="background:' + ev.badgeBg + ';color:' + ev.badgeColor + ';padding:2px 8px;border-radius:4px;font-size:0.72em;font-weight:700;border:1px solid ' + ev.badgeColor + '40;">' + ev.badge + '</span>';
+        html += '<span onclick="event.stopPropagation();showCategoryPanel(\'' + ev.type + '\')" style="background:' + ev.badgeBg + ';color:' + ev.badgeColor + ';padding:2px 8px;border-radius:4px;font-size:0.72em;font-weight:700;border:1px solid ' + ev.badgeColor + '40;cursor:pointer;">' + ev.badge + '</span>';
         html += '</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:0.82em;">';
         html += '<span style="color:#f0e68c;font-weight:600;">📅 ' + ev.date + (ev.time ? ' — ' + ev.time : '') + '</span>';
@@ -7647,6 +7657,111 @@ function showHistoricAspectsModal() {
 function closeHistoricAspectsModal() {
     document.getElementById('historicAspectsModal').classList.remove('show');
 }
+
+// ---- Panel lateral por categoría (NOTABLE / GENERACIONAL / MAYOR) ----
+function showCategoryPanel(category) {
+    const L = currentLang === 'es';
+    const panel = document.getElementById('categorySlidePanel');
+    const overlay = document.getElementById('categoryPanelOverlay');
+    const title = document.getElementById('categoryPanelTitle');
+    const body = document.getElementById('categoryPanelBody');
+
+    const catConfig = {
+        'notable':       { labelEs: '⭐ Aspectos Notables 2026', labelEn: '⭐ Notable Aspects 2026', color: '#80cbc4', bg: 'rgba(78,205,196,0.2)', filter: a => a.isImportant },
+        'generational':  { labelEs: '🌀 Eventos Generacionales 2026', labelEn: '🌀 Generational Events 2026', color: '#d4a5f5', bg: 'rgba(155,89,182,0.25)', filter: a => a.isGenerational },
+        'major':         { labelEs: '🔥 Aspectos Mayores 2026', labelEn: '🔥 Major Aspects 2026', color: '#ff8a80', bg: 'rgba(231,76,60,0.2)', filter: a => a.isMajor }
+    };
+    const cfg = catConfig[category];
+    if (!cfg) return;
+
+    title.textContent = L ? cfg.labelEs : cfg.labelEn;
+    title.style.color = cfg.color;
+
+    // Collect matching events from interPlanetaryAspects2026 and signChanges2026
+    var matchingAspects = interPlanetaryAspects2026.filter(cfg.filter);
+    var matchingChanges = (typeof signChanges2026 !== 'undefined') ? signChanges2026.filter(cfg.filter) : [];
+
+    // Sort all by date
+    var allEvents = [];
+    matchingAspects.forEach(function(asp) {
+        allEvents.push({ type: 'aspect', data: asp, date: asp.date });
+    });
+    matchingChanges.forEach(function(ch) {
+        allEvents.push({ type: 'change', data: ch, date: ch.date });
+    });
+    allEvents.sort(function(a, b) { return a.date - b.date; });
+
+    var now = new Date();
+    var html = '<div style="font-size:0.78em;color:#a8b2d1;margin-bottom:12px;">' + (L ? allEvents.length + ' eventos encontrados' : allEvents.length + ' events found') + '</div>';
+
+    if (allEvents.length === 0) {
+        html += '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">' + (L ? 'No hay eventos de esta categoría' : 'No events in this category') + '</div>';
+    }
+
+    allEvents.forEach(function(ev) {
+        var isPast = ev.date < now;
+        var opacity = isPast ? 'opacity:0.55;' : '';
+        var d = ev.data;
+
+        if (ev.type === 'aspect') {
+            var dateStr = d.date.getDate() + ' ' + (L ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])[d.date.getMonth()] + ' ' + d.date.getFullYear();
+            var clickText = (tp(d.planet1) + ' ' + d.symbol + ' ' + (d.aspect||'') + ' ' + tp(d.planet2) + (d.signs ? ' ' + d.signs : '')).replace(/'/g, "\\'");
+            html += '<div onclick="showBannerAspectDetail(\'' + clickText + '\')" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid ' + cfg.color + ';cursor:pointer;' + opacity + 'transition:all 0.2s;" onmouseover="this.style.borderLeftWidth=\'5px\'" onmouseout="this.style.borderLeftWidth=\'3px\'">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+            html += '<span style="font-weight:700;color:#e8eaf6;font-size:1em;">' + tp(d.planet1) + ' ' + d.symbol + ' <span style="font-size:0.82em;color:rgba(255,255,255,0.55);">' + (d.aspect||'') + '</span> ' + tp(d.planet2) + '</span>';
+            html += '<span style="color:#f0e68c;font-size:0.8em;font-weight:600;">' + dateStr + '</span>';
+            html += '</div>';
+            if (d.degrees || d.signs) {
+                html += '<div style="font-size:0.78em;color:#a8b2d1;margin-bottom:4px;">' + (d.degrees ? '(' + d.degrees + ')' : '') + (d.signs ? ' — ' + d.signs : '') + (d.time ? ' · ' + d.time : '') + '</div>';
+            }
+            if (d.badgeInfo) {
+                html += '<div style="font-size:0.72em;color:' + cfg.color + ';font-style:italic;margin-bottom:4px;">' + d.badgeInfo + '</div>';
+            }
+            var meaning = d.meaning ? translateMeaning(d.meaning) : '';
+            if (meaning) {
+                html += '<div style="font-size:0.8em;color:#cfd8dc;line-height:1.45;">' + meaning + '</div>';
+            }
+            if (isPast) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:4px;">✓ ' + (L?'Pasado':'Past') + '</div>';
+            html += '</div>';
+        } else {
+            var dateStr2 = d.date.getDate() + ' ' + (L ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])[d.date.getMonth()] + ' ' + d.date.getFullYear();
+            var clickText2 = (tp(d.planet) + ' → ' + ts(d.toSign)).replace(/'/g, "\\'");
+            html += '<div onclick="showBannerAspectDetail(\'' + clickText2 + '\')" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid ' + cfg.color + ';cursor:pointer;' + opacity + 'transition:all 0.2s;" onmouseover="this.style.borderLeftWidth=\'5px\'" onmouseout="this.style.borderLeftWidth=\'3px\'">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+            html += '<span style="font-weight:700;color:#e8eaf6;font-size:1em;">' + d.symbol + ' ' + tp(d.planet) + ' → ' + ts(d.toSign) + '</span>';
+            html += '<span style="color:#f0e68c;font-size:0.8em;font-weight:600;">' + dateStr2 + '</span>';
+            html += '</div>';
+            if (d.badgeInfo) {
+                html += '<div style="font-size:0.72em;color:' + cfg.color + ';font-style:italic;margin-bottom:4px;">' + d.badgeInfo + '</div>';
+            }
+            var meaning2 = d.meaning ? translateMeaning(d.meaning) : '';
+            if (meaning2) {
+                html += '<div style="font-size:0.8em;color:#cfd8dc;line-height:1.45;">' + meaning2 + '</div>';
+            }
+            if (isPast) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:4px;">✓ ' + (L?'Pasado':'Past') + '</div>';
+            html += '</div>';
+        }
+    });
+
+    body.innerHTML = html;
+
+    // Slide in
+    panel.style.display = 'block';
+    overlay.style.display = 'block';
+    requestAnimationFrame(function() {
+        panel.style.right = '0';
+    });
+}
+
+function closeCategoryPanel() {
+    var panel = document.getElementById('categorySlidePanel');
+    var overlay = document.getElementById('categoryPanelOverlay');
+    panel.style.right = '-100%';
+    overlay.style.display = 'none';
+    setTimeout(function() { panel.style.display = 'none'; }, 350);
+}
+window.showCategoryPanel = showCategoryPanel;
+window.closeCategoryPanel = closeCategoryPanel;
 
 
 function getPlanetSymbol(planetOrSign) {
@@ -17446,7 +17561,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v224';
+const APP_VERSION = 'v225';
 var _pendingSW = null;
 
 function showUpdateBanner() {
