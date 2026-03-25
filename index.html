@@ -12198,16 +12198,16 @@ function drawNatalWheel(canvasId) {
 
         // ===== HOUSE CUSPS =====
         if (nc.houses && nc.houses.cusps) {
-            // All cusps: lines from tick ring through house ring
+            // All cusps: lines from zodiac ring inner boundary through tick ring + planet area + house ring
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var a = L2A(cusp);
                 var isAxis = (idx===0||idx===3||idx===6||idx===9);
                 if (isAxis) {
-                    // Axis cusps: bold, extend through everything to center
-                    svg += line(R_tickInner,a,0.01,a,'#333',1.8);
+                    // Axis cusps: bold, from zodiac ring through everything to center
+                    svg += line(R_signInner,a,0.01,a,'#333',1.8);
                 } else {
-                    // Regular cusps: thin line from tick ring to inner house circle
-                    svg += line(R_tickInner,a,R_houseInner,a,'#999',0.5);
+                    // Regular cusps: from zodiac ring inner boundary to house ring inner circle
+                    svg += line(R_signInner,a,R_houseInner,a,'#999',0.6);
                 }
             });
 
@@ -18774,7 +18774,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v328';
+const APP_VERSION = 'v329';
 var _pendingSW = null;
 
 function showUpdateBanner() {
