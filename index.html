@@ -17527,7 +17527,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v236';
+const APP_VERSION = 'v237';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -17538,7 +17538,7 @@ function showUpdateBanner() {
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#667eea,#764ba2);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideDown 0.4s ease;';
     banner.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:white;font-size:0.85em;">'
         + '<span style="font-size:1.2em;">🚀</span>'
-        + '<div><strong>' + (L ? 'Nueva versión disponible' : 'New version available') + '</strong>'
+        + '<div><strong>' + (L ? 'Nueva versión disponible' : 'New version available') + ' — ' + APP_VERSION + '</strong>'
         + '<div style="font-size:0.8em;opacity:0.8;">' + (L ? 'Toca actualizar para obtener las últimas mejoras' : 'Tap update to get the latest improvements') + '</div></div></div>'
         + '<div style="display:flex;gap:6px;">'
         + '<button onclick="applyAppUpdate()" style="padding:6px 16px;background:white;border:none;border-radius:20px;color:#764ba2;font-weight:700;font-size:0.82em;cursor:pointer;">' + (L ? 'Actualizar' : 'Update') + '</button>'
