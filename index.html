@@ -12118,202 +12118,212 @@ function drawNatalWheel(canvasId) {
         var ctx = canvas.getContext('2d');
         var W = canvas.width, H = canvas.height;
         var cx = W / 2, cy = H / 2;
+        var dpr = window.devicePixelRatio || 1;
 
-        // --- Radii with more spacing ---
-        var R_outer = Math.min(cx, cy) - 6;
-        var R_signInner = R_outer - 32;
-        var R_houseOuter = R_signInner - 3;
-        var R_planetRing = R_houseOuter - 36;
-        var R_aspectCircle = R_planetRing - 22;
-        var R_center = 20;
+        // ===== RADII — clean concentric rings like Astroly Master =====
+        var R = Math.min(cx, cy) - 14; // total radius
+        var R_outerEdge   = R;               // outer edge
+        var R_signOuter   = R;               // zodiac ring outer
+        var R_signInner   = R - 38;          // zodiac ring inner
+        var R_degreeOuter = R_signInner;     // degree tick ring outer
+        var R_degreeInner = R_signInner - 14;// degree tick ring inner
+        var R_houseOuter  = R_degreeInner;   // house ring outer
+        var R_planetOuter = R_houseOuter;    // planets placed in house ring
+        var R_planetInner = R_houseOuter - 60;// inner limit of planet area
+        var R_aspectOuter = R_planetInner - 4;// aspect circle
+        var R_center      = 4;               // tiny center dot
 
         ctx.clearRect(0, 0, W, H);
 
-        // --- Background gradient ---
-        var bgGrad = ctx.createRadialGradient(cx, cy, R_center, cx, cy, R_outer + 10);
-        bgGrad.addColorStop(0, 'rgba(15,10,35,1)');
-        bgGrad.addColorStop(1, 'rgba(5,2,18,1)');
-        ctx.beginPath();
-        ctx.arc(cx, cy, R_outer + 6, 0, 2 * Math.PI);
-        ctx.fillStyle = bgGrad;
+        // ===== BACKGROUND =====
+        ctx.fillStyle = '#faf8f4';
+        ctx.fillRect(0, 0, W, H);
+        // Soft circle bg
+        ctx.beginPath(); ctx.arc(cx, cy, R_outerEdge + 2, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // ASC on the left = 180°
+        // ===== ROTATION: ASC on left (180°) =====
         var ascLon = nc.houses ? nc.houses.ascendant : 0;
         var rotOffset = 180 - ascLon;
 
         function lonToAngle(lon) {
-            var deg = -(lon + rotOffset) + 180;
-            return deg * Math.PI / 180;
+            return (-(lon + rotOffset) + 180) * Math.PI / 180;
         }
 
-        // Element colors for signs
-        var elementForSign = [0,1,2,3,0,1,2,3,0,1,2,3]; // Fire,Earth,Air,Water repeating
-        var elementColors = {
-            0: { bg: 'rgba(231,76,60,0.25)', border: '#e74c3c', text: '#ff6b6b' },    // Fire
-            1: { bg: 'rgba(139,105,20,0.25)', border: '#8B6914', text: '#d4a930' },     // Earth
-            2: { bg: 'rgba(241,196,15,0.2)', border: '#f1c40f', text: '#f7dc6f' },      // Air
-            3: { bg: 'rgba(52,152,219,0.25)', border: '#3498db', text: '#5dade2' }       // Water
-        };
         var signGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+        var signColors = ['#c0392b','#27ae60','#f1c40f','#3498db','#c0392b','#27ae60','#f1c40f','#3498db','#c0392b','#27ae60','#f1c40f','#3498db'];
 
-        // ========== OUTER ZODIAC RING ==========
+        // ===== ZODIAC RING (outer) =====
+        // Background of zodiac ring
+        ctx.beginPath(); ctx.arc(cx, cy, R_signOuter, 0, 2*Math.PI);
+        ctx.arc(cx, cy, R_signInner, 0, 2*Math.PI, true);
+        ctx.fillStyle = '#f0ece4';
+        ctx.fill();
+
+        // Sign segments with divider lines and glyphs
         for (var i = 0; i < 12; i++) {
             var a1 = lonToAngle(i * 30);
             var a2 = lonToAngle((i + 1) * 30);
-            var el = elementForSign[i];
+            // Divider line
             ctx.beginPath();
-            ctx.arc(cx, cy, R_outer, a1, a2, true);
-            ctx.arc(cx, cy, R_signInner, a2, a1, false);
-            ctx.closePath();
-            ctx.fillStyle = elementColors[el].bg;
-            ctx.fill();
-            // Sign border lines
-            ctx.beginPath();
-            ctx.moveTo(cx + R_outer * Math.cos(a1), cy + R_outer * Math.sin(a1));
+            ctx.moveTo(cx + R_signOuter * Math.cos(a1), cy + R_signOuter * Math.sin(a1));
             ctx.lineTo(cx + R_signInner * Math.cos(a1), cy + R_signInner * Math.sin(a1));
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = 0.7;
+            ctx.strokeStyle = '#bbb';
+            ctx.lineWidth = 1;
             ctx.stroke();
-            // Sign glyph centered in segment
+            // Sign glyph
             var midA = lonToAngle(i * 30 + 15);
-            var gr = (R_outer + R_signInner) / 2;
-            ctx.fillStyle = elementColors[el].text;
-            ctx.font = 'bold 15px serif';
+            var gr = (R_signOuter + R_signInner) / 2;
+            ctx.fillStyle = signColors[i];
+            ctx.font = 'bold 16px serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(signGlyphs[i], cx + gr * Math.cos(midA), cy + gr * Math.sin(midA));
         }
 
-        // Outer / inner ring circles
-        ctx.beginPath(); ctx.arc(cx, cy, R_outer, 0, 2*Math.PI);
-        ctx.strokeStyle = 'rgba(200,180,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+        // Ring borders
+        ctx.beginPath(); ctx.arc(cx, cy, R_signOuter, 0, 2*Math.PI);
+        ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, cy, R_signInner, 0, 2*Math.PI);
-        ctx.strokeStyle = 'rgba(200,180,255,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.stroke();
 
-        // ========== DEGREE TICKS (inside sign ring) ==========
-        for (var d = 0; d < 360; d += 1) {
+        // ===== DEGREE TICKS (thin ring between zodiac and houses) =====
+        ctx.beginPath(); ctx.arc(cx, cy, R_degreeOuter, 0, 2*Math.PI);
+        ctx.arc(cx, cy, R_degreeInner, 0, 2*Math.PI, true);
+        ctx.fillStyle = '#faf8f4';
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, R_degreeInner, 0, 2*Math.PI);
+        ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.8; ctx.stroke();
+
+        for (var d = 0; d < 360; d++) {
             var ta = lonToAngle(d);
             var isMajor = (d % 30 === 0);
-            var isMid = (d % 10 === 0);
+            var is10 = (d % 10 === 0);
             var is5 = (d % 5 === 0);
-            if (!isMajor && !isMid && !is5) continue;
-            var tickOuter = R_signInner;
-            var tickInner = isMajor ? R_signInner - 6 : (isMid ? R_signInner - 4 : R_signInner - 2);
+            var is1 = true;
+            var tickLen = isMajor ? (R_degreeOuter - R_degreeInner) : is10 ? 8 : is5 ? 5 : 2;
+            var tickInner = R_degreeOuter - tickLen;
             ctx.beginPath();
-            ctx.moveTo(cx + tickOuter * Math.cos(ta), cy + tickOuter * Math.sin(ta));
+            ctx.moveTo(cx + R_degreeOuter * Math.cos(ta), cy + R_degreeOuter * Math.sin(ta));
             ctx.lineTo(cx + tickInner * Math.cos(ta), cy + tickInner * Math.sin(ta));
-            ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)';
-            ctx.lineWidth = isMajor ? 1.2 : 0.5;
+            ctx.strokeStyle = isMajor ? '#888' : is10 ? '#aaa' : is5 ? '#ccc' : '#ddd';
+            ctx.lineWidth = isMajor ? 1.2 : is10 ? 0.8 : 0.4;
             ctx.stroke();
         }
 
-        // ========== HOUSE CUSPS ==========
+        // ===== HOUSE AREA (white circle for planets) =====
+        ctx.beginPath(); ctx.arc(cx, cy, R_houseOuter, 0, 2*Math.PI);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // ===== ASPECT CIRCLE =====
+        ctx.beginPath(); ctx.arc(cx, cy, R_aspectOuter, 0, 2*Math.PI);
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.8; ctx.stroke();
+
+        // ===== HOUSE CUSPS =====
         if (nc.houses && nc.houses.cusps) {
-            // Non-axis cusps first (thinner, behind)
+            // Non-axis cusps (thin gray dashed)
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var isAxis = (idx === 0 || idx === 3 || idx === 6 || idx === 9);
                 if (isAxis) return;
                 var angle = lonToAngle(cusp);
                 ctx.beginPath();
                 ctx.moveTo(cx + R_houseOuter * Math.cos(angle), cy + R_houseOuter * Math.sin(angle));
-                ctx.lineTo(cx + R_aspectCircle * Math.cos(angle), cy + R_aspectCircle * Math.sin(angle));
-                ctx.strokeStyle = 'rgba(155,120,200,0.2)';
-                ctx.setLineDash([3,4]);
+                ctx.lineTo(cx + R_aspectOuter * Math.cos(angle), cy + R_aspectOuter * Math.sin(angle));
+                ctx.strokeStyle = '#ccc';
+                ctx.setLineDash([3, 3]);
                 ctx.lineWidth = 0.6;
                 ctx.stroke();
                 ctx.setLineDash([]);
             });
-            // Axis cusps (ASC/DSC/MC/IC) — bold, solid
-            nc.houses.cusps.forEach(function(cusp, idx) {
-                var isAxis = (idx === 0 || idx === 3 || idx === 6 || idx === 9);
-                if (!isAxis) return;
-                var angle = lonToAngle(cusp);
+
+            // Axis cusps: ASC–DSC and MC–IC (bold black lines crossing through center)
+            var axisPairs = [
+                [nc.houses.cusps[0], nc.houses.cusps[6]],  // ASC–DSC (houses 1–7)
+                [nc.houses.cusps[3], nc.houses.cusps[9]]   // IC–MC (houses 4–10)
+            ];
+            axisPairs.forEach(function(pair) {
+                var a1 = lonToAngle(pair[0]);
+                var a2 = lonToAngle(pair[1]);
                 ctx.beginPath();
-                ctx.moveTo(cx + R_houseOuter * Math.cos(angle), cy + R_houseOuter * Math.sin(angle));
-                ctx.lineTo(cx + R_center * Math.cos(angle), cy + R_center * Math.sin(angle));
-                ctx.strokeStyle = 'rgba(201,168,64,0.55)';
+                ctx.moveTo(cx + R_houseOuter * Math.cos(a1), cy + R_houseOuter * Math.sin(a1));
+                ctx.lineTo(cx + R_houseOuter * Math.cos(a2), cy + R_houseOuter * Math.sin(a2));
+                ctx.strokeStyle = '#333';
                 ctx.lineWidth = 1.8;
                 ctx.stroke();
             });
-            // House numbers + cusp degrees
-            var cSignGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+
+            // House numbers (Roman style like Astroly)
+            var houseRoman = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var nextCusp = nc.houses.cusps[(idx + 1) % 12];
                 var span = nextCusp > cusp ? nextCusp - cusp : nextCusp + 360 - cusp;
                 var midLon = cusp + span / 2;
                 var hAngle = lonToAngle(midLon);
-                var hr = R_aspectCircle + 16;
-                // House number (larger, centered)
-                ctx.fillStyle = 'rgba(200,180,255,0.35)';
-                ctx.font = 'bold 11px system-ui';
+                var hr = (R_houseOuter + R_aspectOuter) / 2;
+                ctx.fillStyle = '#999';
+                ctx.font = '10px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(String(idx + 1), cx + hr * Math.cos(hAngle), cy + hr * Math.sin(hAngle));
+                ctx.fillText(houseRoman[idx], cx + hr * Math.cos(hAngle), cy + hr * Math.sin(hAngle));
+            });
 
-                // Cusp degree label (on the cusp line, near the sign ring)
+            // Cusp degrees on the degree ring
+            nc.houses.cusps.forEach(function(cusp, idx) {
                 var cuspAngle = lonToAngle(cusp);
                 var signIdx = Math.floor(cusp / 30) % 12;
                 var degInSign = Math.floor(cusp % 30);
                 var minInSign = Math.floor(((cusp % 30) - degInSign) * 60);
-                var degLabel = degInSign + '°' + cSignGlyphs[signIdx];
-                var dlr = R_signInner - 12;
+                var degLabel = degInSign + '°' + (minInSign < 10 ? '0' : '') + minInSign + "'";
+                var dlr = (R_degreeOuter + R_degreeInner) / 2;
                 var dlx = cx + dlr * Math.cos(cuspAngle);
                 var dly = cy + dlr * Math.sin(cuspAngle);
                 ctx.save();
                 ctx.translate(dlx, dly);
-                // Rotate text to follow the cusp line
                 var textAngle = cuspAngle + Math.PI / 2;
-                if (textAngle > Math.PI / 2 && textAngle < 3 * Math.PI / 2) textAngle += Math.PI;
+                // Flip if upside down
+                var degCheck = (textAngle * 180 / Math.PI) % 360;
+                if (degCheck < 0) degCheck += 360;
+                if (degCheck > 90 && degCheck < 270) textAngle += Math.PI;
                 ctx.rotate(textAngle);
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.font = '8px system-ui';
+                ctx.fillStyle = '#666';
+                ctx.font = '7px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(degLabel, 0, 0);
                 ctx.restore();
             });
 
-            // ASC / MC / DSC / IC labels
-            var labels = [
-                { lon: nc.houses.ascendant, text: 'ASC', align: 'right' },
-                { lon: nc.houses.mc, text: 'MC', align: 'center' },
-                { lon: (nc.houses.ascendant + 180) % 360, text: 'DSC', align: 'left' },
-                { lon: (nc.houses.mc + 180) % 360, text: 'IC', align: 'center' }
+            // ASC / MC / DSC / IC labels — outside the chart
+            var axisLabels = [
+                { lon: nc.houses.ascendant, text: 'AC' },
+                { lon: nc.houses.mc, text: 'MC' },
+                { lon: (nc.houses.ascendant + 180) % 360, text: 'DC' },
+                { lon: (nc.houses.mc + 180) % 360, text: 'IC' }
             ];
-            labels.forEach(function(lb) {
+            axisLabels.forEach(function(lb) {
                 var la = lonToAngle(lb.lon);
-                var lx = cx + (R_outer + 14) * Math.cos(la);
-                var ly = cy + (R_outer + 14) * Math.sin(la);
-                // Background pill
-                ctx.font = 'bold 9px system-ui';
-                var tw = ctx.measureText(lb.text).width + 8;
-                ctx.fillStyle = 'rgba(201,168,64,0.2)';
-                ctx.beginPath();
-                ctx.roundRect(lx - tw/2, ly - 7, tw, 14, 3);
-                ctx.fill();
-                ctx.fillStyle = '#c9a840';
+                var lx = cx + (R_signOuter + 12) * Math.cos(la);
+                var ly = cy + (R_signOuter + 12) * Math.sin(la);
+                ctx.font = 'bold 10px system-ui';
+                ctx.fillStyle = '#333';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(lb.text, lx, ly);
             });
         }
 
-        // Aspect circle
-        ctx.beginPath(); ctx.arc(cx, cy, R_aspectCircle, 0, 2*Math.PI);
-        ctx.strokeStyle = 'rgba(155,120,200,0.15)'; ctx.lineWidth = 0.7; ctx.stroke();
-
-        // ========== ASPECT LINES (inside aspect circle) ==========
+        // ===== ASPECT LINES (inside aspect circle — colored like Astroly) =====
         var planetKeys = Object.keys(nc.planets);
         var aspectDefs = [
-            { angle: 0,   orb: 8, solid: true,  color: [231,76,60],   name: 'conj' },
-            { angle: 60,  orb: 6, solid: false, color: [52,152,219],  name: 'sext' },
-            { angle: 90,  orb: 7, solid: false, color: [241,196,15],  name: 'sqr'  },
-            { angle: 120, orb: 8, solid: true,  color: [46,204,113],  name: 'tri'  },
-            { angle: 150, orb: 3, solid: false, color: [155,89,182],  name: 'qcx'  },
-            { angle: 180, orb: 8, solid: false, color: [192,57,43],   name: 'opp'  }
+            { angle: 0,   orb: 8, color: '#666',    dash: false, name: 'conj', w: 1.2 },
+            { angle: 60,  orb: 6, color: '#2980b9',  dash: true,  name: 'sext', w: 0.8 },
+            { angle: 90,  orb: 7, color: '#c0392b',  dash: false, name: 'sqr',  w: 1.0 },
+            { angle: 120, orb: 8, color: '#27ae60',  dash: false, name: 'tri',  w: 1.0 },
+            { angle: 150, orb: 3, color: '#8e44ad',  dash: true,  name: 'qcx',  w: 0.6 },
+            { angle: 180, orb: 8, color: '#c0392b',  dash: false, name: 'opp',  w: 1.0 }
         ];
-        // Collect aspects first, then draw sorted by orb (widest=dimmest first)
         var drawnAspects = [];
         for (var pi = 0; pi < planetKeys.length; pi++) {
             for (var pj = pi + 1; pj < planetKeys.length; pj++) {
@@ -12332,28 +12342,27 @@ function drawNatalWheel(canvasId) {
                 }
             }
         }
-        // Draw widest orb first (behind), tightest last (in front)
         drawnAspects.sort(function(a,b) { return b.orb - a.orb; });
         drawnAspects.forEach(function(da) {
             var a1a = lonToAngle(da.p1lon);
             var a2a = lonToAngle(da.p2lon);
-            var strength = 1 - (da.orb / da.asp.orb); // 1=exact, 0=widest
-            var alpha = 0.12 + strength * 0.35;
-            var lw = 0.5 + strength * 1.5;
-            var c = da.asp.color;
+            var strength = 1 - (da.orb / da.asp.orb);
+            var alpha = 0.2 + strength * 0.6;
             ctx.beginPath();
-            ctx.setLineDash(da.asp.solid ? [] : [4, 3]);
-            ctx.moveTo(cx + R_aspectCircle * Math.cos(a1a), cy + R_aspectCircle * Math.sin(a1a));
-            ctx.lineTo(cx + R_aspectCircle * Math.cos(a2a), cy + R_aspectCircle * Math.sin(a2a));
-            ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha.toFixed(2) + ')';
-            ctx.lineWidth = lw;
+            ctx.setLineDash(da.asp.dash ? [4, 3] : []);
+            ctx.moveTo(cx + R_aspectOuter * Math.cos(a1a), cy + R_aspectOuter * Math.sin(a1a));
+            ctx.lineTo(cx + R_aspectOuter * Math.cos(a2a), cy + R_aspectOuter * Math.sin(a2a));
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = da.asp.color;
+            ctx.lineWidth = da.asp.w;
             ctx.stroke();
             ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
         });
 
-        // ========== PLANETS ==========
-        var planetGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸'};
-        var planetClrs = {'sun':'#f39c12','moon':'#dfe6e9','mercury':'#e67e22','venus':'#fd79a8','mars':'#e74c3c','jupiter':'#a29bfe','saturn':'#636e72','uranus':'#00cec9','neptune':'#0984e3','pluto':'#6c5ce7','chiron':'#00b894','lilith':'#b2bec3'};
+        // ===== PLANETS (in the house ring area) =====
+        var planetGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊','southnode':'☋'};
+        var planetClrs = {'sun':'#e67e22','moon':'#2c3e50','mercury':'#d4a017','venus':'#27ae60','mars':'#c0392b','jupiter':'#8e44ad','saturn':'#2c3e50','uranus':'#16a085','neptune':'#2980b9','pluto':'#7f8c8d','chiron':'#27ae60','lilith':'#555','northnode':'#555','southnode':'#555'};
 
         var planetPositions = [];
         planetKeys.forEach(function(p) {
@@ -12362,101 +12371,75 @@ function drawNatalWheel(canvasId) {
         });
         planetPositions.sort(function(a, b) { return a.lon - b.lon; });
 
-        // Multi-pass nudge for clusters
-        var minSep = 8; // degrees
-        for (var pass = 0; pass < 5; pass++) {
+        // Collision avoidance — push overlapping planets outward
+        var minSep = 7;
+        for (var pass = 0; pass < 6; pass++) {
             for (var ni = 1; ni < planetPositions.length; ni++) {
                 var prev = planetPositions[ni - 1];
                 var cur = planetPositions[ni];
                 var sepDeg = cur.lon - prev.lon;
                 if (sepDeg < 0) sepDeg += 360;
                 if (sepDeg < minSep) {
-                    cur.nudge = prev.nudge + 16;
+                    cur.nudge = prev.nudge + 14;
                 }
             }
         }
 
+        // Default planet radius (middle of house ring)
+        var R_planetDefault = (R_houseOuter + R_planetInner) / 2;
+
         planetPositions.forEach(function(pp) {
             var angle = lonToAngle(pp.lon);
-            var pr = R_planetRing - pp.nudge;
-            if (pr < R_aspectCircle + 14) pr = R_aspectCircle + 14;
+            var pr = R_planetDefault + pp.nudge * 0.3;
+            if (pr > R_houseOuter - 10) pr = R_houseOuter - 10;
+            if (pr < R_planetInner + 10) pr = R_planetInner + 10;
             var px = cx + pr * Math.cos(angle);
             var py = cy + pr * Math.sin(angle);
 
-            // Pointer line from sign ring to planet
+            // Thin pointer line from degree ring to planet position
             ctx.beginPath();
-            ctx.moveTo(cx + (R_signInner - 1) * Math.cos(angle), cy + (R_signInner - 1) * Math.sin(angle));
-            ctx.lineTo(cx + (pr + 12) * Math.cos(angle), cy + (pr + 12) * Math.sin(angle));
-            ctx.strokeStyle = (planetClrs[pp.key] || '#fff') + '40';
-            ctx.lineWidth = 0.7;
+            ctx.moveTo(cx + R_degreeInner * Math.cos(angle), cy + R_degreeInner * Math.sin(angle));
+            ctx.lineTo(px, py);
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 0.5;
             ctx.stroke();
 
-            // Planet disc (opaque background)
-            ctx.beginPath();
-            ctx.arc(px, py, 11, 0, 2 * Math.PI);
-            ctx.fillStyle = 'rgba(15,10,35,0.92)';
-            ctx.fill();
-            ctx.strokeStyle = (planetClrs[pp.key] || '#fff') + '90';
-            ctx.lineWidth = 1.3;
-            ctx.stroke();
-
-            // Glyph
-            ctx.fillStyle = planetClrs[pp.key] || '#fff';
-            ctx.font = 'bold 14px serif';
+            // Planet glyph (no disc, just the symbol — clean like Astroly)
+            ctx.fillStyle = planetClrs[pp.key] || '#333';
+            ctx.font = 'bold 15px serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(planetGlyphs[pp.key] || pp.key[0].toUpperCase(), px, py);
 
-            // Degree label below planet
+            // Degree + sign below planet
             var pLon = nc.planets[pp.key].longitude;
             var pSignIdx = Math.floor(pLon / 30) % 12;
             var pDegInSign = Math.floor(pLon % 30);
             var pMinInSign = Math.floor(((pLon % 30) - pDegInSign) * 60);
-            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.fillStyle = '#888';
             ctx.font = '7px system-ui';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(pDegInSign + '°' + signGlyphs[pSignIdx] + (pMinInSign < 10 ? '0' : '') + pMinInSign + "'", px, py + 12);
+            ctx.fillText(pDegInSign + '°' + signGlyphs[pSignIdx] + (pMinInSign < 10 ? '0' : '') + pMinInSign + "'", px, py + 10);
 
             // Retrograde indicator
             if (nc.planets[pp.key].isRetrograde) {
-                ctx.fillStyle = '#e74c3c';
+                ctx.fillStyle = '#c0392b';
                 ctx.font = 'bold 8px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('℞', px + 9, py - 8);
+                ctx.fillText('℞', px + 10, py - 8);
             }
         });
 
-        // ========== CENTER ==========
+        // ===== CENTER DOT =====
         ctx.beginPath(); ctx.arc(cx, cy, R_center, 0, 2*Math.PI);
-        var cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R_center);
-        cGrad.addColorStop(0, 'rgba(30,20,60,1)');
-        cGrad.addColorStop(1, 'rgba(15,10,35,1)');
-        ctx.fillStyle = cGrad;
+        ctx.fillStyle = '#333';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(200,180,255,0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
 
-        // ========== LEGEND (below chart) ==========
-        var legendY = H - 12;
-        var aspects4 = [
-            { sym: '━', label: 'Conj', c: '#e74c3c' },
-            { sym: '━', label: 'Tri', c: '#2ecc71' },
-            { sym: '╌', label: 'Sqr', c: '#f1c40f' },
-            { sym: '╌', label: 'Opp', c: '#c0392b' },
-            { sym: '╌', label: 'Sxt', c: '#3498db' }
-        ];
-        var lx = 20;
-        ctx.font = '9px system-ui';
-        aspects4.forEach(function(a) {
-            ctx.fillStyle = a.c;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(a.sym + ' ' + a.label, lx, legendY);
-            lx += ctx.measureText(a.sym + ' ' + a.label).width + 14;
-        });
+        // ===== OUTER BORDER =====
+        ctx.beginPath(); ctx.arc(cx, cy, R_outerEdge, 0, 2*Math.PI);
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 2; ctx.stroke();
 
     } catch(e) { console.error('Wheel chart error:', e); }
 }
@@ -18894,7 +18877,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v323';
+const APP_VERSION = 'v324';
 var _pendingSW = null;
 
 function showUpdateBanner() {
