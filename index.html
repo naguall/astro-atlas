@@ -6920,9 +6920,11 @@ function showRetrogradeModal(planet, symbol, isStart, dateStr) {
         ${retroData.lastTime ? '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + retroData.lastTime + '</div>' : ''}
     `;
 
-    // Add AI interpretation button
+    // Make whole modal clickable for AI interpretation
     const retroClickText = (planet + ' ' + (isStarting ? 'Retrógrado INICIA' : 'Directo') + ' en ' + retroData.sign + ' (' + formatDate(retroData.start) + ' - ' + formatDate(retroData.end) + ')').replace(/'/g, "\\'");
-    document.getElementById('retrogradeModalBody').innerHTML += '<div onclick="closeRetrogradeModal(); showBannerAspectDetail(\'' + retroClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+    const retroModalContent = document.querySelector('#retrogradeModal .modal-content');
+    retroModalContent.style.cursor = 'pointer';
+    retroModalContent.onclick = function(e) { if (e.target.closest('.close')) return; closeRetrogradeModal(); showBannerAspectDetail(retroClickText); };
 
     document.getElementById('retrogradeModal').classList.add('show');
 }
@@ -7159,9 +7161,11 @@ function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
         document.getElementById('signChangeModalBody').innerHTML += '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + scData.lastTime + '</div>';
     }
 
-    // Add AI interpretation button
+    // Make whole modal clickable for AI interpretation
     const scClickText = (planet + ' → ' + toSign + ' ' + formatLongDate(date)).replace(/'/g, "\\'");
-    document.getElementById('signChangeModalBody').innerHTML += '<div onclick="closeSignChangeModal(); showBannerAspectDetail(\'' + scClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+    const scModalContent = document.querySelector('#signChangeModal .modal-content');
+    scModalContent.style.cursor = 'pointer';
+    scModalContent.onclick = function(e) { if (e.target.closest('.close')) return; closeSignChangeModal(); showBannerAspectDetail(scClickText); };
 
     document.getElementById('signChangeModal').classList.add('show');
 }
@@ -7292,9 +7296,11 @@ function showMajorAspectModal(type, planetsStr, meaning, impact, dateTime) {
         </div>
     `;
 
-    // Add AI interpretation button
+    // Make whole modal clickable for AI interpretation
     const maClickText = (info.name + ': ' + planets.join(', ') + ' (' + formatLongDate(date) + ')').replace(/'/g, "\\'");
-    document.getElementById('majorAspectModalBody').innerHTML += '<div onclick="closeMajorAspectModal(); showBannerAspectDetail(\'' + maClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+    const maModalContent = document.querySelector('#majorAspectModal .modal-content');
+    maModalContent.style.cursor = 'pointer';
+    maModalContent.onclick = function(e) { if (e.target.closest('.close')) return; closeMajorAspectModal(); showBannerAspectDetail(maClickText); };
 
     document.getElementById('majorAspectModal').classList.add('show');
 }
@@ -17569,7 +17575,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v244';
+const APP_VERSION = 'v245';
 var _pendingSW = null;
 
 function showUpdateBanner() {
