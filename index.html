@@ -403,6 +403,14 @@
         .tide-bar { display: inline-block; height: 8px; border-radius: 2px; min-width: 3px; vertical-align: middle; }
         .astro-btn { width: 100%; padding: 14px; margin-bottom: 10px; background: linear-gradient(135deg, rgba(74,158,255,0.20) 0%, rgba(74,158,255,0.08) 100%); border: 1px solid var(--blue-border); border-radius: 9px; color: var(--blue-bright); font-size: 1em; cursor: pointer; transition: all 0.2s; font-family: inherit; }
         .astro-btn:hover { transform: scale(1.02); filter: brightness(1.15); }
+        .btn-shine { display:inline-block;padding:4px 10px;background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 40%,rgba(255,255,255,0.04) 100%);border:1px solid rgba(255,255,255,0.1);border-radius:10px;position:relative;overflow:hidden;transition:all 0.3s; }
+        .btn-shine::after { content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);transform:rotate(25deg);transition:left 0.6s; }
+        .btn-shine:hover::after { left:120%; }
+        .btn-shine:hover { border-color:rgba(255,255,255,0.2); }
+        .btn-shine-teal { border-color:rgba(78,205,196,0.2); }
+        .btn-shine-teal:hover { border-color:rgba(78,205,196,0.35); }
+        .btn-shine-solar { border-color:rgba(255,149,0,0.2); }
+        .btn-shine-solar:hover { border-color:rgba(255,149,0,0.35); }
         .astro-card { background: rgba(5,7,30,0.95); border: 1px solid var(--blue-border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; min-height: 120px; display: flex; flex-direction: column; text-align: center; align-items: center; }
         .astro-info-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; align-items:stretch; }
         .astro-card h4 { font-family: 'Cinzel', serif; color: var(--blue-bright); font-size: 0.68em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px; text-align: center; }
@@ -9836,7 +9844,7 @@ function switchToAspects2026Mode() {
     if (ssp) ssp.style.display = 'none';
 
     // Update title
-    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Aspectos Planetarios 2026' : 'Planetary Aspects 2026';
+    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Aspectos 2026' : 'Aspects 2026';
 
     // Navigation
     const nav = document.querySelector('.navigation');
@@ -9880,11 +9888,7 @@ function renderAspects2026Panel() {
 
     let html = '<div style="padding:6px;font-size:0.8em;">';
 
-    // Header
-    html += '<div style="margin-bottom:10px;padding:12px;background:rgba(5,7,30,0.95);border:1px solid rgba(233,30,99,0.3);border-radius:12px;border-top:2px solid rgba(233,30,99,0.6);text-align:center;">'
-        + '<div style="font-family:\'Cinzel\',serif;color:#e91e63;font-size:1em;font-weight:600;letter-spacing:2px;margin-bottom:6px;">'
-        + '🪐 ' + (es ? 'ASPECTOS 2026' : 'ASPECTS 2026') + '</div>'
-        + '</div>';
+    // Header box removed — title now in calendarTitle header
 
     // Planet cards
     planetOrder.forEach((pName, idx) => {
@@ -14206,8 +14210,8 @@ function renderSolarInfoPanel() {
         + (currentLang==='es' ? 'Info Solar' : 'Solar Info')
         + '</span></div>'
         + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'
-        + '<span onclick="toggleSolarRiseSetList()" style="color:#ff9500;font-size:0.78em;font-weight:bold;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + ' ▾</span>'
-        + '<span onclick="openLocationSelector()" style="color:#e53935;font-size:0.68em;cursor:pointer;">📍 ' + ASTRO_USER_NAME.split(',')[0] + ' ▾</span>'
+        + '<span class="btn-shine btn-shine-solar" onclick="toggleSolarRiseSetList()" style="color:#ff9500;font-size:0.78em;font-weight:bold;cursor:pointer;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + ' ▾</span>'
+        + '<span class="btn-shine btn-shine-solar" onclick="openLocationSelector()" style="color:#e53935;font-size:0.68em;cursor:pointer;">📍 ' + ASTRO_USER_NAME.split(',')[0] + ' ▾</span>'
         + '</div></div>';
 
     // Subsolar position title
@@ -15647,8 +15651,8 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 </span>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-                <span onclick="toggleLunarRiseSetList()" style="color:#7ec8ff;font-size:0.78em;font-weight:bold;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet} ▾</span>
-                <span onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;">📍 ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
+                <span class="btn-shine btn-shine-teal" onclick="toggleLunarRiseSetList()" style="color:#7ec8ff;font-size:0.78em;font-weight:bold;cursor:pointer;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet} ▾</span>
+                <span class="btn-shine btn-shine-teal" onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;">📍 ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
             </div>
         </div>
         <div id="lunarRiseSetListContainer" style="display:none;max-height:300px;overflow-y:auto;margin-bottom:10px;padding:8px;background:rgba(74,158,255,0.04);border:1px solid rgba(74,158,255,0.15);border-radius:8px;"></div>
@@ -15681,7 +15685,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
         <div class="astro-info-grid">
 
             <!-- Curva de Marea (clickable, spans 2 columns) -->
-            <div class="astro-card" style="margin-bottom:0;cursor:pointer;grid-column:span 2;" onclick="openTideCycleModal()">
+            <div class="astro-card btn-shine btn-shine-teal" style="margin-bottom:0;cursor:pointer;grid-column:span 2;" onclick="openTideCycleModal()">
                 <h4 style="font-size:0.75em;">${currentLang==='es'?'Curva de Marea':'Tide Curve'} <span style="font-size:0.7em;color:rgba(255,255,255,0.3);">▸</span></h4>
                 <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
                 <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
@@ -18647,7 +18651,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v308';
+const APP_VERSION = 'v309';
 var _pendingSW = null;
 
 function showUpdateBanner() {
