@@ -2152,7 +2152,8 @@ function openTideCycleModal() {
         var strengthColor = fAstro.tidePct > 70 ? '#FF6B6B' : fAstro.tidePct > 45 ? '#f0e68c' : '#4FC3F7';
 
         // Is this the first day of a new phase? (phase perfection day)
-        var isPhaseDay = (prevWeekIndex !== -1 && fPhaseData.weekIndex !== prevWeekIndex);
+        // d===0 is always a new moon (list starts from new moon), so it's a phase day too
+        var isPhaseDay = (d === 0) || (prevWeekIndex !== -1 && fPhaseData.weekIndex !== prevWeekIndex);
 
         // Insert phase marker banner when phase changes
         if (isPhaseDay) {
@@ -18114,7 +18115,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v279';
+const APP_VERSION = 'v280';
 var _pendingSW = null;
 
 function showUpdateBanner() {
