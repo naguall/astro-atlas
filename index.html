@@ -276,9 +276,9 @@
         .day-cell.weekend.today { border-top: 3px solid #64B5F6 !important; box-shadow: 0 0 22px rgba(100,181,246,0.35), inset 0 0 15px rgba(100,181,246,0.08) !important; background: linear-gradient(160deg, rgba(10,25,50,0.98) 0%, rgba(8,20,45,0.98) 100%) !important; border-color: rgba(100,181,246,0.60) !important; }
 
         .day-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1px solid rgba(74,158,255,0.10); }
-        .day-number { font-size: 0.95em; font-weight: bold; line-height: 1; flex: 0 0 auto; color: var(--blue-bright); }
-        .day-cell.today .day-number { color: #64B5F6; }
-        .day-cell.weekend .day-number { color: var(--gold); }
+        .day-number { font-size: 0.95em; font-weight: bold; line-height: 1; flex: 0 0 auto; color: #7ec8ff; }
+        .day-cell.today .day-number { color: #7ec8ff; }
+        .day-cell.weekend .day-number { color: #7ec8ff; }
         .day-right { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; }
         .day-date { font-size: 0.95em; color: var(--text-dim); text-align: right; line-height: 1; font-weight: bold; }
         .day-weekday { font-size: 0.55em; color: rgba(136,153,204,0.7); text-transform: uppercase; font-weight: 600; letter-spacing: 0.1px; line-height: 1; }
@@ -420,8 +420,8 @@
         body.solar-mode .day-cell.weekend { background: rgba(25,18,2,0.95); border: 1px solid rgba(212,175,55,0.35); border-top: 2px solid rgba(212,175,55,0.55); box-shadow: 0 0 8px rgba(212,175,55,0.15), inset 0 0 12px rgba(212,175,55,0.06); }
         body.solar-mode .day-cell.weekend:hover { border-color: rgba(212,175,55,0.55); box-shadow: 0 0 14px rgba(212,175,55,0.25); }
         body.solar-mode .day-number { color: #7ec8ff; }
-        body.solar-mode .day-cell.weekend .day-number { color: #c9a840; }
-        body.solar-mode .day-cell.today .day-number { color: #64B5F6; }
+        body.solar-mode .day-cell.weekend .day-number { color: #7ec8ff; }
+        body.solar-mode .day-cell.today .day-number { color: #7ec8ff; }
         body.solar-mode .day-date, body.solar-mode .day-weekday { color: rgba(255,235,180,0.70); }
         body.solar-mode .subtitle { color: #a88040; }
         body.solar-mode .navigation { border-color: rgba(212,175,55,0.32); background: rgba(14,9,2,0.98); }
@@ -505,9 +505,9 @@
         .gregorian-day-cell.empty { background: transparent; cursor: default; }
         .gregorian-day-cell.weekend { background: rgba(20,16,6,0.95); border-color: rgba(201,168,64,0.30); border-top: 2px solid rgba(201,168,64,0.45); box-shadow: 0 0 8px rgba(201,168,64,0.12); }
         .gregorian-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.45); border-top: 2px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
-        .greg-day-number { font-size: 1.15em; font-weight: bold; margin-bottom: 4px; color: var(--blue-bright); }
-        .gregorian-day-cell.today .greg-day-number { color: #64B5F6; }
-        .gregorian-day-cell.weekend .greg-day-number { color: var(--gold); }
+        .greg-day-number { font-size: 1.15em; font-weight: bold; margin-bottom: 4px; color: #7ec8ff; }
+        .gregorian-day-cell.today .greg-day-number { color: #7ec8ff; }
+        .gregorian-day-cell.weekend .greg-day-number { color: #7ec8ff; }
         .greg-lunar-day { font-size: 0.68em; color: var(--text-dim); margin-bottom: 4px; }
         .greg-event { font-size: 0.63em; padding: 3px 5px; margin-bottom: 3px; border-radius: 4px; background: rgba(74,158,255,0.12); border-left: 2px solid var(--blue-mid); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .greg-event.eclipse { background: rgba(232,93,122,0.15); border-left-color: #e85d7a; }
@@ -17522,7 +17522,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v232';
+const APP_VERSION = 'v233';
 var _pendingSW = null;
 
 function showUpdateBanner() {
