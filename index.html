@@ -557,8 +557,8 @@
             }
             .modal-header { margin-bottom: 10px !important; padding-bottom: 8px !important; }
             /* Long-content modals: scroll from top */
-            #aspectsModal, #majorAspectsModal, #historicAspectsModal { justify-content: flex-start !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; padding: 12px 0 4px !important; }
-            #aspectsModal .modal-content, #majorAspectsModal .modal-content, #historicAspectsModal .modal-content { max-height: none !important; overflow: visible !important; margin: 0 auto !important; padding-top: 16px !important; }
+            #aspectsModal, #majorAspectsModal, #historicAspectsModal { justify-content: flex-start !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; padding: 0 !important; }
+            #aspectsModal .modal-content, #majorAspectsModal .modal-content, #historicAspectsModal .modal-content { max-height: none !important; overflow: visible !important; margin: 0 auto !important; margin-top: max(env(safe-area-inset-top, 8px), 8px) !important; margin-bottom: 8px !important; }
             .modal-header h2 { font-size: 0.9em !important; line-height: 1.2; }
             
             /* ── Planet buttons: 2 per row ── */
@@ -2123,99 +2123,110 @@ function getEclipsesForYear(year) {
 // Ajustadas a zona horaria Costa Rica (UTC-6)
 const retrogrades2026 = [
     // Mercurio - Ciclo 1
-    { 
-        planet: 'Mercurio', symbol: '☿', 
+    {
+        planet: 'Mercurio', symbol: '☿',
         start: crDate('2026-01-01'), end: crDate('2026-01-18'),
         sign: 'Capricornio',
         meaning: 'Revisión de estructuras mentales. Retrasos funcionales en comunicación. Reconsideración de compromisos.',
-        areas: 'Planes profesionales, autoridad, responsabilidad pragmática'
+        areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
+        lastTime: 'Ago-Sep 2025 en Virgo/Leo'
     },
     // Mercurio - Ciclo 2
-    { 
-        planet: 'Mercurio', symbol: '☿', 
+    {
+        planet: 'Mercurio', symbol: '☿',
         start: crDate('2026-05-10'), end: crDate('2026-06-01'),
         sign: 'Géminis → Tauro',
         meaning: 'Pensamiento entre versatilidad y concreción. Necesidad de aterrizar ideas. Comunicación requiere revisión.',
-        areas: 'Intercambios, valores materiales, posesiones, aprendizaje'
+        areas: 'Intercambios, valores materiales, posesiones, aprendizaje',
+        lastTime: 'Ene 2026 en Capricornio'
     },
     // Mercurio - Ciclo 3
-    { 
-        planet: 'Mercurio', symbol: '☿', 
+    {
+        planet: 'Mercurio', symbol: '☿',
         start: crDate('2026-09-04'), end: crDate('2026-09-26'),
         sign: 'Libra → Virgo',
         meaning: 'Análisis relacional. Perfeccionismo vs diplomacia. Reexamen de acuerdos y procesos.',
-        areas: 'Vínculos, salud, trabajo detallado, crítica constructiva'
+        areas: 'Vínculos, salud, trabajo detallado, crítica constructiva',
+        lastTime: 'May-Jun 2026 en Géminis/Tauro'
     },
-    
+
     // Venus (MUY IMPORTANTE - cruza signo)
-    { 
-        planet: 'Venus', symbol: '♀', 
+    {
+        planet: 'Venus', symbol: '♀',
         start: crDate('2026-03-09'), end: crDate('2026-04-20'),
         sign: 'Aries → Piscis',
         meaning: 'Revisión de vínculos y valores. Tensión entre afirmación relacional y disolución empática. Reconsideración de deseos.',
-        areas: 'Relaciones, autoestima, finanzas, receptividad, límites'
+        areas: 'Relaciones, autoestima, finanzas, receptividad, límites',
+        lastTime: 'Jul-Sep 2023 en Leo'
     },
-    
+
     // Marte (Leo ↔ Cáncer)
-    { 
-        planet: 'Marte', symbol: '♂', 
+    {
+        planet: 'Marte', symbol: '♂',
         start: crDate('2026-10-13'), end: crDate('2026-11-28'),
         sign: 'Leo → Cáncer',
         meaning: 'Energía entre expresión dramática y protección emocional. Acción requiere reconsideración. Voluntad vs necesidades afectivas.',
-        areas: 'Iniciativa, hogar, familia, creatividad, seguridad'
+        areas: 'Iniciativa, hogar, familia, creatividad, seguridad',
+        lastTime: 'Dic 2024-Feb 2025 en Leo/Cáncer'
     },
-    
+
     // Júpiter (RETRO desde Nov 2025, Directo Mar 2026, nuevo Retro Dic 2026)
-    { 
-        planet: 'Júpiter', symbol: '♃', 
+    {
+        planet: 'Júpiter', symbol: '♃',
         start: crDate('2025-11-11'), end: crDate('2026-03-11'),
         sign: 'Cáncer',
         meaning: 'Expansión emocional interna. Revisión de creencias sobre hogar, familia y seguridad. Crecimiento requiere pausa reflexiva antes de avanzar.',
-        areas: 'Familia, hogar, seguridad emocional, fe, abundancia interna'
+        areas: 'Familia, hogar, seguridad emocional, fe, abundancia interna',
+        lastTime: 'Jul-Nov 2025 en Géminis/Cáncer'
     },
     // Júpiter Retro 2 (nuevo período)
-    { 
-        planet: 'Júpiter', symbol: '♃', 
+    {
+        planet: 'Júpiter', symbol: '♃',
         start: crDate('2026-12-13'), end: crDate('2027-04-13'),
         sign: 'Leo',
         meaning: 'Revisión de expresión creativa y generosidad. Tensión entre expansión dramática y humildad. Liderazgo requiere introspección.',
-        areas: 'Creatividad, liderazgo, autoexpresión, generosidad, reconocimiento'
+        areas: 'Creatividad, liderazgo, autoexpresión, generosidad, reconocimiento',
+        lastTime: 'Nov 2025-Mar 2026 en Cáncer'
     },
-    
+
     // Saturno (TEMA FUERTE: estructura del yo ↔ disolución del ego)
-    { 
-        planet: 'Saturno', symbol: '♄', 
+    {
+        planet: 'Saturno', symbol: '♄',
         start: crDate('2026-07-03'), end: crDate('2026-11-28'),
         sign: 'Aries → Piscis',
         meaning: 'Límites del yo requieren revisión. Tensión entre estructuración de identidad y disolución de fronteras. Responsabilidad vs rendición.',
-        areas: 'Identidad, límites personales, espiritualidad, sacrificio'
+        areas: 'Identidad, límites personales, espiritualidad, sacrificio',
+        lastTime: 'Jun-Nov 2025 en Piscis'
     },
-    
+
     // Urano (cruza año)
-    { 
-        planet: 'Urano', symbol: '♅', 
+    {
+        planet: 'Urano', symbol: '♅',
         start: crDate('2026-08-08'), end: crDate('2027-01-07'),
         sign: 'Géminis → Tauro',
         meaning: 'Innovación comunicacional revisada. Tensión entre cambio mental y estabilidad material. Revolución introspectiva.',
-        areas: 'Tecnología, pensamiento, valores, recursos, seguridad'
+        areas: 'Tecnología, pensamiento, valores, recursos, seguridad',
+        lastTime: 'Sep 2025-Ene 2026 en Tauro'
     },
-    
+
     // Neptuno (acción consciente vs entrega espiritual)
-    { 
-        planet: 'Neptuno', symbol: '♆', 
+    {
+        planet: 'Neptuno', symbol: '♆',
         start: crDate('2026-06-23'), end: crDate('2026-12-29'),
         sign: 'Aries → Piscis',
         meaning: 'Idealismo entre afirmación y rendición. Confusión sobre dónde dirigir inspiración. Espiritualidad requiere reconsideración.',
-        areas: 'Inspiración, compasión, acción consciente, entrega'
+        areas: 'Inspiración, compasión, acción consciente, entrega',
+        lastTime: 'Jul-Dic 2025 en Piscis'
     },
-    
+
     // Plutón (MUY SIMBÓLICO: futuro colectivo ↔ poder antiguo)
-    { 
-        planet: 'Plutón', symbol: '♇', 
+    {
+        planet: 'Plutón', symbol: '♇',
         start: crDate('2026-05-14'), end: crDate('2026-10-22'),
         sign: 'Acuario → Capricornio',
         meaning: 'Transformación entre futurismo colectivo y estructuras de poder establecidas. Revisión profunda de sistemas de control.',
-        areas: 'Poder institucional, revolución, estructuras sociales'
+        areas: 'Poder institucional, revolución, estructuras sociales',
+        lastTime: 'May-Oct 2025 en Acuario/Capricornio'
     }
 ];
 
@@ -2256,16 +2267,16 @@ const signChanges2026 = [
     { planet: 'Marte', symbol: '♂', date: crDate('2026-09-04'), toSign: 'Sagitario', meaning: 'Expansión de la energía marcial. El impulso busca horizonte y significado. Disponibilidad para acción exploratoria. Posible dispersión de energía direccional.', color: '#ff6b6b' },
     
     // JÚPITER (MUY IMPORTANTE)
-    { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-29'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.' },
-    
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-29'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.', lastTime: 'Júpiter en Leo: Ago 2014-Ago 2015' },
+
     // SATURNO (CRÍTICO)
-    { planet: 'Saturno', symbol: '♄', date: crDate('2026-02-13'), toSign: 'Aries', meaning: 'CICLO MAYOR. Encuentro tenso entre estructura y autonomía. El límite se aplica a la identidad y el impulso. Disponibilidad para aprender sobre autoridad personal. Fricción natural entre disciplina y espontaneidad. (hasta 2028-2029)', color: '#3498db', isCritical: true },
-    
+    { planet: 'Saturno', symbol: '♄', date: crDate('2026-02-13'), toSign: 'Aries', meaning: 'CICLO MAYOR. Encuentro tenso entre estructura y autonomía. El límite se aplica a la identidad y el impulso. Disponibilidad para aprender sobre autoridad personal. Fricción natural entre disciplina y espontaneidad. (hasta 2028-2029)', color: '#3498db', isCritical: true, lastTime: 'Saturno en Aries: 1996-1999' },
+
     // URANO (GENERACIONAL)
-    { planet: 'Urano', symbol: '♅', date: crDate('2026-07-07'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Revolución en comunicación e información. Disponibilidad para conexiones inesperadas. El cambio opera en el nivel mental y social. Aceleración en intercambios y tecnología.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Última vez en Géminis: 1941-1949.' },
-    
+    { planet: 'Urano', symbol: '♅', date: crDate('2026-07-07'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Revolución en comunicación e información. Disponibilidad para conexiones inesperadas. El cambio opera en el nivel mental y social. Aceleración en intercambios y tecnología.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
+
     // NEPTUNO (MEGA IMPORTANTE)
-    { planet: 'Neptuno', symbol: '♆', date: crDate('2026-01-26'), toSign: 'Aries', meaning: 'CAMBIO GENERACIONAL. Lo místico se encuentra con la acción. Idealismo aplicado a la identidad y el impulso. Disponibilidad para confusión sobre quién soy. El guerrero espiritual como arquetipo disponible. (hasta 2039)', color: '#5dade2', isGenerational: true, badgeInfo: 'Neptuno cambia de signo cada ~14 años. Última vez en Aries: 1861-1875.' },
+    { planet: 'Neptuno', symbol: '♆', date: crDate('2026-01-26'), toSign: 'Aries', meaning: 'CAMBIO GENERACIONAL. Lo místico se encuentra con la acción. Idealismo aplicado a la identidad y el impulso. Disponibilidad para confusión sobre quién soy. El guerrero espiritual como arquetipo disponible. (hasta 2039)', color: '#5dade2', isGenerational: true, badgeInfo: 'Neptuno cambia de signo cada ~14 años. Última vez en Aries: 1861-1875.', lastTime: 'Neptuno en Aries: 1861-1875' },
 ];
 
 // Stelliums detectados 2026 (SOLO VERIFICADOS REALES)
@@ -4919,13 +4930,14 @@ function openAspectsModal(date, lunarDay, dayData) {
                 </div>`;
             }
             const chgClickText = (tp(change.planet) + ' → ' + ts(change.toSign) + ' ' + change.symbol).replace(/'/g, "\\'");
+            const chgLastTime = change.lastTime ? `<div style="font-size:0.8em;color:rgba(255,255,255,0.45);margin-top:3px;">🔄 ${currentLang==='es'?'Última vez':'Last time'}: ${change.lastTime}</div>` : '';
             return `
             <div class="aspect-detail" style="border-left-color: ${change.color}; cursor:pointer;" onclick="showBannerAspectDetail('${chgClickText}')">
                 <div class="aspect-planets">
                     ${timeStr}${change.symbol} ${tp(change.planet)} → ${ts(change.toSign)}
                 </div>
                 <div class="aspect-description">
-                    ${translateMeaning(change.meaning)}
+                    ${translateMeaning(change.meaning)}${chgLastTime}
                     ${companionHtml}
                     ${nearbyHtml}
                 </div>
@@ -4937,14 +4949,15 @@ function openAspectsModal(date, lunarDay, dayData) {
     if (retrogrades.length > 0) {
         htmlContent += retrogrades.map(retro => {
             const retLabel = retro.isStart ? (currentLang === 'es' ? 'Retrógrado INICIA' : 'Retrograde STARTS') : (currentLang === 'es' ? 'Directo' : 'Direct');
-            const retClickText = (retro.planet + ' ' + retLabel).replace(/'/g, "\\'");
+            const retClickText = (retro.planet + ' ' + retLabel + ' en ' + (retro.sign || '')).replace(/'/g, "\\'");
+            const retLastTime = retro.lastTime ? `<div style="font-size:0.8em;color:rgba(255,255,255,0.45);margin-top:3px;">🔄 ${currentLang==='es'?'Última vez':'Last time'}: ${retro.lastTime}</div>` : '';
             return `
             <div class="aspect-detail" style="border-left-color: #ff6b6b; cursor:pointer;" onclick="showBannerAspectDetail('${retClickText}')">
                 <div class="aspect-planets">
                     ${retro.planet} ${retLabel}
                 </div>
                 <div class="aspect-description">
-                    ${translateMeaning(retro.meaning)}
+                    ${translateMeaning(retro.meaning)}${retLastTime}
                 </div>
             </div>
         `}).join('');
@@ -6897,14 +6910,20 @@ function showRetrogradeModal(planet, symbol, isStart, dateStr) {
         </div>
         
         <!-- Áreas afectadas -->
-        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
             <h4 style="margin-top: 0; color: #f0e68c; font-size: 1em;">${areasLabel}</h4>
             <p style="color: rgba(255,255,255,0.8); margin: 0;">
                 ${translateMeaning(retroData.areas)}
             </p>
         </div>
+
+        ${retroData.lastTime ? '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + retroData.lastTime + '</div>' : ''}
     `;
-    
+
+    // Add AI interpretation button
+    const retroClickText = (planet + ' ' + (isStarting ? 'Retrógrado INICIA' : 'Directo') + ' en ' + retroData.sign + ' (' + formatDate(retroData.start) + ' - ' + formatDate(retroData.end) + ')').replace(/'/g, "\\'");
+    document.getElementById('retrogradeModalBody').innerHTML += '<div onclick="closeRetrogradeModal(); showBannerAspectDetail(\'' + retroClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+
     document.getElementById('retrogradeModal').classList.add('show');
 }
 
@@ -7134,6 +7153,16 @@ function showSignChangeModal(planet, symbol, toSign, meaning, dateTime) {
         </div>
     `;
 
+    // Find lastTime from signChanges2026 data
+    const scData = signChanges2026.find(sc => sc.planet === planet && sc.toSign === toSign && sc.date.toDateString() === date.toDateString());
+    if (scData && scData.lastTime) {
+        document.getElementById('signChangeModalBody').innerHTML += '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + scData.lastTime + '</div>';
+    }
+
+    // Add AI interpretation button
+    const scClickText = (planet + ' → ' + toSign + ' ' + formatLongDate(date)).replace(/'/g, "\\'");
+    document.getElementById('signChangeModalBody').innerHTML += '<div onclick="closeSignChangeModal(); showBannerAspectDetail(\'' + scClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+
     document.getElementById('signChangeModal').classList.add('show');
 }
 
@@ -7255,14 +7284,18 @@ function showMajorAspectModal(type, planetsStr, meaning, impact, dateTime) {
         </div>
         
         <!-- Impacto -->
-        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
             <h4 style="margin-top: 0; color: #f0e68c; font-size: 1em;">⚡ Impacto</h4>
             <p style="color: rgba(255,255,255,0.8); margin: 0;">
                 ${impact}
             </p>
         </div>
     `;
-    
+
+    // Add AI interpretation button
+    const maClickText = (info.name + ': ' + planets.join(', ') + ' (' + formatLongDate(date) + ')').replace(/'/g, "\\'");
+    document.getElementById('majorAspectModalBody').innerHTML += '<div onclick="closeMajorAspectModal(); showBannerAspectDetail(\'' + maClickText + '\')" style="margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;">✦ ' + (currentLang==='es'?'Interpretación AI personalizada':'AI Personalized Interpretation') + '</div>';
+
     document.getElementById('majorAspectModal').classList.add('show');
 }
 
@@ -7309,8 +7342,9 @@ function showPlanetAspects(planetName, planetSymbol, planetColor) {
                     const degreeStr = aspect.degree ? `<div style="font-size: 0.8em; color: #a8b2d1; margin-top: 2px;">(${aspect.degree})</div>` : '';
                     const symbolStr = aspect.symbol ? `${aspect.symbol} ` : '';
                     
+                    const paClickText = (translatedPlanet + ' ' + (aspect.symbol||'') + ' ' + translatedType + ' ' + translatedWith + ' ' + formatShortDate(aspect.date)).replace(/'/g, "\\'");
                     return `
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 3px solid ${aspectColor};">
+                    <div onclick="closePlanetAspectsModal(); showBannerAspectDetail('${paClickText}')" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 3px solid ${aspectColor}; cursor:pointer;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                             <div style="font-size: 1.05em; flex: 1;">
                                 <div>${timeStr}<strong style="color: ${planetColor};">${translatedPlanet}</strong>
@@ -13534,7 +13568,11 @@ function generateGregorianMonth() {
         // Planetary events
         if (astronomicalEvent) html += `<div style="color: #e8c84a; font-weight: bold; font-size: 0.8em; text-align: right;">${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}</div>`;
         if (moonEvent) html += `<div onclick="event.stopPropagation(); navigateToLunar2026Moon(${date.getTime()}, '${moonEvent.type}')" style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'}; font-weight: bold; font-size: 0.6em; text-align: center; line-height: 1.2; overflow: visible; cursor:pointer;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span></div>`;
-        if (planetaryEvents.eclipse) html += `<div style="color:#FFD700; font-size: 0.6em; font-weight:bold;">${planetaryEvents.eclipse.type==='solar'?(currentLang==='es'?'☀️ Ecl.Sol':'☀️ Sol.Ecl'):(currentLang==='es'?'🌒 Ecl.Lun':'🌒 Lun.Ecl')}</div>`;
+        if (planetaryEvents.eclipse) {
+            const eclLabel = planetaryEvents.eclipse.type==='solar'?(currentLang==='es'?'Eclipse Solar':'Solar Eclipse'):(currentLang==='es'?'Eclipse Lunar':'Lunar Eclipse');
+            const eclClickTxt = (eclLabel + ' ' + formatDate(date)).replace(/'/g, "\\'");
+            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${eclClickTxt}')" style="color:#FFD700; font-size: 0.6em; font-weight:bold; cursor:pointer;">${planetaryEvents.eclipse.type==='solar'?(currentLang==='es'?'☀️ Ecl.Sol':'☀️ Sol.Ecl'):(currentLang==='es'?'🌒 Ecl.Lun':'🌒 Lun.Ecl')}</div>`;
+        }
         
         // Inter-planetary aspects (limit 1)
         planetaryEvents.interPlanetaryAspects.slice(0,1).forEach(asp => {
@@ -17531,7 +17569,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v243';
+const APP_VERSION = 'v244';
 var _pendingSW = null;
 
 function showUpdateBanner() {
