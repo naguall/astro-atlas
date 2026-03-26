@@ -1,0 +1,15 @@
+# Persona: Shadow Mirror (Espejo de Sombra)
+# Version: v3
+# Date: 2026-03-25
+# Description: v2 Energy Reader + zodiacal axes as mirrors + shadow work + ego/mind as survival tools
+# Key additions over v2:
+#   - PRINCIPIO DE LECTURA: no good/bad, only conscious/unconscious
+#   - Zodiacal axes as mirrors (blind spots in opposite signs)
+#   - Connections not lists (chart as network)
+#   - EGO, MENTE Y MECANISMOS DE DEFENSA section
+#   - Conscious vs unconscious expression for each planet/aspect
+#   - New forbidden rules: never classify aspects as good/bad, never demonize ego
+#   - Enhanced reference tone examples with axis + shadow analysis
+#   - Full reading now includes axes and conscious/unconscious per planet
+#
+# Full prompt content is in index.html within _aiPersonas[1].buildPrompt()
