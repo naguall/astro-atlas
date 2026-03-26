@@ -5890,6 +5890,116 @@ function deleteDiaryEntry(dateKey) {
     localStorage.setItem('lunarCalendarJournals_' + profileId, JSON.stringify(journalsData));
     localStorage.removeItem('diary_' + dateKey);
 }
+function buildAstroContextHTML(dateKey) {
+    var L = currentLang === 'es';
+    var d;
+    try { var parts = dateKey.split('-'); d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12, 0, 0); } catch(e) { return ''; }
+    if (isNaN(d.getTime())) return '';
+
+    var html = '<div style="margin-top:16px;border-top:1px solid rgba(155,89,182,0.2);padding-top:14px;">';
+    html += '<h4 style="color:rgba(201,168,64,0.8);margin-bottom:10px;font-size:0.9em;">🌌 ' + (L ? 'Contexto Astronómico' : 'Astronomical Context') + ' — ' + dateKey + '</h4>';
+
+    // 1. LUNAR INFO
+    try {
+        var lunarDay = getLunarDayForDate(d);
+        var moonEv = getMoonEventForDate(d);
+        var moonPhaseLabel = '';
+        if (moonEv) moonPhaseLabel = moonEv.type === 'full' ? (L?'🌕 Luna Llena':'🌕 Full Moon') : (L?'🌑 Luna Nueva':'🌑 New Moon');
+        html += '<div style="margin-bottom:10px;">';
+        html += '<div style="font-weight:700;color:#b0bec5;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☽ ' + (L?'Lunar':'Lunar') + '</div>';
+        html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+        html += (L?'Día lunar: ':'Lunar day: ') + '<b>' + lunarDay + '</b>';
+        if (moonPhaseLabel) html += ' · ' + moonPhaseLabel;
+        html += '</div></div>';
+    } catch(e) {}
+
+    // 2. SOLAR INFO
+    try {
+        var signIdx = getCurrentSignForDate(d);
+        var sign = solarSigns2026[signIdx];
+        if (sign) {
+            var signStart = new Date(sign.start); signStart.setHours(0,0,0,0);
+            var solarDay = Math.floor((d - signStart) / 86400000) + 1;
+            html += '<div style="margin-bottom:10px;">';
+            html += '<div style="font-weight:700;color:#ff9500;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☉ ' + (L?'Solar':'Solar') + '</div>';
+            html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+            html += (L?'Signo: ':'Sign: ') + '<b style="color:' + sign.color + ';">' + (typeof ts === 'function' ? ts(sign.name) : sign.name) + '</b>';
+            html += ' · ' + (L?'Día ':'Day ') + solarDay;
+            html += '</div></div>';
+        }
+    } catch(e) {}
+
+    // 3. GREGORIAN INFO
+    try {
+        var dayNames = L ? ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] : ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var monthNames = L ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        html += '<div style="margin-bottom:10px;">';
+        html += '<div style="font-weight:700;color:#81c784;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📅 ' + (L?'Gregoriano':'Gregorian') + '</div>';
+        html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+        html += dayNames[d.getDay()] + ', ' + d.getDate() + ' ' + monthNames[d.getMonth()] + ' ' + d.getFullYear();
+        html += '</div></div>';
+    } catch(e) {}
+
+    // 4. NATAL TRANSITS (if natal data available)
+    try {
+        var natal = getNatalData();
+        if (natal) {
+            var profileChart = localStorage.getItem('natalChart_' + natal.id);
+            var nc = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+            if (nc && nc.planets) {
+                var transits = calculateTransitsToNatal(d, nc);
+                var major = transits.filter(function(t) { return !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
+                if (major.length > 0) {
+                    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith'};
+                    html += '<div style="margin-bottom:10px;">';
+                    html += '<div style="font-weight:700;color:#c39bd3;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🔮 ' + (L?'Tránsitos Natales':'Natal Transits') + '</div>';
+                    html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+                    major.forEach(function(t) {
+                        html += '<div style="margin-bottom:3px;"><span style="color:' + t.color + ';">' + t.symbol + '</span> ' + (pNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.type + ' natal ' + (pNms[t.natalPlanet]||t.natalPlanet) + ' <span style="color:rgba(255,255,255,0.35);">(' + (t.orbFormatted||'') + ')</span></div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                // Personal day
+                var [bY, bM, bD] = natal.date.split('-').map(Number);
+                var birthAnn = new Date(d.getFullYear(), bM - 1, bD);
+                var personalDay = Math.floor((d - birthAnn) / 86400000) + 1;
+                if (personalDay <= 0) personalDay += 365;
+                html += '<div style="margin-bottom:10px;">';
+                html += '<div style="font-weight:700;color:#e8c84a;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">✨ ' + (L?'Calendario Personal':'Personal Calendar') + '</div>';
+                html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+                html += (L?'Día personal: ':'Personal day: ') + '<b>' + personalDay + '</b>';
+                html += '</div></div>';
+            }
+        }
+    } catch(e) {}
+
+    // 5. COSMIC CYCLES for this date
+    try {
+        var natal2 = getNatalData();
+        if (natal2) {
+            var profileChart2 = localStorage.getItem('natalChart_' + natal2.id);
+            var nc2 = profileChart2 ? JSON.parse(profileChart2) : JSON.parse(localStorage.getItem('natalChart'));
+            if (nc2) {
+                var mCycles = calculateCosmicCyclesForMonth(d.getFullYear(), d.getMonth(), nc2, natal2.date);
+                var dayCycles = mCycles.filter(function(c) { return c.day === d.getDate(); });
+                if (dayCycles.length > 0) {
+                    html += '<div style="margin-bottom:10px;">';
+                    html += '<div style="font-weight:700;color:#e0b0ff;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🌀 ' + (L?'Ciclos Cósmicos':'Cosmic Cycles') + '</div>';
+                    html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
+                    dayCycles.forEach(function(c) {
+                        html += '<div style="margin-bottom:3px;"><span style="color:' + c.color + ';">' + c.icon + '</span> <b>' + c.label + '</b></div>';
+                    });
+                    html += '</div></div>';
+                }
+            }
+        }
+    } catch(e) {}
+
+    html += '</div>';
+    return html;
+}
+
 function viewDiaryEntry(dateKey) {
     var L = currentLang === 'es';
     var text = getDiaryText(dateKey);
@@ -5898,7 +6008,9 @@ function viewDiaryEntry(dateKey) {
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
     html += '<h3 style="color:#9b59b6;margin-bottom:10px;">📝 ' + dateKey + '</h3>';
-    html += '<div style="line-height:1.8;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(155,89,182,0.05);border-radius:10px;padding:16px;white-space:pre-wrap;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    html += '<div style="line-height:1.8;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(155,89,182,0.05);border-radius:10px;padding:16px;white-space:pre-wrap;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    // Astro context at the bottom
+    html += buildAstroContextHTML(dateKey);
     html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;">';
     html += '<button onclick="editDiaryEntry(\'' + dateKey.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.3);border-radius:8px;color:#4ecdc4;font-size:0.9em;cursor:pointer;">✏️ ' + (L ? 'Editar' : 'Edit') + '</button>';
     html += '<button onclick="shareDiaryEntry(\'' + dateKey.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.9em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>';
@@ -5978,7 +6090,10 @@ function viewFullReading(id) {
     html += '<h3 style="color:#c9a840;margin-bottom:5px;">' + r.title + '</h3>';
     var d = new Date(r.date);
     html += '<div style="color:rgba(255,255,255,0.35);font-size:0.8em;margin-bottom:15px;">' + d.toLocaleDateString(L?'es':'en',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>';
-    html += '<div style="line-height:1.7;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + r.html + '</div>';
+    html += '<div style="line-height:1.7;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + r.html + '</div>';
+    // Astro context from reading date
+    var readingDateKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    html += buildAstroContextHTML(readingDateKey);
     html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;">';
     html += '<button onclick="shareReadingById(\'' + r.id + '\')" style="padding:8px 20px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.9em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>';
     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal();}" style="padding:8px 20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.9em;cursor:pointer;">🗑️ ' + (L ? 'Eliminar' : 'Delete') + '</button>';
@@ -6756,26 +6871,28 @@ function showNatalDetail(type, data) {
 }
 
 function openDiarioModal(date, lunarDay) {
-    const dateKey = date.toISOString().split('T')[0];
-    
+    const dateKey = getDateKey(date); // Use local date to avoid timezone mismatch
+
     document.getElementById('diarioDate').textContent = `🌙 ${formatLongDate(date)} - ${t('day')} ${currentLang === 'es' ? 'Lunar' : ''} ${lunarDay}`;
     document.getElementById('diarioModalTitle').textContent = `📓 ${t('diaryTitle')}`;
     const voiceBtn = document.getElementById('voiceBtnTitle');
     if (voiceBtn) voiceBtn.title = t('dictateVoice');
 
-    // Cargar diario guardado
-    const savedDiary = localStorage.getItem(`diary_${dateKey}`) || '';
-    
+    // Load diary: try profile journals first, then diary_ key
+    const savedDiary = getDiaryText(dateKey);
+
     const textarea = document.getElementById('diarioText');
     textarea.value = savedDiary;
     textarea.placeholder = t('diaryFullPlaceholder');
-    
+
     // Auto-save on typing
     let saveTimeout;
     textarea.oninput = function() {
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
+            // Save to both diary_ key AND profile journals
             localStorage.setItem(`diary_${dateKey}`, textarea.value);
+            saveDiaryText(dateKey, textarea.value);
             // Save astro snapshot for this diary date
             try {
                 var diaryDate = new Date(dateKey + 'T12:00:00');
@@ -20168,7 +20285,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v352';
+const APP_VERSION = 'v353';
 var _pendingSW = null;
 
 function showUpdateBanner() {
