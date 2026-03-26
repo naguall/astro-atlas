@@ -6326,6 +6326,14 @@ function saveInterpChat(chatId, chatData) {
     localStorage.setItem(getInterpChatKey(chatId), JSON.stringify(chatData));
 }
 
+function deleteInterpChat(chatId) {
+    var L = currentLang === 'es';
+    if (!confirm(L ? '¿Eliminar este chat?' : 'Delete this chat?')) return;
+    localStorage.removeItem(getInterpChatKey(chatId));
+    var chatEl = document.getElementById('interpChat_' + chatId);
+    if (chatEl) chatEl.remove();
+}
+
 function openInterpretationChat(readingKey, chatId, btn) {
     var data = window[readingKey];
     if (!data) return;
@@ -6372,6 +6380,7 @@ function openInterpretationChat(readingKey, chatId, btn) {
     html += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
     html += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="padding:4px 10px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.2);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;">' + (L ? '💾 Guardar' : '💾 Save') + '</button>';
     html += '<button onclick="shareInterpChat(\'' + chatId + '\')" style="padding:4px 10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;">' + (L ? '📤 Compartir' : '📤 Share') + '</button>';
+    html += '<button onclick="deleteInterpChat(\'' + chatId + '\')" style="padding:4px 10px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;">' + (L ? '🗑️ Borrar' : '🗑️ Delete') + '</button>';
     html += '</div>';
 
     html += '</div>';
@@ -20876,7 +20885,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v370';
+const APP_VERSION = 'v371';
 var _pendingSW = null;
 
 function showUpdateBanner() {
