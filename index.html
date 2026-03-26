@@ -148,7 +148,7 @@
 
         .container { width: 100%; margin: 0 auto; padding: 0 8px; box-sizing: border-box; overflow-x: hidden; max-width: 100vw; }
 
-        header { text-align: center; margin-bottom: 4px; }
+        header { text-align: center; margin-bottom: 4px; position: sticky; top: 0; z-index: 100; background: linear-gradient(180deg, #0a0a2e 85%, transparent); padding-top: 6px; }
 
         h1 {
             font-family: 'Cinzel', serif;
@@ -462,8 +462,9 @@
         .profile-action-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(155,89,182,0.2); background: rgba(155,89,182,0.08); color: rgba(255,255,255,0.6); font-size: 0.9em; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; }
         .profile-action-btn:hover { background: rgba(155,89,182,0.2); color: #c39bd3; border-color: rgba(155,89,182,0.4); }
         /* Natal Sub-Tabs */
-        .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; overflow: hidden; border: 1px solid rgba(155,89,182,0.2); }
-        .natal-subtab { flex: 1; padding: 8px 6px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; border-bottom: 2px solid transparent; }
+        .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; overflow-x: auto; overflow-y: hidden; border: 1px solid rgba(155,89,182,0.2); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .natal-subtabs::-webkit-scrollbar { display: none; }
+        .natal-subtab { flex: 0 0 auto; padding: 8px 10px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; border-bottom: 2px solid transparent; white-space: nowrap; }
         .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
         .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); border-bottom: 2px solid #c39bd3; }
         .natal-tab-content { animation: fadeInTab 0.3s ease; }
@@ -681,9 +682,14 @@
 <body>
     <div class="container">
         <header>
-            <!-- Header row: title + buttons centered together -->
-            <div style="width:100%;margin-bottom:6px;text-align:center;">
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.6em);text-align:center;">🌙 Lunar</h1>
+            <!-- Header row: title on the left, utility buttons on the right -->
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;padding:0 4px;">
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.6em);">🌙 Lunar</h1>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                    <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
+                    <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
+                    <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">⚙️</button>
+                </div>
             </div>
 
             <!-- Mode buttons: single row, compact to fit screen -->
@@ -700,9 +706,6 @@
                 <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🔔</button>
                 <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;display:none;">🇪🇸</button>
                 <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
-                <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;margin-left:2px;color:rgba(255,255,255,0.7);">📚</button>
-                <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;margin-left:2px;color:rgba(255,255,255,0.7);">⚙️</button>
-                <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:2px 5px;cursor:pointer;font-size:0.75em;flex-shrink:0;color:rgba(255,255,255,0.8);">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.7em;font-weight:800;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;padding:0 4px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
             </div>
         </header>
         <script>
@@ -9022,32 +9025,22 @@ function switchToSolarMode() {
     document.body.classList.remove('personal-mode');
 
     // Hide panels not used in solar mode
-    const eip = document.getElementById('earthInfoPanel');
-    if (eip) eip.style.display = 'none';
-    const ssp = document.getElementById('solarSystemPanel');
-    if (ssp) ssp.style.display = 'none';
-    const a26p = document.getElementById('aspects2026Panel');
-    if (a26p) a26p.style.display = 'none';
-    const pCal = document.getElementById('personalCalendar');
-    if (pCal) pCal.style.display = 'none';
-    const lunarWeeks = document.getElementById('lunarWeeks');
-    if (lunarWeeks) lunarWeeks.style.display = 'none';
-    const gregorianCal = document.getElementById('gregorianCalendar');
-    if (gregorianCal) gregorianCal.style.display = 'none';
-    const pas = document.getElementById('planetaryAspectsSection');
-    if (pas) pas.style.display = 'none';
-    const lib = document.getElementById('lunarInfoBanner');
-    if (lib) lib.style.display = 'none';
+    var idsToHide = ['earthInfoPanel','solarSystemPanel','aspects2026Panel','personalCalendar','lunarWeeks','gregorianCalendar','planetaryAspectsSection','lunarInfoBanner'];
+    idsToHide.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
 
     // Ensure currentDayInfo is visible (may have been hidden by other modes)
-    const cdi = document.getElementById('currentDayInfo');
+    var cdi = document.getElementById('currentDayInfo');
     if (cdi) cdi.style.display = '';
 
+    // Update buttons immediately so the UI responds to the tap
     updateModeButtons();
-    renderSolarCalendar();
-    setTimeout(reapplyCellSize, 300);
-    // Defer heavy live-data refresh so the calendar renders instantly
-    setTimeout(refreshAllLiveData, 50);
+
+    // Defer ALL heavy rendering to next frame so the button state updates instantly
+    requestAnimationFrame(function() {
+        renderSolarCalendar();
+        setTimeout(reapplyCellSize, 300);
+        setTimeout(refreshAllLiveData, 50);
+    });
 }
 
 function switchToGregorianMode() {
@@ -9185,13 +9178,15 @@ function switchToLunarMode() {
     if (cdi) cdi.style.display = '';
 
     updateModeButtons();
-    renderCalendar();
-    // Force refresh moon position, tide data, and astro info
-    updateCurrentDayInfoForMode('lunar');
-    reapplyCellSize();
-    setTimeout(reapplyCellSize, 500);
-    // Defer heavy live-data refresh so the calendar renders instantly
-    setTimeout(refreshAllLiveData, 50);
+
+    // Defer heavy rendering to next frame so the button state updates instantly
+    requestAnimationFrame(function() {
+        renderCalendar();
+        updateCurrentDayInfoForMode('lunar');
+        reapplyCellSize();
+        setTimeout(reapplyCellSize, 500);
+        setTimeout(refreshAllLiveData, 50);
+    });
 }
 
 // ══════════════════════════════════════════════════
@@ -11706,7 +11701,70 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div class="personal-natal-card" style="margin-top:8px;">
             <h3>⚲ ${L ? 'Grilla de Aspectos' : 'Aspect Grid'}</h3>
             <div id="aspectGridContainer" style="overflow-x:auto;padding:4px;"></div>
-        </div>`;
+        </div>
+        ${(function() {
+            // Elements & Qualities inline in Chart tab
+            var eq = natalChart.elementQuality || {};
+            var ep = eq.elementPercents || {};
+            var qp = eq.qualityPercents || {};
+            var ec = eq.elementColors || {};
+            var qc = eq.qualityColors || {};
+            return '<div class="personal-natal-card">' +
+                '<h3>🔥 ' + (L ? 'Elementos' : 'Elements') + '</h3>' +
+                '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">' +
+                '<canvas id="natalElementsChart" width="220" height="220" style="max-width:220px;"></canvas>' +
+                '<div style="font-size:0.85em;">' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Fire||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Fuego':'Fire') + ': <b>' + (ep.Fire||0) + '%</b> (' + (eq.elements?eq.elements.Fire:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Earth||'#f39c12') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Tierra':'Earth') + ': <b>' + (ep.Earth||0) + '%</b> (' + (eq.elements?eq.elements.Earth:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Air||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Aire':'Air') + ': <b>' + (ep.Air||0) + '%</b> (' + (eq.elements?eq.elements.Air:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Water||'#3498db') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Agua':'Water') + ': <b>' + (ep.Water||0) + '%</b> (' + (eq.elements?eq.elements.Water:0) + ')</div>' +
+                '</div></div></div>' +
+                '<div class="personal-natal-card">' +
+                '<h3>⚡ ' + (L ? 'Cualidades' : 'Qualities') + '</h3>' +
+                '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">' +
+                '<canvas id="natalQualitiesChart" width="220" height="220" style="max-width:220px;"></canvas>' +
+                '<div style="font-size:0.85em;">' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Cardinal||'#f39c12') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Cardinal: <b>' + (qp.Cardinal||0) + '%</b> (' + (eq.qualities?eq.qualities.Cardinal:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Fixed||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Fijo':'Fixed') + ': <b>' + (qp.Fixed||0) + '%</b> (' + (eq.qualities?eq.qualities.Fixed:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Mutable||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (L?'Mutable':'Mutable') + ': <b>' + (qp.Mutable||0) + '%</b> (' + (eq.qualities?eq.qualities.Mutable:0) + ')</div>' +
+                '</div></div></div>' +
+                // Sign Strength table
+                '<div class="personal-natal-card">' +
+                '<h3>♈ ' + (L ? 'Fortaleza por Signo' : 'Sign Strength') + '</h3>' +
+                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + (L?'Signo':'Sign') + '</th><th>' + (L?'Elemento + Cualidad':'Element + Quality') + '</th><th>' + (L?'Puntos':'Points') + '</th><th>' + (L?'Porcentaje':'Percentage') + '</th></tr></thead><tbody>' +
+                (function() {
+                    var signData = [
+                        {name:'Aries',el:'Fire',qu:'Cardinal'},{name:'Tauro',el:'Earth',qu:'Fixed'},
+                        {name:'Géminis',el:'Air',qu:'Mutable'},{name:'Cáncer',el:'Water',qu:'Cardinal'},
+                        {name:'Leo',el:'Fire',qu:'Fixed'},{name:'Virgo',el:'Earth',qu:'Mutable'},
+                        {name:'Libra',el:'Air',qu:'Cardinal'},{name:'Escorpio',el:'Water',qu:'Fixed'},
+                        {name:'Sagitario',el:'Fire',qu:'Mutable'},{name:'Capricornio',el:'Earth',qu:'Cardinal'},
+                        {name:'Acuario',el:'Air',qu:'Fixed'},{name:'Piscis',el:'Water',qu:'Mutable'}
+                    ];
+                    return signData.sort(function(a,b) {
+                        return ((eq.signStrength&&eq.signStrength[b.name])||0) - ((eq.signStrength&&eq.signStrength[a.name])||0);
+                    }).map(function(s) {
+                        var strength = (eq.signStrength&&eq.signStrength[s.name])||0;
+                        var pct = (strength/((eq.total)||1)*100).toFixed(2);
+                        var elLabel = L?{Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}[s.el]||s.el:s.el;
+                        var quLabel = L?{Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'}[s.qu]||s.qu:s.qu;
+                        return '<tr><td><b>'+s.name+'</b></td><td><span style="color:'+(ec[s.el]||'#fff')+';">'+elLabel+'</span> + <span style="color:'+(qc[s.qu]||'#fff')+';">'+quLabel+'</span></td><td>'+strength+'</td><td>'+pct+'%</td></tr>';
+                    }).join('');
+                })() +
+                '</tbody></table></div></div>' +
+                // Planet Distribution table
+                '<div class="personal-natal-card">' +
+                '<h3>🪐 ' + (L ? 'Distribución por Planeta' : 'Planet Distribution') + '</h3>' +
+                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + (L?'Planeta':'Planet') + '</th><th>' + (L?'Signo':'Sign') + '</th><th>' + (L?'Elemento':'Element') + '</th><th>' + (L?'Cualidad':'Quality') + '</th></tr></thead><tbody>' +
+                (eq.planetList||[]).slice().sort(function(a,b) {
+                    var elOrder={Fire:0,Earth:1,Air:2,Water:3};
+                    return (elOrder[a.element]||0)-(elOrder[b.element]||0);
+                }).map(function(pl) {
+                    var planetSyms2={'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','ASC':'ASC','MC':'MC'};
+                    return '<tr><td>'+(planetSyms2[pl.planet]||'')+' '+(planetNms[pl.planet]||pl.planet)+'</td><td>'+pl.sign+'</td><td style="color:'+(ec[pl.element]||'#fff')+';">'+(L?{Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}[pl.element]||pl.element:pl.element)+'</td><td style="color:'+(qc[pl.quality]||'#fff')+';">'+(L?{Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'}[pl.quality]||pl.quality:pl.quality)+'</td></tr>';
+                }).join('') +
+                '</tbody></table></div></div>';
+        })()}`;
 
     // ===== TAB: CALENDAR (monthly grid only — transits moved to Hoy tab) =====
     const calendarTransitsTab = ``;
@@ -11814,92 +11872,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             </div>
         </div>`;
 
-    // ===== TAB: ELEMENTS =====
-    const eq = natalChart.elementQuality || {};
-    const ep = eq.elementPercents || {};
-    const qp = eq.qualityPercents || {};
-    const ec = eq.elementColors || {};
-    const qc = eq.qualityColors || {};
-
-    const elementsTab = `
-        <div class="personal-natal-card">
-            <h3>🔥 ${L ? 'Elementos' : 'Elements'}</h3>
-            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
-                <canvas id="natalElementsChart" width="220" height="220" style="max-width:220px;"></canvas>
-                <div style="font-size:0.85em;">
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Fire||'#e74c3c'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Fuego':'Fire'}: <b>${ep.Fire||0}%</b> (${eq.elements?eq.elements.Fire:0})</div>
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Earth||'#f39c12'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Tierra':'Earth'}: <b>${ep.Earth||0}%</b> (${eq.elements?eq.elements.Earth:0})</div>
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Air||'#2ecc71'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Aire':'Air'}: <b>${ep.Air||0}%</b> (${eq.elements?eq.elements.Air:0})</div>
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${ec.Water||'#3498db'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Agua':'Water'}: <b>${ep.Water||0}%</b> (${eq.elements?eq.elements.Water:0})</div>
-                </div>
-            </div>
-        </div>
-        <div class="personal-natal-card">
-            <h3>⚡ ${L ? 'Cualidades' : 'Qualities'}</h3>
-            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
-                <canvas id="natalQualitiesChart" width="220" height="220" style="max-width:220px;"></canvas>
-                <div style="font-size:0.85em;">
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Cardinal||'#f39c12'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Cardinal: <b>${qp.Cardinal||0}%</b> (${eq.qualities?eq.qualities.Cardinal:0})</div>
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Fixed||'#2ecc71'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Fijo':'Fixed'}: <b>${qp.Fixed||0}%</b> (${eq.qualities?eq.qualities.Fixed:0})</div>
-                    <div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:${qc.Mutable||'#e74c3c'};border-radius:3px;vertical-align:middle;margin-right:6px;"></span>${L?'Mutable':'Mutable'}: <b>${qp.Mutable||0}%</b> (${eq.qualities?eq.qualities.Mutable:0})</div>
-                </div>
-            </div>
-        </div>
-        <div class="personal-natal-card">
-            <h3>♈ ${L ? 'Fortaleza por Signo' : 'Sign Strength'}</h3>
-            <div style="overflow-x:auto;">
-                <table class="natal-data-table">
-                    <thead><tr><th>${L?'Signo':'Sign'}</th><th>${L?'Elemento + Cualidad':'Element + Quality'}</th><th>${L?'Puntos':'Points'}</th><th>${L?'Porcentaje':'Percentage'}</th></tr></thead>
-                    <tbody>${(function() {
-                        const signData = [
-                            {name: 'Aries', el: 'Fire', qu: 'Cardinal'},
-                            {name: 'Tauro', el: 'Earth', qu: 'Fixed'},
-                            {name: 'Géminis', el: 'Air', qu: 'Mutable'},
-                            {name: 'Cáncer', el: 'Water', qu: 'Cardinal'},
-                            {name: 'Leo', el: 'Fire', qu: 'Fixed'},
-                            {name: 'Virgo', el: 'Earth', qu: 'Mutable'},
-                            {name: 'Libra', el: 'Air', qu: 'Cardinal'},
-                            {name: 'Escorpio', el: 'Water', qu: 'Fixed'},
-                            {name: 'Sagitario', el: 'Fire', qu: 'Mutable'},
-                            {name: 'Capricornio', el: 'Earth', qu: 'Cardinal'},
-                            {name: 'Acuario', el: 'Air', qu: 'Fixed'},
-                            {name: 'Piscis', el: 'Water', qu: 'Mutable'}
-                        ];
-                        return signData.sort(function(a, b) {
-                            const aStrength = (eq.signStrength && eq.signStrength[a.name]) || 0;
-                            const bStrength = (eq.signStrength && eq.signStrength[b.name]) || 0;
-                            return bStrength - aStrength;
-                        }).map(function(s) {
-                            const strength = (eq.signStrength && eq.signStrength[s.name]) || 0;
-                            const pct = (strength / (eq.total || 1) * 100).toFixed(2);
-                            const elLabel = L ? {Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}[s.el] || s.el : s.el;
-                            const quLabel = L ? {Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'}[s.qu] || s.qu : s.qu;
-                            const elColor = ec[s.el] || '#fff';
-                            const quColor = qc[s.qu] || '#fff';
-                            return '<tr><td><b>' + s.name + '</b></td><td><span style="color:' + elColor + ';">' + elLabel + '</span> + <span style="color:' + quColor + ';">' + quLabel + '</span></td><td>' + strength + '</td><td>' + pct + '%</td></tr>';
-                        }).join('');
-                    })()}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="personal-natal-card">
-            <h3>🪐 ${L ? 'Distribución por Planeta' : 'Planet Distribution'}</h3>
-            <div style="overflow-x:auto;">
-                <table class="natal-data-table">
-                    <thead><tr><th>${L?'Planeta':'Planet'}</th><th>${L?'Signo':'Sign'}</th><th>${L?'Elemento':'Element'}</th><th>${L?'Cualidad':'Quality'}</th></tr></thead>
-                    <tbody>${(eq.planetList||[]).slice().sort(function(a,b) {
-                        var elOrder = {Fire:0,Earth:1,Air:2,Water:3};
-                        return (elOrder[a.element]||0) - (elOrder[b.element]||0);
-                    }).map(function(pl) {
-                        const elColor = ec[pl.element]||'#fff';
-                        const quColor = qc[pl.quality]||'#fff';
-                        return '<tr><td>' + (planetSyms[pl.planet]||'') + ' ' + (planetNms[pl.planet]||pl.planet) + '</td><td>' + pl.sign + '</td><td style="color:' + elColor + ';">' + (L ? {Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}[pl.element]||pl.element : pl.element) + '</td><td style="color:' + quColor + ';">' + (L ? {Cardinal:'Cardinal',Fixed:'Fijo',Mutable:'Mutable'}[pl.quality]||pl.quality : pl.quality) + '</td></tr>';
-                    }).join('')}</tbody>
-                </table>
-            </div>
-        </div>`;
-
+    // ===== (Elements content now inline in Chart tab above) =====
     // ===== TAB: HOY (Today's transits - same compact format as old calendar tab) =====
     const hoyTab = `
         <div class="personal-natal-card">
@@ -12087,20 +12060,18 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
     // ===== COMBINE WITH TABS =====
     return `
         <div class="natal-subtabs">
-            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)" style="color:#c9a840;">${L?'Hoy':'Today'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)">${L?'Calendario':'Calendar'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)" style="color:#e0b0ff;">${L?'Ciclos':'Cycles'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${L?'Carta':'Chart'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('elements',this)">${L?'Elementos':'Elements'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)" style="color:#64b5f6;">${L?'Mapa':'Map'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
         </div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
         <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
-        <div id="natalTabElements" class="natal-tab-content" style="display:none;">${elementsTab}</div>
         <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>`;
 }
 
@@ -12115,11 +12086,9 @@ function switchNatalTab(tabName, btn) {
     var calGrid = document.getElementById('natalCalendarGrid');
     if (calGrid) calGrid.style.display = (tabName === 'calendar') ? 'block' : 'none';
     // Draw charts when tabs are shown
-    if (tabName === 'elements') {
-        setTimeout(drawNatalPieCharts, 100);
-    }
     if (tabName === 'chart') {
         setTimeout(drawNatalWheel, 100);
+        setTimeout(drawNatalPieCharts, 200);
         setTimeout(function() {
             var L = currentLang === 'es';
             var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
@@ -14052,6 +14021,120 @@ function renderPersonalCalendar() {
         </div><!-- close natalCalendarGrid -->
     `;
 
+    // ===== YEARLY EVENTS LIST =====
+    // Build a chronological list of all notable events for the year
+    var yearEvents = [];
+    var yearMonthNames = L ?
+        ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] :
+        ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    for (var em = 0; em < 12; em++) {
+        // Cosmic cycles (solar return, lunar returns, half return, eclipses, etc.)
+        try {
+            var mCycles = calculateCosmicCyclesForMonth(year, em, natalChart, natal.date);
+            mCycles.forEach(function(c) {
+                var evDate = c.exactTime || new Date(year, em, c.day);
+                yearEvents.push({
+                    date: evDate,
+                    icon: c.icon,
+                    color: c.color,
+                    label: c.label,
+                    type: c.type,
+                    desc: c.desc || ''
+                });
+            });
+        } catch(e) {}
+
+        // Moon phases (new/full)
+        var dInM = new Date(year, em + 1, 0).getDate();
+        for (var ed = 1; ed <= dInM; ed++) {
+            var eDate = new Date(year, em, ed);
+            var mev = getMoonEventForDate(eDate);
+            if (mev) {
+                yearEvents.push({
+                    date: eDate,
+                    icon: mev.type === 'full' ? '🌕' : '🌑',
+                    color: mev.type === 'full' ? '#f5f5dc' : '#616161',
+                    label: mev.type === 'full' ? (L ? 'Luna Llena' : 'Full Moon') : (L ? 'Luna Nueva' : 'New Moon'),
+                    type: 'moonPhase',
+                    desc: ''
+                });
+            }
+        }
+
+        // Personal seasons
+        var mSeasons = getPersonalSeasons(year, birthM, birthD);
+        mSeasons.forEach(function(s) {
+            if (s.date.getMonth() === em && s.date.getFullYear() === year) {
+                yearEvents.push({
+                    date: s.date,
+                    icon: s.icon,
+                    color: {springEq:'#4caf50',summerSol:'#ff9800',autumnEq:'#e67e22',winterSol:'#42a5f5'}[s.key] || '#fff',
+                    label: L ? s.es : s.en,
+                    type: 'season',
+                    desc: ''
+                });
+            }
+        });
+
+        // Birthday
+        if (em === birthM - 1) {
+            yearEvents.push({
+                date: new Date(year, em, birthD),
+                icon: '🎂',
+                color: '#ffd54f',
+                label: L ? 'Cumpleaños' : 'Birthday',
+                type: 'birthday',
+                desc: ''
+            });
+        }
+    }
+
+    // Sort chronologically and deduplicate
+    yearEvents.sort(function(a, b) { return a.date - b.date; });
+    // Remove duplicate lunar returns on same day
+    var seen = {};
+    yearEvents = yearEvents.filter(function(ev) {
+        var key = ev.date.toDateString() + '_' + ev.type;
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+    });
+
+    // Group by month
+    var eventsByMonth = {};
+    yearEvents.forEach(function(ev) {
+        var mKey = ev.date.getMonth();
+        if (!eventsByMonth[mKey]) eventsByMonth[mKey] = [];
+        eventsByMonth[mKey].push(ev);
+    });
+
+    var yearEventsHTML = '<div class="personal-natal-card" style="margin-top:8px;"><h3 style="color:#c9a840;">📅 ' + (L ? 'Eventos del Año ' + year : year + ' Events') + '</h3>';
+    yearEventsHTML += '<div style="max-height:500px;overflow-y:auto;scrollbar-width:thin;">';
+    for (var mi = 0; mi < 12; mi++) {
+        if (!eventsByMonth[mi] || eventsByMonth[mi].length === 0) continue;
+        var isCurrentMonth = (mi === month);
+        yearEventsHTML += '<div style="margin-bottom:10px;">';
+        yearEventsHTML += '<div style="font-size:0.82em;font-weight:700;color:' + (isCurrentMonth ? '#c9a840' : 'rgba(255,255,255,0.5)') + ';margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + yearMonthNames[mi] + '</div>';
+        eventsByMonth[mi].forEach(function(ev) {
+            var dayNum = ev.date.getDate();
+            var isPast = ev.date < today && ev.date.toDateString() !== today.toDateString();
+            var isEventToday = ev.date.toDateString() === today.toDateString();
+            var opacity = isPast ? 'opacity:0.45;' : '';
+            var todayHighlight = isEventToday ? 'background:rgba(201,168,64,0.15);border-radius:6px;' : '';
+            yearEventsHTML += '<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;font-size:0.82em;' + opacity + todayHighlight + '" onclick="showPersonalDayDetail(' + year + ',' + mi + ',' + dayNum + ')" style="cursor:pointer;">';
+            yearEventsHTML += '<span style="min-width:22px;text-align:right;color:rgba(255,255,255,0.35);font-size:0.85em;">' + dayNum + '</span>';
+            yearEventsHTML += '<span style="font-size:1.1em;">' + ev.icon + '</span>';
+            yearEventsHTML += '<span style="color:' + ev.color + ';font-weight:600;">' + ev.label + '</span>';
+            if (isEventToday) yearEventsHTML += '<span style="font-size:0.7em;color:#c9a840;font-weight:700;margin-left:4px;">' + (L ? 'HOY' : 'TODAY') + '</span>';
+            yearEventsHTML += '</div>';
+        });
+        yearEventsHTML += '</div>';
+    }
+    yearEventsHTML += '</div></div>';
+
+    calendarHTML += yearEventsHTML;
+
     container.innerHTML = calendarHTML;
 }
 
@@ -15357,8 +15440,8 @@ function renderSolarCalendar() {
     // Update currentDayInfo to show solar data instead of lunar
     updateCurrentDayInfoForMode('solar');
 
-    // Render solar info panel (sunrise/sunset, day duration, max altitude, Earth-Sun distance)
-    renderSolarInfoPanel();
+    // Defer the heavy solar info panel (SVG map) so calendar grid renders first
+    setTimeout(renderSolarInfoPanel, 10);
 
     // Show lunar info banner
     const cday = getLunarDayForDate(today);
@@ -20082,7 +20165,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v345';
+const APP_VERSION = 'v349';
 var _pendingSW = null;
 
 function showUpdateBanner() {
