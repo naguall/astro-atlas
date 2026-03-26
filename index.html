@@ -11383,6 +11383,15 @@ function switchProfile(id) {
             localStorage.removeItem('natalChart');
         }
     }
+    // Reset interpretation UI state for new profile
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    currentInterpCacheKey = null;
+    var interpModal = document.getElementById('hoyInterpModal');
+    if (interpModal) interpModal.classList.remove('show');
+    var interpMsgs = document.getElementById('hoyInterpMessages');
+    if (interpMsgs) interpMsgs.innerHTML = '';
+
     renderPersonalCalendar();
 }
 
@@ -11393,6 +11402,13 @@ function deleteProfile(id) {
     profiles = profiles.filter(p => p.id !== id);
     localStorage.setItem('natalProfiles', JSON.stringify(profiles));
     localStorage.removeItem('natalChart_' + id);
+    // Clean up all interpretation caches for this profile
+    var keysToRemove = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.startsWith('interp_' + id + '_')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
     if (getActiveProfileId() === id) {
         if (profiles.length > 0) {
             setActiveProfileId(profiles[0].id);
@@ -20066,7 +20082,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v344';
+const APP_VERSION = 'v345';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -20581,19 +20597,33 @@ var hoyInterpTyping = false;
 var currentInterpCacheKey = null;
 
 // ===== INTERPRETATION CACHE SYSTEM =====
+// All cache keys are scoped to the active profile ID so each profile keeps its own interpretations
+function _interpProfilePrefix() {
+    var pid = getActiveProfileId();
+    return pid ? pid + '_' : '';
+}
 function getInterpCache(key) {
     try {
-        var data = localStorage.getItem('interp_' + key);
-        return data ? JSON.parse(data) : null;
+        var data = localStorage.getItem('interp_' + _interpProfilePrefix() + key);
+        if (data) return JSON.parse(data);
+        // Fallback: try legacy key without profile prefix (migration)
+        var legacy = localStorage.getItem('interp_' + key);
+        if (legacy) {
+            // Migrate to new key
+            localStorage.setItem('interp_' + _interpProfilePrefix() + key, legacy);
+            localStorage.removeItem('interp_' + key);
+            return JSON.parse(legacy);
+        }
+        return null;
     } catch(e) { return null; }
 }
 function saveInterpCache(key, history, messagesHtml) {
     try {
-        localStorage.setItem('interp_' + key, JSON.stringify({ history: history, html: messagesHtml, ts: Date.now() }));
+        localStorage.setItem('interp_' + _interpProfilePrefix() + key, JSON.stringify({ history: history, html: messagesHtml, ts: Date.now() }));
     } catch(e) { /* storage full, ignore */ }
 }
 function deleteInterpCache(key) {
-    localStorage.removeItem('interp_' + key);
+    localStorage.removeItem('interp_' + _interpProfilePrefix() + key);
 }
 function restoreInterpFromCache(cached) {
     var container = document.getElementById('hoyInterpMessages');
