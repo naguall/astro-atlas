@@ -11721,8 +11721,14 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         if (!natalChart.planets) return '';
         var p = natalChart.planets[key.toLowerCase()];
         if (p && p.sign) return (signGlyphs[p.sign] || '') + ' ' + p.sign;
-        if (key === 'ASC' && natalChart.houses) return (signGlyphs[natalChart.houses.ascSign]||'') + ' ' + (natalChart.houses.ascSign||'');
-        if (key === 'MC' && natalChart.houses) return (signGlyphs[natalChart.houses.mcSign]||'') + ' ' + (natalChart.houses.mcSign||'');
+        if (key === 'ASC' && natalChart.houses && natalChart.houses.ascendant != null) {
+            var ascInfo = getZodiacSignWithDegree(natalChart.houses.ascendant);
+            return (signGlyphs[ascInfo.sign] || '') + ' ' + ascInfo.sign;
+        }
+        if (key === 'MC' && natalChart.houses && natalChart.houses.mc != null) {
+            var mcInfo = getZodiacSignWithDegree(natalChart.houses.mc);
+            return (signGlyphs[mcInfo.sign] || '') + ' ' + mcInfo.sign;
+        }
         return '';
     }
     if (natalChart.natalAspects) {
@@ -18922,7 +18928,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v334';
+const APP_VERSION = 'v335';
 var _pendingSW = null;
 
 function showUpdateBanner() {
