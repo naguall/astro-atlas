@@ -7257,9 +7257,9 @@ function _renderCompass() {
     info += '</div>';
     // Labels below
     info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:3px auto 0;font-size:0.65em;color:rgba(255,255,255,0.25);">';
-    info += '<span style="color:rgba(224,176,255,0.5);">📱 ' + phoneTilt.toFixed(0) + '°</span>';
-    info += '<span style="color:rgba(255,255,255,0.3);">' + (L ? 'Plano' : 'Flat') + '</span>';
-    info += '<span style="color:rgba(255,213,79,0.5);">🌙 ' + moonAlt.toFixed(0) + '°</span>';
+    info += '<span style="color:rgba(224,176,255,0.5);">📱 tilt ' + phoneTilt.toFixed(0) + '°</span>';
+    info += '<span style="color:rgba(255,255,255,0.3);">0° = ' + (L ? 'plano' : 'flat') + '</span>';
+    info += '<span style="color:rgba(255,213,79,0.5);">🌙 alt ' + moonAlt.toFixed(0) + '°</span>';
     info += '</div>';
     if (altAligned && !moonBelowHorizon) {
         info += '<div style="font-size:0.7em;color:#4ecdc4;text-align:center;margin-top:2px;">✓ ' + (L ? 'Apuntando a la Luna' : 'Pointing at the Moon') + '</div>';
@@ -20989,7 +20989,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v377';
+const APP_VERSION = 'v378';
 var _pendingSW = null;
 
 function showUpdateBanner() {
