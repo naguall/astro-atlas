@@ -13924,6 +13924,8 @@ function interpretCalendarDay(year, month, day) {
     var L = currentLang === 'es';
     var date = new Date(year, month, day);
     var dateStr = date.toLocaleDateString(L?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    var dateKey = year + '-' + (month+1) + '-' + day;
+    currentInterpCacheKey = 'day_' + dateKey;
 
     // Close the day detail modal
     var dayModal = document.getElementById('personalDayModal');
@@ -13935,9 +13937,17 @@ function interpretCalendarDay(year, month, day) {
     document.getElementById('hoyInterpTitle').textContent = L ? 'Interpretación del Día' : 'Day Interpretation';
     document.getElementById('hoyInterpDate').textContent = dateStr;
 
+    // Check cache
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) {
+        restoreInterpFromCache(cached);
+        return;
+    }
+
     // Reset chat
     hoyInterpHistory = [];
     hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
     var container = document.getElementById('hoyInterpMessages');
     container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Analizando los cielos para ese día...' : 'Analyzing the skies for that day...') + '</div>';
 
@@ -13967,6 +13977,7 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
     var tName = planetNames[transitPlanet] || transitPlanet;
     var nName = planetNames[natalPlanet] || natalPlanet;
     var aName = aspectNames[aspectType] || aspectType;
+    currentInterpCacheKey = 'asp_' + transitPlanet + '_' + aspectType + '_' + natalPlanet + '_' + dateStr.replace(/[^a-zA-Z0-9]/g,'');
 
     // Close the day detail modal
     var dayModal = document.getElementById('personalDayModal');
@@ -13978,9 +13989,17 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
     document.getElementById('hoyInterpTitle').textContent = tName + ' ' + aName + ' ' + nName;
     document.getElementById('hoyInterpDate').textContent = dateStr;
 
+    // Check cache
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) {
+        restoreInterpFromCache(cached);
+        return;
+    }
+
     // Reset chat
     hoyInterpHistory = [];
     hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
     var container = document.getElementById('hoyInterpMessages');
     container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Interpretando este aspecto...' : 'Interpreting this aspect...') + '</div>';
 
@@ -18928,7 +18947,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v335';
+const APP_VERSION = 'v336';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19168,6 +19187,7 @@ DOMTokenList.prototype.add = function() {
         <div style="display:flex;gap:8px;">
             <button onclick="shareHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Compartir">📤</button>
             <button onclick="saveHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Guardar">💾</button>
+            <button id="hoyInterpDeleteBtn" onclick="deleteCurrentInterp()" style="display:none;background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);border-radius:8px;color:rgba(231,76,60,0.7);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Borrar interpretación">🗑️</button>
             <button onclick="closeHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.85em;cursor:pointer;">✕</button>
         </div>
     </div>
@@ -19439,17 +19459,65 @@ function aiInterpretHoyTransit(idx) {
 
 var hoyInterpHistory = [];
 var hoyInterpTyping = false;
+var currentInterpCacheKey = null;
+
+// ===== INTERPRETATION CACHE SYSTEM =====
+function getInterpCache(key) {
+    try {
+        var data = localStorage.getItem('interp_' + key);
+        return data ? JSON.parse(data) : null;
+    } catch(e) { return null; }
+}
+function saveInterpCache(key, history, messagesHtml) {
+    try {
+        localStorage.setItem('interp_' + key, JSON.stringify({ history: history, html: messagesHtml, ts: Date.now() }));
+    } catch(e) { /* storage full, ignore */ }
+}
+function deleteInterpCache(key) {
+    localStorage.removeItem('interp_' + key);
+}
+function restoreInterpFromCache(cached) {
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = cached.html;
+    hoyInterpHistory = cached.history || [];
+    container.scrollTop = container.scrollHeight;
+    updateDeleteBtnVisibility(true);
+}
+function updateDeleteBtnVisibility(show) {
+    var btn = document.getElementById('hoyInterpDeleteBtn');
+    if (btn) btn.style.display = show ? '' : 'none';
+}
+function deleteCurrentInterp() {
+    if (!currentInterpCacheKey) return;
+    var L = currentLang === 'es';
+    deleteInterpCache(currentInterpCacheKey);
+    hoyInterpHistory = [];
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;font-size:0.85em;">' + (L ? 'Interpretación borrada' : 'Interpretation deleted') + '</div>';
+    updateDeleteBtnVisibility(false);
+}
 
 function interpretarHoyCompleto() {
     var isEs = currentLang === 'es';
     var modal = document.getElementById('hoyInterpModal');
     modal.classList.add('show');
     var today = new Date();
+    var dateKey = today.getFullYear() + '-' + (today.getMonth()+1) + '-' + today.getDate();
+    currentInterpCacheKey = 'day_' + dateKey;
     document.getElementById('hoyInterpTitle').textContent = isEs ? 'Interpretación de Hoy' : "Today's Interpretation";
     document.getElementById('hoyInterpDate').textContent = today.toLocaleDateString(isEs?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    // Check cache
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) {
+        restoreInterpFromCache(cached);
+        return;
+    }
+
     // Reset
     hoyInterpHistory = [];
     hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
     var container = document.getElementById('hoyInterpMessages');
     container.innerHTML = '<div class="ai-msg loading">✨ ' + (isEs ? 'Analizando los cielos para ti...' : 'Analyzing the skies for you...') + '</div>';
     // Auto-send interpretation request
@@ -19502,6 +19570,11 @@ async function sendHoyInterpRequest() {
         var reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
         hoyInterpHistory.push({role: 'model', parts: [{text: reply}]});
         addHoyInterpMessage('assistant', reply);
+        // Save to cache
+        if (currentInterpCacheKey) {
+            saveInterpCache(currentInterpCacheKey, hoyInterpHistory, document.getElementById('hoyInterpMessages').innerHTML);
+            updateDeleteBtnVisibility(true);
+        }
     } catch(e) {
         var container = document.getElementById('hoyInterpMessages');
         container.innerHTML = '';
@@ -19529,6 +19602,10 @@ async function sendHoyInterpMessage() {
     await sendHoyInterpRequest();
     var t = document.getElementById('hoyInterpTyping');
     if (t) t.remove();
+    // Update cache after follow-up message
+    if (currentInterpCacheKey && hoyInterpHistory.length > 0) {
+        saveInterpCache(currentInterpCacheKey, hoyInterpHistory, document.getElementById('hoyInterpMessages').innerHTML);
+    }
 }
 
 function shareHoyInterp() {
@@ -19568,6 +19645,7 @@ window.shareHoyInterp = shareHoyInterp;
 window.saveHoyInterp = saveHoyInterp;
 window.interpretCalendarDay = interpretCalendarDay;
 window.interpretTransitAspect = interpretTransitAspect;
+window.deleteCurrentInterp = deleteCurrentInterp;
 
 function getLunarPhaseSVG(date) {
     var phase = calculateLunarPhase(date);
