@@ -20724,7 +20724,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v366';
+const APP_VERSION = 'v367';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -20964,7 +20964,7 @@ DOMTokenList.prototype.add = function() {
         <div style="display:flex;gap:8px;">
             <button onclick="shareHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Compartir">📤</button>
             <button onclick="saveHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Guardar">💾</button>
-            <button id="hoyInterpDeleteBtn" onclick="deleteCurrentInterp()" style="display:none;background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);border-radius:8px;color:rgba(231,76,60,0.7);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Borrar interpretación">🗑️</button>
+            <button onclick="clearHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.75em;cursor:pointer;" title="Borrar chat">🗑️</button>
             <button onclick="closeHoyInterp()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.85em;cursor:pointer;">✕</button>
         </div>
     </div>
@@ -21330,6 +21330,18 @@ function deleteCurrentInterp() {
     hoyInterpHistory = [];
     var container = document.getElementById('hoyInterpMessages');
     container.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;font-size:0.85em;">' + (L ? 'Interpretación borrada' : 'Interpretation deleted') + '</div>';
+    updateDeleteBtnVisibility(false);
+}
+
+function clearHoyInterp() {
+    var L = currentLang === 'es';
+    if (currentInterpCacheKey) {
+        deleteInterpCache(currentInterpCacheKey);
+    }
+    hoyInterpHistory = [];
+    currentInterpCacheKey = null;
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;font-size:0.85em;">' + (L ? 'Chat borrado' : 'Chat cleared') + '</div>';
     updateDeleteBtnVisibility(false);
 }
 
