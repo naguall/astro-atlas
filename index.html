@@ -10975,7 +10975,6 @@ function updateCurrentDayInfoForMode(mode) {
                         <div style="font-size: 0.47em; color: #8899cc; opacity: 0.6; line-height:1.2;">${displayInfo}</div>
                         ${hoyBottomHTML}
                     </div>
-                    <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
                     `}
                 </div>
                 <!-- Info según modo -->
@@ -20726,7 +20725,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v368';
+const APP_VERSION = 'v369';
 var _pendingSW = null;
 
 function showUpdateBanner() {
