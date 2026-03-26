@@ -12402,15 +12402,36 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 ${mapSVG}
             </div>
 
-            <!-- Line info table -->
+            <!-- Line info table — ALL lines clickable with countries -->
             <div style="margin-top:12px;">
-                <div style="font-size:0.75em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Líneas Principales (MC/IC)' : 'Main Lines (MC/IC)'}</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.78em;">
-                    ${acLines.filter(function(l) { return l.type === 'MC'; }).map(function(l) {
-                        var lonStr = l.geoLon >= 0 ? l.geoLon.toFixed(1) + '°E' : Math.abs(l.geoLon).toFixed(1) + '°W';
-                        return '<div style="padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid ' + l.color + ';"><span style="color:' + l.color + ';font-weight:700;">' + l.symbol + '</span> MC ' + lonStr + '</div>';
-                    }).join('')}
-                </div>
+                ${(function() {
+                    var lineTypes = ['MC','IC','AC','DC'];
+                    var typeLabels = {MC: L?'Medio Cielo':'Midheaven', IC: L?'Fondo del Cielo':'Imum Coeli', AC: L?'Ascendente':'Ascendant', DC: L?'Descendente':'Descendant'};
+                    var typeDesc = {MC:'━', IC:'╌', AC:'━', DC:'╌'};
+                    var html = '';
+                    lineTypes.forEach(function(lt) {
+                        var linesOfType = acLines.filter(function(l) { return l.type === lt; });
+                        if (linesOfType.length === 0) return;
+                        html += '<div style="margin-bottom:10px;">';
+                        html += '<div style="font-size:0.72em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">' + typeDesc[lt] + ' ' + lt + ' — ' + typeLabels[lt] + '</div>';
+                        html += '<div style="display:flex;flex-direction:column;gap:3px;font-size:0.78em;">';
+                        linesOfType.forEach(function(l) {
+                            var countries = getCountriesForLine(l, L);
+                            var lonStr = '';
+                            if (l.geoLon !== undefined) lonStr = ' (' + (l.geoLon >= 0 ? l.geoLon.toFixed(1) + '°E' : Math.abs(l.geoLon).toFixed(1) + '°W') + ')';
+                            var countriesStr = countries.length > 0 ? countries.slice(0,8).join(', ') + (countries.length > 8 ? '…' : '') : (L ? 'Océano' : 'Ocean');
+                            html += '<div onclick="interpretCartoLine(\'' + l.planet + '\',\'' + lt + '\')" style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid ' + l.color + ';cursor:pointer;transition:background 0.2s;" ontouchstart="this.style.background=\'rgba(255,255,255,0.08)\'" ontouchend="this.style.background=\'rgba(255,255,255,0.03)\'" onmouseenter="this.style.background=\'rgba(255,255,255,0.08)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.03)\'">';
+                            html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+                            html += '<span><span style="color:' + l.color + ';font-weight:700;">' + l.symbol + '</span> ' + (planetNameMap[l.planet]||l.planet) + lonStr + '</span>';
+                            html += '<span style="font-size:0.8em;color:rgba(155,89,182,0.7);">✨</span>';
+                            html += '</div>';
+                            html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-top:2px;line-height:1.3;">🌍 ' + countriesStr + '</div>';
+                            html += '</div>';
+                        });
+                        html += '</div></div>';
+                    });
+                    return html;
+                })()}
             </div>
 
             <!-- AI Interpretation button -->
@@ -13752,6 +13773,155 @@ function interpretAstroLocation(locQuestion) {
     var prompt = L
         ? natalSummary + '. Líneas de cartografía astral: ' + linesSummary + '. Mi pregunta sobre cartografía astral es: ' + locQuestion + '. Responde de forma específica sobre esta ubicación o pregunta en relación a mi carta natal y mis líneas de cartografía astral.'
         : natalSummary + '. Astrocartography lines: ' + linesSummary + '. My astrocartography question is: ' + locQuestion + '. Respond specifically about this location or question in relation to my natal chart and astrocartography lines.';
+
+    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
+    sendHoyInterpRequest();
+}
+
+// ══════════════════════════════════════════════════════════
+// ── COUNTRIES DATABASE FOR ASTROCARTOGRAPHY LINES ──
+// ══════════════════════════════════════════════════════════
+
+// Each country: [name_es, name_en, lonMin, lonMax, latMin, latMax]
+var _cartoCountries = [
+    ['Noruega','Norway',4,32,57,72],['Suecia','Sweden',11,24,55,69],['Finlandia','Finland',20,32,59,70],
+    ['Islandia','Iceland',-25,-13,63,67],['Reino Unido','United Kingdom',-8,2,50,59],['Irlanda','Ireland',-11,-6,51,56],
+    ['Francia','France',-5,9,42,51],['España','Spain',-10,4,36,44],['Portugal','Portugal',-10,-6,37,42],
+    ['Alemania','Germany',5,16,47,55],['Italia','Italy',6,19,36,47],['Suiza','Switzerland',6,10,46,48],
+    ['Austria','Austria',10,17,46,49],['Países Bajos','Netherlands',3,7,51,54],['Bélgica','Belgium',2,7,49,52],
+    ['Polonia','Poland',14,25,49,55],['Chequia','Czech Republic',12,19,48,51],['Eslovaquia','Slovakia',17,22,47,50],
+    ['Hungría','Hungary',16,23,45,49],['Rumanía','Romania',20,30,43,48],['Bulgaria','Bulgaria',22,29,41,44],
+    ['Grecia','Greece',19,30,35,42],['Turquía','Turkey',26,45,36,42],['Ucrania','Ukraine',22,41,44,53],
+    ['Rusia','Russia',27,180,41,82],['Bielorrusia','Belarus',23,33,51,57],['Lituania','Lithuania',21,27,54,56],
+    ['Letonia','Latvia',21,28,56,58],['Estonia','Estonia',22,28,57,60],['Dinamarca','Denmark',8,15,54,58],
+    ['Croacia','Croatia',13,20,42,47],['Serbia','Serbia',19,23,42,46],['Bosnia','Bosnia and Herzegovina',15,20,42,46],
+    ['Montenegro','Montenegro',18,21,41,44],['Albania','Albania',19,21,39,43],['Macedonia del Norte','North Macedonia',20,23,40,42],
+    ['Moldavia','Moldova',27,30,45,49],['Georgia','Georgia',40,47,41,44],['Armenia','Armenia',43,47,38,42],
+    ['Azerbaiyán','Azerbaijan',44,51,38,42],['Marruecos','Morocco',-13,0,27,36],['Argelia','Algeria',-9,12,19,37],
+    ['Túnez','Tunisia',7,12,30,38],['Libia','Libya',10,25,19,34],['Egipto','Egypt',25,37,22,32],
+    ['Sudán','Sudan',22,39,8,23],['Etiopía','Ethiopia',33,48,3,15],['Somalia','Somalia',41,51,-2,12],
+    ['Kenia','Kenya',34,42,-5,5],['Tanzania','Tanzania',29,41,-12,-1],['Uganda','Uganda',30,35,-2,5],
+    ['Congo RD','DR Congo',12,32,-14,6],['República del Congo','Republic of Congo',11,19,-5,4],
+    ['Angola','Angola',12,24,-18,-4],['Zambia','Zambia',22,33,-18,-8],['Zimbabue','Zimbabwe',25,34,-22,-15],
+    ['Mozambique','Mozambique',30,41,-27,-10],['Sudáfrica','South Africa',16,33,-35,-22],
+    ['Namibia','Namibia',12,25,-29,-17],['Botsuana','Botswana',20,30,-27,-18],
+    ['Madagascar','Madagascar',43,51,-26,-12],['Nigeria','Nigeria',3,15,4,14],['Ghana','Ghana',-4,2,4,12],
+    ['Costa de Marfil','Ivory Coast',-9,-2,4,11],['Camerún','Cameroon',8,16,2,13],['Senegal','Senegal',-18,-11,12,17],
+    ['Malí','Mali',-12,5,10,25],['Níger','Niger',0,16,11,24],['Chad','Chad',14,24,7,24],
+    ['Mauritania','Mauritania',-17,-5,14,27],['Gabón','Gabon',9,15,-4,3],
+    ['Canadá','Canada',-141,-52,41,84],['Estados Unidos','United States',-125,-67,24,49],
+    ['Alaska','Alaska',-170,-130,54,72],['México','Mexico',-118,-87,14,33],
+    ['Guatemala','Guatemala',-92,-88,13,18],['Belice','Belize',-89,-88,15,19],
+    ['Honduras','Honduras',-90,-83,13,17],['El Salvador','El Salvador',-90,-87,13,15],
+    ['Nicaragua','Nicaragua',-88,-83,11,15],['Costa Rica','Costa Rica',-86,-82,8,11],
+    ['Panamá','Panama',-83,-77,7,10],['Cuba','Cuba',-85,-74,19,24],
+    ['Jamaica','Jamaica',-79,-76,17,19],['Haití','Haiti',-75,-72,18,20],
+    ['Rep. Dominicana','Dominican Republic',-72,-68,18,20],['Puerto Rico','Puerto Rico',-68,-65,17,19],
+    ['Colombia','Colombia',-79,-67,-4,13],['Venezuela','Venezuela',-73,-60,1,13],
+    ['Ecuador','Ecuador',-81,-75,-5,2],['Perú','Peru',-81,-68,-18,0],
+    ['Brasil','Brazil',-74,-35,-34,6],['Bolivia','Bolivia',-70,-57,-23,-10],
+    ['Paraguay','Paraguay',-63,-54,-27,-19],['Chile','Chile',-76,-66,-56,-17],
+    ['Argentina','Argentina',-74,-53,-55,-21],['Uruguay','Uruguay',-58,-53,-35,-30],
+    ['Guyana','Guyana',-62,-56,1,9],['Surinam','Suriname',-58,-54,1,6],
+    ['Guayana Francesa','French Guiana',-55,-51,2,6],
+    ['China','China',73,135,18,54],['Japón','Japan',129,146,30,46],['Corea del Sur','South Korea',126,130,33,39],
+    ['Corea del Norte','North Korea',124,131,37,43],['Mongolia','Mongolia',88,120,41,52],
+    ['India','India',68,98,6,37],['Pakistán','Pakistan',61,77,24,37],['Afganistán','Afghanistan',60,75,29,39],
+    ['Irán','Iran',44,64,25,40],['Irak','Iraq',39,49,29,38],['Arabia Saudita','Saudi Arabia',34,56,15,33],
+    ['Yemen','Yemen',42,54,12,19],['Omán','Oman',52,60,16,27],['EAU','UAE',51,56,22,26],
+    ['Tailandia','Thailand',97,106,5,21],['Vietnam','Vietnam',102,110,8,24],
+    ['Myanmar','Myanmar',92,102,9,29],['Camboya','Cambodia',102,108,10,15],
+    ['Laos','Laos',100,108,14,23],['Malasia','Malaysia',100,119,0,8],
+    ['Indonesia','Indonesia',95,141,-11,6],['Filipinas','Philippines',117,127,5,21],
+    ['Taiwán','Taiwan',120,122,22,26],['Bangladesh','Bangladesh',88,93,20,27],
+    ['Nepal','Nepal',80,89,26,31],['Sri Lanka','Sri Lanka',79,82,6,10],
+    ['Kazajistán','Kazakhstan',46,88,40,56],['Uzbekistán','Uzbekistan',56,74,37,46],
+    ['Turkmenistán','Turkmenistan',52,67,35,43],['Kirguistán','Kyrgyzstan',69,81,39,44],
+    ['Tayikistán','Tajikistan',67,75,36,41],
+    ['Australia','Australia',113,154,-44,-10],['Nueva Zelanda','New Zealand',166,179,-48,-34],
+    ['Papúa Nueva Guinea','Papua New Guinea',141,157,-12,-1],['Fiyi','Fiji',177,180,-21,-12],
+    ['Groenlandia','Greenland',-73,-12,60,84],['Siria','Syria',35,42,32,37],
+    ['Jordania','Jordan',35,39,29,34],['Israel','Israel',34,36,29,34],['Líbano','Lebanon',35,37,33,35]
+];
+
+function getCountriesForLine(line, L) {
+    var results = [];
+    var checked = {};
+    if (line.type === 'MC' || line.type === 'IC') {
+        // Vertical line at fixed longitude, spans all latitudes
+        var lon = line.geoLon;
+        _cartoCountries.forEach(function(c) {
+            if (lon >= c[2] && lon <= c[3]) {
+                var name = L ? c[0] : c[1];
+                if (!checked[name]) { checked[name] = true; results.push(name); }
+            }
+        });
+    } else if (line.points && line.points.length > 0) {
+        // AC/DC curved line — sample points
+        line.points.forEach(function(pt) {
+            _cartoCountries.forEach(function(c) {
+                if (pt.lon >= c[2] && pt.lon <= c[3] && pt.lat >= c[4] && pt.lat <= c[5]) {
+                    var name = L ? c[0] : c[1];
+                    if (!checked[name]) { checked[name] = true; results.push(name); }
+                }
+            });
+        });
+    }
+    return results;
+}
+
+function interpretCartoLine(planet, type) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+    var natalChart;
+    try {
+        var profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+    var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
+    var targetLine = null;
+    acLines.forEach(function(l) { if (l.planet === planet && l.type === type) targetLine = l; });
+    if (!targetLine) return;
+
+    var countries = getCountriesForLine(targetLine, L);
+    var countriesStr = countries.length > 0 ? countries.join(', ') : (L ? 'océano abierto' : 'open ocean');
+
+    var planetNameMap = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto'};
+    var pName = planetNameMap[planet] || planet;
+
+    var cacheKey = 'cartoline_' + planet + '_' + type + '_' + natal.id;
+    currentInterpCacheKey = cacheKey;
+
+    var modal = document.getElementById('hoyInterpModal');
+    modal.classList.add('show');
+    document.getElementById('hoyInterpTitle').textContent = pName + ' ' + type;
+    document.getElementById('hoyInterpDate').textContent = L ? 'Línea de Cartografía Astral' : 'Astrocartography Line';
+
+    var cached = getInterpCache(cacheKey);
+    if (cached) { restoreInterpFromCache(cached); return; }
+
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div class="ai-msg loading">' + targetLine.symbol + ' ' + (L ? 'Interpretando línea...' : 'Interpreting line...') + '</div>';
+
+    var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
+    natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
+    if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
+
+    var lonInfo = '';
+    if (targetLine.geoLon !== undefined) {
+        lonInfo = (L ? 'Longitud: ' : 'Longitude: ') + targetLine.geoLon.toFixed(1) + '°. ';
+    }
+
+    var prompt = L
+        ? natalSummary + '. LÍNEA ESPECÍFICA DE CARTOGRAFÍA ASTRAL: ' + pName + ' ' + type + '. ' + lonInfo + 'Países que atraviesa: ' + countriesStr + '. Dame una interpretación profunda y detallada de esta línea específica: 1) Qué significa tener ' + pName + ' en la línea ' + type + ' en tu cartografía astral — su energía fundamental, 2) Cómo afecta vivir cerca o visitar lugares en esta línea — áreas de vida que activa (carrera, relaciones, creatividad, desafíos), 3) Análisis de cada país/región principal que atraviesa y cómo la energía de ' + pName + ' ' + type + ' se manifiesta ahí considerando la cultura local, 4) Aspectos positivos y desafíos de esta línea, 5) Recomendaciones prácticas — ¿debería visitar, vivir, o ser cauteloso con estos lugares?'
+        : natalSummary + '. SPECIFIC ASTROCARTOGRAPHY LINE: ' + pName + ' ' + type + '. ' + lonInfo + 'Countries it crosses: ' + countriesStr + '. Give me a deep, detailed interpretation of this specific line: 1) What it means to have ' + pName + ' on the ' + type + ' line in astrocartography — its fundamental energy, 2) How living near or visiting places on this line affects you — life areas it activates (career, relationships, creativity, challenges), 3) Analysis of each major country/region it crosses and how ' + pName + ' ' + type + ' energy manifests there considering local culture, 4) Positive aspects and challenges of this line, 5) Practical recommendations — should you visit, live, or be cautious with these places?';
 
     hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
     sendHoyInterpRequest();
@@ -20541,7 +20711,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v354';
+const APP_VERSION = 'v355';
 var _pendingSW = null;
 
 function showUpdateBanner() {
