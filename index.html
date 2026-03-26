@@ -20716,7 +20716,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v356';
+const APP_VERSION = 'v357';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -21263,7 +21263,7 @@ function restoreInterpFromCache(cached) {
     var container = document.getElementById('hoyInterpMessages');
     container.innerHTML = cached.html;
     hoyInterpHistory = cached.history || [];
-    container.scrollTop = container.scrollHeight;
+    container.scrollTop = 0;
     updateDeleteBtnVisibility(true);
 }
 function updateDeleteBtnVisibility(show) {
@@ -21315,16 +21315,20 @@ function closeHoyInterp() {
     document.getElementById('hoyInterpModal').classList.remove('show');
 }
 
-function addHoyInterpMessage(role, html) {
+function addHoyInterpMessage(role, html, scrollToBottom) {
     var container = document.getElementById('hoyInterpMessages');
     var div = document.createElement('div');
     div.className = 'ai-msg ' + role;
     div.innerHTML = typeof marked !== 'undefined' ? marked.parse(html) : html.replace(/\n/g, '<br>');
     container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+    if (scrollToBottom) {
+        container.scrollTop = container.scrollHeight;
+    } else {
+        container.scrollTop = 0;
+    }
 }
 
-async function sendHoyInterpRequest() {
+async function sendHoyInterpRequest(isFollowUp) {
     hoyInterpTyping = true;
     try {
         var systemPrompt = buildSystemPrompt();
@@ -21352,7 +21356,7 @@ async function sendHoyInterpRequest() {
         var data = await response.json();
         var reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
         hoyInterpHistory.push({role: 'model', parts: [{text: reply}]});
-        addHoyInterpMessage('assistant', reply);
+        addHoyInterpMessage('assistant', reply, !!isFollowUp);
         // Save to cache
         if (currentInterpCacheKey) {
             saveInterpCache(currentInterpCacheKey, hoyInterpHistory, document.getElementById('hoyInterpMessages').innerHTML);
@@ -21373,7 +21377,7 @@ async function sendHoyInterpMessage() {
     if (!text) return;
     input.value = '';
     input.style.height = 'auto';
-    addHoyInterpMessage('user', text);
+    addHoyInterpMessage('user', text, true);
     hoyInterpHistory.push({role: 'user', parts: [{text: text}]});
     var container = document.getElementById('hoyInterpMessages');
     var loadDiv = document.createElement('div');
@@ -21382,7 +21386,7 @@ async function sendHoyInterpMessage() {
     loadDiv.textContent = '...';
     container.appendChild(loadDiv);
     container.scrollTop = container.scrollHeight;
-    await sendHoyInterpRequest();
+    await sendHoyInterpRequest(true);
     var t = document.getElementById('hoyInterpTyping');
     if (t) t.remove();
     // Update cache after follow-up message
@@ -22057,7 +22061,7 @@ FULL READING — When asked for a complete natal chart reading, cover ALL elemen
     }
 }
 
-function addAIMessage(role, text) {
+function addAIMessage(role, text, forceScrollBottom) {
     const container = document.getElementById('aiChatMessages');
     const div = document.createElement('div');
     div.className = 'ai-msg ' + role;
@@ -22101,7 +22105,11 @@ function addAIMessage(role, text) {
     }
 
     container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+    if (role === 'user' || forceScrollBottom) {
+        container.scrollTop = container.scrollHeight;
+    } else if (role === 'assistant') {
+        container.scrollTop = 0;
+    }
     return div;
 }
 
