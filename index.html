@@ -4404,9 +4404,11 @@ async function gcalFetchEvents() {
         localStorage.setItem('gcalLastSync', new Date().toISOString());
         console.log('✅ Google Calendar synced:', Object.keys(gcalEvents).length, 'dates with events');
 
-        // Re-render calendar
+        // Re-render calendar for current mode only
         if (calendarMode === 'lunar') renderCalendar();
-        else renderSolarCalendar();
+        else if (calendarMode === 'solar') renderSolarCalendar();
+        else if (calendarMode === 'gregorian') renderGregorianCalendar();
+        else if (calendarMode === 'personal') renderPersonalCalendar();
 
     } catch(e) {
         console.error('❌ Google Calendar fetch error:', e);
@@ -10432,6 +10434,8 @@ function showAI2026Summary(type) {
 }
 
 function updateCurrentDayInfoForMode(mode) {
+    // Don't show day info if in personal/earth/solarsystem/aspects2026 mode
+    if (['personal','earth','solarsystem','aspects2026'].includes(calendarMode)) return;
     const today = new Date();
     today.setHours(0,0,0,0);
 
@@ -14083,6 +14087,8 @@ let currentGregorianMonth = new Date().getMonth(); // 0-11
 let currentGregorianYear = 2026;
 
 function renderGregorianCalendar() {
+    // Guard: only render if in gregorian mode
+    if (calendarMode !== 'gregorian') return;
     const lunarWeeks = document.getElementById('lunarWeeks');
     const solarWeeks = document.getElementById('solarWeeks');
     const today = new Date();
@@ -14248,6 +14254,8 @@ function generateGregorianMonth() {
 }
 
 function renderSolarCalendar() {
+    // Guard: only render if in solar mode
+    if (calendarMode !== 'solar') return;
     const sign = solarSigns2026[currentSignIndex];
     const today = new Date();
 
@@ -16089,6 +16097,8 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
 }
 
 function renderCalendar() {
+    // Guard: only render if in lunar mode
+    if (calendarMode !== 'lunar') return;
     const weeks = calculateLunarCycle(currentCycleStart);
     const container = document.getElementById('lunarWeeks');
     const today = new Date();
@@ -19009,7 +19019,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v340';
+const APP_VERSION = 'v341';
 var _pendingSW = null;
 
 function showUpdateBanner() {
