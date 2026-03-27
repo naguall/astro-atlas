@@ -12215,6 +12215,7 @@ function shareNatalProfile() {
 
 let personalCurrentMonth = new Date().getMonth();
 let personalCurrentYear = new Date().getFullYear();
+let personalCurrentSignIdx = getCurrentSignForDate(new Date());
 
 // --- Switch to Personal Mode ---
 function switchToPersonalMode() {
@@ -14774,34 +14775,56 @@ function renderPersonalCalendar() {
         return allSeasons.find(s => s.date.toDateString() === ds) || null;
     }
 
-    // Cosmic cycles for this month
-    const cosmicCycles = calculateCosmicCyclesForMonth(year, month, natalChart, natal.date);
-    function getCyclesForDay(d) {
-        return cosmicCycles.filter(function(c) { return c.day === d; });
-    }
+    // Get current zodiac sign for navigation
+    const currentSign = solarSigns2026[personalCurrentSignIdx];
+    const signStart = new Date(currentSign.start);
+    const signEnd = new Date(currentSign.end);
+    signStart.setHours(0,0,0,0);
+    signEnd.setHours(0,0,0,0);
 
-    // Build calendar grid
-    const firstDay = new Date(year, month, 1);
-    let startDow = firstDay.getDay(); // 0=Sun
-    startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Calculate total days in this sign period
+    const signDays = Math.round((signEnd - signStart) / 86400000) + 1;
+
+    // Cosmic cycles: collect for all months this sign spans
+    const signStartMonth = signStart.getMonth();
+    const signEndMonth = signEnd.getMonth();
+    let allCosmicCycles = [];
+    for (let cm = signStartMonth; cm <= (signEnd.getFullYear() > signStart.getFullYear() ? signEndMonth + 12 : signEndMonth); cm++) {
+        const actualMonth = cm % 12;
+        const actualYear = cm >= 12 ? signStart.getFullYear() + 1 : signStart.getFullYear();
+        try {
+            const mc = calculateCosmicCyclesForMonth(actualYear, actualMonth, natalChart, natal.date);
+            mc.forEach(function(c) { c._month = actualMonth; c._year = actualYear; });
+            allCosmicCycles = allCosmicCycles.concat(mc);
+        } catch(e) {}
+    }
+    function getCyclesForDate(d) {
+        return allCosmicCycles.filter(function(c) {
+            return c.day === d.getDate() && c._month === d.getMonth() && c._year === d.getFullYear();
+        });
+    }
 
     const profileDisplayName = natal.name || natal.cityName || (L ? 'Mi Carta' : 'My Chart');
 
     // --- Build sub-tab content for Natal section ---
     const natalSubTabsHTML = buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today);
 
+    // First day of sign period weekday alignment
+    let startDow = signStart.getDay(); // 0=Sun
+    startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
+
     let calendarHTML = `
         ${buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
         ${natalSubTabsHTML}
         <div id="natalCalendarGrid">
-        <!-- Monthly Calendar Grid -->
+        <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
-            <!-- Month navigation inside calendar -->
+            <!-- Sign navigation inside calendar -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                 <button onclick="personalPrevMonth()" style="background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;padding:5px 12px;cursor:pointer;font-size:0.85em;">◀</button>
                 <div style="text-align:center;">
-                    <div style="font-family:'Cinzel',serif;font-size:1.1em;font-weight:700;color:#c9a840;letter-spacing:1px;">${monthNames[month]} ${year}</div>
+                    <div style="font-family:'Cinzel',serif;font-size:1.1em;font-weight:700;color:${currentSign.color};letter-spacing:1px;">${currentSign.symbol} ${currentSign.name}</div>
+                    <div style="font-size:0.7em;color:rgba(255,255,255,0.4);">${signStart.getDate()}/${signStart.getMonth()+1} — ${signEnd.getDate()}/${signEnd.getMonth()+1} ${signEnd.getFullYear()}</div>
                 </div>
                 <button onclick="personalNextMonth()" style="background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;padding:5px 12px;cursor:pointer;font-size:0.85em;">▶</button>
             </div>
@@ -14811,14 +14834,17 @@ function renderPersonalCalendar() {
             <div class="personal-month-grid">
     `;
 
-    // Empty cells before first day
+    // Empty cells before first day of sign
     for (let i = 0; i < startDow; i++) {
         calendarHTML += `<div class="personal-day-cell" style="opacity:0.2;border:none;"></div>`;
     }
 
-    // Day cells
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
+    // Day cells — iterate from sign start to sign end
+    for (let dayOffset = 0; dayOffset < signDays; dayOffset++) {
+        const date = new Date(signStart.getTime() + dayOffset * 86400000);
+        const day = date.getDate();
+        const year = date.getFullYear();
+        const month = date.getMonth();
         const isToday = date.toDateString() === today.toDateString();
         const dow = date.getDay();
         const isWeekend = dow === 0 || dow === 6;
@@ -14844,17 +14870,8 @@ function renderPersonalCalendar() {
         let personalDay = Math.floor((date - birthAnniversary) / 86400000) + 1;
         if (personalDay <= 0) personalDay += 365;
 
-        // Solar day: day within current zodiac sign
-        let solarDay = '';
-        try {
-            const signIdx = getCurrentSignForDate(date);
-            const sign = solarSigns2026[signIdx];
-            if (sign) {
-                const signStart = new Date(sign.start);
-                signStart.setHours(0,0,0,0);
-                solarDay = Math.floor((date - signStart) / 86400000) + 1;
-            }
-        } catch(e) { solarDay = ''; }
+        // Solar day: day within current zodiac sign (dayOffset is 0-based)
+        const solarDay = dayOffset + 1;
 
         // Moon phase icon (new moon / full moon)
         const moonEvent = getMoonEventForDate(date);
@@ -14867,7 +14884,7 @@ function renderPersonalCalendar() {
         const seasonColors = { springEq: '#4caf50', summerSol: '#ff9800', autumnEq: '#e67e22', winterSol: '#42a5f5' };
         const seasonBorder = season ? `border:1.5px solid ${seasonColors[season.key]};box-shadow:0 0 6px ${seasonColors[season.key]}44;` : '';
 
-        const dayCycles = getCyclesForDay(day);
+        const dayCycles = getCyclesForDate(date);
         const cycleBorder = !season && dayCycles.length > 0 ? `border:1.5px solid ${dayCycles[0].color};box-shadow:0 0 4px ${dayCycles[0].color}33;` : '';
 
         calendarHTML += `
@@ -14877,7 +14894,7 @@ function renderPersonalCalendar() {
                     <div style="display:flex;gap:1px;align-items:center;flex-wrap:wrap;">
                         ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                         ${moonIcon ? `<span style="font-size:1em;">${moonIcon}</span>` : ''}
-                        ${getCyclesForDay(day).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.65em;" title="${c.label}">${c.icon}</span>`).join('')}
+                        ${getCyclesForDate(date).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.65em;" title="${c.label}">${c.icon}</span>`).join('')}
                     </div>
                 </div>
                 <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
@@ -15024,11 +15041,16 @@ function renderPersonalCalendar() {
 }
 
 function personalPrevMonth() {
-    personalCurrentMonth--;
-    if (personalCurrentMonth < 0) {
-        personalCurrentMonth = 11;
-        personalCurrentYear--;
+    // Navigate by zodiac sign
+    personalCurrentSignIdx--;
+    if (personalCurrentSignIdx < 0) {
+        personalCurrentSignIdx = solarSigns2026.length - 1;
     }
+    // Also update month/year for compatibility with yearly events list
+    const sign = solarSigns2026[personalCurrentSignIdx];
+    const sDate = new Date(sign.start);
+    personalCurrentMonth = sDate.getMonth();
+    personalCurrentYear = sDate.getFullYear();
     renderPersonalCalendar();
 }
 
@@ -15775,11 +15797,16 @@ function submitNatalQuestion(predefinedQ) {
 })();
 
 function personalNextMonth() {
-    personalCurrentMonth++;
-    if (personalCurrentMonth > 11) {
-        personalCurrentMonth = 0;
-        personalCurrentYear++;
+    // Navigate by zodiac sign
+    personalCurrentSignIdx++;
+    if (personalCurrentSignIdx >= solarSigns2026.length) {
+        personalCurrentSignIdx = 0;
     }
+    // Also update month/year for compatibility with yearly events list
+    const sign = solarSigns2026[personalCurrentSignIdx];
+    const sDate = new Date(sign.start);
+    personalCurrentMonth = sDate.getMonth();
+    personalCurrentYear = sDate.getFullYear();
     renderPersonalCalendar();
 }
 
@@ -21558,7 +21585,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v391';
+const APP_VERSION = 'v392';
 var _pendingSW = null;
 
 function showUpdateBanner() {
