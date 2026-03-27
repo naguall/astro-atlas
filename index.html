@@ -13509,6 +13509,64 @@ function renderCompararTab() {
 }
 window.renderCompararTab = renderCompararTab;
 
+// ── Individual chart comparison tabs (Sinastría, Compuesta, Davison) ──
+function renderChartCompareTab(method) {
+    var idMap = { sinastria: 'natalTabSinastria', compuesta: 'natalTabCompuesta', davison: 'natalTabDavison' };
+    var container = document.getElementById(idMap[method]);
+    if (!container) return;
+    var L = currentLang === 'es';
+    var profiles = getNatalProfiles();
+    var activeId = getActiveProfileId();
+    var others = profiles.filter(function(p) { return p.id !== activeId; });
+
+    var titles = {
+        sinastria: { icon: '☌', name: L?'Sinastría':'Synastry', desc: L?'Aspectos cruzados entre ambas cartas':'Cross-aspects between both charts', color: '#c39bd3', bg: 'rgba(155,89,182,' },
+        compuesta: { icon: '⊕', name: L?'Carta Compuesta':'Composite Chart', desc: L?'Punto medio entre ambas cartas — la relación como entidad':'Midpoint of both charts — the relationship as entity', color: '#2ecc71', bg: 'rgba(46,204,113,' },
+        davison:   { icon: '✦', name: L?'Carta de Davison':'Davison Chart', desc: L?'Punto medio en tiempo y espacio — carta real de la relación':'Midpoint in time and space — real relationship chart', color: '#f1c40f', bg: 'rgba(241,196,15,' }
+    };
+    var t = titles[method];
+
+    if (others.length === 0) {
+        container.innerHTML = '<div class="personal-natal-card" style="text-align:center;padding:30px;">' +
+            '<div style="font-size:2em;margin-bottom:12px;">' + t.icon + '</div>' +
+            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + (L?'Necesitas al menos 2 perfiles para ':'You need at least 2 profiles for ') + t.name + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Agrega otro perfil en la pestaña Carta':'Add another profile in the Chart tab') + '</div></div>';
+        return;
+    }
+
+    var html = '<div class="personal-natal-card">';
+    html += '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:1.1em;font-weight:700;color:' + t.color + ';margin-bottom:4px;">' + t.icon + ' ' + t.name + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);">' + t.desc + '</div>';
+    html += '</div>';
+
+    // Profile selector
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + (L?'Comparar con:':'Compare with:') + '</div>';
+    others.forEach(function(p) {
+        var isSelected = (window['_compare_' + method + '_id'] === p.id);
+        html += '<button onclick="window[\'_compare_' + method + '_id\']=\'' + p.id + '\';renderChartCompareTab(\'' + method + '\');" style="width:100%;padding:10px 14px;margin-bottom:6px;background:' + (isSelected ? 'linear-gradient(135deg,' + t.bg + '0.2),' + t.bg + '0.08))' : 'rgba(255,255,255,0.03)') + ';border:' + (isSelected ? '2px solid ' + t.bg + '0.6)' : '1px solid rgba(255,255,255,0.1)') + ';border-radius:10px;color:' + (isSelected ? t.color : 'rgba(255,255,255,0.6)') + ';font-size:0.85em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:1.1em;">🔮</span>' +
+            '<div><div style="font-weight:600;">' + (p.name || p.cityName || 'Perfil') + '</div>' +
+            '<div style="font-size:0.75em;color:rgba(255,255,255,0.35);">' + (p.date || '') + ' · ' + (p.cityName || '') + '</div></div>' +
+            (isSelected ? '<span style="margin-left:auto;color:' + t.color + ';">✓</span>' : '') +
+        '</button>';
+    });
+    html += '</div>';
+
+    // If a profile is selected, show the action button
+    var selectedId = window['_compare_' + method + '_id'];
+    if (selectedId) {
+        var fnMap = { sinastria: 'openSynastryView', compuesta: 'openCompositeView', davison: 'openDavisonView' };
+        var btnLabel = { sinastria: L?'Ver Sinastría':'View Synastry', compuesta: L?'Ver Carta Compuesta':'View Composite Chart', davison: L?'Ver Carta de Davison':'View Davison Chart' };
+        html += '<button onclick="' + fnMap[method] + '(\'' + selectedId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,' + t.bg + '0.18),' + t.bg + '0.08));border:1px solid ' + t.bg + '0.4);border-radius:12px;color:' + t.color + ';font-size:0.95em;font-weight:700;cursor:pointer;">' + t.icon + ' ' + btnLabel[method] + '</button>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+window.renderChartCompareTab = renderChartCompareTab;
+
 // ── Carta Compuesta: midpoint between two charts ──
 function calculateCompositeChart(nc1, nc2) {
     var composite = { planets: {}, houses: null };
@@ -15355,7 +15413,9 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('comparar',this)">${L?'Comparar':'Compare'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${L?'Sinastría':'Synastry'}</span><span class="subtab-full">${L?'Sinastría':'Synastry'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${L?'Compuesta':'Composite'}</span><span class="subtab-full">${L?'Carta Compuesta':'Composite Chart'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
@@ -15364,7 +15424,9 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabAspects2026" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>
-        <div id="natalTabComparar" class="natal-tab-content" style="display:none;"></div>`;
+        <div id="natalTabSinastria" class="natal-tab-content" style="display:none;"></div>
+        <div id="natalTabCompuesta" class="natal-tab-content" style="display:none;"></div>
+        <div id="natalTabDavison" class="natal-tab-content" style="display:none;"></div>`;
 }
 
 // Switch natal sub-tab
@@ -15426,8 +15488,14 @@ function switchNatalTab(tabName, btn) {
         }
         setTimeout(function() { renderAspects2026InSubtab(); }, 100);
     }
-    if (tabName === 'comparar') {
-        setTimeout(renderCompararTab, 100);
+    if (tabName === 'sinastria') {
+        setTimeout(function() { renderChartCompareTab('sinastria'); }, 100);
+    }
+    if (tabName === 'compuesta') {
+        setTimeout(function() { renderChartCompareTab('compuesta'); }, 100);
+    }
+    if (tabName === 'davison') {
+        setTimeout(function() { renderChartCompareTab('davison'); }, 100);
     }
 }
 
@@ -24096,7 +24164,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v430';
+const APP_VERSION = 'v431';
 var _pendingSW = null;
 
 function showUpdateBanner() {
