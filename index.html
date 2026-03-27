@@ -6169,11 +6169,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
             return;
         }
 
-        var astroCtx = gatherFullAppContext();
-        // Summary prompt — ~6-8 bullets, user can ask for details via chat
-        var systemPrompt = L
-            ? 'Eres un asistente integral de conocimiento cósmico y terrestre. Interpretas astrología, mareas, sismos, datos de la Tierra, sistema solar, mitología y filosofía. REGLAS ESTRICTAS:\n- Formato DIRECTO: usa bullets cortos (•) con los puntos clave. Cada bullet 1-2 frases máximo.\n- Agrupa por temas relevantes al contenido.\n- Ve AL GRANO. NUNCA empieces con introducciones como "Aquí tienes..." o "Te presento..." o "Veamos..." — empieza DIRECTAMENTE con el primer bullet.\n- Aproximadamente 5-8 bullets en total. Sé BREVE. El usuario podrá preguntar más detalles en el chat.\n- NUNCA uses el nombre del usuario. Usa "tú".\n- SIEMPRE termina cada frase completa.\n- Usa datos reales. No repitas datos ya en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a comprehensive cosmic and terrestrial knowledge assistant. You interpret astrology, tides, earthquakes, Earth data, solar system, mythology and philosophy. STRICT RULES:\n- DIRECT format: use short bullets (•) with key points. Each bullet 1-2 sentences max.\n- Group by relevant themes.\n- Get TO THE POINT. NEVER start with introductions like "Here is..." or "Let me present..." — start DIRECTLY with the first bullet.\n- Approximately 5-8 bullets total. Be BRIEF. The user can ask for more details in the chat.\n- NEVER use the user\'s name. Use "you".\n- ALWAYS finish every sentence completely.\n- Use real data. Don\'t repeat data already on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
+        // Use active persona's system prompt
+        var systemPrompt = buildSystemPrompt();
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -6228,18 +6225,45 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
             // Cache initial AI response so reopening loads instantly from memory
             var _existChat = getInterpChat(chatId);
             if (!_existChat) {
-                saveInterpChat(chatId, { initialResponse: text, messages: [] });
+                saveInterpChat(chatId, { initialResponse: text, messages: [], profileId: getActiveProfileId() || 'default', title: _readingTitle, initialPrompt: specificPrompt, createdAt: new Date().toISOString() });
+                _existChat = getInterpChat(chatId);
             } else if (!_existChat.initialResponse) {
                 _existChat.initialResponse = text;
                 saveInterpChat(chatId, _existChat);
             }
-            div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + formattedHtml + '</p></div>'
-                + '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
-                + '<button onclick="openInterpretationChat(\'' + readingKey + '\',\'' + chatId + '\',this)" style="flex:1;padding:6px 10px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.35);border-radius:6px;color:#667eea;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">💬 ' + (L ? 'Chat' : 'Chat') + '</button>'
-                + '<button onclick="var d=window[\'' + readingKey + '\'];if(d){saveReading(d.title,d.text,d.html);this.disabled=true;this.innerHTML=\'' + (L ? '✅ Guardada' : '✅ Saved') + '\';}" style="flex:1;padding:6px 10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.35);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>'
-                + '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:6px 10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.35);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>'
-                + '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:6px 10px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:6px;color:#ff6b6b;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">🗑️ ' + (L ? 'Borrar' : 'Delete') + '</button>'
-                + '</div>';
+            // Unified chat format: AI response as first message, then chat history, then sticky input+buttons
+            var chatHtml = '<div style="display:flex;flex-direction:column;max-height:60vh;">';
+            // Scrollable messages area
+            chatHtml += '<div id="interpChatMessages_' + chatId + '" style="flex:1;overflow-y:auto;min-height:80px;max-height:45vh;padding-bottom:8px;">';
+            // Initial AI response as chat bubble
+            chatHtml += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:92%;padding:10px 14px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);"><p>' + formattedHtml + '</p></div></div>';
+            // Existing chat messages (if reopening)
+            if (_existChat && _existChat.messages) {
+                _existChat.messages.forEach(function(msg) {
+                    var isUser = msg.role === 'user';
+                    chatHtml += '<div style="margin-bottom:8px;text-align:' + (isUser ? 'right' : 'left') + ';"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;' + (isUser ? 'background:rgba(201,168,64,0.15);color:#c9a840;' : 'background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);') + '">' + msg.text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') + '</div></div>';
+                });
+            }
+            chatHtml += '</div>';
+            // Sticky bottom: input + action buttons
+            chatHtml += '<div style="position:sticky;bottom:0;background:rgba(5,7,30,0.98);padding-top:8px;border-top:1px solid rgba(201,168,64,0.15);flex-shrink:0;">';
+            // Input row
+            chatHtml += '<div style="display:flex;gap:6px;margin-bottom:8px;">';
+            chatHtml += '<input type="text" id="interpChatInput_' + chatId + '" placeholder="' + (L ? 'Pregunta sobre esta lectura...' : 'Ask about this reading...') + '" onkeydown="if(event.key===\'Enter\')sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\')" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,64,0.25);border-radius:20px;color:rgba(255,255,255,0.9);font-size:0.85em;outline:none;">';
+            chatHtml += '<button onclick="sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\')" style="padding:8px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:20px;color:#c9a840;font-size:0.85em;cursor:pointer;font-weight:600;">\u2192</button>';
+            chatHtml += '</div>';
+            // Action buttons row
+            chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
+            chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
+            chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
+            chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+            chatHtml += '</div>';
+            chatHtml += '</div>';
+            chatHtml += '</div>';
+            div.innerHTML = chatHtml;
+            // Scroll messages to bottom
+            var msgsEl = document.getElementById('interpChatMessages_' + chatId);
+            if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
         } else {
             div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'No se pudo generar interpretación.' : 'Could not generate interpretation.') + '</p>';
         }
@@ -6262,10 +6286,7 @@ async function expandAIReading(readingKey, btn) {
     btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(102,126,234,0.3);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:4px;"></span>' + (L ? 'Expandiendo...' : 'Expanding...');
 
     try {
-        var astroCtx = gatherFullAppContext();
-        var systemPrompt = L
-            ? 'Eres un asistente integral de conocimiento cósmico y terrestre con maestría profunda. REGLAS ESTRICTAS:\n- Formato DIRECTO con bullets (•). Cada bullet 1-3 frases máximo.\n- NUNCA uses el nombre del usuario. Usa "tú".\n- SIEMPRE termina cada frase completa.\n- Estructura por secciones con encabezados en MAYÚSCULA según el tema.\n- Ve AL GRANO. NUNCA empieces con introducciones — empieza DIRECTAMENTE con la primera sección.\n- Cada bullet debe aportar información concreta.\n- Usa datos REALES. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a comprehensive cosmic and terrestrial knowledge assistant with deep mastery. STRICT RULES:\n- DIRECT format with bullets (•). Each bullet 1-3 sentences max.\n- NEVER use the user\'s name. Use "you".\n- ALWAYS finish every sentence completely.\n- Structure by sections with UPPERCASE headers relevant to the topic.\n- Get TO THE POINT. NEVER start with introductions — start DIRECTLY with the first section.\n- Each bullet must provide concrete information.\n- Use REAL data. Respond in English.\n\nDATA:\n' + astroCtx;
+        var systemPrompt = buildSystemPrompt();
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -6436,11 +6457,12 @@ async function sendInterpChatMessage(chatId, readingKey) {
     saveInterpChat(chatId, chat);
 
     try {
-        var astroCtx = gatherFullAppContext();
-        // Build conversation context with original interpretation
-        var systemPrompt = L
-            ? 'Eres un asistente integral de conocimiento cósmico y terrestre. El usuario te hizo una consulta y le diste esta interpretación inicial:\n\n"' + (data ? data.text : chat.initialResponse) + '"\n\nAhora el usuario quiere profundizar con preguntas de seguimiento. Puedes responder sobre cualquier tema: astrología, mareas, sismos, tierra, sistema solar, mitología, filosofía. REGLAS:\n- Responde de forma CONCISA y DIRECTA.\n- Usa bullets cortos (•) cuando sea útil.\n- Mantén el contexto de la interpretación original.\n- NUNCA uses el nombre del usuario.\n- Responde en español.\n\nDATOS COMPLETOS:\n' + astroCtx
-            : 'You are a comprehensive cosmic and terrestrial knowledge assistant. The user asked a question and you gave this initial interpretation:\n\n"' + (data ? data.text : chat.initialResponse) + '"\n\nNow the user wants to go deeper with follow-up questions. You can answer about any topic: astrology, tides, earthquakes, earth, solar system, mythology, philosophy. RULES:\n- Respond CONCISELY and DIRECTLY.\n- Use short bullets (•) when useful.\n- Keep context of original interpretation.\n- NEVER use user\'s name.\n- Respond in English.\n\nFULL DATA:\n' + astroCtx;
+        // Use active persona + add context of original interpretation
+        var systemPrompt = buildSystemPrompt();
+        var initialCtx = data ? data.text : (chat.initialResponse || '');
+        if (initialCtx) {
+            systemPrompt += '\n\n' + (L ? 'INTERPRETACIÓN INICIAL QUE DISTE (contexto para seguimiento):\n' : 'INITIAL INTERPRETATION YOU GAVE (context for follow-up):\n') + '"' + initialCtx + '"';
+        }
 
         // Build contents with previous chat messages
         var contents = [];
@@ -12979,12 +13001,43 @@ function sendReturnInterpRequest(history, container, cacheKey) {
         text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
         text = text.replace(/\n/g, '<br>');
 
-        var resultHtml = '<div style="padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;font-size:0.82em;color:rgba(255,255,255,0.75);line-height:1.6;">' + text + '</div>';
-        container.innerHTML = resultHtml;
+        // Build unified chat format with sticky input + buttons
+        var rawText = data.candidates[0].content.parts[0].text || text;
+        var chatHash = 0;
+        var chatSrc = (getActiveProfileId() || 'default') + '|returnChart|' + cacheKey;
+        for (var ci = 0; ci < chatSrc.length; ci++) { chatHash = ((chatHash << 5) - chatHash) + chatSrc.charCodeAt(ci); chatHash |= 0; }
+        var chatId = 'rc_' + Math.abs(chatHash).toString(36);
+        var readingKey = '_rcReading_' + Date.now();
+        var returnType = window._lastReturnType || 'solar';
+        var readingTitle = L ? ('Retorno ' + (returnType === 'solar' ? 'Solar' : 'Lunar') + ' Completo') : ('Full ' + (returnType === 'solar' ? 'Solar' : 'Lunar') + ' Return');
+        var specificPrompt = history[0] ? history[0].parts[0].text : '';
+        window[readingKey] = { title: readingTitle, text: rawText, html: '<p>' + text + '</p>', prompt: specificPrompt };
+
+        // Save/update chat
+        var _existChat = getInterpChat(chatId);
+        if (!_existChat) {
+            saveInterpChat(chatId, { initialResponse: rawText, messages: [], profileId: getActiveProfileId() || 'default', title: readingTitle, initialPrompt: specificPrompt, createdAt: new Date().toISOString() });
+        }
+
+        var chatHtml = '<div style="display:flex;flex-direction:column;max-height:55vh;">';
+        chatHtml += '<div id="interpChatMessages_' + chatId + '" style="flex:1;overflow-y:auto;min-height:60px;max-height:40vh;padding-bottom:8px;">';
+        chatHtml += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:92%;padding:10px 14px;border-radius:12px;font-size:0.82em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);">' + text + '</div></div>';
+        chatHtml += '</div>';
+        chatHtml += '<div style="position:sticky;bottom:0;background:rgba(5,7,30,0.98);padding-top:8px;border-top:1px solid rgba(201,168,64,0.15);flex-shrink:0;">';
+        chatHtml += '<div style="display:flex;gap:6px;margin-bottom:8px;">';
+        chatHtml += '<input type="text" id="interpChatInput_' + chatId + '" placeholder="' + (L ? 'Pregunta sobre esta lectura...' : 'Ask about this reading...') + '" onkeydown="if(event.key===\'Enter\')sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\')" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,64,0.25);border-radius:20px;color:rgba(255,255,255,0.9);font-size:0.85em;outline:none;">';
+        chatHtml += '<button onclick="sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\')" style="padding:8px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:20px;color:#c9a840;font-size:0.85em;cursor:pointer;font-weight:600;">\u2192</button>';
+        chatHtml += '</div>';
+        chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
+        chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
+        chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
+        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var c=document.getElementById(\'returnInterpContainer\');if(c){c.style.display=\'none\';c.innerHTML=\'\';};var b=document.getElementById(\'returnInterpBtn\');if(b)b.style.display=\'block\';" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+        chatHtml += '</div></div></div>';
+        container.innerHTML = chatHtml;
 
         // Cache it
         if (cacheKey) {
-            saveInterpCache(cacheKey, history, resultHtml);
+            saveInterpCache(cacheKey, history, chatHtml);
         }
     }).catch(function(err) {
         container.innerHTML = '<div style="padding:12px;color:#e74c3c;font-size:0.82em;">Error: ' + err.message + '</div>';
@@ -22801,7 +22854,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v402';
+const APP_VERSION = 'v403';
 var _pendingSW = null;
 
 function showUpdateBanner() {
