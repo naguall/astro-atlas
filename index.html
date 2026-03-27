@@ -7189,6 +7189,12 @@ function interpretDream() {
     var fullCtx = gatherFullAppContext();
     var systemPrompt = dreamPersona.buildPrompt(L, fullCtx);
 
+    // Add persona identification
+    var dreamPersonaName = L ? dreamPersona.name_es : dreamPersona.name_en;
+    systemPrompt += L
+        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye una línea con tu nombre de personalidad así: «' + dreamPersonaName + '»\nEsto permite al usuario saber desde qué perspectiva hablas.'
+        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include a line with your personality name like: «' + dreamPersonaName + '»\nThis lets the user know which perspective you speak from.';
+
     // Add name control
     var useName = localStorage.getItem('prefUseName') === 'true';
     if (!useName) {
@@ -23050,7 +23056,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v414';
+const APP_VERSION = 'v415';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -24402,8 +24408,8 @@ function gatherFullAppContext() {
 var _aiPersonas = [
     {
         id: 'energy-reader',
-        name_es: 'Lector de Campos Energéticos',
-        name_en: 'Energy Field Reader',
+        name_es: 'Lec',
+        name_en: 'Lec',
         desc_es: 'Describe fuerzas arquetípicas, tensiones, polaridades. Sobrio, técnico, sin coaching.',
         desc_en: 'Describes archetypal forces, tensions, polarities. Sober, technical, no coaching.',
         icon: '⚡',
@@ -24519,8 +24525,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'shadow-mirror',
-        name_es: 'Espejo de Sombra',
-        name_en: 'Shadow Mirror',
+        name_es: 'Espejo',
+        name_en: 'Espejo',
         desc_es: 'Ejes zodiacales, trabajo de sombra, ego consciente. No hay bueno ni malo — solo consciencia.',
         desc_en: 'Zodiacal axes, shadow work, conscious ego. No good or bad — only awareness.',
         icon: '🪞',
@@ -24706,8 +24712,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'jacobo-syntergic',
-        name_es: 'Jacobo - Campo Sintérgico',
-        name_en: 'Jacobo - Syntergic Field',
+        name_es: 'Jac',
+        name_en: 'Jac',
         desc_es: 'Interpreta astrología a través de la Teoría Sintérgica: el Enrejado, campos neuronales, sintergia cósmica.',
         desc_en: 'Interprets astrology through Syntergic Theory: the Lattice, neural fields, cosmic synergy.',
         icon: '\u{1F9E0}',
@@ -24721,8 +24727,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'miguel-ruiz-toltec',
-        name_es: 'Miguel - La Domesticación',
-        name_en: 'Miguel - The Domestication',
+        name_es: 'Mig',
+        name_en: 'Mig',
         desc_es: 'Los Cuatro Acuerdos Toltecas: qué patrones de domesticación revelan los tránsitos.',
         desc_en: 'The Four Toltec Agreements: what domestication patterns transits reveal.',
         icon: '\u{1F54A}\u{FE0F}',
@@ -24736,8 +24742,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'castaneda-sorcery',
-        name_es: 'Castaneda - El Punto de Encaje',
-        name_en: 'Castaneda - The Assemblage Point',
+        name_es: 'Cas',
+        name_en: 'Cas',
         desc_es: 'Tránsitos como movimientos del punto de encaje, aspectos como configuraciones de energía visibles a "videntes".',
         desc_en: 'Transits as assemblage point movements, aspects as energy configurations visible to "seers."',
         icon: '\u{1F441}\u{FE0F}',
@@ -24751,8 +24757,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'armando-torres-nagual',
-        name_es: 'Armando Torres - El Nagual',
-        name_en: 'Armando Torres - The Nagual',
+        name_es: 'Arm',
+        name_en: 'Arm',
         desc_es: 'Arquitectura de energía luminosa: configuraciones energéticas, trabajo de grupo, recapitulación.',
         desc_en: 'Luminous energy architecture: configurations, group work, recapitulation.',
         icon: '\u{2B50}',
@@ -24766,8 +24772,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'silent-river-consciousness',
-        name_es: 'Silent River - Consciencia 365',
-        name_en: 'Silent River - 365 Consciousness',
+        name_es: 'Mat',
+        name_en: 'Mat',
         desc_es: '12 arquetipos como aspectos del "Yo Soy", 10 chakras, trinidades de elementos, integración encarnada.',
         desc_en: '12 archetypes as "I Am" aspects, 10 chakras, element trinities, embodied integration.',
         icon: '\u{1F30A}',
@@ -24781,8 +24787,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'unified-consciousness',
-        name_es: 'El Río Silencioso — Consciencia Unificada',
-        name_en: 'The Silent River — Unified Consciousness',
+        name_es: 'Río',
+        name_en: 'Río',
         desc_es: 'Integra 7 marcos: campos energéticos, sombra, Sintérgica, Acuerdos Toltecas, punto de encaje, arquitectura luminosa y Consciencia 365.',
         desc_en: 'Integrates 7 frameworks: energy fields, shadow, Syntergic, Toltec Agreements, assemblage point, luminous architecture and 365 Consciousness.',
         icon: '\u{1F531}',
@@ -24796,8 +24802,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'free-oracle',
-        name_es: 'Oráculo Libre',
-        name_en: 'Free Oracle',
+        name_es: 'Orac',
+        name_en: 'Orac',
         desc_es: 'Elige el marco más relevante según tu pregunta: puede hablar como Jacobo, Don Juan, Miguel Ruiz o Silent River según lo que necesites.',
         desc_en: 'Chooses the most relevant framework based on your question.',
         icon: '\u{1F300}',
@@ -24811,8 +24817,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'nahual-dream',
-        name_es: 'Nahual — Ensueño Chamánico',
-        name_en: 'Nahual — Shamanic Dreaming',
+        name_es: 'Ensueño',
+        name_en: 'Ensueño',
         desc_es: 'Tradición tolteca + teoría sintérgica. El sueño como percepción real de la Lattice.',
         desc_en: 'Toltec tradition + syntergic theory. Dreams as real perception of the Lattice.',
         icon: '🦅',
@@ -24826,8 +24832,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'psique-lunar-dream',
-        name_es: 'Psique Lunar — Jung + Cognitivo',
-        name_en: 'Lunar Psyche — Jung + Cognitive',
+        name_es: 'Jung',
+        name_en: 'Jung',
         desc_es: 'Arquetipos junguianos + análisis de contenido Hall/Domhoff. Sombra, Ánima, individuación.',
         desc_en: 'Jungian archetypes + Hall/Domhoff content analysis. Shadow, Anima, individuation.',
         icon: '🔮',
@@ -24841,8 +24847,8 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
     },
     {
         id: 'oraculo-lunar-dream',
-        name_es: 'Oráculo Lunar — Síntesis Total',
-        name_en: 'Lunar Oracle — Full Synthesis',
+        name_es: 'Orc Lunar',
+        name_en: 'Orc Lunar',
         desc_es: 'Chamánico + Junguiano + Cognitivo. Tres capas: superficie, profundidad y percepción.',
         desc_en: 'Shamanic + Jungian + Cognitive. Three layers: surface, depth and perception.',
         icon: '🌙',
@@ -24902,6 +24908,12 @@ function buildSystemPrompt() {
     const fullCtx = gatherFullAppContext();
     var persona = getActivePersona();
     var base = persona.buildPrompt(isEs, fullCtx);
+
+    // ── Persona identification: always show which personality is speaking ──
+    var personaName = isEs ? persona.name_es : persona.name_en;
+    base += isEs
+        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye una línea con tu nombre de personalidad así: «' + personaName + '»\nEsto permite al usuario saber desde qué perspectiva hablas. Si eres Oráculo Libre y eliges un marco específico, indica también cuál marco elegiste, por ejemplo: «Orac → Cas» o «Orac → Espejo».'
+        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include a line with your personality name like: «' + personaName + '»\nThis lets the user know which perspective you speak from. If you are Free Oracle and choose a specific framework, also indicate which, e.g.: «Orac → Cas» or «Orac → Espejo».';
 
     // ── Name usage control (default OFF) ──
     var useName = localStorage.getItem('prefUseName') === 'true';
