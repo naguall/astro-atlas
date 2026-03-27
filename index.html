@@ -1080,8 +1080,13 @@
                         <div id="dreamSaveStatus" style="color: #9b59b6;"></div>
                         <div id="dreamWordCount" style="color: #a8b2d1;"></div>
                     </div>
+                    <!-- Dream Persona Selector -->
+                    <div id="dreamPersonaSelector" style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:0.78em;color:rgba(255,255,255,0.4);">🧠</span>
+                        <select id="dreamPersonaDropdown" onchange="setDreamPersona(this.value)" style="flex:1;padding:8px 10px;background:rgba(138,43,226,0.1);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.8em;cursor:pointer;outline:none;"></select>
+                    </div>
                     <!-- AI Dream Interpretation -->
-                    <button id="dreamInterpBtn" onclick="interpretDream()" style="width:100%;padding:12px;margin-top:12px;background:linear-gradient(135deg,rgba(138,43,226,0.3),rgba(75,0,130,0.2));border:1px solid rgba(138,43,226,0.5);border-radius:10px;color:#ce93d8;font-size:0.9em;font-weight:700;cursor:pointer;">
+                    <button id="dreamInterpBtn" onclick="interpretDream()" style="width:100%;padding:12px;margin-top:8px;background:linear-gradient(135deg,rgba(138,43,226,0.3),rgba(75,0,130,0.2));border:1px solid rgba(138,43,226,0.5);border-radius:10px;color:#ce93d8;font-size:0.9em;font-weight:700;cursor:pointer;">
                         ✨ <span data-i18n="dreamInterpret">Interpretar Sueño con AI</span>
                     </button>
                     <div id="dreamInterpContainer" style="margin-top:12px;"></div>
@@ -7081,6 +7086,9 @@ function openDiarioModal(date, lunarDay) {
     // Clear previous dream interpretation
     document.getElementById('dreamInterpContainer').innerHTML = '';
 
+    // Populate dream persona dropdown
+    populateDreamPersonaDropdown();
+
     document.getElementById('diarioModal').classList.add('show');
 }
 
@@ -7132,6 +7140,33 @@ function saveDreamText(dateKey, text) {
 }
 
 // ── Dream AI Interpretation ──
+// ── Dream Persona System (independent from main persona) ──
+function getDreamPersonaId() {
+    return localStorage.getItem('activeDreamPersonaId') || _aiPersonas[0].id;
+}
+function setDreamPersona(id) {
+    localStorage.setItem('activeDreamPersonaId', id);
+    populateDreamPersonaDropdown();
+}
+function getDreamPersona() {
+    var id = getDreamPersonaId();
+    return _aiPersonas.find(function(p) { return p.id === id; }) || _aiPersonas[0];
+}
+function populateDreamPersonaDropdown() {
+    var sel = document.getElementById('dreamPersonaDropdown');
+    if (!sel) return;
+    var activeId = getDreamPersonaId();
+    var L = currentLang === 'es';
+    sel.innerHTML = '';
+    _aiPersonas.forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.icon + ' ' + (L ? p.name_es : p.name_en);
+        if (p.id === activeId) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
 function interpretDream() {
     var L = currentLang === 'es';
     var dreamText = document.getElementById('dreamText').value.trim();
@@ -7140,12 +7175,42 @@ function interpretDream() {
         return;
     }
     var container = document.getElementById('dreamInterpContainer');
+
+    // Use dream-specific persona
+    var dreamPersona = getDreamPersona();
+    var fullCtx = gatherFullAppContext();
+    var systemPrompt = dreamPersona.buildPrompt(L, fullCtx);
+
+    // Add name control
+    var useName = localStorage.getItem('prefUseName') === 'true';
+    if (!useName) {
+        systemPrompt += L
+            ? '\n\n═══ NOMBRE ═══\nNUNCA uses el nombre del usuario en tus respuestas.'
+            : '\n\n═══ NAME ═══\nNEVER use the user\'s name in your responses.';
+    }
+
+    // Add dual perspective
+    systemPrompt += L
+        ? '\n\n═══ DOBLE PERSPECTIVA OBLIGATORIA ═══\nSIEMPRE muestra DOS perspectivas: CONSCIENTE (lo visible) e INCONSCIENTE/SOMBRA (lo reprimido/proyectado). Analiza ejes zodiacales y el reflejo del opuesto si aplica. Busca comprensión y transmutación de la sombra.'
+        : '\n\n═══ MANDATORY DUAL PERSPECTIVE ═══\nALWAYS show TWO perspectives: CONSCIOUS (visible) and UNCONSCIOUS/SHADOW (repressed/projected). Analyze zodiacal axes and the opposite reflection if applicable. Seek understanding and shadow transmutation.';
+
+    // Dream-specific instructions
+    systemPrompt += L
+        ? '\n\n═══ INTERPRETACIÓN DE SUEÑOS ═══\nInterpreta desde múltiples capas: simbólica (arquetipos universales), astrológica (conecta con carta natal y tránsitos actuales), psicológica (mensaje del inconsciente, Jung). Identifica: símbolos principales, emociones dominantes, figuras arquetípicas (anima/animus, sombra, self), conexión con tránsitos planetarios activos. No des interpretaciones literales — profundiza en el lenguaje simbólico del inconsciente.'
+        : '\n\n═══ DREAM INTERPRETATION ═══\nInterpret from multiple layers: symbolic (universal archetypes), astrological (connect with natal chart and current transits), psychological (unconscious message, Jung). Identify: main symbols, dominant emotions, archetypal figures (anima/animus, shadow, self), connection with active planetary transits. Don\'t give literal interpretations — go deep into the symbolic language of the unconscious.';
+
     var prompt = L
-        ? 'Interpreta el siguiente sueño desde una perspectiva astrológica, psicológica y simbólica. Considera mi carta natal y los tránsitos actuales. Explica los símbolos principales, el mensaje del inconsciente, y cómo se conecta con mi momento astrológico actual. Mi sueño:\n\n' + dreamText
-        : 'Interpret the following dream from an astrological, psychological, and symbolic perspective. Consider my natal chart and current transits. Explain the main symbols, the unconscious message, and how it connects to my current astrological moment. My dream:\n\n' + dreamText;
+        ? 'Interpreta el siguiente sueño:\n\n' + dreamText
+        : 'Interpret the following dream:\n\n' + dreamText;
+
     var readingTitle = L ? 'Sueño — ' + (window._currentDiarioDateKey || '') : 'Dream — ' + (window._currentDiarioDateKey || '');
     container.innerHTML = '<div id="dreamAiInterpDiv"></div>';
+
+    // Use fetchAIInterpretation but override the system prompt via a temporary persona swap
+    var originalPersonaId = _activePersonaId;
+    _activePersonaId = dreamPersona.id;
     fetchAIInterpretation(prompt, 'dreamAiInterpDiv', readingTitle);
+    _activePersonaId = originalPersonaId;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -21280,7 +21345,7 @@ function openPreferencesModal() {
 
     // ── Nombre en AI ──
     var useNameOn = localStorage.getItem('prefUseName') === 'true';
-    sectionsHtml += _s('👤', currentLang==='es'?'Nombre en AI':'Name in AI', '#80cbc4',
+    sectionsHtml += _s('👤', currentLang==='es'?'Nombre en AI':'Name in AI', '#7ec8ff',
         '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;">' +
             '<div style="flex:1;font-size:0.78em;color:rgba(255,255,255,0.6);">' + (currentLang==='es'?'Permitir que el AI use tu nombre en las respuestas':'Allow AI to use your name in responses') + '</div>' +
             '<label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (useNameOn?'checked':'') + ' onchange="localStorage.setItem(\'prefUseName\',this.checked?\'true\':\'false\');openPreferencesModal();" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (useNameOn?'rgba(78,205,196,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (useNameOn?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>' +
@@ -21305,7 +21370,7 @@ function openPreferencesModal() {
 
     // ── Mis Mensajes ──
     var msgCount = (function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count; })();
-    sectionsHtml += _s('💬', currentLang==='es'?'Mis Mensajes':'My Messages', '#66CCFF',
+    sectionsHtml += _s('💬', currentLang==='es'?'Mis Mensajes':'My Messages', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Programa recordatorios personales como notificación.':'Schedule personal reminders as notifications.') + '</div>' +
         '<button onclick="closePreferencesModal();setTimeout(()=>openMyMessagesEditor(),200);" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">' + (currentLang==='es'?'Abrir editor de mensajes':'Open message editor') + '</button>' +
         '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (msgCount>0?(currentLang==='es'?msgCount+' mensaje'+(msgCount>1?'s':'')+' programado'+(msgCount>1?'s':''):msgCount+' message'+(msgCount>1?'s':'')+' scheduled'):(currentLang==='es'?'Sin mensajes programados':'No messages scheduled')) + '</div>'
@@ -21325,7 +21390,19 @@ function openPreferencesModal() {
     personaContent += '</div>';
     personaContent += '<button onclick="resetAllAIChats();this.textContent=currentLang===\'es\'?\'✓ Chats reiniciados\':\'✓ Chats reset\';this.style.color=\'#4ecdc4\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'🗑 Reiniciar todos los chats AI\':\'🗑 Reset all AI chats\';this.style.color=\'#ff6b6b\';},2000);" style="width:100%;padding:8px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.75em;font-weight:600;cursor:pointer;">🗑 ' + (currentLang==='es'?'Reiniciar todos los chats AI':'Reset all AI chats') + '</button>';
     var activeP = getActivePersona();
-    sectionsHtml += _s('🧠', (currentLang==='es'?'Personalidad AI':'AI Persona') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#c9a840', personaContent);
+    sectionsHtml += _s('🧠', (currentLang==='es'?'Personalidad AI':'AI Persona') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#7ec8ff', personaContent);
+
+    // ── Personalidad AI Sueños (independent) ──
+    var dreamPersonaContent = '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona la personalidad AI que interpreta tus sueños (independiente de la principal):':'Select the AI personality that interprets your dreams (independent from main):') + '</div>';
+    dreamPersonaContent += '<div style="display:flex;flex-direction:column;gap:5px;">';
+    var dreamPId = getDreamPersonaId();
+    _aiPersonas.forEach(function(p) {
+        var isActive = p.id === dreamPId;
+        dreamPersonaContent += '<button onclick="setDreamPersona(\'' + p.id + '\');openPreferencesModal();" style="width:100%;padding:8px 10px;text-align:left;border-radius:8px;cursor:pointer;background:' + (isActive?'linear-gradient(135deg,rgba(138,43,226,0.2),rgba(138,43,226,0.06))':'rgba(255,255,255,0.03)') + ';border:' + (isActive?'2px solid rgba(138,43,226,0.6)':'1px solid rgba(255,255,255,0.1)') + ';color:' + (isActive?'#ce93d8':'rgba(255,255,255,0.5)') + ';"><div style="font-size:0.82em;font-weight:700;">' + p.icon + ' ' + (currentLang==='es'?p.name_es:p.name_en) + (isActive?' ✓':'') + '</div></button>';
+    });
+    dreamPersonaContent += '</div>';
+    var activeDreamP = getDreamPersona();
+    sectionsHtml += _s('🌙', (currentLang==='es'?'AI Sueños':'Dream AI') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeDreamP?activeDreamP.icon+' '+(currentLang==='es'?activeDreamP.name_es:activeDreamP.name_en):'—') + ')</span>', '#7ec8ff', dreamPersonaContent);
 
     // ── Asistente AI / API Key ──
     var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente Moon Sync activo':'Moon Sync Assistant active') + '</div>' +
@@ -21336,7 +21413,7 @@ function openPreferencesModal() {
             '<input type="password" id="prefGeminiKey" value="' + (localStorage.getItem('geminiApiKey')||'') + '" placeholder="AIza..." style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />' +
             '<button onclick="var k=document.getElementById(\'prefGeminiKey\').value.trim();if(k){localStorage.setItem(\'geminiApiKey\',k);}else{localStorage.removeItem(\'geminiApiKey\');}this.textContent=\'✓\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'Guardar\':\'Save\';},1500);" style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;">' + (currentLang==='es'?'Guardar':'Save') + '</button>' +
         '</div>';
-    sectionsHtml += _s('✨', currentLang==='es'?'Asistente AI':'AI Assistant', '#b388ff', aiContent);
+    sectionsHtml += _s('✨', currentLang==='es'?'Asistente AI':'AI Assistant', '#7ec8ff', aiContent);
 
     // ── Google Calendar ──
     var gcalContent = '';
@@ -21369,7 +21446,7 @@ function openPreferencesModal() {
             '</button>' +
             '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (currentLang==='es'?'Se conecta con tu cuenta de Google para ver y crear eventos':'Connects with your Google account to view and create events') + '</div>';
     }
-    sectionsHtml += _s('📅', t('googleCalendar'), '#4285f4', gcalContent);
+    sectionsHtml += _s('📅', t('googleCalendar'), '#7ec8ff', gcalContent);
 
     // ── Tamaño de Celdas ──
     var cs = localStorage.getItem('dayCellSize') || 'medium';
@@ -21385,7 +21462,7 @@ function openPreferencesModal() {
     );
 
     // ── Backup / Restore ──
-    sectionsHtml += _s('💾', currentLang==='es'?'Copia de Seguridad':'Backup & Restore', '#66bb6a',
+    sectionsHtml += _s('💾', currentLang==='es'?'Copia de Seguridad':'Backup & Restore', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.') + '</div>' +
         '<div style="display:flex;gap:8px;">' +
             '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar Backup':'Export Backup') + '</button>' +
@@ -21394,7 +21471,7 @@ function openPreferencesModal() {
     );
 
     // ── Actualización / Update ──
-    sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#ffb347',
+    sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
         '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
         '<div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">🌙 Moon Sync ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
@@ -22965,7 +23042,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v411';
+const APP_VERSION = 'v412';
 var _pendingSW = null;
 
 function showUpdateBanner() {
