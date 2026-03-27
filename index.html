@@ -6315,18 +6315,50 @@ function buildAstroContextHTML(dateKey) {
 function viewDiaryEntry(dateKey) {
     var L = currentLang === 'es';
     var text = getDiaryText(dateKey);
+    // Also try fallback keys in case of storage mismatch
+    if (!text || !text.trim()) {
+        text = localStorage.getItem('diary_' + dateKey) || '';
+    }
+    if (!text || !text.trim()) {
+        var profileId = getActiveProfileId() || 'default';
+        try {
+            var jd = JSON.parse(localStorage.getItem('lunarCalendarJournals_' + profileId) || '{}');
+            if (jd[dateKey]) text = jd[dateKey];
+        } catch(e) {}
+    }
+    if (!text || !text.trim()) {
+        try {
+            var gj = JSON.parse(localStorage.getItem('lunarCalendarJournals') || '{}');
+            if (gj[dateKey]) text = gj[dateKey];
+        } catch(e) {}
+    }
     var bodyEl = document.getElementById('savedReadingsBody');
     var html = '<div style="margin-bottom:15px;">';
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
     html += '<h3 style="color:#9b59b6;margin-bottom:10px;">📝 ' + dateKey + '</h3>';
-    html += '<div style="line-height:1.8;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(155,89,182,0.05);border-radius:10px;padding:16px;white-space:pre-wrap;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
-    // Astro context at the bottom
-    html += buildAstroContextHTML(dateKey);
+    // Show diary metadata if available
+    var pMeta = getDiaryMeta(dateKey, 'personal');
+    if (pMeta) html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' + formatDiaryMeta(pMeta) + '</div>';
+    // User's written text — primary content, no max-height for better mobile scroll
+    if (text && text.trim()) {
+        html += '<div style="line-height:1.8;font-size:0.95em;color:rgba(255,255,255,0.9);background:rgba(155,89,182,0.06);border:1px solid rgba(155,89,182,0.15);border-radius:10px;padding:16px;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    } else {
+        html += '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.3);font-style:italic;font-size:0.9em;">' + (L ? 'Sin texto escrito para este día' : 'No text written for this day') + '</div>';
+    }
+    // Action buttons right after the text
     html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;">';
     html += '<button onclick="editDiaryEntry(\'' + dateKey.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.3);border-radius:8px;color:#4ecdc4;font-size:0.9em;cursor:pointer;">✏️ ' + (L ? 'Editar' : 'Edit') + '</button>';
     html += '<button onclick="shareDiaryEntry(\'' + dateKey.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.9em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>';
     html += '</div>';
+    // Astro context at the bottom — collapsible so it doesn't dominate on mobile
+    var astroHtml = buildAstroContextHTML(dateKey);
+    if (astroHtml) {
+        html += '<details style="margin-top:16px;">';
+        html += '<summary style="cursor:pointer;color:rgba(201,168,64,0.7);font-size:0.85em;font-weight:600;padding:8px 0;user-select:none;">🌌 ' + (L ? 'Ver contexto astronómico' : 'View astronomical context') + '</summary>';
+        html += astroHtml;
+        html += '</details>';
+    }
     bodyEl.innerHTML = html;
 }
 function editDiaryEntry(dateKey) {
@@ -6402,14 +6434,20 @@ function viewFullReading(id) {
     html += '<h3 style="color:#c9a840;margin-bottom:5px;">' + r.title + '</h3>';
     var d = new Date(r.date);
     html += '<div style="color:rgba(255,255,255,0.35);font-size:0.8em;margin-bottom:15px;">' + d.toLocaleDateString(L?'es':'en',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>';
-    html += '<div style="line-height:1.7;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">' + r.html + '</div>';
-    // Astro context from reading date
-    var readingDateKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    html += buildAstroContextHTML(readingDateKey);
+    html += '<div style="line-height:1.7;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;word-wrap:break-word;overflow-wrap:break-word;">' + r.html + '</div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;">';
     html += '<button onclick="shareReadingById(\'' + r.id + '\')" style="padding:8px 20px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.9em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>';
     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal();}" style="padding:8px 20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.9em;cursor:pointer;">🗑️ ' + (L ? 'Eliminar' : 'Delete') + '</button>';
     html += '</div>';
+    // Astro context from reading date — collapsible
+    var readingDateKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var _readingAstro = buildAstroContextHTML(readingDateKey);
+    if (_readingAstro) {
+        html += '<details style="margin-top:16px;">';
+        html += '<summary style="cursor:pointer;color:rgba(201,168,64,0.7);font-size:0.85em;font-weight:600;padding:8px 0;user-select:none;">🌌 ' + (L ? 'Ver contexto astronómico' : 'View astronomical context') + '</summary>';
+        html += _readingAstro;
+        html += '</details>';
+    }
     bodyEl.innerHTML = html;
 }
 function exportAllReadings() {
@@ -8114,6 +8152,29 @@ function _renderCompass() {
     info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Pone' : 'Set') + '</div>';
     info += '<div style="font-weight:700;color:#7ec8ff;font-size:0.95em;">' + (riseSet.set ? riseSet.set.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
     info += '</div>';
+
+    // ===== LUNAR DAY & WEEK =====
+    var _compassLunarDay = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(now) : 0;
+    var _compassLunarWeek = _compassLunarDay > 0 ? Math.ceil(_compassLunarDay / 7) : 0;
+    if (_compassLunarDay > 0) {
+        // Lunar phase name based on week
+        var _lunarPhaseName = '';
+        if (_compassLunarWeek === 1) _lunarPhaseName = L ? 'Luna Nueva → Cuarto Creciente' : 'New Moon → First Quarter';
+        else if (_compassLunarWeek === 2) _lunarPhaseName = L ? 'Cuarto Creciente → Luna Llena' : 'First Quarter → Full Moon';
+        else if (_compassLunarWeek === 3) _lunarPhaseName = L ? 'Luna Llena → Cuarto Menguante' : 'Full Moon → Last Quarter';
+        else _lunarPhaseName = L ? 'Cuarto Menguante → Luna Nueva' : 'Last Quarter → New Moon';
+
+        info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
+        info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">📅 ' + (L ? 'Día Lunar' : 'Lunar Day') + '</div>';
+        info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarDay + ' / 29</div></div>';
+        info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🔄 ' + (L ? 'Semana' : 'Week') + '</div>';
+        info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarWeek + ' / 4</div></div>';
+        info += '</div>';
+        // Phase name below
+        info += '<div style="text-align:center;margin-top:4px;font-size:0.72em;color:rgba(224,176,255,0.55);font-style:italic;">' + _lunarPhaseName + '</div>';
+    }
 
     // ===== DATA GRID =====
     var compassQuality = _compassHasAbsolute ? (L ? '● Precisa' : '● Accurate') : (L ? '○ Sin norte' : '○ No north');
@@ -24262,7 +24323,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v432';
+const APP_VERSION = 'v434';
 var _pendingSW = null;
 
 function showUpdateBanner() {
