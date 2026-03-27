@@ -1187,7 +1187,7 @@
     <div id="savedReadingsModal" class="modal" onclick="if(event.target===this)closeSavedReadingsModal()">
         <div class="modal-content" style="max-width: 750px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2 id="savedReadingsTitle">📚 Lecturas Guardadas</h2>
+                <h2 id="savedReadingsTitle">📚 Interpretaciones y Diarios</h2>
                 <span class="close" onclick="closeSavedReadingsModal()">&times;</span>
             </div>
             <div id="savedReadingsBody" style="padding: 20px;">
@@ -5934,7 +5934,7 @@ function openSavedReadingsModal(tab) {
     var bodyEl = document.getElementById('savedReadingsBody');
     var L = currentLang === 'es';
     var activeTab = tab || 'lecturas';
-    titleEl.textContent = L ? '📚 Lecturas y Diario' : '📚 Readings & Diary';
+    titleEl.textContent = L ? '📚 Interpretaciones y Diarios' : '📚 Interpretations & Diaries';
 
     // Gather diary entries (profile-specific)
     var diaryEntries = [];
@@ -5970,8 +5970,11 @@ function openSavedReadingsModal(tab) {
     var lecturasActive = activeTab === 'lecturas';
     var diarioActive = activeTab === 'diario';
     html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);">';
-    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Lecturas' : 'Readings') + ' (' + readings.length + ')</button>';
-    html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (diarioActive ? '#9b59b6' : 'transparent') + ';background:' + (diarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (diarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diario' : 'Diary') + ' (' + diaryEntries.length + ')</button>';
+    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Interpretaciones' : 'Interpretations') + ' (' + readings.length + ')</button>';
+    var diarioPersonalActive = activeTab === 'diario' || activeTab === 'diario-personal';
+    var diarioSuenosActive = activeTab === 'diario-suenos';
+    var anyDiarioActive = diarioPersonalActive || diarioSuenosActive;
+    html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (anyDiarioActive ? '#9b59b6' : 'transparent') + ';background:' + (anyDiarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (anyDiarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diarios' : 'Diaries') + '</button>';
     html += '</div>';
 
     if (lecturasActive) {
@@ -6002,31 +6005,69 @@ function openSavedReadingsModal(tab) {
             });
         }
     } else {
-        // DIARY TAB
-        if (diaryEntries.length === 0) {
-            html += '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);">'
-                + '<div style="font-size:3em;margin-bottom:15px;">📝</div>'
-                + '<p>' + (L ? 'Sin entradas de diario aún' : 'No diary entries yet') + '</p></div>';
+        // DIARIOS TAB — with Personal / Sueños sub-tabs
+        // Gather dream entries
+        var dreamEntries = [];
+        var dreamsData = {};
+        try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
+        Object.keys(dreamsData).forEach(function(key) {
+            if (dreamsData[key] && dreamsData[key].trim()) dreamEntries.push({ date: key, text: dreamsData[key] });
+        });
+        dreamEntries.sort(function(a, b) { return b.date.localeCompare(a.date); });
+
+        // Sub-tabs: Personal / Sueños
+        html += '<div style="display:flex;gap:0;margin-bottom:12px;">';
+        html += '<button onclick="openSavedReadingsModal(\'diario-personal\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioPersonalActive ? '#9b59b6' : 'rgba(155,89,182,0.2)') + ';background:' + (diarioPersonalActive ? 'rgba(155,89,182,0.12)' : 'transparent') + ';color:' + (diarioPersonalActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">📓 ' + (L ? 'Personal' : 'Personal') + ' (' + diaryEntries.length + ')</button>';
+        html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioSuenosActive ? '#5dade2' : 'rgba(93,173,226,0.2)') + ';background:' + (diarioSuenosActive ? 'rgba(93,173,226,0.12)' : 'transparent') + ';color:' + (diarioSuenosActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">🌙 ' + (L ? 'Sueños' : 'Dreams') + ' (' + dreamEntries.length + ')</button>';
+        html += '</div>';
+
+        if (diarioPersonalActive) {
+            // Personal diary entries
+            if (diaryEntries.length === 0) {
+                html += '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);">'
+                    + '<div style="font-size:3em;margin-bottom:15px;">📓</div>'
+                    + '<p>' + (L ? 'Sin entradas de diario personal aún' : 'No personal diary entries yet') + '</p></div>';
+            } else {
+                html += '<div style="margin-bottom:12px;display:flex;justify-content:flex-end;">';
+                html += '<button onclick="exportAllDiaryEntries()" style="padding:6px 14px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#9b59b6;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar Todo' : '📥 Export All') + '</button>';
+                html += '</div>';
+                diaryEntries.forEach(function(entry) {
+                    var safeDate = entry.date.replace(/'/g, "\\'");
+                    var preview = entry.text.substring(0, 120).replace(/\n/g, ' ') + (entry.text.length > 120 ? '...' : '');
+                    html += '<div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                    html += '<span style="color:#9b59b6;font-weight:700;font-size:0.9em;">📓 ' + entry.date + '</span>';
+                    html += '<div style="display:flex;gap:4px;">';
+                    html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Compartir':'Share') + '">📤</button>';
+                    html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
+                    html += '</div></div>';
+                    html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
+                    html += '<div style="display:flex;gap:6px;">';
+                    html += '<button onclick="viewDiaryEntry(\'' + safeDate + '\')" style="padding:5px 14px;background:rgba(155,89,182,0.12);border:1px solid rgba(155,89,182,0.25);border-radius:6px;color:#9b59b6;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer' : 'Read') + '</button>';
+                    html += '<button onclick="editDiaryEntry(\'' + safeDate + '\')" style="padding:5px 14px;background:rgba(78,205,196,0.12);border:1px solid rgba(78,205,196,0.25);border-radius:6px;color:#4ecdc4;font-size:0.8em;cursor:pointer;">' + (L ? 'Editar' : 'Edit') + '</button>';
+                    html += '</div></div>';
+                });
+            }
         } else {
-            html += '<div style="margin-bottom:12px;display:flex;justify-content:flex-end;">';
-            html += '<button onclick="exportAllDiaryEntries()" style="padding:6px 14px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#9b59b6;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar Todo' : '📥 Export All') + '</button>';
-            html += '</div>';
-            diaryEntries.forEach(function(entry) {
-                var safeDate = entry.date.replace(/'/g, "\\'");
-                var preview = entry.text.substring(0, 120).replace(/\n/g, ' ') + (entry.text.length > 120 ? '...' : '');
-                html += '<div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                html += '<span style="color:#9b59b6;font-weight:700;font-size:0.9em;">📝 ' + entry.date + '</span>';
-                html += '<div style="display:flex;gap:4px;">';
-                html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Compartir':'Share') + '">📤</button>';
-                html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
-                html += '</div></div>';
-                html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
-                html += '<div style="display:flex;gap:6px;">';
-                html += '<button onclick="viewDiaryEntry(\'' + safeDate + '\')" style="padding:5px 14px;background:rgba(155,89,182,0.12);border:1px solid rgba(155,89,182,0.25);border-radius:6px;color:#9b59b6;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer' : 'Read') + '</button>';
-                html += '<button onclick="editDiaryEntry(\'' + safeDate + '\')" style="padding:5px 14px;background:rgba(78,205,196,0.12);border:1px solid rgba(78,205,196,0.25);border-radius:6px;color:#4ecdc4;font-size:0.8em;cursor:pointer;">' + (L ? 'Editar' : 'Edit') + '</button>';
-                html += '</div></div>';
-            });
+            // Dream diary entries
+            if (dreamEntries.length === 0) {
+                html += '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);">'
+                    + '<div style="font-size:3em;margin-bottom:15px;">🌙</div>'
+                    + '<p>' + (L ? 'Sin entradas de sueños aún' : 'No dream entries yet') + '</p></div>';
+            } else {
+                dreamEntries.forEach(function(entry) {
+                    var safeDate = entry.date.replace(/'/g, "\\'");
+                    var preview = entry.text.substring(0, 120).replace(/\n/g, ' ') + (entry.text.length > 120 ? '...' : '');
+                    html += '<div style="background:rgba(93,173,226,0.08);border:1px solid rgba(93,173,226,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                    html += '<span style="color:#5dade2;font-weight:700;font-size:0.9em;">🌙 ' + entry.date + '</span>';
+                    html += '<div style="display:flex;gap:4px;">';
+                    html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDreamEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
+                    html += '</div></div>';
+                    html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;">' + preview + '</div>';
+                    html += '</div>';
+                });
+            }
         }
     }
 
@@ -6064,6 +6105,13 @@ function deleteDiaryEntry(dateKey) {
     delete journalsData[dateKey];
     localStorage.setItem('lunarCalendarJournals_' + profileId, JSON.stringify(journalsData));
     localStorage.removeItem('diary_' + dateKey);
+}
+function deleteDreamEntry(dateKey) {
+    var profileId = getActiveProfileId() || 'default';
+    var dreamsData = {};
+    try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
+    delete dreamsData[dateKey];
+    localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(dreamsData));
 }
 function buildAstroContextHTML(dateKey) {
     var L = currentLang === 'es';
@@ -24048,7 +24096,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v429';
+const APP_VERSION = 'v430';
 var _pendingSW = null;
 
 function showUpdateBanner() {
