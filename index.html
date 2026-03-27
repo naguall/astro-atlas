@@ -11272,17 +11272,21 @@ function updateCurrentDayInfoForMode(mode) {
                     }
                 }
                 signMoons.sort(function(a, b) { return a.date - b.date; });
-                var moonsHTML = '';
+                // Sign info (top, big) — separate from moons (bottom)
+                var signTopHTML = '<div style="font-size:1.1em;color:'+sg.color+';font-weight:900;line-height:1.1;">'+sg.symbol+' '+sg.name+'</div><div style="font-size:0.55em;color:'+sg.color+';opacity:0.7;line-height:1.2;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+' · '+signDays+(currentLang==='es'?' días':' days')+'</div>';
+                var moonsBottomHTML = '';
                 if (signMoons.length > 0) {
-                    moonsHTML = '<div style="font-size:0.45em;color:rgba(255,255,255,0.7);line-height:1.3;margin-top:2px;">';
+                    moonsBottomHTML = '<div style="font-size:0.45em;color:rgba(255,255,255,0.7);line-height:1.3;margin-top:auto;padding-top:2px;border-top:1px solid rgba(255,255,255,0.08);">';
                     for (var mi = 0; mi < signMoons.length; mi++) {
                         var m = signMoons[mi];
                         var moonColor = m.type === 'full' ? '#ffd54f' : '#aaa';
-                        moonsHTML += '<div style="color:' + moonColor + ';">' + (m.type === 'full' ? '\uD83C\uDF15' : '\uD83C\uDF11') + ' ' + m.label + ' ' + m.date.getDate() + ' ' + sm[m.date.getMonth()] + '</div>';
+                        moonsBottomHTML += '<div style="color:' + moonColor + ';">' + (m.type === 'full' ? '\uD83C\uDF15' : '\uD83C\uDF11') + ' ' + m.label + ' ' + m.date.getDate() + ' ' + sm[m.date.getMonth()] + '</div>';
                     }
-                    moonsHTML += '</div>';
+                    moonsBottomHTML += '</div>';
                 }
-                hoyBottomHTML = '<div style="font-size:0.75em;color:'+sg.color+';font-weight:800;line-height:1.2;">'+sg.name+'</div><div style="font-size:0.50em;color:'+sg.color+';opacity:0.7;line-height:1.2;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+' · '+signDays+(currentLang==='es'?' días':' days')+'</div>' + moonsHTML;
+                hoyBottomHTML = signTopHTML;
+                // Store moons separately for bottom placement
+                window._solarMoonsHTML = moonsBottomHTML;
             }
         }
 
@@ -11317,10 +11321,11 @@ function updateCurrentDayInfoForMode(mode) {
                     ` : `
                     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">
                         ${hoyBottomHTML}
-                        <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;margin-top:2px;">
+                        <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;margin-top:3px;">
                             <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
                         </div>
                         <div style="font-size: 0.47em; color: #8899cc; opacity: 0.6; line-height:1.2;">${displayInfo}</div>
+                        ${window._solarMoonsHTML || ''}
                     </div>
                     `}
                 </div>
@@ -21072,7 +21077,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v380';
+const APP_VERSION = 'v381';
 var _pendingSW = null;
 
 function showUpdateBanner() {
