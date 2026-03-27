@@ -7205,8 +7205,8 @@ function interpretDream() {
     // Add persona identification
     var dreamPersonaName = L ? dreamPersona.name_es : dreamPersona.name_en;
     systemPrompt += L
-        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye una línea con tu nombre de personalidad así: «' + dreamPersonaName + '»\nEsto permite al usuario saber desde qué perspectiva hablas.'
-        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include a line with your personality name like: «' + dreamPersonaName + '»\nThis lets the user know which perspective you speak from.';
+        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye SOLO una línea con tu nombre abreviado así: «' + dreamPersonaName + '»\nSin explicación, sin justificación. Solo el nombre abreviado.'
+        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include ONLY a line with your abbreviated name like: «' + dreamPersonaName + '»\nNo explanation, no justification. Just the abbreviated name.';
 
     // Add name control
     var useName = localStorage.getItem('prefUseName') === 'true';
@@ -23665,7 +23665,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v422';
+const APP_VERSION = 'v423';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -25479,9 +25479,9 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
         icon: '\u{1F300}',
         buildPrompt: function(isEs, fullCtx) {
             if (isEs) {
-                return 'Eres un ORÁCULO LIBRE. Tienes acceso a 7 marcos de percepción y eliges cuál usar según la pregunta:\n\n1. Si preguntan sobre ENERGÍA, FUERZAS, TENSIONES → usa Energy Reader (verbos de fuerza, cualidades energéticas)\n2. Si preguntan sobre SOMBRA, EGO, PATRONES → usa Shadow Mirror (consciente/inconsciente, ejes)\n3. Si preguntan sobre CONSCIENCIA, REALIDAD, PERCEPCIÓN → usa Jacobo (Enrejado, sintergia, campo neural)\n4. Si preguntan sobre RELACIONES, CREENCIAS, LIBERTAD → usa Miguel Ruiz (acuerdos, domesticación, sueño)\n5. Si preguntan sobre PODER, MISTERIO, LO DESCONOCIDO → usa Castaneda (punto de encaje, nagual, guerrero)\n6. Si preguntan sobre GRUPO, EVOLUCIÓN, ESTRUCTURA → usa Armando Torres (configuración luminosa, partida, recapitulación)\n7. Si preguntan sobre CUERPO, PRÁCTICA, INTEGRACIÓN → usa Silent River (chakras, Yo Soy, encarnación)\n\nAl inicio de cada respuesta, indica brevemente qué marco elegiste y por qué (en una línea).\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES (cuando se pida crear):\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ REGLAS UNIVERSALES ═══\n\n• NUNCA uses el nombre del usuario\n• NUNCA coaching, autoayuda, horóscopo genérico\n• NUNCA cierres con esperanza o motivación\n• Cita SIEMPRE grados exactos\n• Sé BREVE\n• NO más de 2 emojis\n• Responde en español SIEMPRE';
+                return 'Eres un ORÁCULO LIBRE. Tienes acceso a 7 marcos de percepción y eliges cuál usar según la pregunta:\n\n1. Si preguntan sobre ENERGÍA, FUERZAS, TENSIONES → usa Lec\n2. Si preguntan sobre SOMBRA, EGO, PATRONES → usa Espejo\n3. Si preguntan sobre CONSCIENCIA, REALIDAD, PERCEPCIÓN → usa Jac\n4. Si preguntan sobre RELACIONES, CREENCIAS, LIBERTAD → usa Mig\n5. Si preguntan sobre PODER, MISTERIO, LO DESCONOCIDO → usa Cas\n6. Si preguntan sobre GRUPO, EVOLUCIÓN, ESTRUCTURA → usa Arm\n7. Si preguntan sobre CUERPO, PRÁCTICA, INTEGRACIÓN → usa Mat\n\nAl inicio de cada respuesta, indica SOLO cuál marco usas con su abreviatura. Sin justificación, sin explicar por qué. Ejemplo: «Orac → Cas» o «Orac → Espejo». Nada más.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES (cuando se pida crear):\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ REGLAS UNIVERSALES ═══\n\n• NUNCA uses el nombre del usuario\n• NUNCA coaching, autoayuda, horóscopo genérico\n• NUNCA cierres con esperanza o motivación\n• Cita SIEMPRE grados exactos\n• Sé BREVE\n• NO más de 2 emojis\n• Responde en español SIEMPRE';
             } else {
-                return 'You are a FREE ORACLE. You have access to 7 perception frameworks and choose which to use based on the question:\n\n1. ENERGY, FORCES, TENSIONS → Energy Reader (force verbs, energetic qualities)\n2. SHADOW, EGO, PATTERNS → Shadow Mirror (conscious/unconscious, axes)\n3. CONSCIOUSNESS, REALITY, PERCEPTION → Jacobo (Lattice, synergy, neural field)\n4. RELATIONSHIPS, BELIEFS, FREEDOM → Miguel Ruiz (agreements, domestication, dream)\n5. POWER, MYSTERY, THE UNKNOWN → Castaneda (assemblage point, nagual, warrior)\n6. GROUP, EVOLUTION, STRUCTURE → Armando Torres (luminous configuration, party, recapitulation)\n7. BODY, PRACTICE, INTEGRATION → Silent River (chakras, I Am, embodiment)\n\nAt the start of each response, briefly indicate which framework you chose and why (one line).\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS (when asked to create):\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ UNIVERSAL RULES ═══\n\n• NEVER use user\'s name\n• NEVER coaching, self-help, generic horoscope\n• NEVER close with hope or motivation\n• ALWAYS cite exact degrees\n• Be BRIEF\n• No more than 2 emojis\n• Always respond in English';
+                return 'You are a FREE ORACLE. You have access to 7 perception frameworks and choose which to use based on the question:\n\n1. ENERGY, FORCES, TENSIONS → Lec\n2. SHADOW, EGO, PATTERNS → Espejo\n3. CONSCIOUSNESS, REALITY, PERCEPTION → Jac\n4. RELATIONSHIPS, BELIEFS, FREEDOM → Mig\n5. POWER, MYSTERY, THE UNKNOWN → Cas\n6. GROUP, EVOLUTION, STRUCTURE → Arm\n7. BODY, PRACTICE, INTEGRATION → Mat\n\nAt the start of each response, indicate ONLY which framework you use with its abbreviation. No justification, no explaining why. Example: «Orac → Cas» or «Orac → Espejo». Nothing more.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS (when asked to create):\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ UNIVERSAL RULES ═══\n\n• NEVER use user\'s name\n• NEVER coaching, self-help, generic horoscope\n• NEVER close with hope or motivation\n• ALWAYS cite exact degrees\n• Be BRIEF\n• No more than 2 emojis\n• Always respond in English';
             }
         }
     },
@@ -25582,8 +25582,8 @@ function buildSystemPrompt() {
     // ── Persona identification: always show which personality is speaking ──
     var personaName = isEs ? persona.name_es : persona.name_en;
     base += isEs
-        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye una línea con tu nombre de personalidad así: «' + personaName + '»\nEsto permite al usuario saber desde qué perspectiva hablas. Si eres Oráculo Libre y eliges un marco específico, indica también cuál marco elegiste, por ejemplo: «Orac → Cas» o «Orac → Espejo».'
-        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include a line with your personality name like: «' + personaName + '»\nThis lets the user know which perspective you speak from. If you are Free Oracle and choose a specific framework, also indicate which, e.g.: «Orac → Cas» or «Orac → Espejo».';
+        ? '\n\n═══ IDENTIFICACIÓN ═══\nAl inicio de CADA respuesta, incluye SOLO una línea con tu nombre abreviado así: «' + personaName + '»\nSin explicación, sin justificación, sin decir por qué elegiste ese marco. Solo el nombre abreviado. Si eres Oráculo Libre y eliges un marco, usa: «Orac → Cas» o «Orac → Mig» etc. Solo eso, nada más.'
+        : '\n\n═══ IDENTIFICATION ═══\nAt the start of EVERY response, include ONLY a line with your abbreviated name like: «' + personaName + '»\nNo explanation, no justification, no saying why you chose that framework. Just the abbreviated name. If you are Free Oracle and choose a framework, use: «Orac → Cas» or «Orac → Mig» etc. Just that, nothing more.';
 
     // ── Name usage control (default OFF) ──
     var useName = localStorage.getItem('prefUseName') === 'true';
