@@ -21166,319 +21166,141 @@ function openPreferencesModal() {
     const notifEnabled = localStorage.getItem('notificationsEnabled') !== 'false' && ('Notification' in window) && Notification.permission === 'granted';
     const notifPermission = ('Notification' in window) ? Notification.permission : 'unsupported';
 
-    body.innerHTML = `
-        <!-- Idioma / Language -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ${currentLang==='es'?'Idioma':'Language'}
-            </div>
-            <div style="display:flex;gap:8px;">
-                <button onclick="changeLanguage('es'); openPreferencesModal();"
-                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
-                    background:${currentLang==='es'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
-                    border:${currentLang==='es'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
-                    color:${currentLang==='es'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                    🇪🇸 Español
-                </button>
-                <button onclick="changeLanguage('en'); openPreferencesModal();"
-                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
-                    background:${currentLang==='en'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
-                    border:${currentLang==='en'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
-                    color:${currentLang==='en'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                    🇺🇸 English
-                </button>
-            </div>
-        </div>
+    // Helper for accordion sections
+    var _s = function(icon, title, color, content, open) {
+        return '<details style="margin-bottom:8px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;"' + (open?' open':'') + '>' +
+            '<summary style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:rgba(255,255,255,0.02);list-style:none;user-select:none;" onclick="this.parentElement.style.borderColor=this.parentElement.open?\'rgba(255,255,255,0.08)\':\''+color+'33\'">' +
+            '<span style="font-size:1.1em;">' + icon + '</span>' +
+            '<span style="flex:1;font-size:0.85em;font-weight:700;color:'+color+';letter-spacing:0.5px;">' + title + '</span>' +
+            '<span style="color:rgba(255,255,255,0.25);font-size:0.7em;transition:transform 0.2s;">▼</span>' +
+            '</summary>' +
+            '<div style="padding:12px 14px;border-top:1px solid rgba(255,255,255,0.06);">' + content + '</div></details>';
+    };
 
-        <!-- Notificaciones -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ${currentLang==='es'?'Notificaciones':'Notifications'}
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">
-                <span style="font-size:1.3em;">${notifEnabled?'🔔':'🔕'}</span>
-                <div style="flex:1;">
-                    <div style="font-size:0.88em;font-weight:600;color:${notifEnabled?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                        ${notifEnabled?(currentLang==='es'?'Activadas':'Enabled'):(currentLang==='es'?'Desactivadas':'Disabled')}
-                    </div>
-                    <div style="font-size:0.72em;color:rgba(255,255,255,0.4);">
-                        ${notifPermission==='denied'?(currentLang==='es'?'Bloqueadas en el navegador':'Blocked in browser'):
-                          notifPermission==='unsupported'?(currentLang==='es'?'No soportadas':'Not supported'):
-                          (currentLang==='es'?'Múltiples categorías disponibles':'Multiple categories available')}
-                    </div>
-                </div>
-                <label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;">
-                    <input type="checkbox" ${notifEnabled?'checked':''} onchange="handleNotifToggle(this.checked)"
-                        style="opacity:0;width:0;height:0;">
-                    <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
-                        background:${notifEnabled?'rgba(78,205,196,0.5)':'rgba(255,255,255,0.15)'};
-                        border-radius:26px;transition:0.3s;">
-                        <span style="position:absolute;content:'';height:20px;width:20px;left:${notifEnabled?'24px':'3px'};bottom:3px;
-                            background:white;border-radius:50%;transition:0.3s;display:block;"></span>
-                    </span>
-                </label>
-            </div>
-            ${notifPermission==='denied'?`
-            <div style="margin-top:8px;padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;font-size:0.72em;color:#ff6b6b;margin-bottom:10px;">
-                ${currentLang==='es'?
-                '⚠️ Las notificaciones están bloqueadas en tu navegador. Haz clic en el candado 🔒 de la barra de direcciones → Configuración del sitio → Notificaciones → Permitir':
-                '⚠️ Notifications are blocked in your browser. Click the lock 🔒 in the address bar → Site settings → Notifications → Allow'}
-            </div>`:''}
-            <div style="font-size:0.75em;color:rgba(255,255,255,0.5);margin-bottom:8px;font-weight:600;">
-                ${currentLang==='es'?'Categorías:':'Categories:'}
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifLunar" checked onchange="handleNotifCategoryToggle('lunarPhases',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifLunar" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Fases Lunares':'Lunar Phases'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifEclipse" checked onchange="handleNotifCategoryToggle('eclipses',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifEclipse" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Eclipses':'Eclipses'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifRetro" checked onchange="handleNotifCategoryToggle('retrogrades',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifRetro" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Retrogrades':'Retrogrades'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifSigns" checked onchange="handleNotifCategoryToggle('signChanges',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifSigns" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Cambios de Signo':'Sign Changes'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifAspects" checked onchange="handleNotifCategoryToggle('interPlanetaryAspects',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifAspects" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Aspectos':'Aspects'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifAstro" checked onchange="handleNotifCategoryToggle('astronomicalEvents',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifAstro" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Eventos Astro':'Astro Events'}
-                    </label>
-                </div>
-                <div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" id="notifUser" checked onchange="handleNotifCategoryToggle('userEvents',this.checked); openPreferencesModal();" style="cursor:pointer;">
-                    <label for="notifUser" style="cursor:pointer;font-size:0.75em;color:#e8eaf6;">
-                        ${currentLang==='es'?'Mis Eventos':'My Events'}
-                    </label>
-                </div>
-            </div>
-        </div>
-        <!-- Mis Mensajes Personalizados -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#66CCFF;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ${currentLang==='es'?'Mis Mensajes':'My Messages'}
-            </div>
-            <div style="padding:10px 12px;background:rgba(102,204,255,0.04);border:1px solid rgba(102,204,255,0.2);border-radius:8px;">
-                <div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">
-                    ${currentLang==='es'?'Programa recordatorios personales que se envian como notificacion.':'Schedule personal reminders sent as notifications.'}
-                </div>
-                <button onclick="closePreferencesModal(); setTimeout(()=>openMyMessagesEditor(),200);"
-                    style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">
-                    ${currentLang==='es'?'Abrir editor de mensajes':'Open message editor'}
-                </button>
-                <div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">
-                    ${(function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count>0?(currentLang==='es'?count+' mensaje'+(count>1?'s':'')+' programado'+(count>1?'s':''):count+' message'+(count>1?'s':'')+' scheduled'):(currentLang==='es'?'Sin mensajes programados':'No messages scheduled'); })()}
-                </div>
-            </div>
-        </div>
-        <!-- Ubicación -->
-        <div style="margin-bottom:16px;">
-            <button onclick="closePreferencesModal(); setTimeout(()=>openLocationSelector(),200);"
-                style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                📍 ${currentLang==='es'?'Cambiar ubicación':'Change location'} <span style="font-size:0.8em;opacity:0.6;">(${ASTRO_USER_NAME || 'San José, Costa Rica'})</span>
-            </button>
-        </div>
+    var sectionsHtml = '';
 
-        <!-- AI Persona Selector -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#c9a840;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                🧠 ${currentLang==='es'?'Personalidad AI':'AI Persona'}
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-                ${_aiPersonas.map(function(p) {
-                    var isActive = p.id === _activePersonaId;
-                    return '<button onclick="setActivePersona(\'' + p.id + '\'); openPreferencesModal();" style="width:100%;padding:10px 12px;text-align:left;border-radius:8px;cursor:pointer;' +
-                        'background:' + (isActive ? 'linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.06))' : 'rgba(255,255,255,0.03)') + ';' +
-                        'border:' + (isActive ? '2px solid rgba(201,168,64,0.6)' : '1px solid rgba(255,255,255,0.1)') + ';' +
-                        'color:' + (isActive ? '#c9a840' : 'rgba(255,255,255,0.5)') + ';">' +
-                        '<div style="font-size:0.85em;font-weight:700;">' + p.icon + ' ' + (currentLang==='es' ? p.name_es : p.name_en) + (isActive ? ' ✓' : '') + '</div>' +
-                        '<div style="font-size:0.68em;margin-top:2px;opacity:0.7;">' + (currentLang==='es' ? p.desc_es : p.desc_en) + '</div>' +
-                    '</button>';
-                }).join('')}
-            </div>
-            <button onclick="resetAllAIChats(); this.textContent=currentLang==='es'?'✓ Chats reiniciados':'✓ Chats reset'; this.style.color='#4ecdc4'; this.style.borderColor='rgba(78,205,196,0.4)'; setTimeout(()=>{this.textContent=currentLang==='es'?'🗑 Reiniciar todos los chats AI':'🗑 Reset all AI chats'; this.style.color='#ff6b6b'; this.style.borderColor='rgba(255,107,107,0.3)';},2000);"
-                style="width:100%;padding:10px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.78em;font-weight:600;cursor:pointer;">
-                🗑 ${currentLang==='es'?'Reiniciar todos los chats AI':'Reset all AI chats'}
-            </button>
-        </div>
+    // ── Idioma ──
+    sectionsHtml += _s('🌐', currentLang==='es'?'Idioma':'Language', '#7ec8ff',
+        '<div style="display:flex;gap:8px;">' +
+            '<button onclick="changeLanguage(\'es\'); openPreferencesModal();" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;background:' + (currentLang==='es'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)') + ';border:' + (currentLang==='es'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)') + ';color:' + (currentLang==='es'?'#4ecdc4':'rgba(255,255,255,0.5)') + ';">🇪🇸 Español</button>' +
+            '<button onclick="changeLanguage(\'en\'); openPreferencesModal();" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;background:' + (currentLang==='en'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)') + ';border:' + (currentLang==='en'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)') + ';color:' + (currentLang==='en'?'#4ecdc4':'rgba(255,255,255,0.5)') + ';">🇺🇸 English</button>' +
+        '</div>'
+    );
 
-        <!-- AI Assistant -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#b388ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ✨ ${currentLang==='es'?'Asistente Moon Sync':'Moon Sync Assistant'}
-            </div>
-            <div style="padding:10px 12px;background:rgba(179,136,255,0.04);border:1px solid rgba(179,136,255,0.2);border-radius:8px;">
-                <div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ${currentLang==='es'?'Asistente Moon Sync activo (integrado)':'Moon Sync Assistant active (built-in)'}</div>
-                <div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>
-                ${localStorage.getItem('geminiApiKey')
-                    ? '<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>'
-                    : ''
-                }
-                <details style="margin-top:6px;">
-                    <summary style="cursor:pointer;font-size:0.72em;color:rgba(255,255,255,0.4);outline:none;">
-                        ${currentLang==='es'?'▸ API key personal (opcional)':'▸ Personal API key (optional)'}
-                    </summary>
-                    <div style="margin-top:8px;">
-                        <div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">
-                            ${currentLang==='es'?'Si tienes tu propia key de Google Gemini, puedes usarla aquí:':'If you have your own Google Gemini key, you can use it here:'}
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:center;">
-                            <input type="password" id="prefGeminiKey" value="${localStorage.getItem('geminiApiKey') || ''}" placeholder="AIza..."
-                                style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />
-                            <button onclick="var k=document.getElementById('prefGeminiKey').value.trim();if(k){localStorage.setItem('geminiApiKey',k);}else{localStorage.removeItem('geminiApiKey');}this.textContent='✓';setTimeout(()=>{this.textContent=currentLang==='es'?'Guardado':'Saved';},1500);"
-                                style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;white-space:nowrap;">
-                                ${currentLang==='es'?'Guardar':'Save'}
-                            </button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        </div>
+    // ── Notificaciones ──
+    var notifContent = '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">' +
+        '<span style="font-size:1.3em;">' + (notifEnabled?'🔔':'🔕') + '</span>' +
+        '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;color:' + (notifEnabled?'#4ecdc4':'rgba(255,255,255,0.5)') + ';">' + (notifEnabled?(currentLang==='es'?'Activadas':'Enabled'):(currentLang==='es'?'Desactivadas':'Disabled')) + '</div></div>' +
+        '<label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (notifEnabled?'checked':'') + ' onchange="handleNotifToggle(this.checked)" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (notifEnabled?'rgba(78,205,196,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (notifEnabled?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label></div>';
+    if (notifPermission==='denied') {
+        notifContent += '<div style="padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;font-size:0.72em;color:#ff6b6b;margin-bottom:10px;">' + (currentLang==='es'?'⚠️ Bloqueadas en el navegador. Activa en Configuración del sitio.':'⚠️ Blocked in browser. Enable in Site settings.') + '</div>';
+    }
+    var cats = [['notifLunar','lunarPhases',currentLang==='es'?'Fases Lunares':'Lunar Phases'],['notifEclipse','eclipses','Eclipses'],['notifRetro','retrogrades','Retrogrades'],['notifSigns','signChanges',currentLang==='es'?'Cambios Signo':'Sign Changes'],['notifAspects','interPlanetaryAspects',currentLang==='es'?'Aspectos':'Aspects'],['notifAstro','astronomicalEvents',currentLang==='es'?'Eventos Astro':'Astro Events'],['notifUser','userEvents',currentLang==='es'?'Mis Eventos':'My Events']];
+    notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
+    cats.forEach(function(c) {
+        notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="' + c[0] + '" checked onchange="handleNotifCategoryToggle(\'' + c[1] + '\',this.checked);openPreferencesModal();" style="cursor:pointer;"><label for="' + c[0] + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;">' + c[2] + '</label></div>';
+    });
+    notifContent += '</div>';
+    sectionsHtml += _s(notifEnabled?'🔔':'🔕', currentLang==='es'?'Notificaciones':'Notifications', '#7ec8ff', notifContent);
 
-        <!-- Google Calendar Sync -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#4285f4;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                📅 ${t('googleCalendar')}
-            </div>
-            <div style="padding:10px 12px;background:rgba(66,133,244,0.04);border:1px solid rgba(66,133,244,0.2);border-radius:8px;">
-                ${gcalIsConnected() ? `
-                    <div style="font-size:0.75em;color:#4ecdc4;margin-bottom:6px;">✓ ${t('gcalConnected')}</div>
-                    <div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:8px;">
-                        ${localStorage.getItem('gcalLastSync') ? t('gcalLastSync') + ': ' + new Date(localStorage.getItem('gcalLastSync')).toLocaleString(currentLang==='es'?'es':'en') : ''}
-                    </div>
-                    <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <button onclick="gcalFetchEvents();this.textContent='✓';" style="flex:1;padding:8px 12px;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.35);border-radius:8px;color:#4285f4;font-size:0.82em;font-weight:600;cursor:pointer;">
-                            🔄 ${t('gcalSyncNow')}
-                        </button>
-                        <button onclick="gcalSignOut();openPreferencesModal();" style="padding:8px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.82em;cursor:pointer;">
-                            ${t('gcalDisconnect')}
-                        </button>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <select id="gcalColorPicker" style="padding:6px;background:rgba(20,10,40,0.8);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#c39bd3;font-size:0.78em;">
-                            <option value="2" style="color:#0b8043;">🟢 ${currentLang==='es'?'Verde':'Green'}</option>
-                            <option value="1" style="color:#7986cb;">🟣 ${currentLang==='es'?'Lavanda':'Lavender'}</option>
-                            <option value="3" style="color:#8e24aa;">🍇 ${currentLang==='es'?'Uva':'Grape'}</option>
-                            <option value="5" style="color:#f6bf26;">🟡 ${currentLang==='es'?'Plátano':'Banana'}</option>
-                            <option value="6" style="color:#f4511e;">🍊 ${currentLang==='es'?'Mandarina':'Tangerine'}</option>
-                            <option value="9" style="color:#3f51b5;">🫐 ${currentLang==='es'?'Arándano':'Blueberry'}</option>
-                            <option value="11" style="color:#d50000;">🍅 ${currentLang==='es'?'Tomate':'Tomato'}</option>
-                        </select>
-                        <button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">
-                            🌙⭐ ${currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar'}
-                        </button>
-                    </div>
-                    <div style="margin-top:6px;">
-                        <button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">
-                            ${currentLang==='es'?'Borrar eventos Moon Sync de GCal':'Delete Moon Sync events from GCal'}
-                        </button>
-                    </div>
-                    <div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">
-                        ${currentLang==='es'?'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones':'Lunar phases, eclipses, aspects — short format, no notifications'}
-                    </div>
-                ` : `
-                    <div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">${t('gcalDisconnected')}</div>
-                    <button onclick="gcalSignIn()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.08));border:1px solid rgba(66,133,244,0.45);border-radius:8px;color:#4285f4;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                        ${t('gcalConnect')}
-                    </button>
-                    <div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">
-                        ${currentLang==='es'?'Se conecta con tu cuenta de Google para ver y crear eventos':'Connects with your Google account to view and create events'}
-                    </div>
-                `}
-            </div>
-        </div>
+    // ── Mis Mensajes ──
+    var msgCount = (function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count; })();
+    sectionsHtml += _s('💬', currentLang==='es'?'Mis Mensajes':'My Messages', '#66CCFF',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Programa recordatorios personales como notificación.':'Schedule personal reminders as notifications.') + '</div>' +
+        '<button onclick="closePreferencesModal();setTimeout(()=>openMyMessagesEditor(),200);" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">' + (currentLang==='es'?'Abrir editor de mensajes':'Open message editor') + '</button>' +
+        '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (msgCount>0?(currentLang==='es'?msgCount+' mensaje'+(msgCount>1?'s':'')+' programado'+(msgCount>1?'s':''):msgCount+' message'+(msgCount>1?'s':'')+' scheduled'):(currentLang==='es'?'Sin mensajes programados':'No messages scheduled')) + '</div>'
+    );
 
-        <!-- Cell Size -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                📏 ${currentLang==='es'?'Tamaño de Celdas':'Cell Size'}
-            </div>
-            <div style="display:flex;gap:8px;">
-                <button onclick="setCellSize('small');openPreferencesModal();"
-                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
-                    background:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
-                    border:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
-                    color:${(localStorage.getItem('dayCellSize')||'medium')==='small'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                    S ${currentLang==='es'?'Pequeño':'Small'}
-                </button>
-                <button onclick="setCellSize('medium');openPreferencesModal();"
-                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
-                    background:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
-                    border:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
-                    color:${(localStorage.getItem('dayCellSize')||'medium')==='medium'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                    M ${currentLang==='es'?'Medio':'Medium'}
-                </button>
-                <button onclick="setCellSize('large');openPreferencesModal();"
-                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
-                    background:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
-                    border:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
-                    color:${(localStorage.getItem('dayCellSize')||'medium')==='large'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
-                    L ${currentLang==='es'?'Grande':'Large'}
-                </button>
-            </div>
-        </div>
+    // ── Ubicación ──
+    sectionsHtml += _s('📍', (currentLang==='es'?'Ubicación':'Location') + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
+        '<button onclick="closePreferencesModal();setTimeout(()=>openLocationSelector(),200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
+    );
 
-        <!-- Backup / Restore -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#66bb6a;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                💾 ${currentLang==='es'?'Copia de Seguridad':'Backup & Restore'}
-            </div>
-            <div style="padding:10px 12px;background:rgba(102,187,106,0.04);border:1px solid rgba(102,187,106,0.2);border-radius:8px;">
-                <div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">
-                    ${currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.'}
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button onclick="exportUserData()"
-                        style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">
-                        📤 ${currentLang==='es'?'Exportar Backup':'Export Backup'}
-                    </button>
-                    <button onclick="importUserData()"
-                        style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">
-                        📥 ${currentLang==='es'?'Restaurar Backup':'Restore Backup'}
-                    </button>
-                </div>
-            </div>
-        </div>
+    // ── Personalidad AI ──
+    var personaContent = '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">';
+    _aiPersonas.forEach(function(p) {
+        var isActive = p.id === _activePersonaId;
+        personaContent += '<button onclick="setActivePersona(\'' + p.id + '\');openPreferencesModal();" style="width:100%;padding:8px 10px;text-align:left;border-radius:8px;cursor:pointer;background:' + (isActive?'linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.06))':'rgba(255,255,255,0.03)') + ';border:' + (isActive?'2px solid rgba(201,168,64,0.6)':'1px solid rgba(255,255,255,0.1)') + ';color:' + (isActive?'#c9a840':'rgba(255,255,255,0.5)') + ';"><div style="font-size:0.82em;font-weight:700;">' + p.icon + ' ' + (currentLang==='es'?p.name_es:p.name_en) + (isActive?' ✓':'') + '</div><div style="font-size:0.65em;margin-top:1px;opacity:0.7;">' + (currentLang==='es'?p.desc_es:p.desc_en) + '</div></button>';
+    });
+    personaContent += '</div>';
+    personaContent += '<button onclick="resetAllAIChats();this.textContent=currentLang===\'es\'?\'✓ Chats reiniciados\':\'✓ Chats reset\';this.style.color=\'#4ecdc4\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'🗑 Reiniciar todos los chats AI\':\'🗑 Reset all AI chats\';this.style.color=\'#ff6b6b\';},2000);" style="width:100%;padding:8px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.75em;font-weight:600;cursor:pointer;">🗑 ' + (currentLang==='es'?'Reiniciar todos los chats AI':'Reset all AI chats') + '</button>';
+    var activeP = getActivePersona();
+    sectionsHtml += _s('🧠', (currentLang==='es'?'Personalidad AI':'AI Persona') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#c9a840', personaContent);
 
-        <!-- Forzar Actualización / Force Update -->
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ${currentLang==='es'?'Actualización':'Update'}
-            </div>
-            <div style="padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
-                <div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">
-                    ${currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.'}
-                </div>
-                <button onclick="forceAppUpdate()"
-                    style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                    🔄 ${currentLang==='es'?'Forzar Actualización':'Force Update'}
-                </button>
-                <div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">
-                    🌙 Moon Sync ${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'}
-                </div>
-            </div>
-        </div>
-    `;
+    // ── Asistente AI / API Key ──
+    var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente Moon Sync activo':'Moon Sync Assistant active') + '</div>' +
+        '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>' +
+        (localStorage.getItem('geminiApiKey')?'<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>':'') +
+        '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">' + (currentLang==='es'?'API key personal (opcional):':'Personal API key (optional):') + '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<input type="password" id="prefGeminiKey" value="' + (localStorage.getItem('geminiApiKey')||'') + '" placeholder="AIza..." style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />' +
+            '<button onclick="var k=document.getElementById(\'prefGeminiKey\').value.trim();if(k){localStorage.setItem(\'geminiApiKey\',k);}else{localStorage.removeItem(\'geminiApiKey\');}this.textContent=\'✓\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'Guardar\':\'Save\';},1500);" style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;">' + (currentLang==='es'?'Guardar':'Save') + '</button>' +
+        '</div>';
+    sectionsHtml += _s('✨', currentLang==='es'?'Asistente AI':'AI Assistant', '#b388ff', aiContent);
+
+    // ── Google Calendar ──
+    var gcalContent = '';
+    if (gcalIsConnected()) {
+        gcalContent = '<div style="font-size:0.75em;color:#4ecdc4;margin-bottom:6px;">✓ ' + t('gcalConnected') + '</div>' +
+            (localStorage.getItem('gcalLastSync') ? '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' + t('gcalLastSync') + ': ' + new Date(localStorage.getItem('gcalLastSync')).toLocaleString(currentLang==='es'?'es':'en') + '</div>' : '') +
+            '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+                '<button onclick="gcalFetchEvents();this.textContent=\'✓\';" style="flex:1;padding:8px 12px;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.35);border-radius:8px;color:#4285f4;font-size:0.82em;font-weight:600;cursor:pointer;">🔄 ' + t('gcalSyncNow') + '</button>' +
+                '<button onclick="gcalSignOut();openPreferencesModal();" style="padding:8px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.82em;cursor:pointer;">' + t('gcalDisconnect') + '</button>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+                '<select id="gcalColorPicker" style="padding:6px;background:rgba(20,10,40,0.8);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#c39bd3;font-size:0.78em;">' +
+                    '<option value="2" style="color:#0b8043;">🟢 ' + (currentLang==='es'?'Verde':'Green') + '</option>' +
+                    '<option value="1" style="color:#7986cb;">🟣 ' + (currentLang==='es'?'Lavanda':'Lavender') + '</option>' +
+                    '<option value="3" style="color:#8e24aa;">🍇 ' + (currentLang==='es'?'Uva':'Grape') + '</option>' +
+                    '<option value="5" style="color:#f6bf26;">🟡 ' + (currentLang==='es'?'Plátano':'Banana') + '</option>' +
+                    '<option value="6" style="color:#f4511e;">🍊 ' + (currentLang==='es'?'Mandarina':'Tangerine') + '</option>' +
+                    '<option value="9" style="color:#3f51b5;">🫐 ' + (currentLang==='es'?'Arándano':'Blueberry') + '</option>' +
+                    '<option value="11" style="color:#d50000;">🍅 ' + (currentLang==='es'?'Tomate':'Tomato') + '</option>' +
+                '</select>' +
+                '<button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">🌙⭐ ' + (currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar') + '</button>' +
+            '</div>' +
+            '<div style="margin-top:6px;"><button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">' + (currentLang==='es'?'Borrar eventos Moon Sync de GCal':'Delete Moon Sync events from GCal') + '</button></div>' +
+            '<div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">' + (currentLang==='es'?'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones':'Lunar phases, eclipses, aspects — short format, no notifications') + '</div>';
+    } else {
+        gcalContent = '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + t('gcalDisconnected') + '</div>' +
+            '<button onclick="gcalSignIn()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.08));border:1px solid rgba(66,133,244,0.45);border-radius:8px;color:#4285f4;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ' +
+                t('gcalConnect') +
+            '</button>' +
+            '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (currentLang==='es'?'Se conecta con tu cuenta de Google para ver y crear eventos':'Connects with your Google account to view and create events') + '</div>';
+    }
+    sectionsHtml += _s('📅', t('googleCalendar'), '#4285f4', gcalContent);
+
+    // ── Tamaño de Celdas ──
+    var cs = localStorage.getItem('dayCellSize') || 'medium';
+    var _cb = function(sz, label) {
+        return '<button onclick="setCellSize(\'' + sz + '\');openPreferencesModal();" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;background:' + (cs===sz?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)') + ';border:' + (cs===sz?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)') + ';color:' + (cs===sz?'#4ecdc4':'rgba(255,255,255,0.5)') + ';">' + label + '</button>';
+    };
+    sectionsHtml += _s('📏', currentLang==='es'?'Tamaño de Celdas':'Cell Size', '#7ec8ff',
+        '<div style="display:flex;gap:8px;">' +
+            _cb('small', 'S ' + (currentLang==='es'?'Pequeño':'Small')) +
+            _cb('medium', 'M ' + (currentLang==='es'?'Medio':'Medium')) +
+            _cb('large', 'L ' + (currentLang==='es'?'Grande':'Large')) +
+        '</div>'
+    );
+
+    // ── Backup / Restore ──
+    sectionsHtml += _s('💾', currentLang==='es'?'Copia de Seguridad':'Backup & Restore', '#66bb6a',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.') + '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+            '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar Backup':'Export Backup') + '</button>' +
+            '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + (currentLang==='es'?'Restaurar Backup':'Restore Backup') + '</button>' +
+        '</div>'
+    );
+
+    // ── Actualización / Update ──
+    sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#ffb347',
+        '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
+        '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
+        '<div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">🌙 Moon Sync ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
+    );
+
+    body.innerHTML = sectionsHtml;
 
     modal.classList.add('show');
 }
@@ -23043,7 +22865,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v408';
+const APP_VERSION = 'v409';
 var _pendingSW = null;
 
 function showUpdateBanner() {
