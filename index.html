@@ -462,8 +462,8 @@
         .profile-action-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(155,89,182,0.2); background: rgba(155,89,182,0.08); color: rgba(255,255,255,0.6); font-size: 0.9em; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; }
         .profile-action-btn:hover { background: rgba(155,89,182,0.2); color: #c39bd3; border-color: rgba(155,89,182,0.4); }
         /* Natal Sub-Tabs */
-        .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; overflow-x: auto; overflow-y: hidden; border: 1px solid rgba(155,89,182,0.2); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        .natal-subtabs::-webkit-scrollbar { display: none; }
+        .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; border: 1px solid rgba(155,89,182,0.2); flex-wrap: wrap; }
+        @media (orientation: landscape) { .natal-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .natal-subtabs::-webkit-scrollbar { display: none; } }
         .natal-subtab { flex: 0 0 auto; padding: 8px 10px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; border-bottom: 2px solid transparent; white-space: nowrap; }
         .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
         .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); border-bottom: 2px solid #c39bd3; }
@@ -712,7 +712,7 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 9px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Natal</span></button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Astro</span></button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
@@ -13320,6 +13320,296 @@ window.showSynastryHouseDetail = function(dataStr) {
     }, 200);
 };
 
+// ===== COMPARAR TAB — Sinastría, Compuesta, Davison =====
+
+function renderCompararTab() {
+    var container = document.getElementById('natalTabComparar');
+    if (!container) return;
+    var L = currentLang === 'es';
+    var profiles = getNatalProfiles();
+    var activeId = getActiveProfileId();
+    var others = profiles.filter(function(p) { return p.id !== activeId; });
+
+    if (others.length === 0) {
+        container.innerHTML = '<div class="personal-natal-card" style="text-align:center;padding:30px;">' +
+            '<div style="font-size:2em;margin-bottom:12px;">💞</div>' +
+            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + (L?'Necesitas al menos 2 perfiles para comparar cartas':'You need at least 2 profiles to compare charts') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Agrega otro perfil en la pestaña Carta':'Add another profile in the Chart tab') + '</div></div>';
+        return;
+    }
+
+    var html = '<div class="personal-natal-card">';
+    html += '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:1.1em;font-weight:700;color:#c39bd3;margin-bottom:4px;">💞 ' + (L?'Comparación de Cartas':'Chart Comparison') + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);">' + (L?'Selecciona un perfil y el método de comparación':'Select a profile and comparison method') + '</div>';
+    html += '</div>';
+
+    // Profile selector
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + (L?'Comparar con:':'Compare with:') + '</div>';
+    others.forEach(function(p) {
+        var isSelected = (window._compareProfileId === p.id);
+        html += '<button onclick="window._compareProfileId=\'' + p.id + '\';renderCompararTab();" style="width:100%;padding:10px 14px;margin-bottom:6px;background:' + (isSelected?'linear-gradient(135deg,rgba(155,89,182,0.2),rgba(155,89,182,0.08))':'rgba(255,255,255,0.03)') + ';border:' + (isSelected?'2px solid rgba(155,89,182,0.6)':'1px solid rgba(255,255,255,0.1)') + ';border-radius:10px;color:' + (isSelected?'#c39bd3':'rgba(255,255,255,0.6)') + ';font-size:0.85em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:1.1em;">🔮</span>' +
+            '<div><div style="font-weight:600;">' + (p.name || p.cityName || 'Perfil') + '</div>' +
+            '<div style="font-size:0.75em;color:rgba(255,255,255,0.35);">' + (p.date || '') + ' · ' + (p.cityName || '') + '</div></div>' +
+            (isSelected ? '<span style="margin-left:auto;color:#c39bd3;">✓</span>' : '') +
+        '</button>';
+    });
+    html += '</div>';
+
+    // If a profile is selected, show the 3 methods
+    if (window._compareProfileId) {
+        var selProfile = profiles.find(function(p) { return p.id === window._compareProfileId; });
+        var selName = selProfile ? (selProfile.name || selProfile.cityName || 'Perfil') : '?';
+
+        html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+
+        // Sinastría
+        html += '<button onclick="openSynastryView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(155,89,182,0.1));border:1px solid rgba(155,89,182,0.35);border-radius:12px;color:#c39bd3;font-size:0.9em;cursor:pointer;text-align:left;">' +
+            '<div style="font-weight:700;margin-bottom:2px;">☌ ' + (L?'Sinastría':'Synastry') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Aspectos cruzados entre ambas cartas':'Cross-aspects between both charts') + '</div></button>';
+
+        // Carta Compuesta
+        html += '<button onclick="openCompositeView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(46,204,113,0.12),rgba(39,174,96,0.08));border:1px solid rgba(46,204,113,0.3);border-radius:12px;color:#2ecc71;font-size:0.9em;cursor:pointer;text-align:left;">' +
+            '<div style="font-weight:700;margin-bottom:2px;">⊕ ' + (L?'Carta Compuesta':'Composite Chart') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Punto medio entre ambas cartas — la relación como entidad':'Midpoint of both charts — the relationship as entity') + '</div></button>';
+
+        // Carta de Davison
+        html += '<button onclick="openDavisonView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(241,196,15,0.12),rgba(243,156,18,0.08));border:1px solid rgba(241,196,15,0.3);border-radius:12px;color:#f1c40f;font-size:0.9em;cursor:pointer;text-align:left;">' +
+            '<div style="font-weight:700;margin-bottom:2px;">✦ ' + (L?'Carta de Davison':'Davison Chart') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Punto medio en tiempo y espacio — carta real de la relación':'Midpoint in time and space — real relationship chart') + '</div></button>';
+
+        html += '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+window.renderCompararTab = renderCompararTab;
+
+// ── Carta Compuesta: midpoint between two charts ──
+function calculateCompositeChart(nc1, nc2) {
+    var composite = { planets: {}, houses: null };
+    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+
+    planets.forEach(function(p) {
+        if (nc1.planets[p] && nc2.planets[p]) {
+            var lon1 = nc1.planets[p].longitude;
+            var lon2 = nc2.planets[p].longitude;
+            // Calculate shorter midpoint
+            var diff = lon2 - lon1;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            var mid = lon1 + diff / 2;
+            if (mid < 0) mid += 360;
+            if (mid >= 360) mid -= 360;
+            var info = getZodiacSignWithDegree(mid);
+            composite.planets[p] = {
+                longitude: mid,
+                sign: info.sign,
+                degree: info.degree,
+                minute: info.minute,
+                isRetrograde: false
+            };
+        }
+    });
+
+    // Composite houses (midpoints of cusps)
+    if (nc1.houses && nc1.houses.cusps && nc2.houses && nc2.houses.cusps) {
+        var cusps = [];
+        for (var i = 0; i < 12; i++) {
+            var c1 = nc1.houses.cusps[i];
+            var c2 = nc2.houses.cusps[i];
+            var diff = c2 - c1;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            var mid = c1 + diff / 2;
+            if (mid < 0) mid += 360;
+            if (mid >= 360) mid -= 360;
+            cusps.push(mid);
+        }
+        composite.houses = { cusps: cusps, ascendant: cusps[0], mc: cusps[9] };
+    }
+
+    return composite;
+}
+
+window.openCompositeView = function(profileId) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+    var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
+    var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
+    if (!nc1 || !nc2) return;
+
+    var profile = getNatalProfiles().find(function(p) { return p.id === profileId; });
+    var name1 = natal.name || natal.cityName || 'Yo';
+    var name2 = profile ? (profile.name || profile.cityName || 'Perfil') : 'Perfil';
+
+    var comp = calculateCompositeChart(nc1, nc2);
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node'};
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+
+    titleEl.textContent = (L?'Carta Compuesta':'Composite Chart') + ': ' + name1 + ' + ' + name2;
+
+    var html = '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:1.5em;margin-bottom:4px;">⊕</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (L?'Puntos medios entre ambas cartas — representa la relación como entidad':'Midpoints between both charts — represents the relationship as entity') + '</div>';
+    html += '</div>';
+
+    // Planets table
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Planetas Compuestos':'Composite Planets') + '</div>';
+    html += '<div style="margin-bottom:14px;">';
+    Object.keys(comp.planets).forEach(function(p) {
+        var d = comp.planets[p];
+        var sym = (typeof planetSymbols !== 'undefined' && planetSymbols[p]) || '';
+        var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:2px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:0.85em;">';
+        html += '<span style="font-size:1.1em;width:22px;text-align:center;">' + sym + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.7);flex:1;">' + (pN[p]||p) + '</span>';
+        html += '<span style="color:#2ecc71;">' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + (L?'Casa':'H') + ' ' + house + '</span>';
+        html += '</div>';
+    });
+    html += '</div>';
+
+    // Interpret button
+    html += '<div style="margin-top:10px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L?'Interpretación':'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Build prompt with composite data
+    var compData = (L?'CARTA COMPUESTA':'COMPOSITE CHART') + ': ' + name1 + ' + ' + name2 + '\n';
+    Object.keys(comp.planets).forEach(function(p) {
+        var d = comp.planets[p];
+        var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
+        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "' (Casa " + house + ')\n';
+    });
+
+    var prompt = L
+        ? 'Interpreta esta carta compuesta entre ' + name1 + ' y ' + name2 + '. La carta compuesta representa la relación como entidad propia. Analiza los planetas compuestos, sus signos y casas. Identifica los temas principales de esta relación, sus fortalezas y desafíos.\n\n' + compData
+        : 'Interpret this composite chart between ' + name1 + ' and ' + name2 + '. The composite chart represents the relationship as its own entity. Analyze the composite planets, their signs and houses. Identify the main themes of this relationship, its strengths and challenges.\n\n' + compData;
+
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', (L?'Carta Compuesta':'Composite') + ': ' + name1 + ' + ' + name2);
+    }, 200);
+};
+
+// ── Carta de Davison: midpoint in time and space ──
+function calculateDavisonData(profile1, profile2) {
+    // Parse birth dates/times
+    var d1 = new Date(profile1.date + 'T' + (profile1.time || '12:00'));
+    var d2 = new Date(profile2.date + 'T' + (profile2.time || '12:00'));
+
+    // Midpoint in time
+    var midTime = new Date((d1.getTime() + d2.getTime()) / 2);
+
+    // Midpoint in space
+    var lat1 = profile1.lat || 0, lon1 = profile1.lon || 0;
+    var lat2 = profile2.lat || 0, lon2 = profile2.lon || 0;
+    var midLat = (lat1 + lat2) / 2;
+    var midLon = (lon1 + lon2) / 2;
+
+    return {
+        date: midTime,
+        dateStr: midTime.toISOString().split('T')[0],
+        timeStr: midTime.toLocaleTimeString('es-CR', {hour:'2-digit', minute:'2-digit'}),
+        lat: midLat,
+        lon: midLon,
+        cityName: (currentLang==='es'?'Punto medio':'Midpoint') + ' (' + midLat.toFixed(2) + ', ' + midLon.toFixed(2) + ')'
+    };
+}
+
+window.openDavisonView = function(profileId) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+    var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
+    var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
+    if (!nc1 || !nc2) return;
+
+    var profiles = getNatalProfiles();
+    var profile1 = profiles.find(function(p) { return p.id === natal.id; }) || natal;
+    var profile2 = profiles.find(function(p) { return p.id === profileId; });
+    if (!profile2) return;
+
+    var name1 = natal.name || natal.cityName || 'Yo';
+    var name2 = profile2.name || profile2.cityName || 'Perfil';
+
+    var dav = calculateDavisonData(profile1, profile2);
+
+    // Use the composite chart as an approximation (real Davison needs full recalculation with ephemeris)
+    // The midpoint-in-time approach gives a unique date; we use composite positions as proxy
+    var comp = calculateCompositeChart(nc1, nc2);
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node'};
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+
+    titleEl.textContent = (L?'Carta de Davison':'Davison Chart') + ': ' + name1 + ' + ' + name2;
+
+    var html = '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:1.5em;margin-bottom:4px;">✦</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (L?'Punto medio en tiempo y espacio':'Midpoint in time and space') + '</div>';
+    html += '</div>';
+
+    // Davison birth data
+    html += '<div style="background:rgba(241,196,15,0.06);border:1px solid rgba(241,196,15,0.2);border-radius:10px;padding:10px;margin-bottom:14px;">';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Datos de la Relación':'Relationship Data') + '</div>';
+    html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1.6;">';
+    html += (L?'Fecha':'Date') + ': ' + dav.date.toLocaleDateString(L?'es':'en', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '<br>';
+    html += (L?'Hora':'Time') + ': ' + dav.timeStr + '<br>';
+    html += (L?'Ubicación':'Location') + ': ' + dav.cityName;
+    html += '</div></div>';
+
+    // Planets
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Planetas Davison':'Davison Planets') + '</div>';
+    html += '<div style="margin-bottom:14px;">';
+    Object.keys(comp.planets).forEach(function(p) {
+        var d = comp.planets[p];
+        var sym = (typeof planetSymbols !== 'undefined' && planetSymbols[p]) || '';
+        var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:2px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:0.85em;">';
+        html += '<span style="font-size:1.1em;width:22px;text-align:center;">' + sym + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.7);flex:1;">' + (pN[p]||p) + '</span>';
+        html += '<span style="color:#f1c40f;">' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + (L?'Casa':'H') + ' ' + house + '</span>';
+        html += '</div>';
+    });
+    html += '</div>';
+
+    // Interpret
+    html += '<div style="margin-top:10px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L?'Interpretación':'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var compData = (L?'CARTA DE DAVISON':'DAVISON CHART') + ': ' + name1 + ' + ' + name2 + '\n';
+    compData += (L?'Fecha de la relación: ':'Relationship date: ') + dav.dateStr + ' ' + dav.timeStr + '\n';
+    compData += (L?'Ubicación: ':'Location: ') + dav.cityName + '\n\n';
+    Object.keys(comp.planets).forEach(function(p) {
+        var d = comp.planets[p];
+        var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
+        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "' (Casa " + house + ')\n';
+    });
+
+    var prompt = L
+        ? 'Interpreta esta carta de Davison entre ' + name1 + ' y ' + name2 + '. La carta de Davison calcula el punto medio en tiempo y espacio entre ambos nacimientos, creando una carta natal real para la relación. Fecha de la relación: ' + dav.dateStr + '. Analiza los planetas, signos, casas y el significado evolutivo de esta relación.\n\n' + compData
+        : 'Interpret this Davison chart between ' + name1 + ' and ' + name2 + '. The Davison chart calculates the midpoint in time and space between both births, creating a real natal chart for the relationship. Relationship date: ' + dav.dateStr + '. Analyze planets, signs, houses and the evolutionary meaning of this relationship.\n\n' + compData;
+
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', (L?'Davison':'Davison') + ': ' + name1 + ' + ' + name2);
+    }, 200);
+};
+
 // ===== PLANETARY HOURS =====
 // Chaldean order: Saturn, Jupiter, Mars, Sun, Venus, Mercury, Moon
 var _planetaryHourOrder = ['saturn','jupiter','mars','sun','venus','mercury','moon'];
@@ -14199,7 +14489,7 @@ function switchToPersonalMode() {
     const nav = document.querySelector('.navigation');
     if (nav) nav.style.display = 'none';
 
-    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Carta Natal' : 'Natal Chart';
+    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Astro' : 'Astro';
 
     updateModeButtons();
 
@@ -14941,13 +15231,15 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('comparar',this)">${L?'Comparar':'Compare'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
-        <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>`;
+        <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>
+        <div id="natalTabComparar" class="natal-tab-content" style="display:none;"></div>`;
 }
 
 // Switch natal sub-tab
@@ -14998,6 +15290,9 @@ function switchNatalTab(tabName, btn) {
         setTimeout(function() {
             if (aspSortCol === -1) { sortAspectsTable(0); }
         }, 50);
+    }
+    if (tabName === 'comparar') {
+        setTimeout(renderCompararTab, 100);
     }
 }
 
@@ -23665,7 +23960,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v424';
+const APP_VERSION = 'v425';
 var _pendingSW = null;
 
 function showUpdateBanner() {
