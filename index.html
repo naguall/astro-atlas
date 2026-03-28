@@ -13851,7 +13851,7 @@ window.showCompositePlanetDetail = function(dataStr) {
 
     var prompt = L
         ? 'En la ' + chartLabel + ' entre ' + name1 + ' y ' + name2 + ', interpreta ' + pName + ' en ' + sign + ' en Casa ' + house + ' (' + degree + '°' + minute + "'). Explica qué significa este planeta en este signo y casa para la relación como entidad. Sé específico sobre cómo afecta la dinámica de la relación."
-        : 'In the ' + chartLabel + ' between ' + name1 + ' and ' + name2 + ', interpret ' + pName + ' in ' + sign + ' in House ' + house + ' (' + degree + '°' + minute + "'). Explain what this planet in this sign and house means for the relationship as an entity. Be specific about how it affects the relationship dynamic.';
+        : 'In the ' + chartLabel + ' between ' + name1 + ' and ' + name2 + ', interpret ' + pName + ' in ' + sign + ' in House ' + house + ' (' + degree + '°' + minute + "'). Explain what this planet in this sign and house means for the relationship as an entity. Be specific about how it affects the relationship dynamic.";
 
     setTimeout(function() {
         fetchAIInterpretation(prompt, 'compPlanetAIDiv', pName + ' ' + (L?'en':'in') + ' ' + sign);
