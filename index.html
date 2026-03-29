@@ -25532,7 +25532,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v446';
+const APP_VERSION = 'v447';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -26122,24 +26122,33 @@ window._ttsStop = function() {
     window._ttsPlayer._navigating = false;
     window._ttsPlayer.playing = false;
     window._ttsPlayer.paused = false;
+    window._ttsPlayer._pausedAtIdx = null;
     window.speechSynthesis.cancel();
     window._ttsRestoreHTML();
     window._ttsUpdatePlayerUI();
 };
 
 window._ttsPause = function() {
-    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        window._ttsPlayer.paused = true;
+    var p = window._ttsPlayer;
+    if (p.playing && !p.paused) {
+        // Android doesn't support speechSynthesis.pause()/resume() reliably
+        // So we cancel speech and remember the current chunk index to resume later
+        p._pausedAtIdx = p.currentIdx;
+        p._navigating = true;
+        window.speechSynthesis.cancel();
+        p._navigating = false;
+        p.paused = true;
+        p.playing = true; // keep playing=true so UI shows paused state
         window._ttsUpdatePlayerUI();
     }
 };
 
 window._ttsResume = function() {
-    if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        window._ttsPlayer.paused = false;
-        window._ttsUpdatePlayerUI();
+    var p = window._ttsPlayer;
+    if (p.paused) {
+        p.paused = false;
+        var resumeIdx = typeof p._pausedAtIdx === 'number' ? p._pausedAtIdx : p.currentIdx;
+        window._ttsPlayChunk(resumeIdx);
     }
 };
 
