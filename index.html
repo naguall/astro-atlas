@@ -12908,6 +12908,10 @@ function renderAspects2026InSubtab() {
         html = html.replace(/id="asp2026Details/g, 'id="asp2026Details_st');
         html = html.replace(/id="asp2026Arrow/g, 'id="asp2026Arrow_st');
         html = html.replace(/toggleAspect2026Details\(/g, 'toggleAspect2026Details_st(');
+        // Replace tab button onclick to use subtab render instead of main panel render
+        html = html.replace(/renderAspects2026Panel\(\)/g, 'renderAspects2026InSubtab()');
+        // Also replace signs2026 IDs to avoid duplicates (in onclick handlers and id attrs)
+        html = html.replace(/signs2026Det/g, 'signs2026Det_st');
         tempPanel.innerHTML = html;
         srcPanel.style.display = 'none';
     }
@@ -25625,7 +25629,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v452';
+const APP_VERSION = 'v453';
 var _pendingSW = null;
 
 // What's New removed per user request
