@@ -5942,6 +5942,18 @@ function openSavedReadingsModal(tab) {
     var activeTab = tab || 'lecturas';
     titleEl.textContent = L ? '📚 Interpretaciones y Diarios' : '📚 Interpretations & Diaries';
 
+    // One-time cleanup: remove old diary_astro_* keys (aspects are now embedded in export)
+    if (!window._astroCleanupDone) {
+        var keysToRemove = [];
+        for (var ci = 0; ci < localStorage.length; ci++) {
+            var ck = localStorage.key(ci);
+            if (ck && ck.startsWith('diary_astro_')) keysToRemove.push(ck);
+        }
+        keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+        if (keysToRemove.length > 0) console.log('🧹 Cleaned up ' + keysToRemove.length + ' old diary_astro_ entries');
+        window._astroCleanupDone = true;
+    }
+
     // Gather diary entries (profile-specific)
     var diaryEntries = [];
     var profileId = getActiveProfileId() || 'default';
@@ -6431,7 +6443,7 @@ function exportAllDiaryEntries() {
     Object.keys(journalsData).forEach(function(key) { if (journalsData[key] && journalsData[key].trim()) diaryEntries.push({ date: key, text: journalsData[key] }); });
     for (var si = 0; si < localStorage.length; si++) {
         var skey = localStorage.key(si);
-        if (skey && skey.startsWith('diary_')) { var dk = skey.replace('diary_',''); var dt = localStorage.getItem(skey); if (dt && dt.trim() && !journalsData[dk]) diaryEntries.push({ date: dk, text: dt }); }
+        if (skey && skey.startsWith('diary_') && !skey.startsWith('diary_astro_')) { var dk = skey.replace('diary_',''); var dt = localStorage.getItem(skey); if (dt && dt.trim() && !journalsData[dk]) diaryEntries.push({ date: dk, text: dt }); }
     }
     diaryEntries.sort(function(a, b) { return b.date.localeCompare(a.date); });
 
@@ -7550,11 +7562,6 @@ function openDiarioModal(date, lunarDay) {
         saveTimeout = setTimeout(() => {
             localStorage.setItem(`diary_${dateKey}`, textarea.value);
             saveDiaryText(dateKey, textarea.value);
-            try {
-                var diaryDate = new Date(dateKey + 'T12:00:00');
-                var snap = typeof getAstroSnapshot === 'function' ? getAstroSnapshot(diaryDate) : {};
-                localStorage.setItem('diary_astro_' + dateKey, JSON.stringify(snap));
-            } catch(e) {}
             if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
             document.getElementById('diarioSaveStatus').textContent = t('saved');
             setTimeout(() => { document.getElementById('diarioSaveStatus').textContent = ''; }, 2000);
