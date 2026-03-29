@@ -23060,17 +23060,32 @@ function openPreferencesModal() {
     var savedVoiceEn = localStorage.getItem('ttsVoice_en') || '';
     var savedRate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
     var voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    // Categorize Spanish voices: Latin American first, then Spain
-    var esLatamVoices = voices.filter(function(v) { return v.lang.startsWith('es') && v.lang !== 'es-ES' && v.lang !== 'es_ES'; });
-    var esSpainVoices = voices.filter(function(v) { return v.lang === 'es-ES' || v.lang === 'es_ES'; });
-    var enVoices = voices.filter(function(v) { return v.lang.startsWith('en'); });
-    // Filter out novelty/joke voices
+
+    // Spanish voices: Only Latin American (no Spain), filter out Apple novelty voices that all sound the same
+    var _appleNoveltyEs = ['Eddy','Flo','Grandma','Grandpa','Reed','Rocko','Sandy','Shelley'];
+    var esVoices = voices.filter(function(v) {
+        if (!v.lang.startsWith('es')) return false;
+        if (v.lang === 'es-ES' || v.lang === 'es_ES') return false; // No Spain voices
+        // Filter Apple novelty voices (they all sound identical)
+        var baseName = v.name.split(' (')[0];
+        if (_appleNoveltyEs.indexOf(baseName) !== -1) return false;
+        return true;
+    });
+
+    // English voices: filter out novelty/joke voices AND Apple novelty that sound similar
     var _noveltyNames = ['Bad News','Bahh','Bells','Boing','Bubbles','Cellos','Good News','Jester','Organ','Superstar','Trinoids','Whisper','Wobble','Zarvox','Ralph','Fred','Junior','Kathy','Vicki','Victoria','Princess'];
-    enVoices = enVoices.filter(function(v) { return _noveltyNames.indexOf(v.name) === -1; });
+    var _appleNoveltyEn = ['Eddy','Flo','Grandma','Grandpa','Reed','Rocko','Sandy','Shelley'];
+    var enVoices = voices.filter(function(v) {
+        if (!v.lang.startsWith('en')) return false;
+        if (_noveltyNames.indexOf(v.name) !== -1) return false;
+        var baseName = v.name.split(' (')[0];
+        if (_appleNoveltyEn.indexOf(baseName) !== -1) return false;
+        return true;
+    });
 
     // Helper to guess gender from voice name
-    var _femaleNames = ['Mónica','Paulina','Catherine','Flo','Grandma','Sandy','Shelley','Karen','Samantha','Tessa','Moira','Fiona','Allison','Ava','Susan','Zoe','Nicky','Alice'];
-    var _maleNames = ['Carlos','Aaron','Albert','Arthur','Daniel','Eddy','Grandpa','Reed','Rocko','Alex','Tom','Oliver','Rishi','Lee','Gordon','Otoya','Luca','Thomas'];
+    var _femaleNames = ['Mónica','Paulina','Catherine','Karen','Samantha','Tessa','Moira','Fiona','Allison','Ava','Susan','Zoe','Nicky','Alice','Joana','Luciana','Mariska','Meijia','Melina','Milena','Sara','Tünde','Yelda'];
+    var _maleNames = ['Carlos','Aaron','Albert','Arthur','Daniel','Alex','Tom','Oliver','Rishi','Lee','Gordon','Otoya','Luca','Thomas','Jacques','Henrik','Javier','Jorge','Magnus','Xander'];
     function _genderTag(name) {
         if (_femaleNames.some(function(f) { return name.indexOf(f) !== -1; })) return ' 👩';
         if (_maleNames.some(function(m) { return name.indexOf(m) !== -1; })) return ' 👨';
@@ -23083,24 +23098,12 @@ function openPreferencesModal() {
     voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">🇲🇽 ' + (currentLang==='es'?'Voz en Español':'Spanish Voice') + '</div>';
     voiceContent += '<select id="ttsVoiceEs" onchange="localStorage.setItem(\'ttsVoice_es\',this.value);" style="width:100%;padding:10px 12px;background:rgba(20,10,40,0.8);border:1px solid rgba(102,126,234,0.35);border-radius:8px;color:#667eea;font-size:0.82em;cursor:pointer;">';
     voiceContent += '<option value="">' + (currentLang==='es'?'Automática (predeterminada)':'Automatic (default)') + '</option>';
-    if (esLatamVoices.length > 0) {
-        voiceContent += '<optgroup label="' + (currentLang==='es'?'🌎 Latinoamérica':'🌎 Latin America') + '">';
-        esLatamVoices.forEach(function(v) {
-            var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
-            voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
-        });
-        voiceContent += '</optgroup>';
-    }
-    if (esSpainVoices.length > 0) {
-        voiceContent += '<optgroup label="' + (currentLang==='es'?'🇪🇸 España':'🇪🇸 Spain') + '">';
-        esSpainVoices.forEach(function(v) {
-            var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
-            voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
-        });
-        voiceContent += '</optgroup>';
-    }
+    esVoices.forEach(function(v) {
+        var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
+        voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
+    });
     voiceContent += '</select>';
-    if (esLatamVoices.length === 0 && esSpainVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + (currentLang==='es'?'No se encontraron voces. Intenta recargar.':'No voices found. Try reloading.') + '</div>';
+    if (esVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + (currentLang==='es'?'No se encontraron voces. Intenta recargar.':'No voices found. Try reloading.') + '</div>';
     voiceContent += '<button onclick="testTTSVoice(\'es\')" style="margin-top:6px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + (currentLang==='es'?'Probar voz':'Test voice') + '</button>';
     voiceContent += '</div>';
 
@@ -25139,29 +25142,37 @@ window.testTTSVoice = function(lang) {
     if (!window.speechSynthesis) return;
     // Stop any current speech first
     window.speechSynthesis.cancel();
-    window.speechSynthesis.cancel();
-    // Read the CURRENT select value (not just localStorage, which may be stale)
-    var selectId = lang === 'es' ? 'ttsVoiceEs' : 'ttsVoiceEn';
-    var selectEl = document.getElementById(selectId);
-    var selectedName = selectEl ? selectEl.value : '';
-    // Save it now to ensure localStorage is in sync
-    localStorage.setItem('ttsVoice_' + lang, selectedName);
+    setTimeout(function() {
+        // Read the CURRENT select value (not just localStorage, which may be stale)
+        var selectId = lang === 'es' ? 'ttsVoiceEs' : 'ttsVoiceEn';
+        var selectEl = document.getElementById(selectId);
+        var selectedName = selectEl ? selectEl.value : '';
+        // Save it now to ensure localStorage is in sync
+        localStorage.setItem('ttsVoice_' + lang, selectedName);
 
-    var testText = lang === 'es' ? 'Esta es una prueba de la voz seleccionada para Moon Sync.' : 'This is a test of the selected voice for Moon Sync.';
-    var utter = new SpeechSynthesisUtterance(testText);
-    utter.lang = lang === 'es' ? 'es-MX' : 'en-US';
-    utter.rate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
-    utter.pitch = 1.0;
-    // Find the exact voice by name
-    var voices = window.speechSynthesis.getVoices();
-    if (selectedName) {
-        var found = voices.find(function(v) { return v.name === selectedName; });
-        if (found) utter.voice = found;
-    } else {
-        var voice = window._getTTSVoice(lang);
-        if (voice) utter.voice = voice;
-    }
-    window.speechSynthesis.speak(utter);
+        // Find the exact voice by name
+        var voices = window.speechSynthesis.getVoices();
+        var voiceObj = null;
+        if (selectedName) {
+            voiceObj = voices.find(function(v) { return v.name === selectedName; });
+        }
+        if (!voiceObj) {
+            voiceObj = window._getTTSVoice(lang);
+        }
+
+        // Say the voice name so user can identify it
+        var voiceDisplayName = voiceObj ? voiceObj.name.split(' (')[0] : (lang === 'es' ? 'Automática' : 'Automatic');
+        var testText = lang === 'es'
+            ? 'Hola, soy ' + voiceDisplayName + '. Las estrellas revelan tu camino esta noche.'
+            : 'Hello, I am ' + voiceDisplayName + '. The stars reveal your path tonight.';
+
+        var utter = new SpeechSynthesisUtterance(testText);
+        utter.lang = lang === 'es' ? 'es-MX' : 'en-US';
+        utter.rate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
+        utter.pitch = 1.0;
+        if (voiceObj) utter.voice = voiceObj;
+        window.speechSynthesis.speak(utter);
+    }, 150); // Small delay after cancel to avoid Chrome bug where cancel kills next speak
 };
 
 // ===== TTS PLAYER with navigation, stop, speed =====
