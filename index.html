@@ -8104,10 +8104,10 @@ function interpretDream() {
         ? '\n\n═══ DOBLE PERSPECTIVA OBLIGATORIA ═══\nSIEMPRE muestra DOS perspectivas: CONSCIENTE (lo visible) e INCONSCIENTE/SOMBRA (lo reprimido/proyectado). Analiza ejes zodiacales y el reflejo del opuesto si aplica. Busca comprensión y transmutación de la sombra.'
         : '\n\n═══ MANDATORY DUAL PERSPECTIVE ═══\nALWAYS show TWO perspectives: CONSCIOUS (visible) and UNCONSCIOUS/SHADOW (repressed/projected). Analyze zodiacal axes and the opposite reflection if applicable. Seek understanding and shadow transmutation.';
 
-    // Dream-specific instructions
+    // Dream-specific instructions (with formatting guidelines)
     systemPrompt += L
-        ? '\n\n═══ INTERPRETACIÓN DE SUEÑOS ═══\nInterpreta desde múltiples capas: simbólica (arquetipos universales), astrológica (conecta con carta natal y tránsitos actuales), psicológica (mensaje del inconsciente, Jung). Identifica: símbolos principales, emociones dominantes, figuras arquetípicas (anima/animus, sombra, self), conexión con tránsitos planetarios activos. No des interpretaciones literales — profundiza en el lenguaje simbólico del inconsciente.'
-        : '\n\n═══ DREAM INTERPRETATION ═══\nInterpret from multiple layers: symbolic (universal archetypes), astrological (connect with natal chart and current transits), psychological (unconscious message, Jung). Identify: main symbols, dominant emotions, archetypal figures (anima/animus, shadow, self), connection with active planetary transits. Don\'t give literal interpretations — go deep into the symbolic language of the unconscious.';
+        ? '\n\n═══ INTERPRETACIÓN DE SUEÑOS ═══\nInterpreta desde múltiples capas: simbólica (arquetipos universales), astrológica (conecta con carta natal y tránsitos actuales), psicológica (mensaje del inconsciente, Jung). Identifica: símbolos principales, emociones dominantes, figuras arquetípicas (anima/animus, sombra, self), conexión con tránsitos planetarios activos. No des interpretaciones literales — profundiza en el lenguaje simbólico del inconsciente.\n\n═══ FORMATO OBLIGATORIO ═══\nUSA ESTE FORMATO para que sea fácil de leer:\n- Separa cada tema/sección con una línea en blanco\n- Usa **negritas** para conceptos clave, símbolos y nombres de arquetipos\n- Cada capa de análisis (simbólica, astrológica, psicológica) debe empezar en párrafo nuevo\n- NO escribas todo seguido — organiza por temas con saltos de línea\n- Usa encabezados con ** como: **Capa Simbólica**, **Capa Astrológica**, **Capa Psicológica**, **Síntesis**'
+        : '\n\n═══ DREAM INTERPRETATION ═══\nInterpret from multiple layers: symbolic (universal archetypes), astrological (connect with natal chart and current transits), psychological (unconscious message, Jung). Identify: main symbols, dominant emotions, archetypal figures (anima/animus, shadow, self), connection with active planetary transits. Don\'t give literal interpretations — go deep into the symbolic language of the unconscious.\n\n═══ MANDATORY FORMAT ═══\nUSE THIS FORMAT for readability:\n- Separate each topic/section with a blank line\n- Use **bold** for key concepts, symbols and archetype names\n- Each analysis layer (symbolic, astrological, psychological) must start a new paragraph\n- Do NOT write everything in a single block — organize by themes with line breaks\n- Use headers with ** like: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**';
 
     var prompt = L
         ? 'Interpreta el siguiente sueño:\n\n' + dreamText
@@ -8154,6 +8154,29 @@ function interpretDream() {
                         }
                     };
                     interpDiv.parentNode.insertBefore(saveBtn, interpDiv.nextSibling);
+                }
+                // Add double-click to read from that point
+                if (!interpDiv._dblClickAdded) {
+                    interpDiv._dblClickAdded = true;
+                    interpDiv.addEventListener('dblclick', function(e) {
+                        var sel = window.getSelection();
+                        var clickedText = '';
+                        if (sel && sel.anchorNode) {
+                            // Get the text of the paragraph/node where user double-clicked
+                            var node = sel.anchorNode;
+                            while (node && node !== interpDiv && node.nodeType !== 1) node = node.parentNode;
+                            if (node && node !== interpDiv) {
+                                clickedText = (node.textContent || '').trim();
+                            } else {
+                                clickedText = (sel.anchorNode.textContent || '').trim();
+                            }
+                        }
+                        if (clickedText && clickedText.length > 3) {
+                            window.readAloud('dreamAiInterpDiv', clickedText);
+                        }
+                    });
+                    interpDiv.style.cursor = 'text';
+                    interpDiv.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
                 }
                 _interpObserver.disconnect();
             }
@@ -25469,7 +25492,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v444';
+const APP_VERSION = 'v445';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -26058,9 +26081,26 @@ window._ttsHighlightChunk = function(idx) {
 window._ttsStop = function() {
     window._ttsPlayer._navigating = false;
     window._ttsPlayer.playing = false;
+    window._ttsPlayer.paused = false;
     window.speechSynthesis.cancel();
     window._ttsRestoreHTML();
     window._ttsUpdatePlayerUI();
+};
+
+window._ttsPause = function() {
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        window._ttsPlayer.paused = true;
+        window._ttsUpdatePlayerUI();
+    }
+};
+
+window._ttsResume = function() {
+    if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        window._ttsPlayer.paused = false;
+        window._ttsUpdatePlayerUI();
+    }
 };
 
 window._ttsPlayChunk = function(idx) {
@@ -26123,7 +26163,8 @@ window._ttsUpdatePlayerUI = function() {
 
     playerEl.innerHTML =
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-            '<button onclick="_ttsPlayer.playing ? _ttsStop() : _ttsPlayChunk(_ttsPlayer.currentIdx)" style="padding:5px 12px;background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.4);border-radius:16px;color:#667eea;font-size:0.82em;cursor:pointer;font-weight:700;">' + (p.playing ? '⏹ Stop' : '▶ Play') + '</button>' +
+            '<button onclick="' + (p.playing && !p.paused ? '_ttsPause()' : p.paused ? '_ttsResume()' : '_ttsPlayChunk(_ttsPlayer.currentIdx)') + '" style="padding:5px 12px;background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.4);border-radius:16px;color:#667eea;font-size:0.82em;cursor:pointer;font-weight:700;">' + (p.playing && !p.paused ? '⏸' : p.paused ? '▶' : '▶') + '</button>' +
+            '<button onclick="_ttsStop()" style="padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:rgba(255,255,255,0.6);font-size:0.78em;cursor:pointer;">⏹</button>' +
             '<button onclick="_ttsStop();_ttsPlayChunk(Math.max(0,_ttsPlayer.currentIdx-1))" style="padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:rgba(255,255,255,0.6);font-size:0.78em;cursor:pointer;" title="' + (L?'Anterior':'Previous') + '">⏮</button>' +
             '<button onclick="_ttsStop();_ttsPlayChunk(Math.min(_ttsPlayer.chunks.length-1,_ttsPlayer.currentIdx+1))" style="padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:rgba(255,255,255,0.6);font-size:0.78em;cursor:pointer;" title="' + (L?'Siguiente':'Next') + '">⏭</button>' +
             '<span style="font-size:0.7em;color:rgba(255,255,255,0.4);min-width:50px;text-align:center;">' + (cur+1) + '/' + total + '</span>' +
