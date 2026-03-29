@@ -7858,12 +7858,14 @@ window.addEventListener('focus', function() {
 function triggerDreamAlarm() {
     console.log('🌙✨ Dream alarm triggered!');
 
-    // 1. Vibrate (pattern: short bursts for 5 seconds)
+    // 1. Start vibration (repeating pattern for 60 seconds)
     if (navigator.vibrate) {
-        navigator.vibrate([300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300]);
+        var vibPattern = [];
+        for (var vi = 0; vi < 60; vi++) { vibPattern.push(300, 200, 300, 200, 300, 700); } // ~2s per cycle × 60 = 120s worth
+        navigator.vibrate(vibPattern);
     }
 
-    // 2. Play gentle alarm sound (5 seconds) using Web Audio API
+    // 2. Play alarm sound (60 seconds) with voice detection to stop
     playDreamAlarmSound();
 
     // 3. Show notification
@@ -7891,38 +7893,142 @@ function triggerDreamAlarm() {
     scheduleDreamAlarm();
 }
 
+// Global alarm state so voice detection can stop it
+window._dreamAlarmAudio = null;
+
+function stopDreamAlarmSound() {
+    var a = window._dreamAlarmAudio;
+    if (!a) return;
+    try {
+        if (a.osc) a.osc.stop();
+        if (a.osc2) a.osc2.stop();
+    } catch(e) {}
+    try { if (a.ctx && a.ctx.state !== 'closed') a.ctx.close(); } catch(e) {}
+    if (a.voiceStream) { a.voiceStream.getTracks().forEach(function(t) { t.stop(); }); }
+    if (a.voiceTimeout) clearTimeout(a.voiceTimeout);
+    if (navigator.vibrate) navigator.vibrate(0); // Stop vibration
+    window._dreamAlarmAudio = null;
+    console.log('🌙 Dream alarm sound stopped');
+}
+
 function playDreamAlarmSound() {
     try {
+        // Stop any previous alarm
+        stopDreamAlarmSound();
+
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var duration = 5; // 5 seconds
+        var duration = 60; // 60 seconds
+
+        // Main tone — gentle sine at solfeggio 396 Hz
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
-
         osc.connect(gain);
         gain.connect(ctx.destination);
-
-        // Gentle, dreamy tone (low frequency sine wave with slow tremolo)
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(396, ctx.currentTime); // Solfeggio frequency
+        osc.frequency.setValueAtTime(396, ctx.currentTime);
 
-        // Gentle volume envelope - fade in and out
+        // Secondary harmonic — soft octave above for richness
+        var osc2 = ctx.createOscillator();
+        var gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(528, ctx.currentTime); // Solfeggio 528 Hz
+
+        // Volume envelope — gradual fade in, tremolo waves, stays gentle
         gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.5);
-        // Tremolo effect
-        for (var t = 0.5; t < duration - 0.5; t += 0.8) {
-            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + t);
-            gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + t + 0.4);
+        gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2);
+        gain2.gain.setValueAtTime(0, ctx.currentTime);
+        gain2.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 2);
+
+        // Tremolo waves for the full duration (gentle pulsing)
+        for (var t = 2; t < duration - 2; t += 1.5) {
+            gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + t);
+            gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + t + 0.75);
+            gain2.gain.linearRampToValueAtTime(0.07, ctx.currentTime + t);
+            gain2.gain.linearRampToValueAtTime(0.02, ctx.currentTime + t + 0.75);
         }
+        // Fade out at the end
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+        gain2.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
 
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + duration);
+        osc2.start(ctx.currentTime);
+        osc2.stop(ctx.currentTime + duration);
 
-        // Cleanup
-        setTimeout(function() { ctx.close(); }, (duration + 1) * 1000);
+        // Store reference for stopping
+        window._dreamAlarmAudio = { ctx: ctx, osc: osc, osc2: osc2, voiceStream: null, voiceTimeout: null };
+
+        // Auto-cleanup after duration
+        var autoClean = setTimeout(function() { stopDreamAlarmSound(); }, (duration + 1) * 1000);
+
+        // 3. Voice detection — stop alarm when user speaks
+        startAlarmVoiceDetection();
+
     } catch(e) {
         console.error('Dream alarm sound error:', e);
     }
+}
+
+function startAlarmVoiceDetection() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        var a = window._dreamAlarmAudio;
+        if (!a) { stream.getTracks().forEach(function(t) { t.stop(); }); return; }
+        a.voiceStream = stream;
+
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var source = audioCtx.createMediaStreamSource(stream);
+        var analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.3;
+        source.connect(analyser);
+
+        var dataArray = new Uint8Array(analyser.frequencyBinCount);
+        var voiceDetectedCount = 0;
+        var checkInterval = 100; // Check every 100ms
+
+        function checkVoice() {
+            if (!window._dreamAlarmAudio) {
+                audioCtx.close();
+                return;
+            }
+            analyser.getByteFrequencyData(dataArray);
+
+            // Focus on voice frequency range (300Hz - 3000Hz)
+            var sampleRate = audioCtx.sampleRate;
+            var binSize = sampleRate / analyser.fftSize;
+            var startBin = Math.floor(300 / binSize);
+            var endBin = Math.min(Math.floor(3000 / binSize), dataArray.length);
+
+            var sum = 0;
+            for (var i = startBin; i < endBin; i++) { sum += dataArray[i]; }
+            var avgVoiceLevel = sum / (endBin - startBin);
+
+            // Voice threshold — needs to be above background noise
+            if (avgVoiceLevel > 40) {
+                voiceDetectedCount++;
+                // Require ~0.5 seconds of consistent voice (5 consecutive checks)
+                if (voiceDetectedCount >= 5) {
+                    console.log('🎤 Voice detected — stopping dream alarm');
+                    audioCtx.close();
+                    stopDreamAlarmSound();
+                    return;
+                }
+            } else {
+                voiceDetectedCount = Math.max(0, voiceDetectedCount - 1);
+            }
+
+            a.voiceTimeout = setTimeout(checkVoice, checkInterval);
+        }
+        checkVoice();
+
+    }).catch(function(err) {
+        console.log('🎤 Mic access denied for alarm voice detection:', err.message);
+        // Alarm continues without voice detection — user can tap screen to dismiss
+    });
 }
 
 function openDreamRecorder() {
@@ -7930,6 +8036,17 @@ function openDreamRecorder() {
     var today = new Date();
     var lunarDay = typeof getLunarDay === 'function' ? getLunarDay(today) : 0;
     openDiarioModal(today, lunarDay);
+
+    // Stop alarm sound on any screen interaction
+    function _stopAlarmOnTap() {
+        stopDreamAlarmSound();
+        document.removeEventListener('touchstart', _stopAlarmOnTap);
+        document.removeEventListener('click', _stopAlarmOnTap);
+    }
+    if (window._dreamAlarmAudio) {
+        document.addEventListener('touchstart', _stopAlarmOnTap, { once: true });
+        document.addEventListener('click', _stopAlarmOnTap, { once: true });
+    }
 
     // Switch to dreams tab after a short delay
     setTimeout(function() {
