@@ -25175,13 +25175,59 @@ window.testTTSVoice = function(lang) {
     }, 150); // Small delay after cancel to avoid Chrome bug where cancel kills next speak
 };
 
-// ===== TTS PLAYER with navigation, stop, speed =====
-window._ttsPlayer = { chunks: [], currentIdx: 0, elementId: null, playing: false };
+// ===== TTS PLAYER with navigation, stop, speed, KARAOKE HIGHLIGHT =====
+window._ttsPlayer = { chunks: [], currentIdx: 0, elementId: null, playing: false, originalHTML: null, spanIds: [] };
+
+// CSS for karaoke highlight
+(function() {
+    var style = document.createElement('style');
+    style.textContent =
+        '.tts-sentence { transition: background 0.25s, color 0.25s, box-shadow 0.25s; border-radius: 4px; padding: 1px 2px; }' +
+        '.tts-sentence.tts-active { background: rgba(102,126,234,0.25); color: #fff; box-shadow: 0 0 8px rgba(102,126,234,0.3); }' +
+        '.tts-sentence.tts-done { opacity: 0.55; }' +
+        '#ttsSelBtn { position:fixed; z-index:10000; padding:6px 14px; background:rgba(15,10,35,0.95); border:1px solid rgba(102,126,234,0.5); border-radius:20px; color:#667eea; font-size:0.82em; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.5); backdrop-filter:blur(8px); display:none; align-items:center; gap:4px; }' +
+        '#ttsSelBtn:active { transform: scale(0.95); }';
+    document.head.appendChild(style);
+})();
+
+// Restore original HTML of the element (remove karaoke spans)
+window._ttsRestoreHTML = function() {
+    var p = window._ttsPlayer;
+    if (p.originalHTML && p.elementId) {
+        var el = document.getElementById(p.elementId);
+        if (el) el.innerHTML = p.originalHTML;
+    }
+    p.originalHTML = null;
+    p.spanIds = [];
+};
+
+// Highlight the current chunk's spans
+window._ttsHighlightChunk = function(idx) {
+    var p = window._ttsPlayer;
+    // Remove all highlights first
+    p.spanIds.forEach(function(sid, i) {
+        var span = document.getElementById(sid);
+        if (span) {
+            span.classList.remove('tts-active', 'tts-done');
+            if (i < idx) span.classList.add('tts-done');
+        }
+    });
+    // Highlight current
+    if (idx >= 0 && idx < p.spanIds.length) {
+        var cur = document.getElementById(p.spanIds[idx]);
+        if (cur) {
+            cur.classList.add('tts-active');
+            // Scroll the highlighted span into view smoothly
+            cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+};
 
 window._ttsStop = function() {
     window._ttsPlayer._navigating = false;
     window._ttsPlayer.playing = false;
     window.speechSynthesis.cancel();
+    window._ttsRestoreHTML();
     window._ttsUpdatePlayerUI();
 };
 
@@ -25191,6 +25237,7 @@ window._ttsPlayChunk = function(idx) {
         p.playing = false;
         p.currentIdx = 0;
         p._navigating = false;
+        window._ttsRestoreHTML();
         window._ttsUpdatePlayerUI();
         return;
     }
@@ -25201,6 +25248,7 @@ window._ttsPlayChunk = function(idx) {
     p.currentIdx = idx;
     p.playing = true;
     window._ttsUpdatePlayerUI();
+    window._ttsHighlightChunk(idx);
 
     var langCode = currentLang === 'es' ? 'es' : 'en';
     var preferred = window._getTTSVoice(langCode);
@@ -25219,6 +25267,7 @@ window._ttsPlayChunk = function(idx) {
         if (e && e.error === 'interrupted') return;
         if (!p._navigating) {
             p.playing = false;
+            window._ttsRestoreHTML();
             window._ttsUpdatePlayerUI();
         }
     };
@@ -25257,7 +25306,7 @@ window._ttsUpdatePlayerUI = function() {
                 '<option value="1.5"' + (parseFloat(localStorage.getItem('ttsRate')||'1.0')===1.5?' selected':'') + '>1.5x</option>' +
                 '<option value="2.0"' + (parseFloat(localStorage.getItem('ttsRate')||'1.0')===2.0?' selected':'') + '>2.0x</option>' +
             '</select>' +
-            '<button onclick="window._ttsPlayer.playing=false;window._ttsPlayer.currentIdx=0;window._ttsPlayer._navigating=false;window.speechSynthesis.cancel();document.getElementById(\'ttsPlayerBar\').style.display=\'none\';" style="padding:4px 8px;background:rgba(255,59,48,0.15);border:1px solid rgba(255,59,48,0.3);border-radius:6px;color:#ff3b30;font-size:0.8em;cursor:pointer;font-weight:600;" title="' + (L?'Cerrar':'Close') + '">✕</button>' +
+            '<button onclick="window._ttsRestoreHTML();window._ttsPlayer.playing=false;window._ttsPlayer.currentIdx=0;window._ttsPlayer._navigating=false;window.speechSynthesis.cancel();document.getElementById(\'ttsPlayerBar\').style.display=\'none\';" style="padding:4px 8px;background:rgba(255,59,48,0.15);border:1px solid rgba(255,59,48,0.3);border-radius:6px;color:#ff3b30;font-size:0.8em;cursor:pointer;font-weight:600;" title="' + (L?'Cerrar':'Close') + '">✕</button>' +
         '</div>';
 };
 
@@ -25292,17 +25341,20 @@ window.readAloudLastMsg = function(containerId) {
     window.readAloud(lastMsg.id);
 };
 
-window.readAloud = function(elementId) {
+// readAloud: plays TTS with karaoke highlighting. If startFromText is provided,
+// starts reading from the chunk that contains that text (and continues to the end).
+window.readAloud = function(elementId, startFromText) {
     if (!window.speechSynthesis) {
         alert(currentLang === 'es' ? 'Tu navegador no soporta síntesis de voz.' : 'Your browser does not support speech synthesis.');
         return;
     }
-    // If currently playing this same element, stop
-    if (window._ttsPlayer.playing && window._ttsPlayer.elementId === elementId) {
+    // If currently playing this same element and no startFromText, toggle stop
+    if (window._ttsPlayer.playing && window._ttsPlayer.elementId === elementId && !startFromText) {
         window._ttsStop();
         return;
     }
-    // Stop any previous playback
+    // Stop any previous playback and restore HTML
+    window._ttsRestoreHTML();
     window.speechSynthesis.cancel();
 
     var el = document.getElementById(elementId);
@@ -25310,7 +25362,7 @@ window.readAloud = function(elementId) {
     var text = el.innerText || el.textContent || '';
     if (!text.trim()) return;
 
-    // Split into readable chunks (by paragraph/sentence groups)
+    // Split FULL text into readable chunks (by paragraph/sentence groups)
     var clean = text.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
     var paragraphs = clean.split(/\n\n+/).filter(function(p) { return p.trim().length > 0; });
     var chunks = [];
@@ -25327,8 +25379,51 @@ window.readAloud = function(elementId) {
     });
     if (chunks.length === 0) chunks = [clean];
 
-    // Setup player state
-    window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false };
+    // Save original HTML for restoration later
+    var origHTML = el.innerHTML;
+
+    // Build karaoke-wrapped HTML
+    var spanIds = [];
+    var _uid = Date.now();
+    var karaHTML = '';
+    chunks.forEach(function(chunk, i) {
+        var sid = 'ttsS_' + _uid + '_' + i;
+        spanIds.push(sid);
+        karaHTML += '<span id="' + sid + '" class="tts-sentence">' + _escHTML(chunk) + '</span> ';
+    });
+    el.innerHTML = '<div style="line-height:1.8;">' + karaHTML + '</div>';
+
+    // Setup player state with karaoke info
+    window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false, originalHTML: origHTML, spanIds: spanIds };
+
+    // Determine start index: if startFromText provided, find the chunk that contains it
+    var startIdx = 0;
+    if (startFromText) {
+        var selClean = startFromText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
+        // Find the first few words of the selection
+        var selWords = selClean.split(/\s+/).slice(0, 5).join(' ').toLowerCase();
+        for (var ci = 0; ci < chunks.length; ci++) {
+            if (chunks[ci].toLowerCase().indexOf(selWords) !== -1) {
+                startIdx = ci;
+                break;
+            }
+        }
+        // If exact match failed, try first 3 words
+        if (startIdx === 0 && selWords.length > 0) {
+            var sel3 = selClean.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
+            for (var ci2 = 0; ci2 < chunks.length; ci2++) {
+                if (chunks[ci2].toLowerCase().indexOf(sel3) !== -1) {
+                    startIdx = ci2;
+                    break;
+                }
+            }
+        }
+        // Mark previous chunks as done
+        for (var di = 0; di < startIdx; di++) {
+            var doneSpan = document.getElementById(spanIds[di]);
+            if (doneSpan) doneSpan.classList.add('tts-done');
+        }
+    }
 
     // Create or show fixed player bar at bottom of viewport
     var playerId = 'ttsPlayerBar';
@@ -25340,9 +25435,105 @@ window.readAloud = function(elementId) {
     }
     playerEl.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);width:90%;max-width:500px;padding:10px 14px;background:rgba(15,10,35,0.95);border:1px solid rgba(102,126,234,0.4);border-radius:16px;backdrop-filter:blur(10px);z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:block;';
 
-    // Start playing
-    window._ttsPlayChunk(0);
+    // Start playing from the determined index
+    window._ttsPlayChunk(startIdx);
 };
+
+// Helper to escape HTML
+function _escHTML(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== SELECTION-BASED TTS: Select text → "Leer desde aquí" button =====
+(function() {
+    // Create floating "Read from here" button
+    var selBtn = document.createElement('button');
+    selBtn.id = 'ttsSelBtn';
+    selBtn.innerHTML = '🔊 ' + (currentLang === 'es' ? 'Leer desde aquí' : 'Read from here');
+    document.body.appendChild(selBtn);
+
+    var _hideTimeout;
+    function hideSelBtn() { selBtn.style.display = 'none'; }
+
+    selBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var sel = window.getSelection();
+        var text = sel ? sel.toString().trim() : '';
+        if (!text) { hideSelBtn(); return; }
+
+        // Find the nearest AI response element to anchor playback
+        var anchor = sel.anchorNode;
+        var parentEl = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor) : null;
+        var targetEl = null;
+        if (parentEl) {
+            targetEl = parentEl.closest('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"]');
+            if (!targetEl) {
+                // Try any parent with an id that isn't a tts span
+                var p = parentEl;
+                while (p && p !== document.body) {
+                    if (p.id && !p.id.startsWith('ttsS_') && !p.id.startsWith('ttsSelTemp')) {
+                        targetEl = p;
+                        break;
+                    }
+                    p = p.parentElement;
+                }
+            }
+        }
+
+        if (!targetEl) { hideSelBtn(); return; }
+
+        // Start reading from the selected text position, continues to end
+        window.readAloud(targetEl.id, text);
+        hideSelBtn();
+        sel.removeAllRanges();
+    });
+
+    // Show button when text is selected
+    document.addEventListener('mouseup', function(e) {
+        clearTimeout(_hideTimeout);
+        _hideTimeout = setTimeout(function() {
+            var sel = window.getSelection();
+            var text = sel ? sel.toString().trim() : '';
+            if (text.length > 3) {
+                var range = sel.getRangeAt(0);
+                var rect = range.getBoundingClientRect();
+                selBtn.innerHTML = '🔊 ' + (currentLang === 'es' ? 'Leer desde aquí' : 'Read from here');
+                selBtn.style.display = 'flex';
+                selBtn.style.left = Math.min(rect.left + rect.width / 2 - 60, window.innerWidth - 170) + 'px';
+                selBtn.style.top = Math.max(rect.top - 44, 8) + 'px';
+            } else {
+                hideSelBtn();
+            }
+        }, 200);
+    });
+
+    // Hide on click elsewhere
+    document.addEventListener('mousedown', function(e) {
+        if (e.target !== selBtn) {
+            _hideTimeout = setTimeout(hideSelBtn, 300);
+        }
+    });
+
+    // Touch support for mobile
+    document.addEventListener('selectionchange', function() {
+        clearTimeout(_hideTimeout);
+        _hideTimeout = setTimeout(function() {
+            var sel = window.getSelection();
+            var text = sel ? sel.toString().trim() : '';
+            if (text.length > 3 && sel.rangeCount > 0) {
+                var range = sel.getRangeAt(0);
+                var rect = range.getBoundingClientRect();
+                if (rect.width > 0) {
+                    selBtn.innerHTML = '🔊 ' + (currentLang === 'es' ? 'Leer desde aquí' : 'Read from here');
+                    selBtn.style.display = 'flex';
+                    selBtn.style.left = Math.min(rect.left + rect.width / 2 - 60, window.innerWidth - 170) + 'px';
+                    selBtn.style.top = Math.max(rect.top - 44, 8) + 'px';
+                }
+            }
+        }, 400);
+    });
+})();
 
 // GLOBAL STOP: cancel speech when ANY modal closes
 (function() {
@@ -25351,6 +25542,7 @@ window.readAloud = function(elementId) {
         _origRemove.apply(this, arguments);
         if (Array.from(arguments).indexOf('show') !== -1 && window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
+            if (window._ttsRestoreHTML) window._ttsRestoreHTML();
             if (window._ttsPlayer) {
                 window._ttsPlayer.playing = false;
                 window._ttsUpdatePlayerUI();
