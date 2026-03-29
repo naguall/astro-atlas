@@ -25455,38 +25455,43 @@ function _escHTML(str) {
     var _hideTimeout;
     function hideSelBtn() { selBtn.style.display = 'none'; }
 
-    selBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
+    // Store selection on mousedown so it persists through click
+    var _savedSel = { text: '', targetId: '' };
+    selBtn.addEventListener('mousedown', function(e) {
+        e.stopPropagation(); // Prevent modal from closing when clicking the button
+        // Save selection before click potentially clears it
         var sel = window.getSelection();
-        var text = sel ? sel.toString().trim() : '';
-        if (!text) { hideSelBtn(); return; }
-
-        // Find the nearest AI response element to anchor playback
-        var anchor = sel.anchorNode;
+        _savedSel.text = sel ? sel.toString().trim() : '';
+        var anchor = sel ? sel.anchorNode : null;
         var parentEl = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor) : null;
-        var targetEl = null;
+        _savedSel.targetId = '';
         if (parentEl) {
-            targetEl = parentEl.closest('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"]');
-            if (!targetEl) {
-                // Try any parent with an id that isn't a tts span
+            var t = parentEl.closest('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"]');
+            if (!t) {
                 var p = parentEl;
                 while (p && p !== document.body) {
-                    if (p.id && !p.id.startsWith('ttsS_') && !p.id.startsWith('ttsSelTemp')) {
-                        targetEl = p;
-                        break;
-                    }
+                    if (p.id && !p.id.startsWith('ttsS_') && !p.id.startsWith('ttsSelTemp')) { t = p; break; }
                     p = p.parentElement;
                 }
             }
+            if (t) _savedSel.targetId = t.id;
         }
-
-        if (!targetEl) { hideSelBtn(); return; }
+    });
+    selBtn.addEventListener('touchstart', function(e) {
+        e.stopPropagation(); // Prevent modal from closing on mobile
+    });
+    selBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var text = _savedSel.text;
+        var targetId = _savedSel.targetId;
+        if (!text || !targetId) { hideSelBtn(); return; }
 
         // Start reading from the selected text position, continues to end
-        window.readAloud(targetEl.id, text);
+        window.readAloud(targetId, text);
         hideSelBtn();
-        sel.removeAllRanges();
+        var sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
     });
 
     // Show button when text is selected
