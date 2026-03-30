@@ -23291,7 +23291,10 @@ function checkNotifications() {
     
     // Load notification preferences
     var notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"lunarPhases":true,"eclipses":true,"retrogrades":true,"signChanges":true,"interPlanetaryAspects":true,"astronomicalEvents":true,"userEvents":true}');
-    
+
+    // Wrap sections 1-7 in try/catch so personal messages (8-9) always run
+    try {
+
     // 1. Check lunar phase notifications (hour-precise)
     if (notifPrefs.lunarPhases) {
         buildPhaseTimesCache();
@@ -23597,11 +23600,15 @@ function checkNotifications() {
         }
     }
 
+    } catch(e) {
+        console.error('🔔 Error in notification sections 1-7:', e);
+    }
+
     // 8. Check custom messages from custom-messages.js (admin/global)
-    checkCustomMessages(now, todayKey);
+    try { checkCustomMessages(now, todayKey); } catch(e) { console.error('🔔 Error in checkCustomMessages:', e); }
 
     // 9. Check personal messages from localStorage (user/local)
-    checkMyPersonalMessages(now, todayKey);
+    try { checkMyPersonalMessages(now, todayKey); } catch(e) { console.error('🔔 Error in checkMyPersonalMessages:', e); }
 }
 
 // ─── Custom Messages System ───────────────────────────────────
@@ -23806,16 +23813,27 @@ function deleteMyMessage(dateKey, idx) {
 // Check personal messages (from localStorage) in the notification loop
 function checkMyPersonalMessages(now, todayKey) {
     var msgs = JSON.parse(localStorage.getItem('myCustomMessages') || '{}');
+    var allKeys = Object.keys(msgs);
+    console.log('📬 checkMyPersonalMessages: todayKey=' + todayKey + ', stored keys=' + allKeys.join(','));
+
     var entry = msgs[todayKey];
-    if (!entry) return;
+    if (!entry) {
+        console.log('📬 No messages for today');
+        return;
+    }
 
     var messages = Array.isArray(entry) ? entry : [entry];
+    console.log('📬 Found ' + messages.length + ' message(s) for today');
+
     for (var i = 0; i < messages.length; i++) {
         var msg = messages[i];
         if (!msg || !msg.message) continue;
 
         var notifKey = 'notif-my-msg-' + todayKey + '-' + i;
-        if (localStorage.getItem(notifKey)) continue;
+        if (localStorage.getItem(notifKey)) {
+            console.log('📬 Message [' + i + '] already sent (key: ' + notifKey + ')');
+            continue;
+        }
 
         var sendTime = msg.time || '08:00';
         var parts = sendTime.split(':');
@@ -23825,6 +23843,8 @@ function checkMyPersonalMessages(now, todayKey) {
         var scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sendHour, sendMin, 0, 0);
         var diff = now.getTime() - scheduledTime.getTime();
 
+        console.log('📬 Message [' + i + ']: scheduled=' + sendTime + ', diff=' + Math.round(diff/1000) + 's, title=' + (msg.title || 'Moon Sync'));
+
         if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
             var title = msg.title || 'Moon Sync';
             sendNotif(title, {
@@ -23833,7 +23853,9 @@ function checkMyPersonalMessages(now, todayKey) {
                 requireInteraction: true
             });
             localStorage.setItem(notifKey, 'true');
-            console.log('Personal message sent for', todayKey, '[' + i + ']:', msg.message.substring(0, 50));
+            console.log('📬 ✅ Personal message SENT for', todayKey, '[' + i + ']:', msg.message.substring(0, 50));
+        } else {
+            console.log('📬 ⏳ Message [' + i + '] not yet due (diff=' + Math.round(diff/1000) + 's)');
         }
     }
 }
@@ -26125,7 +26147,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v465';
+const APP_VERSION = 'v466';
 var _pendingSW = null;
 
 // What's New removed per user request
