@@ -5962,11 +5962,31 @@ function closeAstroModal() {
 }
 
 function closeNatalDetailModal() {
+    // If we're in a return chart sub-view (aspect/planet interpretation), go back to return chart instead of closing
+    if (window._savedReturnBody) {
+        restoreReturnChart();
+        return;
+    }
     document.getElementById('natalDetailModal').classList.remove('show');
     if (window._ttsStop) window._ttsStop();
     var ttsBar = document.getElementById('ttsPlayerBar');
     if (ttsBar) ttsBar.style.display = 'none';
 }
+
+// Restore return chart content after viewing aspect/planet interpretation
+function restoreReturnChart() {
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (window._savedReturnTitle) titleEl.textContent = window._savedReturnTitle;
+    if (window._savedReturnBody) bodyEl.innerHTML = window._savedReturnBody;
+    // Clear saved state
+    window._savedReturnTitle = null;
+    window._savedReturnBody = null;
+    // Scroll to top of modal content
+    var content = bodyEl.closest('.modal-content');
+    if (content) content.scrollTop = 0;
+}
+window.restoreReturnChart = restoreReturnChart;
 
 // ============================================
 // SAVED READINGS SYSTEM
@@ -15900,6 +15920,10 @@ window.openReturnChart = function(type) {
     window._lastReturnType = type;
     window._lastReturnDate = returnDate;
 
+    // Clear any saved sub-view state
+    window._savedReturnTitle = null;
+    window._savedReturnBody = null;
+
     // Use standard natalDetailModal
     var modal = document.getElementById('natalDetailModal');
     var _rtTitleEl = document.getElementById('natalDetailTitle');
@@ -15943,9 +15967,14 @@ window.interpretReturnAspect = function(idx) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
 
+    // Save current return chart content so we can restore on back
+    window._savedReturnTitle = titleEl.textContent;
+    window._savedReturnBody = bodyEl.innerHTML;
+
     titleEl.textContent = returnLabel + ': ' + p1Name + ' ' + sym + ' ' + p2Name;
 
-    var html = '<div style="border-bottom: 2px solid ' + clr + '; padding-bottom: 12px; margin-bottom: 15px;">';
+    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + (L?'← Volver al retorno':'← Back to return') + '</button>';
+    html += '<div style="border-bottom: 2px solid ' + clr + '; padding-bottom: 12px; margin-bottom: 15px;">';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta 1:' : 'Planet 1:') + '</strong> ' + p1Name + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Aspecto:' : 'Aspect:') + '</strong> <span style="color:' + clr + ';font-weight:700;">' + aspName + ' ' + sym + '</span></div>';
@@ -15994,9 +16023,14 @@ window.interpretReturnPlanet = function(key) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
 
+    // Save current return chart content so we can restore on back
+    window._savedReturnTitle = titleEl.textContent;
+    window._savedReturnBody = bodyEl.innerHTML;
+
     titleEl.textContent = returnLabel + ': ' + sym + ' ' + name;
 
-    var html = '<div style="border-bottom: 2px solid #c9a840; padding-bottom: 12px; margin-bottom: 15px;">';
+    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + (L?'← Volver al retorno':'← Back to return') + '</button>';
+    html += '<div style="border-bottom: 2px solid #c9a840; padding-bottom: 12px; margin-bottom: 15px;">';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta:' : 'Planet:') + '</strong> ' + sym + ' ' + name + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Signo:' : 'Sign:') + '</strong> ' + (pl.sign || '?') + '</div>';
@@ -16549,7 +16583,7 @@ function saveNatalForm() {
     // Calculate natal chart
     const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
     const chart = calculateNatalChart(birthUTC);
-    chart._engineVer = 'v468';
+    chart._engineVer = 'v469';
     localStorage.setItem('natalChart', JSON.stringify(chart));
     // Also save per-profile chart cache
     localStorage.setItem('natalChart_' + activeId, JSON.stringify(chart));
@@ -19082,8 +19116,8 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    // Bumped to v468 after fixing Placidus H2/H3 cusp formulas + country code case + lon parameter
-    const NATAL_ENGINE_VER = 'v468';
+    // Bumped to v469 after fixing Placidus H2/H3 cusp formulas + country code case + lon parameter
+    const NATAL_ENGINE_VER = 'v469';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -26154,7 +26188,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v468';
+const APP_VERSION = 'v469';
 var _pendingSW = null;
 
 // What's New removed per user request
