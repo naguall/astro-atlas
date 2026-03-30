@@ -8696,21 +8696,56 @@ function startDreamVoiceRecording() {
             }
             stopDreamVoiceRecording(false);
         } else if (event.error === 'no-speech') {
-            // Don't stop, just log — silence timer handles this
-            console.log('🌙 No speech detected, waiting...');
+            // Browser's SpeechRecognition auto-stops after ~60s of silence.
+            // Don't stop — our own silence timer (2 min) handles the real timeout.
+            // Flag that we need a restart (onend will fire next).
+            console.log('🌙 No speech detected by browser, will restart...');
+        } else if (event.error === 'aborted') {
+            // Can happen during restart — just let onend handle it
+            console.log('🌙 Recognition aborted, will restart...');
         }
     };
 
     _dreamRecognition.onend = function() {
         console.log('🌙 Dream recognition ended, recording:', _dreamRecording);
         if (_dreamRecording) {
-            // Auto-restart to keep recording
-            try {
-                _dreamRecognition.start();
-            } catch(e) {
-                console.error('🌙 Could not restart dream recording:', e);
-                stopDreamVoiceRecording(true);
-            }
+            // Auto-restart to keep recording.
+            // Use a small delay to avoid "already started" errors on some browsers
+            // (especially after no-speech or aborted errors).
+            setTimeout(function() {
+                if (!_dreamRecording) return;
+                try {
+                    // Re-create recognition instance to avoid stale state
+                    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRec) return;
+                    var oldOnResult = _dreamRecognition.onresult;
+                    var oldOnError = _dreamRecognition.onerror;
+                    var oldOnEnd = _dreamRecognition.onend;
+                    var oldOnStart = _dreamRecognition.onstart;
+                    _dreamRecognition = new SpeechRec();
+                    _dreamRecognition.continuous = true;
+                    _dreamRecognition.interimResults = false;
+                    _dreamRecognition.lang = (currentLang === 'es') ? 'es-ES' : 'en-US';
+                    _dreamRecognition.onstart = oldOnStart;
+                    _dreamRecognition.onresult = oldOnResult;
+                    _dreamRecognition.onerror = oldOnError;
+                    _dreamRecognition.onend = oldOnEnd;
+                    _dreamRecognition.start();
+                    console.log('🌙 Dream recognition restarted successfully');
+                } catch(e) {
+                    console.error('🌙 Could not restart dream recording:', e);
+                    // Try once more after a longer delay
+                    setTimeout(function() {
+                        if (!_dreamRecording) return;
+                        try {
+                            _dreamRecognition.start();
+                        } catch(e2) {
+                            console.error('🌙 Final restart attempt failed:', e2);
+                            stopDreamVoiceRecording(true);
+                        }
+                    }, 1000);
+                }
+            }, 300);
         }
     };
 
@@ -26076,7 +26111,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v463';
+const APP_VERSION = 'v464';
 var _pendingSW = null;
 
 // What's New removed per user request
