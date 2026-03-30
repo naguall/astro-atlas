@@ -16549,7 +16549,7 @@ function saveNatalForm() {
     // Calculate natal chart
     const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
     const chart = calculateNatalChart(birthUTC);
-    chart._engineVer = 'v159';
+    chart._engineVer = 'v468';
     localStorage.setItem('natalChart', JSON.stringify(chart));
     // Also save per-profile chart cache
     localStorage.setItem('natalChart_' + activeId, JSON.stringify(chart));
@@ -19082,7 +19082,8 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v395';
+    // Bumped to v468 after fixing Placidus H2/H3 cusp formulas + country code case + lon parameter
+    const NATAL_ENGINE_VER = 'v468';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -26153,7 +26154,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v467';
+const APP_VERSION = 'v468';
 var _pendingSW = null;
 
 // What's New removed per user request
