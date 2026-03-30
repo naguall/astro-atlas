@@ -9639,6 +9639,29 @@ function saveEvent() {
     if (eventDateKey === todayDateKey) {
         logNotificationEvent(`📅 ${currentLang==='es'?'Evento creado para hoy':'Event created for today'}: "${title}"${event.time?' '+event.time:''}`, 'event');
     }
+
+    // Immediately check notifications so reminders for this event are registered
+    setTimeout(checkNotifications, 500);
+
+    // Show confirmation with reminder summary
+    var _L = currentLang === 'es';
+    if (event.time && reminders.length > 0) {
+        var reminderSummary = reminders.map(function(r) {
+            if (r.minutes === 0) return _L ? 'al momento' : 'at time';
+            if (r.minutes < 60) return r.minutes + ' min';
+            if (r.minutes < 1440) return Math.round(r.minutes/60) + (_L ? ' hora' + (Math.round(r.minutes/60)>1?'s':'') : ' hour' + (Math.round(r.minutes/60)>1?'s':''));
+            return Math.round(r.minutes/1440) + (_L ? ' día' + (Math.round(r.minutes/1440)>1?'s':'') : ' day' + (Math.round(r.minutes/1440)>1?'s':''));
+        }).join(', ');
+        var confirmMsg = _L
+            ? '✅ Evento guardado\n🔔 Recordatorios: ' + reminderSummary + ' antes'
+            : '✅ Event saved\n🔔 Reminders: ' + reminderSummary + ' before';
+        // Brief toast-style notification
+        var _toast = document.createElement('div');
+        _toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(5,7,30,0.95);border:1px solid rgba(201,168,64,0.5);border-radius:12px;padding:12px 20px;color:#ffd54f;font-size:0.85em;z-index:99999;text-align:center;white-space:pre-line;box-shadow:0 4px 20px rgba(0,0,0,0.5);animation:fadeIn 0.3s ease;';
+        _toast.textContent = confirmMsg;
+        document.body.appendChild(_toast);
+        setTimeout(function() { _toast.style.opacity = '0'; _toast.style.transition = 'opacity 0.5s'; setTimeout(function() { _toast.remove(); }, 500); }, 3000);
+    }
 }
 
 function editEvent(index) {
@@ -26046,7 +26069,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v460';
+const APP_VERSION = 'v461';
 var _pendingSW = null;
 
 // What's New removed per user request
