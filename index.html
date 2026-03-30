@@ -9190,16 +9190,44 @@ function _getMoonRiseSet(date, lat, lon) {
 
 function _getSubLunarPoint(date) {
     // Get the geographic point on Earth directly under the Moon
+    return _getSubBodyPoint('moon', date);
+}
+
+function _getSubBodyPoint(bodyName, date) {
+    // Get the geographic point on Earth directly under any celestial body
+    // For planets/sun/moon: uses Astronomy.Equator to get RA/Dec
+    // For constellations: uses stored center RA/Dec
     if (typeof Astronomy === 'undefined') return null;
     try {
         var t = Astronomy.MakeTime(date);
-        // Get Moon's geocentric equatorial coordinates
-        var equ = Astronomy.Equator(Astronomy.Body.Moon, t, new Astronomy.Observer(0, 0, 0), true, true);
-        // Declination = sub-lunar latitude
-        var subLat = equ.dec;
+        var ra, dec;
+        if (bodyName.indexOf('const_') === 0) {
+            // Constellation: use stored center coordinates
+            var cId = bodyName.substring(6);
+            var cData = _constellationData.find(function(c) { return c.id === cId; });
+            if (!cData) return null;
+            ra = cData.centerRa;
+            dec = cData.centerDec;
+        } else {
+            // Solar system body
+            var bodyMap = {
+                'moon': Astronomy.Body.Moon, 'sun': Astronomy.Body.Sun,
+                'mercury': Astronomy.Body.Mercury, 'venus': Astronomy.Body.Venus,
+                'mars': Astronomy.Body.Mars, 'jupiter': Astronomy.Body.Jupiter,
+                'saturn': Astronomy.Body.Saturn, 'uranus': Astronomy.Body.Uranus,
+                'neptune': Astronomy.Body.Neptune, 'pluto': Astronomy.Body.Pluto
+            };
+            var body = bodyMap[bodyName];
+            if (!body) return null;
+            var equ = Astronomy.Equator(body, t, new Astronomy.Observer(0, 0, 0), true, true);
+            ra = equ.ra;
+            dec = equ.dec;
+        }
+        // Declination = sub-point latitude
+        var subLat = dec;
         // Right ascension to longitude: need Greenwich Sidereal Time
         var gst = Astronomy.SiderealTime(t);
-        var subLon = ((equ.ra - gst) * 15 + 360) % 360;
+        var subLon = ((ra - gst) * 15 + 360) % 360;
         if (subLon > 180) subLon -= 360;
         return { lat: subLat, lon: subLon };
     } catch(e) { return null; }
@@ -9478,17 +9506,23 @@ function _renderCompass() {
     });
     info += '</div>';
 
-    // ===== SUB-LUNAR POINT MAP (only for Moon mode) =====
-    var subLunar = isMoonMode ? _getSubLunarPoint(now) : null;
-    if (subLunar) {
+    // ===== SUB-BODY POINT MAP (for all modes) =====
+    var subPoint = _getSubBodyPoint(_compassMode, now);
+    var subPointLabel = isMoonMode ? (L ? 'PUNTO SUBLUNAR' : 'SUB-LUNAR POINT') :
+        isSunMode ? (L ? 'PUNTO SUBSOLAR' : 'SUB-SOLAR POINT') :
+        isConstellation ? (L ? 'PUNTO CENITAL' : 'ZENITH POINT') :
+        (L ? 'PUNTO SUB-' + targetName.toUpperCase() : 'SUB-' + targetName.toUpperCase() + ' POINT');
+    if (subPoint) {
         // 2D/3D toggle
         info += '<div style="margin-top:10px;">';
         info += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
-        info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;">' + (L ? 'PUNTO SUBLUNAR' : 'SUB-LUNAR POINT') + '</div>';
+        info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;">' + subPointLabel + '</div>';
         info += '<div style="display:flex;gap:4px;">';
         info += '<button onclick="_compassMapMode=\'2d\';_renderCompass();" style="padding:2px 8px;font-size:0.7em;border-radius:4px;cursor:pointer;border:1px solid ' + (_compassMapMode === '2d' ? 'rgba(255,213,79,0.5)' : 'rgba(255,255,255,0.15)') + ';background:' + (_compassMapMode === '2d' ? 'rgba(255,213,79,0.15)' : 'rgba(255,255,255,0.03)') + ';color:' + (_compassMapMode === '2d' ? '#ffd54f' : 'rgba(255,255,255,0.4)') + ';">2D</button>';
         info += '<button onclick="_compassMapMode=\'3d\';_renderCompass();" style="padding:2px 8px;font-size:0.7em;border-radius:4px;cursor:pointer;border:1px solid ' + (_compassMapMode === '3d' ? 'rgba(255,213,79,0.5)' : 'rgba(255,255,255,0.15)') + ';background:' + (_compassMapMode === '3d' ? 'rgba(255,213,79,0.15)' : 'rgba(255,255,255,0.03)') + ';color:' + (_compassMapMode === '3d' ? '#ffd54f' : 'rgba(255,255,255,0.4)') + ';">3D</button>';
         info += '</div></div>';
+
+        var _spColorRgb = isMoonMode ? '255,213,79' : isSunMode ? '255,152,0' : isConstellation ? '192,224,255' : '200,180,255';
 
         if (_compassMapMode === '2d') {
             // 2D equirectangular map
@@ -9513,24 +9547,24 @@ function _renderCompass() {
             var uY = (90 - lat) / 180 * mH;
             mapSvg += '<circle cx="' + uX + '" cy="' + uY + '" r="3" fill="#4ecdc4" stroke="rgba(78,205,196,0.6)" stroke-width="1"/>';
             mapSvg += '<text x="' + (uX + 6) + '" y="' + (uY + 3) + '" fill="#4ecdc4" font-size="7" font-weight="600">' + (L ? 'Tú' : 'You') + '</text>';
-            // Sub-lunar point
-            var slX = (subLunar.lon + 180) / 360 * mW;
-            var slY = (90 - subLunar.lat) / 180 * mH;
-            // Glow circle around sub-lunar point
-            mapSvg += '<circle cx="' + slX + '" cy="' + slY + '" r="14" fill="none" stroke="rgba(255,213,79,0.2)" stroke-width="1"><animate attributeName="r" from="8" to="18" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite"/></circle>';
-            mapSvg += '<circle cx="' + slX + '" cy="' + slY + '" r="4" fill="#ffd54f" stroke="rgba(255,213,79,0.8)" stroke-width="1.5"><animate attributeName="r" from="3" to="5" dur="1.5s" repeatCount="indefinite" values="3;5;3"/></circle>';
-            mapSvg += '<text x="' + slX + '" y="' + (slY - 8) + '" fill="#ffd54f" font-size="8" text-anchor="middle">🌙</text>';
-            // Line connecting user to sub-lunar point
-            mapSvg += '<line x1="' + uX + '" y1="' + uY + '" x2="' + slX + '" y2="' + slY + '" stroke="rgba(255,213,79,0.2)" stroke-width="0.5" stroke-dasharray="3,3"/>';
+            // Sub-body point
+            var slX = (subPoint.lon + 180) / 360 * mW;
+            var slY = (90 - subPoint.lat) / 180 * mH;
+            // Glow circle
+            mapSvg += '<circle cx="' + slX + '" cy="' + slY + '" r="14" fill="none" stroke="rgba(' + _spColorRgb + ',0.2)" stroke-width="1"><animate attributeName="r" from="8" to="18" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite"/></circle>';
+            mapSvg += '<circle cx="' + slX + '" cy="' + slY + '" r="4" fill="' + targetColor + '" stroke="' + targetColor + '" stroke-width="1.5"><animate attributeName="r" from="3" to="5" dur="1.5s" repeatCount="indefinite" values="3;5;3"/></circle>';
+            mapSvg += '<text x="' + slX + '" y="' + (slY - 8) + '" fill="' + targetColor + '" font-size="8" text-anchor="middle">' + targetIcon + '</text>';
+            // Line connecting user to sub-body point
+            mapSvg += '<line x1="' + uX + '" y1="' + uY + '" x2="' + slX + '" y2="' + slY + '" stroke="rgba(' + _spColorRgb + ',0.2)" stroke-width="0.5" stroke-dasharray="3,3"/>';
             mapSvg += '</svg>';
             info += mapSvg;
         } else {
             // 3D globe view
             var gSize = 220, gCx = gSize/2, gCy = gSize/2, gR = 90;
             var globeSvg = '<svg width="' + gSize + '" height="' + gSize + '" viewBox="0 0 ' + gSize + ' ' + gSize + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">';
-            // Rotate globe so sub-lunar point faces us
-            var rotLon = subLunar.lon;
-            var rotLat = subLunar.lat;
+            // Rotate globe so sub-body point faces us
+            var rotLon = subPoint.lon;
+            var rotLat = subPoint.lat;
             // Globe background
             globeSvg += '<defs><radialGradient id="globeGrad" cx="40%" cy="35%"><stop offset="0%" stop-color="#1a3a5c"/><stop offset="70%" stop-color="#0d1f33"/><stop offset="100%" stop-color="#050a14"/></radialGradient></defs>';
             globeSvg += '<circle cx="' + gCx + '" cy="' + gCy + '" r="' + gR + '" fill="url(#globeGrad)" stroke="rgba(126,200,255,0.2)" stroke-width="1"/>';
@@ -9614,9 +9648,9 @@ function _renderCompass() {
                     globeSvg += '<polyline points="' + cPts.join(' ') + '" fill="rgba(30,90,55,0.45)" stroke="rgba(60,160,100,0.55)" stroke-width="1" stroke-linejoin="round"/>';
                 }
             }
-            // Sub-lunar point (always at center since globe rotated to face it)
-            globeSvg += '<circle cx="' + gCx + '" cy="' + (gCy - rotLat/90*gR).toFixed(1) + '" r="6" fill="rgba(255,213,79,0.3)" stroke="#ffd54f" stroke-width="1.5"><animate attributeName="r" from="4" to="10" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.8" to="0.1" dur="2s" repeatCount="indefinite"/></circle>';
-            globeSvg += '<circle cx="' + gCx + '" cy="' + (gCy - rotLat/90*gR).toFixed(1) + '" r="3" fill="#ffd54f"/>';
+            // Sub-body point (always at center since globe rotated to face it)
+            globeSvg += '<circle cx="' + gCx + '" cy="' + (gCy - rotLat/90*gR).toFixed(1) + '" r="6" fill="rgba(' + _spColorRgb + ',0.3)" stroke="' + targetColor + '" stroke-width="1.5"><animate attributeName="r" from="4" to="10" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.8" to="0.1" dur="2s" repeatCount="indefinite"/></circle>';
+            globeSvg += '<circle cx="' + gCx + '" cy="' + (gCy - rotLat/90*gR).toFixed(1) + '" r="3" fill="' + targetColor + '"/>';
             // User position on globe
             var uLat3 = lat * Math.PI / 180;
             var uLon3 = (lon - rotLon) * Math.PI / 180;
@@ -9634,8 +9668,8 @@ function _renderCompass() {
             globeSvg += '</svg>';
             info += globeSvg;
         }
-        // Sub-lunar coordinates
-        info += '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:4px;">' + subLunar.lat.toFixed(2) + '°' + (subLunar.lat >= 0 ? 'N' : 'S') + ' ' + Math.abs(subLunar.lon).toFixed(2) + '°' + (subLunar.lon >= 0 ? 'E' : 'W') + '</div>';
+        // Sub-body coordinates
+        info += '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:4px;">' + subPoint.lat.toFixed(2) + '°' + (subPoint.lat >= 0 ? 'N' : 'S') + ' ' + Math.abs(subPoint.lon).toFixed(2) + '°' + (subPoint.lon >= 0 ? 'E' : 'W') + '</div>';
         info += '</div>';
     }
 
@@ -25065,7 +25099,9 @@ clearOldNotifications();
 
     function clearAllBadges() {
         console.log('[Badge] clearAllBadges called');
-        markAllNotifSeen();
+        // Only clear OS-level badges (Android/iOS app icon badge)
+        // Do NOT mark in-app notifications as seen here —
+        // the bell badge should persist until the user opens the 🔔 modal
         if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
         if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
         _sendClearToSW();
@@ -25073,10 +25109,11 @@ clearOldNotifications();
         setTimeout(_sendClearToSW, 500);
         setTimeout(_sendClearToSW, 1500);
         setTimeout(_sendClearToSW, 3000);
+        // Update the in-app bell badge (shows unseen count)
         updateNotifBadge();
     }
 
-    // On page load
+    // On page load — clear OS badges but keep in-app bell badge
     clearAllBadges();
 
     // When returning from background
@@ -26561,7 +26598,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v471';
+const APP_VERSION = 'v473';
 var _pendingSW = null;
 
 // What's New removed per user request
