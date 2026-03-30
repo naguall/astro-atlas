@@ -23463,40 +23463,73 @@ function checkNotifications() {
         }
     }
     
-    // 7. Check user calendar events
+    // 7. Check user calendar events (today + upcoming days for advance reminders)
     if (notifPrefs.userEvents) {
-        var todayEvents = events[todayKey] || [];
-        todayEvents.forEach(function(event) {
-            if (event.time) {
-                var parts = event.time.split(':');
-                var eventTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-                var reminders = (event.reminders && event.reminders.length > 0) 
-                    ? event.reminders 
-                    : [{minutes: 15, label: '15 min'}, {minutes: 0, label: 'at time'}];
-                
-                reminders.forEach(function(reminder) {
-                    var reminderKey = 'notif-userEvents-' + todayKey + '-' + event.title + '-' + reminder.minutes;
-                    if (!localStorage.getItem(reminderKey)) {
-                        var notifyTime = new Date(eventTime.getTime() - reminder.minutes * 60 * 1000);
-                        var min = new Date(notifyTime.getTime() - 60000);
-                        var max = new Date(notifyTime.getTime() + 60000);
-                        
-                        if (now >= min && now <= max) {
-                            var timeLabel = reminder.minutes === 0
-                                ? (L ? 'Ahora' : 'Now')
-                                : (L ? 'En ' + reminder.minutes + ' min' : 'In ' + reminder.minutes + ' min');
-                            sendNotif((L ? 'Evento: ' : 'Event: ') + event.title, {
-                                body: timeLabel + ' - ' + event.time,
-                                tag: 'event-' + todayKey + '-' + event.title + '-' + reminder.minutes,
-                                requireInteraction: true
-                            });
-                            localStorage.setItem(reminderKey, 'true');
-                            console.log('📅 Event reminder:', event.title);
+        // Check events for today and the next 3 days (to catch 1-day, 2-day, 3-day advance reminders)
+        for (var _dayOffset = 0; _dayOffset <= 3; _dayOffset++) {
+            var _checkDate = new Date(now.getTime() + _dayOffset * 86400000);
+            var _checkKey = getDateKey(_checkDate);
+            var _dayEvents = events[_checkKey] || [];
+            _dayEvents.forEach(function(event) {
+                if (event.time) {
+                    var parts = event.time.split(':');
+                    var eventTime = new Date(_checkDate.getFullYear(), _checkDate.getMonth(), _checkDate.getDate(), parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+                    var reminders = (event.reminders && event.reminders.length > 0)
+                        ? event.reminders
+                        : [{minutes: 15, label: '15 min'}, {minutes: 0, label: 'at time'}];
+
+                    reminders.forEach(function(reminder) {
+                        var reminderKey = 'notif-userEvents-' + _checkKey + '-' + event.title + '-' + reminder.minutes;
+                        if (!localStorage.getItem(reminderKey)) {
+                            var notifyTime = new Date(eventTime.getTime() - reminder.minutes * 60 * 1000);
+                            // Wider window: -45s to +90s to avoid missing with 30s interval
+                            var min = new Date(notifyTime.getTime() - 45000);
+                            var max = new Date(notifyTime.getTime() + 90000);
+
+                            if (now >= min && now <= max) {
+                                var timeLabel = reminder.minutes === 0
+                                    ? (L ? '¡Ahora!' : 'Now!')
+                                    : reminder.minutes < 60
+                                    ? (L ? 'En ' + reminder.minutes + ' min' : 'In ' + reminder.minutes + ' min')
+                                    : reminder.minutes < 1440
+                                    ? (L ? 'En ' + Math.round(reminder.minutes/60) + ' hora' + (Math.round(reminder.minutes/60)>1?'s':'') : 'In ' + Math.round(reminder.minutes/60) + ' hour' + (Math.round(reminder.minutes/60)>1?'s':''))
+                                    : (L ? 'En ' + Math.round(reminder.minutes/1440) + ' día' + (Math.round(reminder.minutes/1440)>1?'s':'') : 'In ' + Math.round(reminder.minutes/1440) + ' day' + (Math.round(reminder.minutes/1440)>1?'s':''));
+                                var dateLabel = _dayOffset > 0
+                                    ? ' — ' + _checkDate.toLocaleDateString(L?'es':'en', {weekday:'short', day:'numeric', month:'short'})
+                                    : '';
+                                sendNotif('📅 ' + event.title, {
+                                    body: timeLabel + ' — ' + event.time + dateLabel,
+                                    tag: 'event-' + _checkKey + '-' + event.title + '-' + reminder.minutes,
+                                    requireInteraction: true,
+                                    vibrate: [200, 100, 200]
+                                });
+                                localStorage.setItem(reminderKey, 'true');
+                                console.log('📅 Event reminder:', event.title, timeLabel);
+                            }
+                            // Catch-up: if we missed the notification window (app was closed),
+                            // send it now if the event hasn't passed yet
+                            else if (now > max && eventTime > now && !localStorage.getItem(reminderKey)) {
+                                // Only catch up for the most relevant reminder (closest to now)
+                                var msSinceTarget = now.getTime() - notifyTime.getTime();
+                                if (msSinceTarget > 0 && msSinceTarget < 10 * 60000) { // within 10 min of missed target
+                                    var catchLabel = reminder.minutes === 0
+                                        ? (L ? '¡Ahora!' : 'Now!')
+                                        : (L ? 'Próximamente' : 'Coming up');
+                                    sendNotif('📅 ' + event.title, {
+                                        body: catchLabel + ' — ' + event.time + (_dayOffset > 0 ? ' — ' + _checkDate.toLocaleDateString(L?'es':'en', {weekday:'short', day:'numeric', month:'short'}) : ''),
+                                        tag: 'event-catchup-' + _checkKey + '-' + event.title + '-' + reminder.minutes,
+                                        requireInteraction: true,
+                                        vibrate: [200, 100, 200]
+                                    });
+                                    localStorage.setItem(reminderKey, 'true');
+                                    console.log('📅 Catch-up reminder:', event.title);
+                                }
+                            }
                         }
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
+        }
     }
 
     // 8. Check custom messages from custom-messages.js (admin/global)
@@ -23806,11 +23839,19 @@ function checkLunarPhaseStart(date) {
     return false;
 }
 
-// Check notifications every 5 minutes
-setInterval(checkNotifications, 30 * 1000);
+// Check notifications every 15 seconds for better precision on event reminders
+setInterval(checkNotifications, 15 * 1000);
 
 // Initial check 2 seconds after page load
 setTimeout(checkNotifications, 2000);
+
+// Re-check when app returns to foreground (critical for Android where timers suspend in background)
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        console.log('🔔 App returned to foreground — checking notifications');
+        setTimeout(checkNotifications, 500);
+    }
+});
 
 
 // CRITICAL: Expose functions to window for onclick handlers
@@ -26005,7 +26046,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v459';
+const APP_VERSION = 'v460';
 var _pendingSW = null;
 
 // What's New removed per user request
