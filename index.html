@@ -5058,6 +5058,29 @@ function getAllEventsForDate(date) {
 let recognition = null;
 let isRecording = false;
 
+// ===== VOICE RECOGNITION DIALECT HELPER (v484) =====
+// Returns the best speech recognition language code based on user preference
+function getVoiceLang() {
+    var saved = localStorage.getItem('moonSync_voiceDialect');
+    if (saved) return saved;
+    // Default: use app language with improved dialect
+    return currentLang === 'es' ? 'es-419' : 'en-US';
+}
+
+// Post-process transcript to fix common speech recognition errors
+function postProcessTranscript(text) {
+    if (!text) return text;
+    var processed = text;
+    // Capitalize first letter after sentence-ending punctuation
+    processed = processed.replace(/(^|[.!?]\s+)([a-záéíóúñü])/g, function(m, p1, p2) {
+        return p1 + p2.toUpperCase();
+    });
+    // Fix common speech-to-text artifacts
+    processed = processed.replace(/\s{2,}/g, ' '); // Multiple spaces
+    processed = processed.replace(/^\s+/, ''); // Leading spaces
+    return processed;
+}
+
 function initVoiceRecognition() {
     // Check security context
     if (!window.isSecureContext) {
@@ -5093,8 +5116,9 @@ function initVoiceRecognition() {
     
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false; // Changed to false to only get final results
-    recognition.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+    recognition.interimResults = false;
+    recognition.lang = getVoiceLang();
+    recognition.maxAlternatives = 3;
     
     recognition.onstart = () => {
         console.log('🎤 Voice recognition started');
@@ -5112,29 +5136,31 @@ function initVoiceRecognition() {
     recognition.onresult = (event) => {
         const textarea = document.getElementById('diarioText');
         if (!textarea) return;
-        
-        // Process only the new results
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            
-            // Only process FINAL results to avoid repetition
             if (event.results[i].isFinal) {
-                // Get current cursor position
+                // Pick best alternative (highest confidence)
+                let bestTranscript = event.results[i][0].transcript;
+                let bestConfidence = event.results[i][0].confidence || 0;
+                for (let a = 1; a < event.results[i].length; a++) {
+                    if ((event.results[i][a].confidence || 0) > bestConfidence) {
+                        bestConfidence = event.results[i][a].confidence;
+                        bestTranscript = event.results[i][a].transcript;
+                    }
+                }
+                const transcript = (typeof postProcessTranscript === 'function') ? postProcessTranscript(bestTranscript) : bestTranscript;
+
                 const cursorPos = textarea.selectionStart;
                 const textBefore = textarea.value.substring(0, cursorPos);
                 const textAfter = textarea.value.substring(cursorPos);
-                
-                // Insert ONLY the new transcript (not accumulated)
+
                 textarea.value = textBefore + transcript + ' ' + textAfter;
-                
-                // Update cursor position
+
                 const newPos = cursorPos + transcript.length + 1;
                 textarea.setSelectionRange(newPos, newPos);
-                
-                // Trigger auto-save
                 textarea.dispatchEvent(new Event('input'));
-                
-                console.log('✅ Transcribed:', transcript);
+
+                console.log('✅ Transcribed (conf=' + (bestConfidence*100).toFixed(0) + '%):', transcript);
             }
         }
     };
@@ -8761,7 +8787,8 @@ function startDreamVoiceRecording() {
     _dreamRecognition = new SpeechRecognition();
     _dreamRecognition.continuous = true;
     _dreamRecognition.interimResults = false;
-    _dreamRecognition.lang = L ? 'es-ES' : 'en-US';
+    _dreamRecognition.lang = getVoiceLang();
+    _dreamRecognition.maxAlternatives = 3;
 
     var lastSpeechTime = Date.now();
     var SILENCE_TIMEOUT = 120000; // 2 minutes
@@ -8799,19 +8826,27 @@ function startDreamVoiceRecording() {
         var textarea = document.getElementById('dreamText');
         if (!textarea) return;
 
-        lastSpeechTime = Date.now(); // Reset silence timer
+        lastSpeechTime = Date.now();
 
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
-                var transcript = event.results[i][0].transcript;
+                var bestTranscript = event.results[i][0].transcript;
+                var bestConf = event.results[i][0].confidence || 0;
+                for (var a = 1; a < event.results[i].length; a++) {
+                    if ((event.results[i][a].confidence || 0) > bestConf) {
+                        bestConf = event.results[i][a].confidence;
+                        bestTranscript = event.results[i][a].transcript;
+                    }
+                }
+                var transcript = (typeof postProcessTranscript === 'function') ? postProcessTranscript(bestTranscript) : bestTranscript;
                 var cursorPos = textarea.selectionStart;
                 var textBefore = textarea.value.substring(0, cursorPos);
                 var textAfter = textarea.value.substring(cursorPos);
                 textarea.value = textBefore + transcript + ' ' + textAfter;
                 var newPos = cursorPos + transcript.length + 1;
                 textarea.setSelectionRange(newPos, newPos);
-                textarea.dispatchEvent(new Event('input')); // Trigger auto-save
-                console.log('🌙 Dream transcribed:', transcript.substring(0, 50) + '...');
+                textarea.dispatchEvent(new Event('input'));
+                console.log('🌙 Dream transcribed (conf=' + (bestConf*100).toFixed(0) + '%):', transcript.substring(0, 50) + '...');
             }
         }
     };
@@ -20204,20 +20239,16 @@ function renderPersonalCalendar() {
 
         calendarHTML += `
             <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
-                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;width:100%;">
                     <div style="display:flex;align-items:baseline;gap:3px;">
                         <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
                         <div style="font-size:0.65em;font-weight:700;color:#b39ddb;opacity:0.8;" title="${L?'Numerología del día':'Day numerology'}">${(() => { let n = personalDay; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; })()}</div>
                     </div>
-                    <div style="display:flex;gap:1px;align-items:center;flex-wrap:wrap;">
-                        ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
-                        ${moonIcon ? `<span style="font-size:1em;">${moonIcon}</span>` : ''}
-                        ${getCyclesForDate(date).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.65em;" title="${c.label}">${c.icon}</span>`).join('')}
-                    </div>
+                    ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                 </div>
-                <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
+                <div style="font-size:0.6em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
                 ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
-                ${_calAstroIcons ? `<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;width:100%;margin-top:1px;">${_calAstroIcons}</div>` : ''}
+                ${(moonIcon || getCyclesForDate(date).length > 0 || _calAstroIcons) ? `<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;justify-content:center;width:100%;margin-top:1px;">${moonIcon ? `<span style="font-size:0.85em;">${moonIcon}</span>` : ''}${getCyclesForDate(date).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.6em;" title="${c.label}">${c.icon}</span>`).join('')}${_calAstroIcons}</div>` : ''}
                 ${_calEvtHTML}
             </div>
         `;
@@ -22069,19 +22100,34 @@ const _fullMoonDates2026 = [
 const fullMoonsLocal = _fullMoonDates2026.map(s => new Date(s));
 
 // Check if a date is a new moon or full moon
+// Uses dynamic elongation check to match lunar calendar's findExactPerfection logic
 function getMoonEventForDate(checkDate) {
-    const checkStr = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate()).toDateString();
+    var checkNoon = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate(), 12, 0, 0);
+    var elongNoon = (typeof calculateLunarPhase === 'function') ? calculateLunarPhase(checkNoon) : -1;
+    if (elongNoon < 0) return null;
 
-    // Check new moons
-    for (const nm of newMoonsLocal) {
-        if (new Date(nm.getFullYear(), nm.getMonth(), nm.getDate()).toDateString() === checkStr)
-            return {type: 'new', icon: '<svg width="10" height="10" viewBox="0 0 14 14" style="display:inline;vertical-align:middle;"><circle cx="7" cy="7" r="6" fill="#222" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/><circle cx="7" cy="7" r="6.5" fill="none" stroke="rgba(200,180,100,0.25)" stroke-width="1"/></svg>', label: currentLang==='es'?'Nueva':'New'};
+    // Check previous and next day at noon for comparison
+    var prevNoon = new Date(checkNoon.getTime() - 86400000);
+    var nextNoon = new Date(checkNoon.getTime() + 86400000);
+    var elongPrev = calculateLunarPhase(prevNoon);
+    var elongNext = calculateLunarPhase(nextNoon);
+
+    // New Moon: elongation closest to 0 (wraps around 360)
+    var distNew = elongNoon > 180 ? 360 - elongNoon : elongNoon;
+    var distNewPrev = elongPrev > 180 ? 360 - elongPrev : elongPrev;
+    var distNewNext = elongNext > 180 ? 360 - elongNext : elongNext;
+    if (distNew < 15 && distNew <= distNewPrev && distNew <= distNewNext) {
+        return {type: 'new', icon: '<svg width="10" height="10" viewBox="0 0 14 14" style="display:inline;vertical-align:middle;"><circle cx="7" cy="7" r="6" fill="#222" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/><circle cx="7" cy="7" r="6.5" fill="none" stroke="rgba(200,180,100,0.25)" stroke-width="1"/></svg>', label: currentLang==='es'?'Nueva':'New'};
     }
-    // Check full moons (hardcoded dates)
-    for (const fm of fullMoonsLocal) {
-        if (new Date(fm.getFullYear(), fm.getMonth(), fm.getDate()).toDateString() === checkStr)
-            return {type: 'full', icon: '🌕', label: currentLang==='es'?'Llena':'Full'};
+
+    // Full Moon: elongation closest to 180
+    var distFull = Math.abs(elongNoon - 180);
+    var distFullPrev = Math.abs(elongPrev - 180);
+    var distFullNext = Math.abs(elongNext - 180);
+    if (distFull < 15 && distFull <= distFullPrev && distFull <= distFullNext) {
+        return {type: 'full', icon: '🌕', label: currentLang==='es'?'Llena':'Full'};
     }
+
     return null;
 }
 
@@ -24101,12 +24147,17 @@ function goToCurrentCycle() {
         var steps = [
             {
                 target: '.mode-btns',
-                text: L ? 'Estos botones cambian entre calendarios: Lunar, Solar, Gregoriano y Astro (tu carta natal).' : 'These buttons switch between calendars: Lunar, Solar, Gregorian and Astro (your natal chart).',
+                text: L ? 'Estos botones cambian entre calendarios: Lunar, Solar, Gregoriano y Astro (tu carta natal). Cada uno muestra un calendario diferente con información única.' : 'These buttons switch between calendars: Lunar, Solar, Gregorian and Astro (your natal chart). Each shows a different calendar with unique info.',
+                position: 'bottom'
+            },
+            {
+                target: '#headerUtilBtns',
+                text: L ? '📚 Lecturas guardadas — 🔔 Historial de notificaciones — 🧭 Brújula lunar/planetaria — ⚙️ Preferencias y configuración.' : '📚 Saved readings — 🔔 Notification history — 🧭 Lunar/planetary compass — ⚙️ Preferences and settings.',
                 position: 'bottom'
             },
             {
                 target: '#currentDayInfo',
-                text: L ? 'Aquí ves el resumen de HOY: eventos de tu agenda, día lunar/solar actual y aspectos planetarios activos.' : 'Here you see TODAY\'s summary: your agenda events, current lunar/solar day and active planetary aspects.',
+                text: L ? 'Info del día de HOY: fase lunar, día solar, aspectos activos y eventos. Toca los botones de info lunar ☽ y solar ☉ para ver detalles expandidos. ¡Cada elemento es interactivo!' : 'TODAY\'s info: lunar phase, solar day, active aspects and events. Tap the lunar ☽ and solar ☉ info buttons for expanded details. Every element is interactive!',
                 position: 'bottom'
             },
             {
@@ -24115,13 +24166,18 @@ function goToCurrentCycle() {
                 position: 'top'
             },
             {
+                target: '#currentDayInfo',
+                text: L ? '¡IMPORTANTE! Todos los aspectos planetarios, tránsitos y posiciones son tocables. Haz clic en cualquier aspecto (☌ ☍ △ □ ⚹) para ver su interpretación personalizada según tu carta natal.' : 'IMPORTANT! All planetary aspects, transits and positions are tappable. Click any aspect (☌ ☍ △ □ ⚹) to see its personalized interpretation based on your natal chart.',
+                position: 'bottom'
+            },
+            {
                 target: '#aiChatIcon',
-                text: L ? 'El asistente AI puede responder preguntas sobre astrología, tu carta natal, tránsitos y más. ¡Pregúntale lo que quieras!' : 'The AI assistant can answer questions about astrology, your natal chart, transits and more. Ask anything!',
+                text: L ? 'El asistente AI puede responder preguntas sobre astrología, tu carta natal, tránsitos y más. También puedes dictarle por voz 🎤. ¡Pregúntale lo que quieras!' : 'The AI assistant can answer questions about astrology, your natal chart, transits and more. You can also use voice dictation 🎤. Ask anything!',
                 position: 'top'
             },
             {
-                target: '#settingsGear',
-                text: L ? 'En Preferencias puedes cambiar idioma, notificaciones, perfiles natales y volver a ver este tutorial.' : 'In Preferences you can change language, notifications, natal profiles and replay this tutorial.',
+                target: '#preferencesBtn',
+                text: L ? 'En Preferencias puedes: cambiar idioma, configurar notificaciones, gestionar perfiles natales, elegir dialecto de voz, exportar datos y volver a ver este tutorial.' : 'In Preferences you can: change language, configure notifications, manage natal profiles, choose voice dialect, export data and replay this tutorial.',
                 position: 'left'
             }
         ];
@@ -24132,7 +24188,7 @@ function goToCurrentCycle() {
         tourOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:8000;pointer-events:none;';
 
         var tourBackdrop = document.createElement('div');
-        tourBackdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:7999;background:rgba(2,2,15,0.7);pointer-events:auto;';
+        tourBackdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:7999;background:rgba(2,2,15,0.45);pointer-events:auto;';
         tourBackdrop.onclick = function() { _advanceTour(); };
 
         var tooltip = document.createElement('div');
@@ -24152,11 +24208,13 @@ function goToCurrentCycle() {
             }
 
             var rect = el.getBoundingClientRect();
-            // Highlight element
+            // Highlight element — keep it VISIBLE, not darkened
             el.style.position = el.style.position || 'relative';
             el.style.zIndex = '8002';
-            el.style.boxShadow = '0 0 0 4000px rgba(2,2,15,0.7), 0 0 15px rgba(201,168,64,0.5)';
+            el.style.boxShadow = '0 0 0 3px rgba(201,168,64,0.9), 0 0 20px rgba(201,168,64,0.6), 0 0 40px rgba(201,168,64,0.3)';
             el.style.borderRadius = el.style.borderRadius || '8px';
+            el.style.background = el.dataset.tourOrigBg || getComputedStyle(el).backgroundColor || 'rgba(7,9,42,0.95)';
+            el.dataset.tourOrigBg = el.dataset.tourOrigBg || getComputedStyle(el).backgroundColor || '';
             el.dataset.tourHighlight = 'true';
 
             // Position tooltip
@@ -24196,7 +24254,9 @@ function goToCurrentCycle() {
             document.querySelectorAll('[data-tour-highlight]').forEach(function(el) {
                 el.style.zIndex = '';
                 el.style.boxShadow = '';
+                if (el.dataset.tourOrigBg) el.style.background = el.dataset.tourOrigBg;
                 delete el.dataset.tourHighlight;
+                delete el.dataset.tourOrigBg;
             });
             stepIdx++;
             if (stepIdx < steps.length) {
@@ -24210,7 +24270,9 @@ function goToCurrentCycle() {
             document.querySelectorAll('[data-tour-highlight]').forEach(function(el) {
                 el.style.zIndex = '';
                 el.style.boxShadow = '';
+                if (el.dataset.tourOrigBg) el.style.background = el.dataset.tourOrigBg;
                 delete el.dataset.tourHighlight;
+                delete el.dataset.tourOrigBg;
             });
             localStorage.setItem(ONBOARDING_KEY + '_tour', 'true');
             if (tourBackdrop.parentNode) tourBackdrop.parentNode.removeChild(tourBackdrop);
@@ -25814,6 +25876,35 @@ function openPreferencesModal() {
             '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar Backup':'Export Backup') + '</button>' +
             '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + (currentLang==='es'?'Restaurar Backup':'Restore Backup') + '</button>' +
         '</div>'
+    );
+
+    // ── Voice / Dictation ──
+    var _curDialect = localStorage.getItem('moonSync_voiceDialect') || (currentLang === 'es' ? 'es-419' : 'en-US');
+    var _dialectOptions = currentLang === 'es' ? [
+        {v:'es-419', l:'Español Latinoamérica (Recomendado)'},
+        {v:'es-CR', l:'Español Costa Rica'},
+        {v:'es-MX', l:'Español México'},
+        {v:'es-CO', l:'Español Colombia'},
+        {v:'es-AR', l:'Español Argentina'},
+        {v:'es-CL', l:'Español Chile'},
+        {v:'es-PE', l:'Español Perú'},
+        {v:'es-ES', l:'Español España'},
+        {v:'en-US', l:'English (US)'},
+        {v:'en-GB', l:'English (UK)'}
+    ] : [
+        {v:'en-US', l:'English US (Recommended)'},
+        {v:'en-GB', l:'English UK'},
+        {v:'en-AU', l:'English Australia'},
+        {v:'es-419', l:'Spanish Latin America'},
+        {v:'es-ES', l:'Spanish Spain'},
+        {v:'es-MX', l:'Spanish Mexico'}
+    ];
+    sectionsHtml += _s('🎤', currentLang==='es'?'Dictado por Voz':'Voice Dictation', '#ff6b6b',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona el dialecto de voz para mejorar la precisión del dictado. Usa el dialecto más cercano a tu acento.':'Select voice dialect to improve dictation accuracy. Use the dialect closest to your accent.') + '</div>' +
+        '<select id="voiceDialectSelect" onchange="localStorage.setItem(\'moonSync_voiceDialect\',this.value);var st=document.getElementById(\'dialectSaved\');if(st){st.style.opacity=1;setTimeout(function(){st.style.opacity=0},2000);}" style="width:100%;padding:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.35);border-radius:8px;color:#fff;font-size:0.85em;cursor:pointer;appearance:auto;">' +
+        _dialectOptions.map(function(d) { return '<option value="' + d.v + '"' + (d.v === _curDialect ? ' selected' : '') + ' style="background:#1a1a2e;color:#fff;">' + d.l + '</option>'; }).join('') +
+        '</select>' +
+        '<div id="dialectSaved" style="font-size:0.7em;color:#66bb6a;margin-top:6px;text-align:center;opacity:0;transition:opacity 0.3s;">✅ ' + (currentLang==='es'?'Guardado — se aplicará en la próxima grabación':'Saved — will apply on next recording') + '</div>'
     );
 
     // ── Tutorial ──
@@ -27501,7 +27592,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v480';
+const APP_VERSION = 'v486';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -27852,7 +27943,8 @@ window.startGenericVoice = function(inputId, sendFnStr, btnId) {
     var recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+    recognition.lang = (typeof getVoiceLang === 'function') ? getVoiceLang() : (currentLang === 'es' ? 'es-419' : 'en-US');
+    recognition.maxAlternatives = 3;
     var input = document.getElementById(inputId);
     if (!input) return;
 
@@ -27868,7 +27960,15 @@ window.startGenericVoice = function(inputId, sendFnStr, btnId) {
     recognition.onresult = function(event) {
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
-                var transcript = event.results[i][0].transcript;
+                var bestTranscript = event.results[i][0].transcript;
+                var bestConf = event.results[i][0].confidence || 0;
+                for (var a = 1; a < event.results[i].length; a++) {
+                    if ((event.results[i][a].confidence || 0) > bestConf) {
+                        bestConf = event.results[i][a].confidence;
+                        bestTranscript = event.results[i][a].transcript;
+                    }
+                }
+                var transcript = (typeof postProcessTranscript === 'function') ? postProcessTranscript(bestTranscript) : bestTranscript;
                 var cursorPos = input.selectionStart || input.value.length;
                 var before = input.value.substring(0, cursorPos);
                 var after = input.value.substring(cursorPos);
@@ -28546,8 +28646,9 @@ function toggleAIChatVoice() {
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     aiVoiceRecognition = new SpeechRecognition();
     aiVoiceRecognition.continuous = true;
-    aiVoiceRecognition.interimResults = false; // Only final results — avoids word repetition
-    aiVoiceRecognition.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+    aiVoiceRecognition.interimResults = false;
+    aiVoiceRecognition.lang = (typeof getVoiceLang === 'function') ? getVoiceLang() : (currentLang === 'es' ? 'es-419' : 'en-US');
+    aiVoiceRecognition.maxAlternatives = 3;
     var input = document.getElementById('aiChatInput');
     var btn = document.getElementById('aiVoiceBtn');
 
@@ -28560,10 +28661,17 @@ function toggleAIChatVoice() {
         btn.title = currentLang === 'es' ? 'Detener' : 'Stop';
     };
     aiVoiceRecognition.onresult = function(event) {
-        // Only process final results — append each new phrase
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
-                var transcript = event.results[i][0].transcript;
+                var bestTranscript = event.results[i][0].transcript;
+                var bestConf = event.results[i][0].confidence || 0;
+                for (var a = 1; a < event.results[i].length; a++) {
+                    if ((event.results[i][a].confidence || 0) > bestConf) {
+                        bestConf = event.results[i][a].confidence;
+                        bestTranscript = event.results[i][a].transcript;
+                    }
+                }
+                var transcript = (typeof postProcessTranscript === 'function') ? postProcessTranscript(bestTranscript) : bestTranscript;
                 var cursorPos = input.selectionStart;
                 var before = input.value.substring(0, cursorPos);
                 var after = input.value.substring(cursorPos);
