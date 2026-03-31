@@ -7205,7 +7205,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
             chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
             chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
-            chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+            chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=this.closest(\'.modal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
             chatHtml += '</div>';
             chatHtml += '</div>';
             chatHtml += '</div>';
@@ -13490,10 +13490,312 @@ function _renderEvents2026View(es) {
     return html;
 }
 
+// ============================================================
+// ASTEROIDS 2026 VIEW — Ceres, Pallas, Juno, Vesta
+// Uses Swiss Ephemeris WASM to calculate positions dynamically
+// ============================================================
+function _renderAsteroids2026View(es) {
+    var html = '';
+
+    var asteroidDefs = [
+        { name: 'Ceres', symbol: '⚳', sweId: 17, color: '#8BC34A', colorBg: 'rgba(139,195,74,',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Ceres_-_RC3_-_Haulani_Crater_%2822381131691%29_%28cropped%29.jpg',
+          domain: es ? 'Nutrición, maternidad, ciclos de pérdida y retorno' : 'Nurturing, motherhood, cycles of loss and return',
+          keywords: es ? 'Cuidado • Fertilidad • Alimentación • Cosechas' : 'Care • Fertility • Nourishment • Harvests' },
+        { name: 'Pallas', symbol: '⚴', sweId: 18, color: '#03A9F4', colorBg: 'rgba(3,169,244,',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/5/5f/PallasHST2007.jpg',
+          domain: es ? 'Sabiduría estratégica, patrones, justicia creativa' : 'Strategic wisdom, pattern recognition, creative justice',
+          keywords: es ? 'Estrategia • Patrones • Artesanía • Política' : 'Strategy • Patterns • Craftsmanship • Politics' },
+        { name: 'Juno', symbol: '⚵', sweId: 19, color: '#E91E63', colorBg: 'rgba(233,30,99,',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Juno_spacecraft_model_1.png',
+          domain: es ? 'Compromiso, igualdad en relaciones, contratos sagrados' : 'Commitment, equality in partnerships, sacred contracts',
+          keywords: es ? 'Matrimonio • Lealtad • Igualdad • Contratos' : 'Marriage • Loyalty • Equality • Contracts' },
+        { name: 'Vesta', symbol: '⚶', sweId: 20, color: '#FF9800', colorBg: 'rgba(255,152,0,',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Vesta_in_Natural_Color.jpg',
+          domain: es ? 'Devoción, fuego sagrado, enfoque interior, pureza' : 'Devotion, sacred flame, inner focus, purity',
+          keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' }
+    ];
+
+    // Sign names and boundaries for 2026
+    var signNames = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+    var signSymbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+
+    function getSignFromLon(lon) {
+        var idx = Math.floor(lon / 30);
+        return { name: signNames[idx], symbol: signSymbols[idx], degree: lon % 30 };
+    }
+
+    function formatDeg(deg) {
+        var d = Math.floor(deg);
+        var m = Math.floor((deg - d) * 60);
+        return d + '°' + (m < 10 ? '0' : '') + m + "'";
+    }
+
+    // Check if SwissEph is available
+    if (!window._sweReady || !window._swe) {
+        html += '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">';
+        html += '<div style="font-size:2em;margin-bottom:10px;">⚳</div>';
+        html += '<div>' + (es ? 'Swiss Ephemeris no disponible. Los asteroides requieren SwissEph WASM.' : 'Swiss Ephemeris not available. Asteroids require SwissEph WASM.') + '</div>';
+        html += '</div>';
+        return html;
+    }
+
+    var swe = window._swe;
+    var now = new Date();
+
+    // For each asteroid, calculate: current position, sign changes in 2026, retrograde periods
+    asteroidDefs.forEach(function(ast, astIdx) {
+        // Calculate current position
+        var utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+        var jdNow = swe.julday(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate(), utcH);
+        var posNow = swe.calc_ut(jdNow, ast.sweId, swe.SEFLG_SWIEPH);
+        var lonNow = posNow[0];
+        var signNow = getSignFromLon(lonNow);
+        var speedNow = posNow[3]; // daily speed
+
+        // Scan 2026 for sign changes and retrograde periods (sample every 2 days)
+        var events2026 = [];
+        var startDate = new Date(2026, 0, 1);
+        var endDate = new Date(2026, 11, 31);
+        var prevSign = null;
+        var prevSpeed = null;
+        var retroStart = null;
+
+        for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 2)) {
+            var jd = swe.julday(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 12);
+            var pos = swe.calc_ut(jd, ast.sweId, swe.SEFLG_SWIEPH);
+            var lon = pos[0];
+            var speed = pos[3];
+            var sign = getSignFromLon(lon);
+
+            // Sign change detection
+            if (prevSign !== null && sign.name !== prevSign) {
+                events2026.push({
+                    date: new Date(d),
+                    type: (es ? 'Entra en ' : 'Enters ') + sign.symbol + ' ' + sign.name,
+                    typeShort: sign.symbol + ' ' + sign.name,
+                    category: 'sign',
+                    color: ast.color,
+                    meaning: es
+                        ? ast.name + ' entra en ' + sign.name + '. La energía de ' + (ast.domain.split(',')[0].toLowerCase()) + ' se expresa a través de las cualidades de ' + sign.name + '.'
+                        : ast.name + ' enters ' + sign.name + '. The energy of ' + (ast.domain.split(',')[0].toLowerCase()) + ' expresses through ' + sign.name + ' qualities.'
+                });
+            }
+            prevSign = sign.name;
+
+            // Retrograde detection
+            if (prevSpeed !== null) {
+                if (prevSpeed >= 0 && speed < 0) {
+                    retroStart = new Date(d);
+                    events2026.push({
+                        date: new Date(d),
+                        type: es ? 'Retrógrado INICIA' : 'Retrograde STARTS',
+                        typeShort: es ? '℞ Retro' : '℞ Retro',
+                        category: 'retro',
+                        color: '#ff6b6b',
+                        meaning: es
+                            ? ast.name + ' retrógrado en ' + sign.name + '. Período de revisión interna sobre temas de ' + (ast.domain.split(',')[0].toLowerCase()) + '.'
+                            : ast.name + ' retrograde in ' + sign.name + '. Inner review period regarding ' + (ast.domain.split(',')[0].toLowerCase()) + '.'
+                    });
+                } else if (prevSpeed < 0 && speed >= 0) {
+                    var retroDays = retroStart ? Math.round((d - retroStart) / 86400000) : '?';
+                    events2026.push({
+                        date: new Date(d),
+                        type: es ? 'Directo' : 'Direct',
+                        typeShort: es ? '→ Directo' : '→ Direct',
+                        category: 'direct',
+                        color: '#4ecdc4',
+                        meaning: es
+                            ? ast.name + ' directo en ' + sign.name + ' tras ~' + retroDays + ' días de retrogradación.'
+                            : ast.name + ' direct in ' + sign.name + ' after ~' + retroDays + ' days retrograde.'
+                    });
+                    retroStart = null;
+                }
+            }
+            prevSpeed = speed;
+        }
+
+        events2026.sort(function(a, b) { return a.date - b.date; });
+
+        // Count event types
+        var signChangeCount = events2026.filter(function(e) { return e.category === 'sign'; }).length;
+        var retroCount = events2026.filter(function(e) { return e.category === 'retro'; }).length;
+        var directCount = events2026.filter(function(e) { return e.category === 'direct'; }).length;
+        var totalEvents = events2026.length;
+        var isRetroNow = speedNow < 0;
+
+        // Render asteroid card
+        html += '<div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid ' + ast.colorBg + '0.25);border-radius:12px;border-top:2px solid ' + ast.colorBg + '0.6);">';
+
+        // Header with photo
+        html += '<div onclick="toggleAsteroid2026Details(' + astIdx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
+            + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + ast.colorBg + '0.4);box-shadow:0 0 12px ' + ast.colorBg + '0.3);flex-shrink:0;">'
+            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
+            + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + ast.colorBg + '0.5),' + ast.colorBg + '0.2));font-size:1.6em;">' + ast.symbol + '</div>'
+            + '</div>'
+            + '<div style="flex:1;">'
+            + '<div style="font-family:\'Cinzel\',serif;color:' + ast.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + ast.symbol + ' ' + ast.name.toUpperCase() + '</div>'
+            + '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">'
+            + totalEvents + ' ' + (es ? 'eventos en 2026' : 'events in 2026')
+            + (signChangeCount > 0 ? ' • ' + signChangeCount + ' ' + (es ? 'cambios' : 'changes') : '')
+            + (retroCount > 0 ? ' • ' + retroCount + ' ' + (es ? 'retrógrados' : 'retrogrades') : '')
+            + '</div>'
+            + '</div>'
+            + '<div style="color:rgba(255,255,255,0.3);font-size:1.2em;" id="ast2026Arrow' + astIdx + '">▼</div>'
+            + '</div>';
+
+        // Current position + Quick stats
+        html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px;">';
+
+        // Current position
+        html += '<div style="text-align:center;padding:4px;background:' + ast.colorBg + '0.06);border-radius:6px;border:1px solid ' + ast.colorBg + '0.12);">'
+            + '<div style="font-size:0.58em;color:' + ast.colorBg + '0.5);">' + (es ? 'Posición actual' : 'Current') + '</div>'
+            + '<div style="font-size:0.75em;font-weight:bold;color:' + ast.color + ';">' + signNow.symbol + ' ' + formatDeg(signNow.degree) + '</div>'
+            + '<div style="font-size:0.55em;color:rgba(255,255,255,0.3);">' + signNow.name + '</div>'
+            + '</div>';
+
+        // Status (retro/direct)
+        html += '<div style="text-align:center;padding:4px;background:' + ast.colorBg + '0.06);border-radius:6px;border:1px solid ' + ast.colorBg + '0.12);">'
+            + '<div style="font-size:0.58em;color:' + ast.colorBg + '0.5);">' + (es ? 'Estado' : 'Status') + '</div>'
+            + '<div style="font-size:0.75em;font-weight:bold;color:' + (isRetroNow ? '#ff6b6b' : '#4ecdc4') + ';">' + (isRetroNow ? '℞ ' + (es ? 'Retro' : 'Retro') : '→ ' + (es ? 'Directo' : 'Direct')) + '</div>'
+            + '<div style="font-size:0.55em;color:rgba(255,255,255,0.3);">' + (Math.abs(speedNow)).toFixed(3) + '°/' + (es ? 'día' : 'day') + '</div>'
+            + '</div>';
+
+        // Next event
+        var nextEvt = events2026.find(function(e) { return e.date >= now; });
+        html += '<div style="text-align:center;padding:4px;background:' + ast.colorBg + '0.06);border-radius:6px;border:1px solid ' + ast.colorBg + '0.12);">'
+            + '<div style="font-size:0.58em;color:' + ast.colorBg + '0.5);">' + (es ? 'Próximo' : 'Next') + '</div>'
+            + '<div style="font-size:0.75em;font-weight:bold;color:' + ast.color + ';">' + (nextEvt ? formatShortDate(nextEvt.date) : '-') + '</div>'
+            + '<div style="font-size:0.55em;color:rgba(255,255,255,0.3);">' + (nextEvt ? nextEvt.typeShort : '-') + '</div>'
+            + '</div>';
+        html += '</div>';
+
+        // Domain description
+        html += '<div style="margin-top:6px;padding:6px 8px;background:' + ast.colorBg + '0.04);border-radius:6px;border:1px solid ' + ast.colorBg + '0.1);">'
+            + '<div style="font-size:0.68em;color:' + ast.color + ';font-weight:600;">' + ast.domain + '</div>'
+            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);margin-top:2px;">' + ast.keywords + '</div>'
+            + '</div>';
+
+        // Expandable details
+        html += '<div id="ast2026Details' + astIdx + '" style="display:none;margin-top:8px;">';
+
+        // Large photo
+        html += '<div style="text-align:center;margin-bottom:8px;padding:12px;background:radial-gradient(circle,' + ast.colorBg + '0.1) 0%,rgba(0,0,0,0) 70%);border-radius:10px;">'
+            + '<div style="width:120px;height:120px;margin:0 auto;">'
+            + '<img src="' + ast.photo + '" alt="' + ast.name + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 25px ' + ast.colorBg + '0.3),0 0 50px ' + ast.colorBg + '0.15);" referrerpolicy="no-referrer"/>'
+            + '</div></div>';
+
+        // Events timeline
+        if (events2026.length > 0) {
+            html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+            events2026.forEach(function(evt) {
+                var isPast = evt.date < now;
+                var evtColor = evt.color || ast.color;
+                // Store in global array for click handler
+                if (!window._ast2026Data) window._ast2026Data = [];
+                var evtIdx = window._ast2026Data.length;
+                window._ast2026Data.push({
+                    asteroid: ast.name,
+                    symbol: ast.symbol,
+                    type: evt.type,
+                    date: formatShortDate(evt.date),
+                    meaning: evt.meaning,
+                    domain: ast.domain,
+                    keywords: ast.keywords,
+                    color: ast.color
+                });
+
+                html += '<div onclick="showAsteroid2026Detail(' + evtIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + evtColor + ';cursor:pointer;' + (isPast ? 'opacity:0.55;' : '') + 'transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\'">'
+                    + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+                    + '<div style="flex:1;">'
+                    + '<span style="color:' + ast.color + ';font-weight:700;font-size:0.9em;">' + ast.symbol + ' ' + ast.name + '</span> '
+                    + '<span style="color:' + evtColor + ';font-size:0.82em;">' + evt.type + '</span>'
+                    + '</div>'
+                    + '<div style="text-align:right;min-width:50px;">'
+                    + '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);">' + formatShortDate(evt.date) + '</div>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:3px;">' + evt.meaning + '</div>'
+                    + '</div>';
+            });
+            html += '</div>';
+        } else {
+            html += '<div style="text-align:center;padding:15px;color:rgba(255,255,255,0.3);font-size:0.8em;">' + (es ? 'Sin eventos significativos en 2026' : 'No significant events in 2026') + '</div>';
+        }
+
+        // Interpret button
+        html += '<div style="margin-top:8px;">'
+            + '<button onclick="interpretAsteroid2026(\'' + ast.name + '\',\'' + signNow.name + '\',' + isRetroNow + ')" style="width:100%;padding:10px;background:linear-gradient(135deg,' + ast.colorBg + '0.15),' + ast.colorBg + '0.08));border:1px solid ' + ast.colorBg + '0.35);border-radius:10px;color:' + ast.color + ';font-size:0.82em;font-weight:700;cursor:pointer;">'
+            + '✨ ' + (es ? 'Interpretar ' + ast.name + ' en 2026' : 'Interpret ' + ast.name + ' in 2026')
+            + '</button></div>';
+
+        html += '</div>'; // close details
+        html += '</div>'; // close card
+    });
+
+    return html;
+}
+
+// Toggle asteroid details panel
+window.toggleAsteroid2026Details = function(idx) {
+    var el = document.getElementById('ast2026Details' + idx);
+    var arrow = document.getElementById('ast2026Arrow' + idx);
+    if (el) {
+        var isOpen = el.style.display !== 'none';
+        el.style.display = isOpen ? 'none' : 'block';
+        if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+    }
+};
+
+// Show asteroid event detail modal
+window.showAsteroid2026Detail = function(idx) {
+    if (!window._ast2026Data || !window._ast2026Data[idx]) return;
+    var d = window._ast2026Data[idx];
+    var L = currentLang === 'es';
+    var modal = document.getElementById('natalDetailModal');
+    if (!modal) return;
+    document.getElementById('natalDetailTitle').textContent = d.symbol + ' ' + d.asteroid + ' — ' + d.date;
+    var body = '<div style="padding:10px;">'
+        + '<div style="font-size:1.5em;text-align:center;margin-bottom:10px;color:' + d.color + ';">' + d.symbol + '</div>'
+        + '<div style="text-align:center;font-size:1.1em;font-weight:700;color:' + d.color + ';margin-bottom:5px;">' + d.type + '</div>'
+        + '<div style="text-align:center;font-size:0.85em;color:rgba(255,255,255,0.5);margin-bottom:15px;">' + d.date + '</div>'
+        + '<div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:12px;">'
+        + '<div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.5;">' + d.meaning + '</div>'
+        + '</div>'
+        + '<div style="padding:10px;background:rgba(' + (d.color === '#8BC34A' ? '139,195,74' : d.color === '#03A9F4' ? '3,169,244' : d.color === '#E91E63' ? '233,30,99' : '255,152,0') + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">'
+        + '<div style="font-size:0.75em;font-weight:600;color:' + d.color + ';margin-bottom:4px;">' + (L ? 'Dominio' : 'Domain') + '</div>'
+        + '<div style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + d.domain + '</div>'
+        + '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-top:4px;">' + d.keywords + '</div>'
+        + '</div></div>';
+    document.getElementById('natalDetailBody').innerHTML = body;
+    modal.classList.add('show');
+};
+
+// Interpret asteroid via AI
+window.interpretAsteroid2026 = function(name, sign, isRetro) {
+    var L = currentLang === 'es';
+    var prompt = L
+        ? 'Interpreta la posición del asteroide ' + name + ' en ' + sign + (isRetro ? ' (retrógrado)' : '') + ' durante 2026. Incluye: significado astrológico, áreas de vida afectadas, y consejos prácticos. Responde en español, máximo 200 palabras.'
+        : 'Interpret asteroid ' + name + ' in ' + sign + (isRetro ? ' (retrograde)' : '') + ' during 2026. Include: astrological meaning, life areas affected, and practical advice. Max 200 words.';
+    if (typeof askAIChat === 'function') {
+        askAIChat(prompt);
+    } else if (typeof window.askAI === 'function') {
+        window.askAI(prompt);
+    } else {
+        var modal = document.getElementById('natalDetailModal');
+        if (modal) {
+            document.getElementById('natalDetailTitle').textContent = '✨ ' + name + ' ' + (L ? 'en' : 'in') + ' ' + sign;
+            document.getElementById('natalDetailBody').innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);">' + (L ? 'La interpretación AI no está disponible. Usa el chatbot ✨ para consultar.' : 'AI interpretation not available. Use the ✨ chatbot to ask.') + '</div>';
+            modal.classList.add('show');
+        }
+    }
+};
+
 function renderAspects2026Panel() {
     const es = currentLang === 'es';
     // Reset global aspect data array on each render
     window._asp2026Data = [];
+    window._ast2026Data = [];
 
     let panel = document.getElementById('aspects2026Panel');
     if (!panel) {
@@ -13533,8 +13835,9 @@ function renderAspects2026Panel() {
         var isActive = activeTab === id;
         return 'padding:8px 4px;background:' + (isActive ? 'rgba(' + color + ',0.2)' : 'rgba(255,255,255,0.03)') + ';border:1px solid rgba(' + color + ',' + (isActive ? '0.6' : '0.2') + ');border-radius:10px;color:rgba(' + color + ',' + (isActive ? '1' : '0.6') + ');font-size:0.78em;font-weight:' + (isActive ? '700' : '500') + ';cursor:pointer;';
     };
-    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;">';
+    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px;">';
     html += '<button onclick="window._asp2026Tab=\'planets\';renderAspects2026Panel()" style="' + tabBtnStyle('planets', '102,126,234') + '">🪐 ' + (es ? 'Planetas' : 'Planets') + '</button>';
+    html += '<button onclick="window._asp2026Tab=\'asteroids\';renderAspects2026Panel()" style="' + tabBtnStyle('asteroids', '180,130,220') + '">⚳ ' + (es ? 'Asteroides' : 'Asteroids') + '</button>';
     html += '<button onclick="window._asp2026Tab=\'signs\';renderAspects2026Panel()" style="' + tabBtnStyle('signs', '78,205,196') + '">♈ ' + (es ? 'Signos' : 'Signs') + '</button>';
     html += '<button onclick="window._asp2026Tab=\'major\';renderAspects2026Panel()" style="' + tabBtnStyle('major', '155,89,182') + '">⭐ ' + (es ? 'Mayores' : 'Major') + '</button>';
     html += '<button onclick="window._asp2026Tab=\'events\';renderAspects2026Panel()" style="' + tabBtnStyle('events', '201,168,64') + '">📅 ' + (es ? 'Eventos' : 'Events') + '</button>';
@@ -13559,6 +13862,14 @@ function renderAspects2026Panel() {
     // If Events tab, render events inline
     if (activeTab === 'events') {
         html += _renderEvents2026View(es);
+        html += '</div>';
+        panel.innerHTML = html;
+        return;
+    }
+
+    // If Asteroids tab, render asteroids view
+    if (activeTab === 'asteroids') {
+        html += _renderAsteroids2026View(es);
         html += '</div>';
         panel.innerHTML = html;
         return;
@@ -13853,7 +14164,7 @@ function showBannerAspectDetail(text) {
         chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
         chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
         chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
-        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=this.closest(\'.modal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
         chatHtml += '</div>';
         chatHtml += '</div>';
         chatHtml += '</div>';
@@ -15445,11 +15756,21 @@ window.interpretSynastry = function(name1, name2) {
 
     var title = L ? 'Sinastría: ' + name1 + ' + ' + name2 : 'Synastry: ' + name1 + ' + ' + name2;
 
-    // Open in natalDetailModal — its own scrollable page
-    var modal = document.getElementById('natalDetailModal');
-    var titleEl = document.getElementById('natalDetailTitle');
-    var bodyEl = document.getElementById('natalDetailBody');
-    if (!modal || !titleEl || !bodyEl) return;
+    // Open interpretation in overlay modal (compositePlanetDetailModal) so synastry view stays underneath
+    var detailModal = document.getElementById('compositePlanetDetailModal');
+    if (!detailModal) {
+        detailModal = document.createElement('div');
+        detailModal.id = 'compositePlanetDetailModal';
+        detailModal.className = 'modal';
+        detailModal.style.zIndex = '1400';
+        detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
+        document.body.appendChild(detailModal);
+    }
+    detailModal.style.zIndex = '1400';
+
+    var titleEl = document.getElementById('compPlanetDetailTitle');
+    var bodyEl = document.getElementById('compPlanetDetailBody');
     titleEl.textContent = title;
 
     var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
@@ -15467,14 +15788,14 @@ window.interpretSynastry = function(name1, name2) {
     if (overlay.length > 0) html += ' · ' + (L?'Casas: ':'Houses: ') + overlay.length;
     html += '</div>';
 
-    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="synInterpDiv"></div></div>';
 
     bodyEl.innerHTML = html;
-    modal.classList.add('show');
+    detailModal.classList.add('show');
 
     // Trigger interpretation
     setTimeout(function() {
-        fetchAIInterpretation(prompt, 'aiInterpDiv', title);
+        fetchAIInterpretation(prompt, 'synInterpDiv', title);
     }, 200);
 };
 
@@ -15773,7 +16094,7 @@ window.showCompositePlanetDetail = function(dataStr) {
         detailModal.className = 'modal';
         detailModal.style.zIndex = '1400';
         detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:12px;"></h2><div id="compPlanetDetailBody"></div></div>';
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
     detailModal.style.zIndex = '1400';
@@ -15818,7 +16139,7 @@ window.triggerCompositeInterpretation = function(dataKey) {
         detailModal.className = 'modal';
         detailModal.style.zIndex = '1400';
         detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:12px;"></h2><div id="compPlanetDetailBody"></div></div>';
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
     detailModal.style.zIndex = '1400';
@@ -16735,7 +17056,7 @@ function sendReturnInterpRequest(history, container, cacheKey) {
         chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
         chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
         chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
-        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=this.closest(\'.modal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
         chatHtml += '</div></div></div>';
         container.innerHTML = chatHtml;
         container.scrollTop = 0;
@@ -19823,14 +20144,10 @@ function renderPersonalCalendar() {
         if (isWeekend) classes += ' weekend';
         if (isBirthday) classes += ' birthday';
 
-        const lunarDay = getLunarDayForDate(date);
         // Personal year day: day 1 = birthday
         const birthAnniversary = new Date(year, birthM - 1, birthD);
         let personalDay = Math.floor((date - birthAnniversary) / 86400000) + 1;
         if (personalDay <= 0) personalDay += 365;
-
-        // Solar day: day within current zodiac sign (dayOffset is 0-based)
-        const solarDay = dayOffset + 1;
 
         // Moon phase icon (new moon / full moon)
         const moonEvent = getMoonEventForDate(date);
@@ -19846,6 +20163,45 @@ function renderPersonalCalendar() {
         const dayCycles = getCyclesForDate(date);
         const cycleBorder = !season && dayCycles.length > 0 ? `border:1.5px solid ${dayCycles[0].color};box-shadow:0 0 4px ${dayCycles[0].color}33;` : '';
 
+        // === Unified calendar: planetary events for this day ===
+        const _calRetrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
+        const _calSignChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
+        const _calInterAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
+        const _calEclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
+        const _calStellium = (typeof getStellium === 'function') ? getStellium(date) : null;
+        const _calDayEvents = (typeof getAllEventsForDate === 'function') ? getAllEventsForDate(date) : [];
+
+        // Build compact event indicators
+        let _calAstroIcons = '';
+        if (_calEclipse) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="${_calEclipse.type==='solar'?'Eclipse Solar':'Eclipse Lunar'}">⚫</span>`;
+        _calInterAspects.slice(0, 2).forEach(function(asp) {
+            const _p1i = (typeof getPlanetInitial === 'function') ? getPlanetInitial(asp.planet1) : asp.planet1.substring(0,2);
+            const _p2i = (typeof getPlanetInitial === 'function') ? getPlanetInitial(asp.planet2) : asp.planet2.substring(0,2);
+            _calAstroIcons += `<span style="font-size:0.45em;color:#7ec8ff;white-space:nowrap;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${_p1i}${asp.symbol}${_p2i}</span>`;
+        });
+        _calRetrogrades.forEach(function(r) {
+            const _pi = (typeof getPlanetInitial === 'function') ? getPlanetInitial(r.planet) : r.planet.substring(0,2);
+            _calAstroIcons += `<span style="font-size:0.5em;color:#ff6b6b;font-weight:700;" title="${r.planet} ${r.isStart?'Retro':'Direct'}">${_pi}${r.isStart?'℞':'D'}</span>`;
+        });
+        _calSignChanges.forEach(function(sc) {
+            const _pi = (typeof getPlanetInitial === 'function') ? getPlanetInitial(sc.planet) : sc.planet.substring(0,2);
+            const _si = sc.toSign ? sc.toSign.substring(0,3) : '';
+            _calAstroIcons += `<span style="font-size:0.45em;color:#4ecdc4;" title="${sc.planet} → ${sc.toSign}">${_pi}→${_si}</span>`;
+        });
+        if (_calStellium) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="Stellium ${_calStellium.sign}">★</span>`;
+
+        // Compact agenda events
+        let _calEvtHTML = '';
+        if (_calDayEvents.length > 0) {
+            _calEvtHTML = `<div style="display:flex;flex-direction:column;gap:1px;width:100%;margin-top:1px;">`;
+            _calDayEvents.slice(0, 2).forEach(function(evt) {
+                const evtColor = evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#7ec8ff';
+                _calEvtHTML += `<div style="font-size:0.4em;padding:1px 2px;background:${evtColor}1a;border-left:1.5px solid ${evtColor};border-radius:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,0.7);">${evt.title}</div>`;
+            });
+            if (_calDayEvents.length > 2) _calEvtHTML += `<div style="font-size:0.35em;color:rgba(255,255,255,0.4);text-align:center;">+${_calDayEvents.length - 2}</div>`;
+            _calEvtHTML += `</div>`;
+        }
+
         calendarHTML += `
             <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
                 <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
@@ -19857,11 +20213,9 @@ function renderPersonalCalendar() {
                     </div>
                 </div>
                 <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
-                ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : `
-                <div style="display:flex;justify-content:space-between;width:100%;margin-top:2px;font-size:0.55em;line-height:1;">
-                    <span style="color:rgba(192,192,255,0.5);" title="${L?'Día lunar':'Lunar day'}">☽${lunarDay}</span>
-                    <span style="color:rgba(212,175,55,0.6);" title="${L?'Día solar':'Solar day'}">☉${solarDay}</span>
-                </div>`}
+                ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
+                ${_calAstroIcons ? `<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;width:100%;margin-top:1px;">${_calAstroIcons}</div>` : ''}
+                ${_calEvtHTML}
             </div>
         `;
     }
@@ -19873,11 +20227,11 @@ function renderPersonalCalendar() {
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
             <span style="color:#e8c84a;font-weight:600;"># = ${L?'Día personal':'Personal day'}</span>
-            <span style="color:rgba(192,192,255,0.6);">☽ = ${L?'Lunar':'Lunar'}</span>
-            <span style="color:rgba(212,175,55,0.6);">☉ = ${L?'Solar':'Solar'}</span>
-            <span style="color:#b39ddb;">☽ = ${L?'Ret. Lunar':'Lunar Ret.'}</span>
-            <span style="color:#ff9800;">◑ = ${L?'Medio Cielo':'Half-Return'}</span>
-            <span style="color:#ef5350;">🌑🌕 = ${L?'Eclipse':'Eclipse'}</span>
+            <span style="color:#7ec8ff;">☿☍♄ = ${L?'Aspectos':'Aspects'}</span>
+            <span style="color:#ff6b6b;">℞ = ${L?'Retrógrado':'Retrograde'}</span>
+            <span style="color:#4ecdc4;">→ = ${L?'Cambio signo':'Sign change'}</span>
+            <span style="color:#FFD700;">★ = Stellium</span>
+            <span style="color:#ef5350;">🌑🌕 = ${L?'Luna':'Moon'}</span>
         </div>
     `;
 
@@ -26767,7 +27121,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v475';
+const APP_VERSION = 'v477';
 var _pendingSW = null;
 
 // What's New removed per user request
