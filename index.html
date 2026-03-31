@@ -692,6 +692,26 @@
     <!-- Google Identity Services for Calendar sync -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <!-- Swiss Ephemeris WASM — professional-grade astronomical calculations (same engine as astro.com) -->
+    <script type="module">
+    import SwissEph from 'https://cdn.jsdelivr.net/gh/prolaxu/swisseph-wasm@main/src/swisseph.js';
+    window._SwissEphClass = SwissEph;
+    // Initialize Swiss Ephemeris asynchronously
+    (async function initSwissEph() {
+        try {
+            const swe = new SwissEph();
+            await swe.initSwissEph();
+            window._swe = swe;
+            window._sweReady = true;
+            console.log('[SwissEph] Initialized v' + (swe.version ? swe.version() : '?') + ' (Moshier mode)');
+            // Dispatch event so dependent code can react
+            window.dispatchEvent(new Event('swisseph-ready'));
+        } catch(e) {
+            console.warn('[SwissEph] Failed to initialize, falling back to astronomy-engine:', e);
+            window._sweReady = false;
+        }
+    })();
+    </script>
 </head>
 <body>
     <div class="container">
@@ -1248,7 +1268,11 @@ const planetSymbols = {
     northnode: '☊',
     southnode: '☋',
     partOfFortune: '⊕',
-    vertex: 'Vx'
+    vertex: 'Vx',
+    ceres: '⚳',
+    pallas: '⚴',
+    juno: '⚵',
+    vesta: '⚶'
 };
 
 const planetNames = {
@@ -1265,7 +1289,11 @@ const planetNames = {
     lilith: 'Lilith',
     northnode: 'Nodo Norte',
     partOfFortune: 'Parte de la Fortuna',
-    vertex: 'Vértice'
+    vertex: 'Vértice',
+    ceres: 'Ceres',
+    pallas: 'Pallas',
+    juno: 'Juno',
+    vesta: 'Vesta'
 };
 
 const aspectDescriptions = {
@@ -1727,12 +1755,73 @@ function getMoonMeanAnomaly(d) {
     return (115.3654 + 13.0649929509 * d) % 360;
 }
 
-// Planet position — uses astronomy-engine (professional accuracy) with legacy fallback
+// Planet position — uses Swiss Ephemeris WASM (astro.com-grade) → astronomy-engine fallback → legacy fallback
+// Swiss Ephemeris planet ID mapping
+var _swePlanetIds = null;
+function _getSwePlanetId(name) {
+    if (!window._swe) return null;
+    if (!_swePlanetIds) {
+        var s = window._swe;
+        _swePlanetIds = {
+            'sun': s.SE_SUN, 'moon': s.SE_MOON, 'mercury': s.SE_MERCURY,
+            'venus': s.SE_VENUS, 'mars': s.SE_MARS, 'jupiter': s.SE_JUPITER,
+            'saturn': s.SE_SATURN, 'uranus': s.SE_URANUS, 'neptune': s.SE_NEPTUNE,
+            'pluto': s.SE_PLUTO, 'chiron': 15,
+            // Asteroids: Ceres=17, Pallas=18, Juno=19, Vesta=20
+            'ceres': 17, 'pallas': 18, 'juno': 19, 'vesta': 20
+        };
+    }
+    return _swePlanetIds[name];
+}
+
 function getPlanetPosition(planet, date) {
+    var name = planet.toLowerCase();
+
+    // ═══════════════════════════════════════════════════════
+    // PRIMARY ENGINE: Swiss Ephemeris WASM (identical to astro.com)
+    // Precision: <1 arcsecond for all planets
+    // ═══════════════════════════════════════════════════════
+    if (window._sweReady && window._swe) {
+        var sweId = _getSwePlanetId(name);
+        if (sweId !== null && sweId !== undefined) {
+            try {
+                var swe = window._swe;
+                var utcH = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+                var jd = swe.julday(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), utcH);
+                var pos = swe.calc_ut(jd, sweId, swe.SEFLG_SWIEPH);
+                return pos[0]; // ecliptic longitude
+            } catch(e) {
+                console.warn('[SwissEph] calc error for ' + name + ':', e);
+            }
+        }
+        // North Node (Mean) via SwissEph: SE_MEAN_NODE = 10
+        if (name === 'northnode') {
+            try {
+                var swe = window._swe;
+                var utcH = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+                var jd = swe.julday(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), utcH);
+                var pos = swe.calc_ut(jd, 10, swe.SEFLG_SWIEPH); // SE_MEAN_NODE = 10
+                return pos[0];
+            } catch(e) { console.warn('[SwissEph] node error:', e); }
+        }
+        // Lilith (Mean Black Moon) via SwissEph: SE_MEAN_APOG = 12
+        if (name === 'lilith') {
+            try {
+                var swe = window._swe;
+                var utcH = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+                var jd = swe.julday(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), utcH);
+                var pos = swe.calc_ut(jd, 12, swe.SEFLG_SWIEPH); // SE_MEAN_APOG = 12
+                return pos[0];
+            } catch(e) { console.warn('[SwissEph] lilith error:', e); }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // FALLBACK ENGINE: astronomy-engine (good accuracy, ~1-12 arcsec)
+    // ═══════════════════════════════════════════════════════
     if (typeof Astronomy !== 'undefined') {
         try {
             var t = Astronomy.MakeTime(date);
-            var name = planet.toLowerCase();
             if (name === 'moon') return Astronomy.EclipticGeoMoon(t).lon;
             if (name === 'sun') return Astronomy.SunPosition(t).elon;
             var bodyMap = {'mercury':'Mercury','venus':'Venus','mars':'Mars','jupiter':'Jupiter','saturn':'Saturn','uranus':'Uranus','neptune':'Neptune','pluto':'Pluto'};
@@ -6580,7 +6669,7 @@ function buildAstroContextHTML(dateKey) {
                 var transits = calculateTransitsToNatal(d, nc);
                 var major = transits.filter(function(t) { return !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
                 if (major.length > 0) {
-                    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+                    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
                     html += '<div style="margin-bottom:10px;">';
                     html += '<div style="font-weight:700;color:#c39bd3;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🔮 ' + (L?'Tránsitos Natales':'Natal Transits') + '</div>';
                     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
@@ -6850,7 +6939,7 @@ function _buildAstroContextText(dateKey, L) {
             if (nc && nc.planets) {
                 var transits = calculateTransitsToNatal(d, nc);
                 var major = transits.filter(function(t) { return !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
-                var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith'};
+                var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
                 if (major.length > 0) {
                     lines.push('  🔮 ' + (L?'Tránsitos:':'Transits:'));
                     major.forEach(function(t) {
@@ -10001,7 +10090,7 @@ function getAstroSnapshot(date) {
     try {
         // Active transits
         if (globalTodayTransits && globalTodayTransits.length > 0) {
-            var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'N.Norte','lilith':'Lilith'};
+            var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'N.Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
             snap.transits = globalTodayTransits.slice(0,5).map(function(t) {
                 return (pN[t.transitPlanet]||t.transitPlanet) + ' ' + (t.type||'') + ' ' + (pN[t.natalPlanet]||t.natalPlanet);
             });
@@ -14395,7 +14484,11 @@ function getBirthUTCTime(dateStr, timeStr, lat, lon, countryCode) {
 
 function calculateNatalChart(birthDate) {
     // birthDate = Date object in UTC
-    const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northnode', 'lilith'];
+    // Core planets + asteroids (Ceres, Pallas, Juno, Vesta only when SwissEph is available)
+    var planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northnode', 'lilith'];
+    if (window._sweReady) {
+        planets = planets.concat(['ceres', 'pallas', 'juno', 'vesta']);
+    }
     const natalPositions = {};
 
     // Calculate obliquity for declination
@@ -14681,8 +14774,39 @@ function calculateElementsQualities(planets, houses) {
 function calculateHouses(date, latitude, longitude) {
     // ═══════════════════════════════════════════════════
     // PLACIDUS house system — professional-grade
-    // Uses iterative method to trisect diurnal/nocturnal semi-arcs
+    // PRIMARY: Swiss Ephemeris WASM (identical to astro.com)
+    // FALLBACK: Custom iterative semi-arc trisection
     // ═══════════════════════════════════════════════════
+
+    // Try Swiss Ephemeris first
+    if (window._sweReady && window._swe) {
+        try {
+            var swe = window._swe;
+            var utcH = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+            var sweJd = swe.julday(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), utcH);
+            var lat = (latitude !== undefined) ? latitude : parseFloat(localStorage.getItem('natalLat') || '0');
+            var lon = (longitude !== undefined) ? longitude : parseFloat(localStorage.getItem('natalLon') || '0');
+            var h = swe.houses(sweJd, lat, lon, 'P'); // P = Placidus
+            if (h && h.cusps && h.cusps.length >= 13) {
+                // SwissEph cusps are 1-indexed (cusps[1] = house 1)
+                var cusps = new Array(12);
+                for (var ci = 0; ci < 12; ci++) cusps[ci] = h.cusps[ci + 1];
+                var asc = h.points ? h.points[0] : cusps[0];
+                var mc = h.points ? h.points[1] : cusps[9];
+                return {
+                    ascendant: asc,
+                    mc: mc,
+                    cusps: cusps,
+                    ascFormatted: getZodiacSignWithDegree(asc).formatted,
+                    mcFormatted: getZodiacSignWithDegree(mc).formatted
+                };
+            }
+        } catch(e) {
+            console.warn('[SwissEph] houses error, falling back:', e);
+        }
+    }
+
+    // FALLBACK: Custom Placidus implementation
     var jd = getJulianDay(date);
     var T = (jd - 2451545.0) / 36525;
     var lon = (longitude !== undefined) ? longitude : parseFloat(localStorage.getItem('natalLon') || '0');
@@ -15145,7 +15269,7 @@ window.openSynastryView = function(profileId) {
     var synAspects = calculateSynastryAspects(nc1, nc2);
     var score = calculateSynastryCompatibility(synAspects);
     var overlay = calculateHouseOverlay(nc1.houses, nc2.planets);
-    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
 
     var majorAsp = synAspects.filter(function(a){return a.major;});
     var minorAsp = synAspects.filter(function(a){return !a.major;});
@@ -15284,7 +15408,7 @@ window.interpretSynastry = function(name1, name2) {
     var score = calculateSynastryCompatibility(synAspects);
     var overlay = calculateHouseOverlay(nc1.houses, nc2.planets);
 
-    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var aspN = L ? {'conjunction':'Conjunción','sextile':'Sextil','square':'Cuadratura','trine':'Trígono','opposition':'Oposición','semisextile':'Semisextil','quincunx':'Quincuncio'} : {'conjunction':'Conjunction','sextile':'Sextile','square':'Square','trine':'Trine','opposition':'Opposition','semisextile':'Semisextile','quincunx':'Quincunx'};
 
     var synData = 'SINASTRÍA: ' + name1 + ' + ' + name2 + '\n';
@@ -15344,7 +15468,7 @@ window.showSynastryAspectDetail = function(dataStr) {
     var parts = dataStr.split('|');
     var planet1 = parts[0], planet2 = parts[1], aspectType = parts[2], orb = parts[3], isMajor = parts[4] === 'true', person1 = parts[5], person2 = parts[6];
     var L = currentLang === 'es';
-    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var aspN = L ? {'conjunction':'Conjunción','sextile':'Sextil','square':'Cuadratura','trine':'Trígono','opposition':'Oposición','semisextile':'Semisextil','quincunx':'Quincuncio'} : {};
     var aspSym = {'conjunction':'☌','sextile':'⚹','square':'□','trine':'△','opposition':'☍','semisextile':'⚺','quincunx':'⚻'};
     var aspColor = {'conjunction':'#e74c3c','sextile':'#3498db','square':'#f1c40f','trine':'#2ecc71','opposition':'#c0392b','semisextile':'#78909c','quincunx':'#8e44ad'};
@@ -15393,7 +15517,7 @@ window.showSynastryHouseDetail = function(dataStr) {
     var parts = dataStr.split('|');
     var planet = parts[0], house = parts[1], person1 = parts[2], person2 = parts[3];
     var L = currentLang === 'es';
-    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var pName = pN[planet] || planet;
     var pSym = (typeof planetSymbols !== 'undefined' && planetSymbols[planet]) || '';
 
@@ -15620,7 +15744,7 @@ window.showCompositePlanetDetail = function(dataStr) {
     var parts = dataStr.split('|');
     var planetKey = parts[0], sign = parts[1], degree = parts[2], minute = parts[3], house = parts[4], chartType = parts[5], name1 = parts[6], name2 = parts[7];
     var L = currentLang === 'es';
-    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var pName = pN[planetKey] || planetKey;
     var pSym = (typeof planetSymbols !== 'undefined' && planetSymbols[planetKey]) || '';
     var chartLabel = chartType === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart') : (L?'Carta de Davison':'Davison Chart');
@@ -16200,7 +16324,7 @@ window.openReturnChart = function(type) {
     var returnChart = calculateNatalChart(returnDate);
     if (!returnChart) return;
 
-    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
 
     var _returnTitle = title;
     var _returnColor = color;
@@ -16325,7 +16449,7 @@ window.interpretReturnAspect = function(idx) {
     var type = window._returnChartType || 'solar';
     var dateStr = window._returnChartDateStr || '';
 
-    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ASC':'ASC','MC':'MC'};
+    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var aspectSyms = {'conjunction':'☌','sextile':'⚹','square':'□','trine':'△','opposition':'☍','semisextile':'⚺','quincunx':'⚻'};
     var aspectClrs = {'conjunction':'#e74c3c','sextile':'#3498db','square':'#f1c40f','trine':'#2ecc71','opposition':'#c0392b','semisextile':'#78909c','quincunx':'#8e44ad'};
 
@@ -16385,7 +16509,7 @@ window.interpretReturnPlanet = function(key) {
     var dateStr = window._returnChartDateStr || '';
     var houses = window._returnChartHouses;
 
-    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     var pSymsLocal = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','partOfFortune':'⊕','vertex':'Vx'};
 
     var name = pNmsLocal[key] || key;
@@ -16969,7 +17093,7 @@ function saveNatalForm() {
 // --- Natal Sub-Tabs Builder ---
 function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today, todayTransits) {
     const planetSyms = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','ASC':'↑','MC':'★','partOfFortune':'⊕','vertex':'Vx'};
-    const planetNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+    const planetNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
 
     // ===== TAB: CHART (wheel + existing content) =====
     const chartTab = `
@@ -17277,7 +17401,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         } catch(e) { return; }
         if (!nc || !nc.planets) return;
         var L = currentLang === 'es';
-        var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+        var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
         var transits = calculateTransitsToNatal(d, nc);
         var major = transits.filter(function(t) { return t.major && !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
         var minor = transits.filter(function(t) { return !t.major && !['moon'].includes(t.transitPlanet); }).slice(0, 6);
@@ -17572,7 +17696,7 @@ function switchNatalTab(tabName, btn) {
         setTimeout(drawNatalPieCharts, 200);
         setTimeout(function() {
             var L = currentLang === 'es';
-            var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+            var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
             var tbody = document.getElementById('chartPlanetsBody');
             if (tbody && globalNatalChart && globalNatalChart.planets && !tbody.hasChildNodes()) {
                 var html = '';
@@ -18317,7 +18441,7 @@ function generateNatalAIAnalysis(nc, type, L) {
     var aspects = nc.natalAspects || [];
     var eq = nc.elementQuality || {};
     var html = '';
-    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     function H(p){return houses.cusps?getHouseForLongitude(p.longitude,houses.cusps):1;}
     function sn(s){return (s||'').replace(/^[♈♉♊♋♌♍♎♏♐♑♒♓]\s*/,'');}
 
@@ -26598,7 +26722,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v473';
+const APP_VERSION = 'v474';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -27879,7 +28003,7 @@ function aiInterpretHoyTransit(idx) {
     const t = globalTodayTransits[idx];
     if (!t) return;
     const isEs = currentLang === 'es';
-    const planetNmsLocal = {'sun':isEs?'Sol':'Sun','moon':isEs?'Luna':'Moon','mercury':isEs?'Mercurio':'Mercury','venus':'Venus','mars':isEs?'Marte':'Mars','jupiter':isEs?'Júpiter':'Jupiter','saturn':isEs?'Saturno':'Saturn','uranus':isEs?'Urano':'Uranus','neptune':isEs?'Neptuno':'Neptune','pluto':isEs?'Plutón':'Pluto','chiron':isEs?'Quirón':'Chiron','northnode':isEs?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    const planetNmsLocal = {'sun':isEs?'Sol':'Sun','moon':isEs?'Luna':'Moon','mercury':isEs?'Mercurio':'Mercury','venus':'Venus','mars':isEs?'Marte':'Mars','jupiter':isEs?'Júpiter':'Jupiter','saturn':isEs?'Saturno':'Saturn','uranus':isEs?'Urano':'Uranus','neptune':isEs?'Neptuno':'Neptune','pluto':isEs?'Plutón':'Pluto','chiron':isEs?'Quirón':'Chiron','northnode':isEs?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
     const tName = planetNmsLocal[t.transitPlanet] || t.transitPlanet;
     const nName = planetNmsLocal[t.natalPlanet] || t.natalPlanet;
     const aspName = t.type === 'conjunction' ? (isEs?'Conjunción':'Conjunction') : t.type === 'opposition' ? (isEs?'Oposición':'Opposition') : t.type === 'trine' ? (isEs?'Trígono':'Trine') : t.type === 'square' ? (isEs?'Cuadratura':'Square') : t.type === 'sextile' ? (isEs?'Sextil':'Sextile') : t.type;
@@ -28401,7 +28525,7 @@ function gatherAstroContext() {
         const stored = localStorage.getItem('natalChart');
         if (stored) {
             const nc = JSON.parse(stored);
-            const pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith'};
+            const pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
 
             // Birth data
             const natal = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
@@ -28482,7 +28606,7 @@ function gatherAstroContext() {
     // ========== TODAY'S TRANSITS ==========
     try {
         if (globalTodayTransits && globalTodayTransits.length > 0) {
-            const pN2 = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+            const pN2 = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
             ctx += 'TRÁNSITOS DE HOY SOBRE LA CARTA NATAL:\n';
             globalTodayTransits.forEach(function(t) {
                 ctx += (pN2[t.transitPlanet]||t.transitPlanet) + ' ' + t.type + ' natal ' + (pN2[t.natalPlanet]||t.natalPlanet) + ' (orbe: ' + t.orb + '°)\n';
