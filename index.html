@@ -24735,13 +24735,13 @@ function goToCurrentCycle() {
             {
                 icon: '🌙',
                 title: L ? 'Bienvenido a Moon Sync' : 'Welcome to Moon Sync',
-                text: L ? 'Tu compañero astrológico personal. Sigue los ciclos lunares, solares y planetarios — todo sincronizado con tu carta natal.' : 'Your personal astrological companion. Follow lunar, solar and planetary cycles — all synced with your natal chart.',
+                text: L ? 'Tu compañero astrológico personal. Sigue los ciclos lunares, solares y planetarios, escribe tu diario de sueños, conversa con AI por voz, y conecta con tu comunidad astrológica.' : 'Your personal astrological companion. Follow lunar, solar and planetary cycles, write your dream diary, chat with AI by voice, and connect with your astrological community.',
                 color: '#667eea'
             },
             {
                 icon: '🌑',
                 title: L ? 'Calendario Lunar' : 'Lunar Calendar',
-                text: L ? 'Navega por ciclos lunares completos. Cada día muestra fases, aspectos planetarios y tus eventos de agenda. Toca cualquier día para ver detalles.' : 'Navigate full lunar cycles. Each day shows phases, planetary aspects and your agenda events. Tap any day for details.',
+                text: L ? 'Navega por ciclos lunares completos. Cada día muestra fases, aspectos planetarios y tus eventos de agenda. Toca cualquier día para ver detalles y escribir en tu diario.' : 'Navigate full lunar cycles. Each day shows phases, planetary aspects and your agenda events. Tap any day for details and to write in your diary.',
                 color: '#7ec8ff',
                 highlight: '#lunarModeBtn'
             },
@@ -24760,16 +24760,29 @@ function goToCurrentCycle() {
                 highlight: '#personalModeBtn'
             },
             {
-                icon: '📅',
-                title: L ? 'Toca Cualquier Día' : 'Tap Any Day',
-                text: L ? 'Al tocar un día puedes ver: Agenda (eventos personales), Aspectos planetarios del día con interpretación AI, Diario y Reflexiones, e Info Lunar detallada.' : 'Tapping a day shows: Agenda (personal events), Planetary aspects with AI interpretation, Diary & Reflections, and detailed Lunar info.',
+                icon: '✨',
+                title: L ? 'Aspectos Interactivos' : 'Interactive Aspects',
+                text: L ? 'Toca CUALQUIER aspecto planetario, tránsito o planeta para recibir una interpretación personalizada con AI. Cada aspecto es clickeable — abre un chat donde puedes hacer preguntas de seguimiento con texto o micrófono.' : 'Tap ANY planetary aspect, transit or planet for a personalized AI interpretation. Every aspect is clickable — it opens a chat where you can ask follow-up questions by text or microphone.',
+                color: '#ffd54f'
+            },
+            {
+                icon: '🎙️',
+                title: L ? 'Conversa con AI por Voz' : 'Talk to AI by Voice',
+                text: L ? 'Usa el micrófono para hablar directamente con la AI astrológica. Pregunta sobre tus tránsitos, aspectos, carta natal, o cualquier tema. También puedes analizar tu diario y sueños con la AI.' : 'Use the microphone to talk directly with the astrological AI. Ask about your transits, aspects, natal chart, or any topic. You can also analyze your diary and dreams with AI.',
+                color: '#e040fb'
+            },
+            {
+                icon: '📔',
+                title: L ? 'Diario de Sueños y Reflexiones' : 'Dream Diary & Reflections',
+                text: L ? 'Cada día puedes escribir en tu diario personal: sueños, reflexiones, estados de ánimo. La AI puede analizar tus entradas en relación con los tránsitos y aspectos del día.' : 'Each day you can write in your personal diary: dreams, reflections, moods. AI can analyze your entries in relation to the day\'s transits and aspects.',
                 color: '#4ecdc4'
             },
             {
-                icon: '✨',
-                title: L ? 'Interpretación con AI' : 'AI Interpretation',
-                text: L ? 'Toca cualquier aspecto, tránsito o planeta para recibir una interpretación personalizada con inteligencia artificial. Puedes hacer preguntas de seguimiento en el chat.' : 'Tap any aspect, transit or planet to get a personalized AI interpretation. You can ask follow-up questions in the chat.',
-                color: '#ffd54f'
+                icon: '🌐',
+                title: L ? 'AstroConnect — Red Social' : 'AstroConnect — Social Network',
+                text: L ? 'En el botón Social, conecta con personas que comparten tus aspectos astrológicos. Encuentra tu gemelo astrológico, únete a comunidades por signo lunar, ascendente y más. Chat en tiempo real y feed social.' : 'In the Social button, connect with people who share your astrological aspects. Find your astrological twin, join communities by moon sign, ascendant and more. Real-time chat and social feed.',
+                color: '#00bcd4',
+                highlight: '#socialModeBtn'
             },
             {
                 icon: '⚙️',
@@ -29755,7 +29768,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v490';
+const APP_VERSION = 'v491';
 var _pendingSW = null;
 
 // What's New removed per user request
