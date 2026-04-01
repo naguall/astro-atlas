@@ -13575,7 +13575,7 @@ function _renderAsteroids2026View(es) {
           domain: es ? 'Sabiduría estratégica, patrones, justicia creativa' : 'Strategic wisdom, pattern recognition, creative justice',
           keywords: es ? 'Estrategia • Patrones • Artesanía • Política' : 'Strategy • Patterns • Craftsmanship • Politics' },
         { name: 'Juno', symbol: '⚵', sweId: 19, color: '#E91E63', colorBg: 'rgba(233,30,99,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Juno_spacecraft_model_1.png',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/3juno_hst.png/220px-3juno_hst.png',
           domain: es ? 'Compromiso, igualdad en relaciones, contratos sagrados' : 'Commitment, equality in partnerships, sacred contracts',
           keywords: es ? 'Matrimonio • Lealtad • Igualdad • Contratos' : 'Marriage • Loyalty • Equality • Contracts' },
         { name: 'Vesta', symbol: '⚶', sweId: 20, color: '#FF9800', colorBg: 'rgba(255,152,0,',
@@ -13583,7 +13583,7 @@ function _renderAsteroids2026View(es) {
           domain: es ? 'Devoción, fuego sagrado, enfoque interior, pureza' : 'Devotion, sacred flame, inner focus, purity',
           keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' },
         { name: 'Chiron', symbol: '⚷', sweId: 15, color: '#9C27B0', colorBg: 'rgba(156,39,176,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Chiron_in_2015_%28cropped%29.jpg',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Chiron_in_2015_%28cropped%29.jpg/220px-Chiron_in_2015_%28cropped%29.jpg',
           domain: es ? 'Herida primordial, sanación, puente entre lo terrenal y espiritual' : 'Core wound, healing, bridge between earthly and spiritual',
           keywords: es ? 'Sanación • Herida • Maestría • Puente' : 'Healing • Wound • Mastery • Bridge' }
     ];
@@ -13707,7 +13707,7 @@ function _renderAsteroids2026View(es) {
         // Header with photo
         html += '<div onclick="toggleAsteroid2026Details(' + astIdx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
             + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + ast.colorBg + '0.4);box-shadow:0 0 12px ' + ast.colorBg + '0.3);flex-shrink:0;">'
-            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
+            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
             + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + ast.colorBg + '0.5),' + ast.colorBg + '0.2));font-size:1.6em;">' + ast.symbol + '</div>'
             + '</div>'
             + '<div style="flex:1;">'
@@ -13779,7 +13779,13 @@ function _renderAsteroids2026View(es) {
                     meaning: evt.meaning,
                     domain: ast.domain,
                     keywords: ast.keywords,
-                    color: ast.color
+                    color: ast.color,
+                    colorBg: ast.colorBg,
+                    photo: ast.photo,
+                    signName: signNow.name,
+                    signSymbol: signNow.symbol,
+                    isRetro: isRetroNow,
+                    category: evt.category
                 });
 
                 html += '<div onclick="showAsteroid2026Detail(' + evtIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + evtColor + ';cursor:pointer;' + (isPast ? 'opacity:0.55;' : '') + 'transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\'">'
@@ -13800,12 +13806,6 @@ function _renderAsteroids2026View(es) {
             html += '<div style="text-align:center;padding:15px;color:rgba(255,255,255,0.3);font-size:0.8em;">' + (es ? 'Sin eventos significativos en 2026' : 'No significant events in 2026') + '</div>';
         }
 
-        // Interpret button
-        html += '<div style="margin-top:8px;">'
-            + '<button onclick="interpretAsteroid2026(\'' + ast.name + '\',\'' + signNow.name + '\',' + isRetroNow + ')" style="width:100%;padding:10px;background:linear-gradient(135deg,' + ast.colorBg + '0.15),' + ast.colorBg + '0.08));border:1px solid ' + ast.colorBg + '0.35);border-radius:10px;color:' + ast.color + ';font-size:0.82em;font-weight:700;cursor:pointer;">'
-            + '✨ ' + (es ? 'Interpretar ' + ast.name + ' en 2026' : 'Interpret ' + ast.name + ' in 2026')
-            + '</button></div>';
-
         html += '</div>'; // close details
         html += '</div>'; // close card
     });
@@ -13824,7 +13824,7 @@ window.toggleAsteroid2026Details = function(idx) {
     }
 };
 
-// Show asteroid event detail modal
+// Show asteroid event detail modal with inline interpretation
 window.showAsteroid2026Detail = function(idx) {
     if (!window._ast2026Data || !window._ast2026Data[idx]) return;
     var d = window._ast2026Data[idx];
@@ -13832,23 +13832,112 @@ window.showAsteroid2026Detail = function(idx) {
     var modal = document.getElementById('natalDetailModal');
     if (!modal) return;
     document.getElementById('natalDetailTitle').textContent = d.symbol + ' ' + d.asteroid + ' — ' + d.date;
+
+    // Category-specific badge
+    var catBadge = '';
+    if (d.category === 'retro') catBadge = '<span style="background:rgba(255,107,107,0.2);color:#ff6b6b;padding:3px 10px;border-radius:12px;font-size:0.75em;font-weight:600;">℞ ' + (L ? 'Retrógrado' : 'Retrograde') + '</span>';
+    else if (d.category === 'direct') catBadge = '<span style="background:rgba(78,205,196,0.2);color:#4ecdc4;padding:3px 10px;border-radius:12px;font-size:0.75em;font-weight:600;">→ ' + (L ? 'Directo' : 'Direct') + '</span>';
+    else if (d.category === 'sign') catBadge = '<span style="background:rgba(255,213,79,0.2);color:#ffd54f;padding:3px 10px;border-radius:12px;font-size:0.75em;font-weight:600;">→ ' + (L ? 'Cambio de signo' : 'Sign change') + '</span>';
+
+    var rgbStr = d.color === '#8BC34A' ? '139,195,74' : d.color === '#03A9F4' ? '3,169,244' : d.color === '#E91E63' ? '233,30,99' : d.color === '#9C27B0' ? '156,39,176' : '255,152,0';
+
     var body = '<div style="padding:10px;">'
-        + '<div style="font-size:1.5em;text-align:center;margin-bottom:10px;color:' + d.color + ';">' + d.symbol + '</div>'
-        + '<div style="text-align:center;font-size:1.1em;font-weight:700;color:' + d.color + ';margin-bottom:5px;">' + d.type + '</div>'
-        + '<div style="text-align:center;font-size:0.85em;color:rgba(255,255,255,0.5);margin-bottom:15px;">' + d.date + '</div>'
-        + '<div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:12px;">'
-        + '<div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.5;">' + d.meaning + '</div>'
+        // Photo + symbol header
+        + '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="width:80px;height:80px;margin:0 auto 8px;border-radius:50%;overflow:hidden;border:2px solid rgba(' + rgbStr + ',0.4);box-shadow:0 0 20px rgba(' + rgbStr + ',0.3);">'
+        + '<img src="' + d.photo + '" alt="' + d.asteroid + '" style="width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:2em;background:radial-gradient(circle,rgba(' + rgbStr + ',0.4),rgba(' + rgbStr + ',0.1));\\\'>' + d.symbol + '</div>\'" />'
         + '</div>'
-        + '<div style="padding:10px;background:rgba(' + (d.color === '#8BC34A' ? '139,195,74' : d.color === '#03A9F4' ? '3,169,244' : d.color === '#E91E63' ? '233,30,99' : d.color === '#9C27B0' ? '156,39,176' : '255,152,0') + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">'
-        + '<div style="font-size:0.75em;font-weight:600;color:' + d.color + ';margin-bottom:4px;">' + (L ? 'Dominio' : 'Domain') + '</div>'
+        + '<div style="font-size:1.2em;font-weight:700;color:' + d.color + ';font-family:Cinzel,serif;letter-spacing:1px;">' + d.symbol + ' ' + d.asteroid.toUpperCase() + '</div>'
+        + catBadge
+        + '</div>'
+        // Event info
+        + '<div style="text-align:center;font-size:1em;font-weight:600;color:' + d.color + ';margin-bottom:4px;">' + d.type + '</div>'
+        + '<div style="text-align:center;font-size:0.82em;color:rgba(255,255,255,0.5);margin-bottom:12px;">📅 ' + d.date + '</div>'
+        // Meaning
+        + '<div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;">'
+        + '<div style="font-size:0.75em;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:4px;">' + (L ? 'Significado' : 'Meaning') + '</div>'
+        + '<div style="font-size:0.88em;color:rgba(255,255,255,0.85);line-height:1.6;">' + d.meaning + '</div>'
+        + '</div>'
+        // Domain
+        + '<div style="padding:10px;background:rgba(' + rgbStr + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">'
+        + '<div style="font-size:0.72em;font-weight:600;color:' + d.color + ';margin-bottom:3px;">' + (L ? 'Dominio' : 'Domain') + '</div>'
         + '<div style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + d.domain + '</div>'
-        + '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-top:4px;">' + d.keywords + '</div>'
-        + '</div></div>';
+        + '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:3px;">' + d.keywords + '</div>'
+        + '</div>'
+        // AI Interpretation section - inline
+        + '<div style="padding:12px;background:linear-gradient(135deg,rgba(' + rgbStr + ',0.08),rgba(' + rgbStr + ',0.03));border-radius:10px;border:1px solid rgba(' + rgbStr + ',0.2);">'
+        + '<div style="font-size:0.78em;font-weight:700;color:' + d.color + ';margin-bottom:8px;">✨ ' + (L ? 'Interpretación Astrológica' : 'Astrological Interpretation') + '</div>'
+        + '<div id="astInterpContent" style="font-size:0.82em;color:rgba(255,255,255,0.7);line-height:1.6;">'
+        + '<div style="text-align:center;padding:8px;color:rgba(255,255,255,0.35);">' + (L ? 'Cargando interpretación...' : 'Loading interpretation...') + '</div>'
+        + '</div></div>'
+        + '</div>';
+
     document.getElementById('natalDetailBody').innerHTML = body;
     modal.classList.add('show');
+
+    // Generate AI interpretation inline
+    _generateAsteroidInterpretation(d, L);
 };
 
-// Interpret asteroid via AI
+function _generateAsteroidInterpretation(d, L) {
+    var el = document.getElementById('astInterpContent');
+    if (!el) return;
+
+    var prompt = L
+        ? 'Interpreta brevemente el evento astrológico: ' + d.asteroid + ' — ' + d.type + ' (' + d.date + '). Contexto: dominio de ' + d.asteroid + ': ' + d.domain + '. ' + (d.isRetro ? 'Actualmente retrógrado.' : '') + ' Incluye: 1) Significado energético, 2) Áreas de vida afectadas, 3) Consejo práctico. Responde en español, máximo 150 palabras. No uses encabezados markdown.'
+        : 'Briefly interpret this astrological event: ' + d.asteroid + ' — ' + d.type + ' (' + d.date + '). Context: ' + d.asteroid + ' domain: ' + d.domain + '. ' + (d.isRetro ? 'Currently retrograde.' : '') + ' Include: 1) Energetic meaning, 2) Life areas affected, 3) Practical advice. Max 150 words. No markdown headers.';
+
+    if (typeof askAIChat === 'function') {
+        // Use the AI chatbot function
+        askAIChat(prompt);
+        el.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;padding:8px;">💬 ' + (L ? 'Respuesta enviada al chat AI ✨' : 'Response sent to AI chat ✨') + '</div>';
+    } else if (typeof window.askAI === 'function') {
+        window.askAI(prompt);
+        el.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;padding:8px;">💬 ' + (L ? 'Respuesta enviada al chat AI ✨' : 'Response sent to AI chat ✨') + '</div>';
+    } else {
+        // Provide a pre-built interpretation based on the event data
+        var interp = _getStaticAsteroidInterp(d, L);
+        el.innerHTML = interp;
+    }
+}
+
+function _getStaticAsteroidInterp(d, L) {
+    var interpretations = {
+        'Ceres': {
+            sign: L ? '<b>🌾 Energía:</b> Ceres cambiando de signo transforma cómo nutres y cuidas. Es momento de revisar tus hábitos alimentarios, tu relación con la maternidad, y cómo te cuidas a ti mismo/a.<br><br><b>🏠 Áreas:</b> Hogar, alimentación, relaciones maternales, jardín, sustento.<br><br><b>💡 Consejo:</b> Planta semillas (literal o metafóricamente). Inicia nuevos rituales de autocuidado.' : '<b>🌾 Energy:</b> Ceres changing signs transforms how you nurture and care. Time to review eating habits, relationship with mothering, and self-care.<br><br><b>🏠 Areas:</b> Home, nutrition, maternal relationships, sustenance.<br><br><b>💡 Advice:</b> Plant seeds (literal or metaphorical). Start new self-care rituals.',
+            retro: L ? '<b>🌾 Energía:</b> Ceres retrógrado invita a revisar internamente tus patrones de cuidado. ¿Estás dando más de lo que recibes? ¿Te nutres adecuadamente?<br><br><b>🏠 Áreas:</b> Relaciones de dependencia, alimentación emocional, vínculos maternos.<br><br><b>💡 Consejo:</b> No busques nutrición fuera; cultívala desde dentro.' : '<b>🌾 Energy:</b> Ceres retrograde invites you to internally review your care patterns. Are you giving more than receiving?<br><br><b>🏠 Areas:</b> Dependency, emotional nourishment, maternal bonds.<br><br><b>💡 Advice:</b> Don\'t seek nurturing outside; cultivate it within.',
+            direct: L ? '<b>🌾 Energía:</b> Ceres directo restablece el flujo natural de nutrición y abundancia en tu vida.<br><br><b>🏠 Áreas:</b> Cosechas, proyectos de cuidado, relaciones sanadoras.<br><br><b>💡 Consejo:</b> Retoma proyectos de jardín, cocina, o cuidado personal.' : '<b>🌾 Energy:</b> Ceres direct restores the natural flow of nurturing and abundance.<br><br><b>🏠 Areas:</b> Harvests, care projects, healing relationships.<br><br><b>💡 Advice:</b> Resume garden, cooking, or self-care projects.'
+        },
+        'Pallas': {
+            sign: L ? '<b>🧠 Energía:</b> Pallas cambiando de signo activa nuevas formas de percibir patrones y resolver problemas. Tu creatividad estratégica se renueva.<br><br><b>🏛️ Áreas:</b> Trabajo intelectual, política, artesanía, justicia, estrategia.<br><br><b>💡 Consejo:</b> Observa los patrones ocultos que emergen. Aplica tu sabiduría de formas nuevas.' : '<b>🧠 Energy:</b> Pallas changing signs activates new ways of perceiving patterns and solving problems.<br><br><b>🏛️ Areas:</b> Intellectual work, politics, craftsmanship, justice, strategy.<br><br><b>💡 Advice:</b> Observe hidden patterns emerging. Apply your wisdom in new ways.',
+            retro: L ? '<b>🧠 Energía:</b> Pallas retrógrado vuelve la mirada hacia adentro. La sabiduría estratégica se interioriza; reconsidera tus planes.<br><br><b>🏛️ Áreas:</b> Revisión de estrategias, creatividad latente, injusticias pasadas.<br><br><b>💡 Consejo:</b> Medita sobre tus patrones de pensamiento. La solución ya está en ti.' : '<b>🧠 Energy:</b> Pallas retrograde turns the gaze inward. Strategic wisdom becomes internalized; reconsider your plans.<br><br><b>🏛️ Areas:</b> Strategy review, latent creativity, past injustices.<br><br><b>💡 Advice:</b> Meditate on your thought patterns. The solution is already within.',
+            direct: L ? '<b>🧠 Energía:</b> Pallas directo libera la claridad mental. Las estrategias que parecían bloqueadas ahora fluyen.<br><br><b>🏛️ Áreas:</b> Decisiones claras, proyectos creativos, justicia.<br><br><b>💡 Consejo:</b> Actúa con la sabiduría que cultivaste en el período de reflexión.' : '<b>🧠 Energy:</b> Pallas direct releases mental clarity. Strategies that seemed blocked now flow.<br><br><b>🏛️ Areas:</b> Clear decisions, creative projects, justice.<br><br><b>💡 Advice:</b> Act on the wisdom cultivated during reflection.'
+        },
+        'Juno': {
+            sign: L ? '<b>💍 Energía:</b> Juno cambiando de signo transforma tus expectativas en las relaciones comprometidas. Los contratos emocionales se redefinen.<br><br><b>❤️ Áreas:</b> Matrimonio, socios, contratos, lealtad, igualdad.<br><br><b>💡 Consejo:</b> Redefine qué significa compromiso para ti. Busca equilibrio, no sacrificio.' : '<b>💍 Energy:</b> Juno changing signs transforms your expectations in committed relationships. Emotional contracts are redefined.<br><br><b>❤️ Areas:</b> Marriage, partnerships, contracts, loyalty, equality.<br><br><b>💡 Advice:</b> Redefine what commitment means to you. Seek balance, not sacrifice.',
+            retro: L ? '<b>💍 Energía:</b> Juno retrógrado te pide revisar tus compromisos. ¿Tus relaciones son equitativas? ¿Te sientes respetado/a?<br><br><b>❤️ Áreas:</b> Relaciones de pareja, contratos, alianzas laborales.<br><br><b>💡 Consejo:</b> No firmes contratos ni hagas promesas importantes. Revisa lo existente.' : '<b>💍 Energy:</b> Juno retrograde asks you to review your commitments. Are your relationships equitable?<br><br><b>❤️ Areas:</b> Partnerships, contracts, work alliances.<br><br><b>💡 Advice:</b> Avoid signing contracts or making major promises. Review what exists.',
+            direct: L ? '<b>💍 Energía:</b> Juno directo restablece la claridad en los compromisos. Las relaciones avanzan con nuevo entendimiento.<br><br><b>❤️ Áreas:</b> Matrimonio, asociaciones, acuerdos renovados.<br><br><b>💡 Consejo:</b> Reafirma los compromisos que se fortalecieron durante la revisión.' : '<b>💍 Energy:</b> Juno direct restores clarity in commitments. Relationships advance with new understanding.<br><br><b>❤️ Areas:</b> Marriage, partnerships, renewed agreements.<br><br><b>💡 Advice:</b> Reaffirm commitments strengthened during review.'
+        },
+        'Vesta': {
+            sign: L ? '<b>🔥 Energía:</b> Vesta cambiando de signo redirige tu fuego sagrado. Tu devoción y enfoque se orientan hacia un nuevo propósito.<br><br><b>🕯️ Áreas:</b> Espiritualidad, trabajo dedicado, rutinas sagradas, pureza de intención.<br><br><b>💡 Consejo:</b> Crea un nuevo espacio sagrado (físico o mental) para tu práctica.' : '<b>🔥 Energy:</b> Vesta changing signs redirects your sacred flame. Your devotion and focus orient toward a new purpose.<br><br><b>🕯️ Areas:</b> Spirituality, dedicated work, sacred routines, purity of intention.<br><br><b>💡 Advice:</b> Create a new sacred space (physical or mental) for your practice.',
+            retro: L ? '<b>🔥 Energía:</b> Vesta retrógrado extingue temporalmente el fuego externo para encender el interno. Período de introspección profunda.<br><br><b>🕯️ Áreas:</b> Descanso, revisión de rituales, purificación interna.<br><br><b>💡 Consejo:</b> No forces la productividad. Permite que tu llama interna se purifique.' : '<b>🔥 Energy:</b> Vesta retrograde temporarily extinguishes the external flame to ignite the internal one. Deep introspection period.<br><br><b>🕯️ Areas:</b> Rest, ritual review, inner purification.<br><br><b>💡 Advice:</b> Don\'t force productivity. Let your inner flame purify.',
+            direct: L ? '<b>🔥 Energía:</b> Vesta directo re-enciende tu fuego sagrado con renovada claridad y propósito.<br><br><b>🕯️ Áreas:</b> Trabajo enfocado, rituales renovados, servicio con pasión.<br><br><b>💡 Consejo:</b> Canaliza tu energía renovada hacia tu misión más profunda.' : '<b>🔥 Energy:</b> Vesta direct reignites your sacred flame with renewed clarity and purpose.<br><br><b>🕯️ Areas:</b> Focused work, renewed rituals, passionate service.<br><br><b>💡 Advice:</b> Channel your renewed energy toward your deepest mission.'
+        },
+        'Chiron': {
+            sign: L ? '<b>💜 Energía:</b> Quirón cambiando de signo mueve el foco de tu herida primordial. Una nueva área de tu vida pide sanación.<br><br><b>🌿 Áreas:</b> Heridas emocionales, sanación, mentoreo, vulnerabilidad como fortaleza.<br><br><b>💡 Consejo:</b> Abraza tu vulnerabilidad. Tu herida es tu mayor don para ayudar a otros.' : '<b>💜 Energy:</b> Chiron changing signs shifts the focus of your core wound. A new area of life calls for healing.<br><br><b>🌿 Areas:</b> Emotional wounds, healing, mentoring, vulnerability as strength.<br><br><b>💡 Advice:</b> Embrace your vulnerability. Your wound is your greatest gift for helping others.',
+            retro: L ? '<b>💜 Energía:</b> Quirón retrógrado profundiza en las heridas antiguas. Lo que pensabas sanado reaparece para una curación más profunda.<br><br><b>🌿 Áreas:</b> Traumas del pasado, patrones de herida repetidos, autocompasión.<br><br><b>💡 Consejo:</b> No huyas del dolor que resurge. Es una oportunidad de sanación real.' : '<b>💜 Energy:</b> Chiron retrograde deepens into old wounds. What you thought was healed resurfaces for deeper healing.<br><br><b>🌿 Areas:</b> Past traumas, repeated wound patterns, self-compassion.<br><br><b>💡 Advice:</b> Don\'t run from resurfacing pain. It\'s an opportunity for real healing.',
+            direct: L ? '<b>💜 Energía:</b> Quirón directo permite que la sanación se manifieste externamente. Puedes ahora compartir tu sabiduría de sanador/a.<br><br><b>🌿 Áreas:</b> Enseñanza, terapia, guía espiritual, sanación de relaciones.<br><br><b>💡 Consejo:</b> Comparte lo que aprendiste. Tu experiencia puede sanar a otros.' : '<b>💜 Energy:</b> Chiron direct allows healing to manifest externally. You can now share your healer\'s wisdom.<br><br><b>🌿 Areas:</b> Teaching, therapy, spiritual guidance, relationship healing.<br><br><b>💡 Advice:</b> Share what you learned. Your experience can heal others.'
+        }
+    };
+
+    var astInterp = interpretations[d.asteroid];
+    if (!astInterp) return '<div style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'Interpretación no disponible.' : 'Interpretation not available.') + '</div>';
+
+    var key = d.category === 'retro' ? 'retro' : d.category === 'direct' ? 'direct' : 'sign';
+    return '<div style="line-height:1.7;">' + (astInterp[key] || astInterp['sign']) + '</div>';
+}
+
+// Keep interpretAsteroid2026 for backward compatibility (subtab variant calls it)
 window.interpretAsteroid2026 = function(name, sign, isRetro) {
     var L = currentLang === 'es';
     var prompt = L
@@ -13858,13 +13947,6 @@ window.interpretAsteroid2026 = function(name, sign, isRetro) {
         askAIChat(prompt);
     } else if (typeof window.askAI === 'function') {
         window.askAI(prompt);
-    } else {
-        var modal = document.getElementById('natalDetailModal');
-        if (modal) {
-            document.getElementById('natalDetailTitle').textContent = '✨ ' + name + ' ' + (L ? 'en' : 'in') + ' ' + sign;
-            document.getElementById('natalDetailBody').innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);">' + (L ? 'La interpretación AI no está disponible. Usa el chatbot ✨ para consultar.' : 'AI interpretation not available. Use the ✨ chatbot to ask.') + '</div>';
-            modal.classList.add('show');
-        }
     }
 };
 
@@ -28737,10 +28819,14 @@ function _searchUsers(filters, callback) {
     if (!_db) return;
     var query = _db.collection('users').where('privacy.showOnSearch', '==', true);
 
-    if (filters.sunSign) query = query.where('sunSign', '==', filters.sunSign);
-    else if (filters.moonSign) query = query.where('moonSign', '==', filters.moonSign);
-    else if (filters.ascSign) query = query.where('ascSign', '==', filters.ascSign);
-    else if (filters.planet && filters.sign) query = query.where(filters.planet + 'Sign', '==', filters.sign);
+    var filterField = null;
+    var filterValue = null;
+    if (filters.sunSign) { filterField = 'sunSign'; filterValue = filters.sunSign; }
+    else if (filters.moonSign) { filterField = 'moonSign'; filterValue = filters.moonSign; }
+    else if (filters.ascSign) { filterField = 'ascSign'; filterValue = filters.ascSign; }
+    else if (filters.planet && filters.sign) { filterField = filters.planet + 'Sign'; filterValue = filters.sign; }
+
+    if (filterField) query = query.where(filterField, '==', filterValue);
 
     query.limit(50).get().then(function(snap) {
         var results = [];
@@ -28750,23 +28836,51 @@ function _searchUsers(filters, callback) {
             data._uid = doc.id;
             results.push(data);
         });
-        // If degree filter, post-filter
-        if (filters.degree !== undefined && filters.planet) {
-            var key = filters.planet + 'Degree';
-            var orb = filters.orb || 5;
-            results = results.filter(function(u) {
-                return Math.abs((u[key] || 0) - filters.degree) <= orb;
-            });
-        }
-        // Calculate similarity for each
-        if (_socialProfile && _socialProfile.chartData) {
-            results.forEach(function(u) {
-                u._similarity = _calcSimilarity(_socialProfile.chartData, u.chartData);
-            });
-            results.sort(function(a, b) { return b._similarity - a._similarity; });
-        }
+        _postProcessSearchResults(results, filters);
         callback(results);
-    }).catch(function(e) { console.error('Search error:', e); callback([]); });
+    }).catch(function(e) {
+        console.warn('Search composite query failed, trying client-side filter...', e);
+        // Fallback: load all searchable users and filter client-side
+        _db.collection('users').where('privacy.showOnSearch', '==', true).limit(200).get().then(function(snap) {
+            var results = [];
+            snap.forEach(function(doc) {
+                if (doc.id === _socialUser.uid) return;
+                var data = doc.data();
+                data._uid = doc.id;
+                // Client-side filter by the planet/sign
+                if (filterField && filterValue) {
+                    if (data[filterField] !== filterValue) return;
+                }
+                results.push(data);
+            });
+            _postProcessSearchResults(results, filters);
+            callback(results);
+        }).catch(function(e2) {
+            console.error('Search fallback also failed:', e2);
+            var el = document.getElementById('searchResults');
+            if (el) el.innerHTML = '<div style="color:#ff6b6b;font-size:0.82em;text-align:center;padding:10px;">' +
+                (L() ? 'Error en la búsqueda. Intenta de nuevo.' : 'Search error. Please try again.') + '</div>';
+            callback([]);
+        });
+    });
+}
+
+function _postProcessSearchResults(results, filters) {
+    // If degree filter, post-filter
+    if (filters.degree !== undefined && filters.planet) {
+        var key = filters.planet + 'Degree';
+        var orb = filters.orb || 5;
+        for (var i = results.length - 1; i >= 0; i--) {
+            if (Math.abs((results[i][key] || 0) - filters.degree) > orb) results.splice(i, 1);
+        }
+    }
+    // Calculate similarity for each
+    if (_socialProfile && _socialProfile.chartData) {
+        results.forEach(function(u) {
+            u._similarity = _calcSimilarity(_socialProfile.chartData, u.chartData);
+        });
+        results.sort(function(a, b) { return b._similarity - a._similarity; });
+    }
 }
 
 function _findTopMatches(callback) {
@@ -28903,6 +29017,9 @@ function _getOrCreateChat(otherUid, callback) {
             });
         }
         callback(chatId);
+    }).catch(function(e) {
+        console.error('Error creating/getting chat:', e);
+        alert(L() ? 'Error al abrir el chat. Intenta de nuevo.' : 'Error opening chat. Please try again.');
     });
 }
 
@@ -28921,7 +29038,18 @@ function _sendChatMsg(chatId, text) {
         lastMessage: text.substring(0, 100),
         lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    batch.commit();
+    batch.commit().then(function() {
+        // Send notification to the other participant
+        var parts = chatId.split('_');
+        var otherUid = parts[0] === _socialUser.uid ? parts[1] : parts[0];
+        if (otherUid && otherUid !== _socialUser.uid) {
+            _sendNotification(otherUid, 'new_message', {
+                chatId: chatId,
+                preview: text.substring(0, 80),
+                senderName: _socialUser.displayName || ''
+            });
+        }
+    }).catch(function(e) { console.error('Send message error:', e); });
 }
 
 function _listenToChat(chatId, callback) {
@@ -28942,6 +29070,24 @@ function _getMyChats(callback) {
         var chats = [];
         snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; chats.push(d); });
         callback(chats);
+    }).catch(function(e) {
+        console.warn('Chat query failed (likely needs Firestore index), trying simple query...', e);
+        // Fallback: query without orderBy (no composite index needed)
+        _db.collection('chats').where('participants', 'array-contains', _socialUser.uid)
+            .limit(20).get().then(function(snap) {
+            var chats = [];
+            snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; chats.push(d); });
+            // Sort client-side
+            chats.sort(function(a, b) {
+                var ta = a.lastMessageAt ? (a.lastMessageAt.toDate ? a.lastMessageAt.toDate().getTime() : 0) : 0;
+                var tb = b.lastMessageAt ? (b.lastMessageAt.toDate ? b.lastMessageAt.toDate().getTime() : 0) : 0;
+                return tb - ta;
+            });
+            callback(chats);
+        }).catch(function(e2) {
+            console.error('Chat fallback also failed:', e2);
+            callback([]);
+        });
     });
 }
 
@@ -29011,14 +29157,52 @@ function _sendNotification(toUid, type, data) {
 function _listenNotifications(uid) {
     if (!_db) return;
     if (_notifListener) _notifListener();
+    // Try with orderBy first, fallback to simple query if composite index missing
     _notifListener = _db.collection('notifications').doc(uid).collection('items')
         .where('read', '==', false).orderBy('createdAt', 'desc').limit(20)
         .onSnapshot(function(snap) {
             _unreadCount = snap.size;
-            var badge = document.getElementById('socialNotifBadge');
-            if (badge) badge.textContent = _unreadCount > 0 ? _unreadCount : '';
-            if (badge) badge.style.display = _unreadCount > 0 ? 'inline-flex' : 'none';
+            _updateNotifBadges();
+        }, function(err) {
+            console.warn('Notification listener with orderBy failed, using simple query:', err);
+            // Fallback without orderBy (no composite index needed)
+            _notifListener = _db.collection('notifications').doc(uid).collection('items')
+                .where('read', '==', false).limit(20)
+                .onSnapshot(function(snap) {
+                    _unreadCount = snap.size;
+                    _updateNotifBadges();
+                }, function(err2) {
+                    console.error('Notification listener fallback also failed:', err2);
+                });
         });
+}
+
+function _updateNotifBadges() {
+    // Update badge on nav bar messages tab
+    var badge = document.getElementById('socialNotifBadge');
+    if (badge) {
+        badge.textContent = _unreadCount > 0 ? _unreadCount : '';
+        badge.style.display = _unreadCount > 0 ? 'inline-flex' : 'none';
+    }
+    // Also update the chat tab badge in the nav (inline span)
+    var msgBtns = document.querySelectorAll('[onclick*="switchSocialTab(\'messages\')"]');
+    if (msgBtns.length > 0) {
+        var btn = msgBtns[0];
+        var existingBadge = btn.querySelector('.notif-badge-inline');
+        if (_unreadCount > 0) {
+            if (!existingBadge) {
+                var sp = document.createElement('span');
+                sp.className = 'notif-badge-inline';
+                sp.style.cssText = 'background:#ff4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:0.8em;margin-left:2px;';
+                sp.textContent = _unreadCount;
+                btn.appendChild(sp);
+            } else {
+                existingBadge.textContent = _unreadCount;
+            }
+        } else if (existingBadge) {
+            existingBadge.remove();
+        }
+    }
 }
 
 function _getNotifications(callback) {
@@ -29693,6 +29877,9 @@ function _renderMessages(content, isES) {
 }
 
 window._startChatWith = function(uid, name) {
+    // Remove twin overlay if present so the chat view is visible
+    var overlay = document.getElementById('twinOverlay');
+    if (overlay) overlay.remove();
     _getOrCreateChat(uid, function(chatId) {
         window._openChat(chatId, uid, name);
     });
@@ -29874,7 +30061,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v493';
+const APP_VERSION = 'v495';
 var _pendingSW = null;
 
 // What's New removed per user request
