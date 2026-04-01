@@ -12185,7 +12185,7 @@ function switchToSolarMode() {
     document.body.classList.remove('personal-mode');
 
     // Hide panels not used in solar mode
-    var idsToHide = ['earthInfoPanel','solarSystemPanel','aspects2026Panel','personalCalendar','lunarWeeks','gregorianCalendar','planetaryAspectsSection','lunarInfoBanner'];
+    var idsToHide = ['earthInfoPanel','solarSystemPanel','aspects2026Panel','personalCalendar','lunarWeeks','gregorianCalendar','planetaryAspectsSection','lunarInfoBanner','socialContainer'];
     idsToHide.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
 
     // Ensure currentDayInfo is visible (may have been hidden by other modes)
@@ -12231,6 +12231,8 @@ function switchToGregorianMode() {
     if (pas) pas.style.display = 'none';
     const lib = document.getElementById('lunarInfoBanner');
     if (lib) lib.style.display = 'none';
+    const sc = document.getElementById('socialContainer');
+    if (sc) sc.style.display = 'none';
 
     // Ensure currentDayInfo is visible
     const cdi = document.getElementById('currentDayInfo');
@@ -12269,6 +12271,8 @@ function switchToEarthMode() {
     if (cdi) cdi.style.display = 'none';
     const pas = document.getElementById('planetaryAspectsSection');
     if (pas) pas.style.display = 'none';
+    const sc = document.getElementById('socialContainer');
+    if (sc) sc.style.display = 'none';
 
     // Update title
     document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? 'Tierra en Vivo' : 'Earth Live';
@@ -12321,6 +12325,10 @@ function switchToLunarMode() {
     // Hide gregorian calendar
     const gregorianCal = document.getElementById('gregorianCalendar');
     if (gregorianCal) gregorianCal.style.display = 'none';
+
+    // Hide social container
+    const sc = document.getElementById('socialContainer');
+    if (sc) sc.style.display = 'none';
 
     // Update title
     document.getElementById('calendarTitle').innerHTML = t('lunarCalendar');
@@ -12382,6 +12390,8 @@ function switchToSolarSystemMode() {
     if (pas2) pas2.style.display = 'none';
     const a26p = document.getElementById('aspects2026Panel');
     if (a26p) a26p.style.display = 'none';
+    const sc = document.getElementById('socialContainer');
+    if (sc) sc.style.display = 'none';
 
     // Update title
     document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? 'Sistema Solar' : 'Solar System';
@@ -13194,6 +13204,8 @@ function switchToAspects2026Mode() {
     if (pas2) pas2.style.display = 'none';
     const ssp = document.getElementById('solarSystemPanel');
     if (ssp) ssp.style.display = 'none';
+    const sc = document.getElementById('socialContainer');
+    if (sc) sc.style.display = 'none';
 
     // Update title
     document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Aspectos 2026' : 'Aspects 2026';
@@ -17325,7 +17337,7 @@ function switchToPersonalMode() {
     document.body.classList.add('personal-mode');
 
     // Hide other panels and navigation
-    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'aspects2026Panel', 'lunarInfoBanner', 'currentDayInfo', 'planetaryAspectsSection'].forEach(id => {
+    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'aspects2026Panel', 'lunarInfoBanner', 'currentDayInfo', 'planetaryAspectsSection', 'socialContainer'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -23766,7 +23778,15 @@ function renderCalendar() {
                         <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji || (calendarMode === 'lunar' ? getMoonSVG(calculateLunarPhase(today), 30) : '☉')}</div>
-                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
+                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? (() => {
+                        var _weekNames = currentLang === 'es' ? ['Luna Nueva','Cuarto Creciente','Luna Llena','Cuarto Menguante'] : ['New Moon','First Quarter','Full Moon','Last Quarter'];
+                        var _weekEmojis = ['🌑','🌓','🌕','🌗'];
+                        var _weekLblColors = ['#9b8ec4','#4ecdc4','#e8c84a','#ee5a6f'];
+                        var _wName = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekNames[currentWeekIndex] : '';
+                        var _wEmoji = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekEmojis[currentWeekIndex] : '';
+                        var _wColor = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekLblColors[currentWeekIndex] : '#fff';
+                        return '<span style="color:' + _wColor + ';">' + _wEmoji + ' ' + _wName + '</span> · ' + (currentLang === 'es' ? 'Día' : 'Day') + ' ' + weekDayNumber;
+                    })() : ''}</div>
                     <div style="font-size: 0.55em; color: #ffffff; opacity: 0.85;">${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}</div>
                     <div style="margin-top:auto;font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
                 </div>
@@ -23843,9 +23863,24 @@ function renderCalendar() {
     // This prevents the Samsung One UI flicker caused by clearing innerHTML and rebuilding
     var _fragment = document.createDocumentFragment();
 
+    // Lunar week colors — subtle background tints for each phase
+    var _lunarWeekColors = [
+        { bg: 'rgba(20,15,50,0.6)', border: 'rgba(120,100,200,0.25)', label: '🌑', labelColor: '#9b8ec4' },  // Luna Nueva — deep indigo
+        { bg: 'rgba(15,35,55,0.6)', border: 'rgba(78,205,196,0.25)', label: '🌓', labelColor: '#4ecdc4' },  // Cuarto Creciente — teal
+        { bg: 'rgba(50,42,15,0.6)', border: 'rgba(232,200,74,0.25)', label: '🌕', labelColor: '#e8c84a' },   // Luna Llena — golden
+        { bg: 'rgba(35,15,25,0.6)', border: 'rgba(238,90,111,0.25)', label: '🌗', labelColor: '#ee5a6f' }    // Cuarto Menguante — rose
+    ];
+
     weeks.forEach((week, index) => {
         const weekDiv = document.createElement('div');
         weekDiv.className = 'lunar-week' + (index === currentWeekIndex ? ' active' : '');
+        // Apply lunar week background color
+        var _wc = _lunarWeekColors[index] || _lunarWeekColors[0];
+        weekDiv.style.background = _wc.bg;
+        weekDiv.style.borderLeft = '3px solid ' + _wc.border.replace('0.25', '0.6');
+        weekDiv.style.borderRadius = '8px';
+        weekDiv.style.marginBottom = '6px';
+        weekDiv.style.padding = '2px';
 
         // For weeks 0 (Luna Nueva) and 2 (Luna Llena), prepare onclick handler
         const isClickableWeek = (index === 0 || index === 2) ? true : false;
@@ -24741,7 +24776,7 @@ function goToCurrentCycle() {
             {
                 icon: '🌑',
                 title: L ? 'Calendario Lunar' : 'Lunar Calendar',
-                text: L ? 'Navega por ciclos lunares completos. Cada día muestra fases, aspectos planetarios y tus eventos de agenda. Toca cualquier día para ver detalles y escribir en tu diario.' : 'Navigate full lunar cycles. Each day shows phases, planetary aspects and your agenda events. Tap any day for details and to write in your diary.',
+                text: L ? 'Navega por ciclos lunares completos con semanas coloreadas por fase (Luna Nueva, Creciente, Llena, Menguante). Cada día muestra aspectos planetarios y eventos. Toca cualquier día para ver detalles, escribir en tu diario o agregar eventos.' : 'Navigate full lunar cycles with color-coded phase weeks (New Moon, Waxing, Full, Waning). Each day shows planetary aspects and events. Tap any day for details, diary entries or events.',
                 color: '#7ec8ff',
                 highlight: '#lunarModeBtn'
             },
@@ -24766,16 +24801,40 @@ function goToCurrentCycle() {
                 color: '#ffd54f'
             },
             {
+                icon: '🎭',
+                title: L ? 'Personalidad del Intérprete AI' : 'AI Interpreter Personality',
+                text: L ? 'Cambia la personalidad de tu intérprete astrológico en Preferencias. Elige entre estilos como místico, científico, poético, directo y más. Cada personalidad da un tono único a las interpretaciones de tus aspectos y tránsitos.' : 'Change your astrological interpreter\'s personality in Preferences. Choose from styles like mystic, scientific, poetic, direct and more. Each personality gives a unique tone to your aspect and transit interpretations.',
+                color: '#ba68c8'
+            },
+            {
                 icon: '🎙️',
-                title: L ? 'Conversa con AI por Voz' : 'Talk to AI by Voice',
-                text: L ? 'Usa el micrófono para hablar directamente con la AI astrológica. Pregunta sobre tus tránsitos, aspectos, carta natal, o cualquier tema. También puedes analizar tu diario y sueños con la AI.' : 'Use the microphone to talk directly with the astrological AI. Ask about your transits, aspects, natal chart, or any topic. You can also analyze your diary and dreams with AI.',
+                title: L ? 'Dictado de Voz y Chat AI' : 'Voice Dictation & AI Chat',
+                text: L ? 'Usa el micrófono para dictar en tu diario, hablar con la AI astrológica, o hacer preguntas sobre tus tránsitos y carta natal. La AI puede analizar tus sueños y reflexiones en relación con los aspectos del día.' : 'Use the microphone to dictate diary entries, talk to the astrological AI, or ask questions about your transits and natal chart. AI can analyze your dreams and reflections in relation to the day\'s aspects.',
                 color: '#e040fb'
             },
             {
                 icon: '📔',
                 title: L ? 'Diario de Sueños y Reflexiones' : 'Dream Diary & Reflections',
-                text: L ? 'Cada día puedes escribir en tu diario personal: sueños, reflexiones, estados de ánimo. La AI puede analizar tus entradas en relación con los tránsitos y aspectos del día.' : 'Each day you can write in your personal diary: dreams, reflections, moods. AI can analyze your entries in relation to the day\'s transits and aspects.',
+                text: L ? 'Cada día puedes escribir en tu diario personal: sueños, reflexiones, estados de ánimo. Usa dictado de voz para escribir más rápido. La AI analiza tus entradas en relación con los tránsitos y aspectos planetarios del día.' : 'Each day you can write in your personal diary: dreams, reflections, moods. Use voice dictation to write faster. AI analyzes your entries in relation to the day\'s planetary transits and aspects.',
                 color: '#4ecdc4'
+            },
+            {
+                icon: '🎓',
+                title: L ? 'Curso de Astrología' : 'Astrology Course',
+                text: L ? 'Aprende astrología desde cero con el curso integrado. Módulos sobre planetas, signos, casas, aspectos y más, con quizzes para evaluar tu progreso. Accede desde Astro → pestaña Curso.' : 'Learn astrology from scratch with the built-in course. Modules on planets, signs, houses, aspects and more, with quizzes to test your progress. Access from Astro → Course tab.',
+                color: '#c9a840'
+            },
+            {
+                icon: '📅',
+                title: L ? 'Google Calendar y Eventos' : 'Google Calendar & Events',
+                text: L ? 'Sincroniza tus eventos con Google Calendar para ver tus compromisos junto a los aspectos planetarios. También puedes crear eventos directamente en cada día del calendario lunar o solar.' : 'Sync your events with Google Calendar to see your schedule alongside planetary aspects. You can also create events directly on any day in the lunar or solar calendar.',
+                color: '#4285f4'
+            },
+            {
+                icon: '🔧',
+                title: L ? 'Personaliza tu Experiencia' : 'Customize Your Experience',
+                text: L ? 'En Preferencias ajusta: tamaño de celdas del calendario, idioma (ES/EN), copia de seguridad y restauración de tus datos, tema visual, y más. Todo se guarda localmente en tu dispositivo.' : 'In Preferences adjust: calendar cell size, language (ES/EN), backup and restore your data, visual theme, and more. Everything is saved locally on your device.',
+                color: '#78909c'
             },
             {
                 icon: '🌐',
@@ -24785,7 +24844,7 @@ function goToCurrentCycle() {
                 highlight: '#socialModeBtn'
             },
             {
-                icon: '⚙️',
+                icon: '🚀',
                 title: L ? '¡Listo para explorar!' : 'Ready to explore!',
                 text: L ? 'Puedes volver a ver este tutorial en ⚙️ Preferencias → Tutorial. ¡Explora los ciclos del cosmos!' : 'You can replay this tutorial in ⚙️ Preferences → Tutorial. Explore the cycles of the cosmos!',
                 color: '#c9a840'
