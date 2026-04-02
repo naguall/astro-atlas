@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v516';
+        var REQUIRED_VER = 'v517';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -18591,7 +18591,13 @@ function renderNatalLunarCal() {
     if (!weeks || weeks.length === 0) return;
 
     var cycleEnd = weeks[weeks.length - 1].endDate;
-    var cycleTotalDays = weeks.reduce(function(s, w) { return s + w.days.length; }, 0);
+    // Count unique days (avoid double-counting overlapping week boundaries)
+    var _uDays = {};
+    weeks.forEach(function(w) { w.days.forEach(function(d) {
+        var _dk2 = d.date.getFullYear() + '-' + (d.date.getMonth()+1) + '-' + d.date.getDate();
+        _uDays[_dk2] = true;
+    }); });
+    var cycleTotalDays = Object.keys(_uDays).length;
 
     // Render using the same lunar-week structure as the main calendar
     container.innerHTML = '';
@@ -24222,7 +24228,13 @@ function renderCalendar() {
     today.setHours(0, 0, 0, 0);
     
     const cycleEnd = weeks[weeks.length - 1].endDate;
-    const cycleTotalDays = weeks.reduce((s, w) => s + w.days.length, 0);
+    // Count unique days in cycle (avoid double-counting overlapping week boundaries)
+    var _uniqueDays = {};
+    weeks.forEach(function(w) { w.days.forEach(function(d) {
+        var _dk = d.date.getFullYear() + '-' + (d.date.getMonth()+1) + '-' + d.date.getDate();
+        _uniqueDays[_dk] = true;
+    }); });
+    const cycleTotalDays = Object.keys(_uniqueDays).length;
     document.getElementById('cycleNumber').textContent = currentLang==='es'?'Ciclo Lunar Completo':'Full Lunar Cycle';
     document.getElementById('cycleDates').textContent =
         `${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}`;
@@ -24410,16 +24422,17 @@ function renderCalendar() {
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
                         <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
                     </div>
-                    <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji || (calendarMode === 'lunar' ? getMoonSVG(calculateLunarPhase(today), 30) : '☉')}</div>
-                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? (() => {
-                        var _weekNames = currentLang === 'es' ? ['Luna Nueva','Cuarto Creciente','Luna Llena','Cuarto Menguante'] : ['New Moon','First Quarter','Full Moon','Last Quarter'];
-                        var _weekEmojis = ['🌑','🌓','🌕','🌗'];
-                        var _weekLblColors = ['#9b8ec4','#4ecdc4','#e8c84a','#ee5a6f'];
-                        var _wName = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekNames[currentWeekIndex] : '';
-                        var _wEmoji = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekEmojis[currentWeekIndex] : '';
-                        var _wColor = currentWeekIndex >= 0 && currentWeekIndex < 4 ? _weekLblColors[currentWeekIndex] : '#fff';
-                        return '<span style="color:' + _wColor + ';">' + _wEmoji + ' ' + _wName + '</span> · ' + (currentLang === 'es' ? 'Día' : 'Day') + ' ' + weekDayNumber;
-                    })() : ''}</div>
+                    <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${calendarMode === 'lunar' ? (() => {
+                        // Show % illumination instead of moon icon
+                        try {
+                            var _illumT = Astronomy.MakeTime(today);
+                            var _illumData = Astronomy.Illumination(Astronomy.Body.Moon, _illumT);
+                            var _illumPct = (_illumData.phase_fraction * 100).toFixed(1);
+                            return '<div style="display:flex;flex-direction:column;align-items:center;gap:0;">' + getMoonSVG(calculateLunarPhase(today), 28) + '<span style="font-size:0.35em;color:#c9a840;font-weight:700;margin-top:1px;">' + _illumPct + '%</span></div>';
+                        } catch(e) {
+                            return getMoonSVG(calculateLunarPhase(today), 30);
+                        }
+                    })() : (displayEmoji || '☉')}</div>
                     <div style="font-size: 0.55em; color: #ffffff; opacity: 0.85;">${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}</div>
                     <div style="margin-top:auto;font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
                 </div>
@@ -30901,7 +30914,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v516';
+const APP_VERSION = 'v517';
 var _pendingSW = null;
 
 // What's New removed per user request
