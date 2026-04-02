@@ -9256,7 +9256,7 @@ function _startCompass() {
         return (current + diff * factor + 360) % 360;
     }
     function smoothLinear(current, target, factor) {
-        return current + (target - factor) * factor;
+        return current + (target - current) * factor;
     }
 
     // Calibration listener
@@ -9279,6 +9279,18 @@ function _startCompass() {
     // ── Android: deviceorientation alpha is NOT relative to north ──
     //    Must use deviceorientationabsolute event for true heading ──
 
+    // Adaptive smoothing: fast response when far off, smooth when close
+    function adaptiveSmoothFactor(current, target) {
+        var diff = Math.abs(target - current);
+        if (diff > 180) diff = 360 - diff;
+        // Far off (>30°): factor 0.5 (fast catch-up)
+        // Close (<5°): factor 0.12 (smooth, stable)
+        // In between: linear interpolation
+        if (diff > 30) return 0.5;
+        if (diff < 5) return 0.12;
+        return 0.12 + (diff - 5) / 25 * 0.38;
+    }
+
     _compassOrientationHandler = function(e) {
         // iOS provides webkitCompassHeading = magnetic north heading
         if (e.webkitCompassHeading !== undefined) {
@@ -9296,8 +9308,9 @@ function _startCompass() {
         }
         // Always capture tilt from this event
         processTilt(e);
-        // Smooth heading
-        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, 0.2);
+        // Smooth heading with adaptive factor
+        var sf = adaptiveSmoothFactor(_compassHeadingSmooth, _compassHeading);
+        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, sf);
     };
     window.addEventListener('deviceorientation', _compassOrientationHandler, true);
 
@@ -9309,7 +9322,8 @@ function _startCompass() {
             _compassCalibrationNeeded = false;
         }
         processTilt(e);
-        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, 0.2);
+        var sf = adaptiveSmoothFactor(_compassHeadingSmooth, _compassHeading);
+        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, sf);
     };
     window.addEventListener('deviceorientationabsolute', _compassAbsoluteHandler, true);
 
@@ -10006,6 +10020,25 @@ function _renderCompass() {
         info += 'To calibrate: slowly move your phone in a figure-8 (∞) motion 3-4 times. Move away from metal objects for best accuracy.';
     }
     info += '</div>';
+
+    // ===== CELESTIAL RISE/SET PANEL (collapsible dropdown) =====
+    if (typeof Astronomy !== 'undefined' && typeof ASTRO_USER_LAT !== 'undefined' && ASTRO_USER_LAT !== null) {
+        info += '<div style="margin-top:10px;">';
+        info += '<div onclick="var p=this.nextElementSibling;var a=this.querySelector(\'.compass-celestial-arrow\');if(p.style.display===\'none\'){p.style.display=\'block\';a.textContent=\'▾\'}else{p.style.display=\'none\';a.textContent=\'▸\'}" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(5,10,30,0.8);border:1px solid rgba(74,158,255,0.2);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseenter="this.style.background=\'rgba(74,158,255,0.08)\'" onmouseleave="this.style.background=\'rgba(5,10,30,0.8)\'">';
+        info += '<span class="compass-celestial-arrow" style="color:#7ec8ff;font-size:0.9em;transition:transform 0.2s;">▸</span>';
+        info += '<span style="font-size:0.9em;">🔭</span>';
+        info += '<span style="font-family:\'Cinzel\',serif;color:#7ec8ff;font-size:0.75em;font-weight:600;letter-spacing:1px;text-transform:uppercase;">' + (L ? 'Planetas y Constelaciones — Salida y Puesta' : 'Planets & Constellations — Rise & Set') + '</span>';
+        info += '<span style="font-size:0.6em;color:rgba(255,255,255,0.25);margin-left:auto;">' + (L ? 'toca' : 'tap') + '</span>';
+        info += '</div>';
+        // Get current Gregorian date for header
+        var _celestialNow = new Date();
+        var _celestialDateStr = _celestialNow.toLocaleDateString(L ? 'es' : 'en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        info += '<div id="compassCelestialPanel" style="display:none;margin-top:2px;">';
+        info += '<div style="text-align:center;padding:6px 0 2px;font-size:0.7em;color:rgba(200,220,255,0.45);font-style:italic;">📅 ' + _celestialDateStr + '</div>';
+        info += renderCelestialRiseSetPanel(ASTRO_USER_LAT, ASTRO_USER_LON);
+        info += '</div>';
+        info += '</div>';
+    }
 
     info += '</div>';
     bodyEl.innerHTML = svg + info;
@@ -23972,17 +24005,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             <div id="sublunaryInfoBox" style="margin-top:8px;">
                 ${renderSublunaryInfoBox(astro.sublunarLat, getSublunaryLonDeg(nowRealTime), ASTRO_USER_LAT, ASTRO_USER_LON)}
             </div>
-            <!-- Planet & Constellation Rise/Set Panel (collapsible) -->
-            <div style="margin-top:6px;">
-                <div onclick="var p=this.nextElementSibling;var a=this.querySelector('.celestial-arrow');if(p.style.display==='none'){p.style.display='block';a.textContent='▾'}else{p.style.display='none';a.textContent='▸'}" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(5,10,30,0.7);border:1px solid rgba(74,158,255,0.18);border-radius:8px;cursor:pointer;">
-                    <span class="celestial-arrow" style="color:#7ec8ff;font-size:0.9em;">▸</span>
-                    <span style="font-family:'Cinzel',serif;color:#7ec8ff;font-size:0.72em;font-weight:600;letter-spacing:1px;text-transform:uppercase;">${currentLang==='es'?'Planetas y Constelaciones':'Planets & Constellations'}</span>
-                    <span style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-left:auto;">${currentLang==='es'?'toca para ver':'tap to view'}</span>
-                </div>
-                <div id="celestialRiseSetPanel" style="display:none;margin-top:2px;">
-                    ${typeof Astronomy !== 'undefined' ? renderCelestialRiseSetPanel(ASTRO_USER_LAT, ASTRO_USER_LON) : ''}
-                </div>
-            </div>
+            <!-- Planet & Constellation Rise/Set Panel moved to Compass view -->
         </div>
 
         <!-- 4-column symmetric grid -->
@@ -24809,10 +24832,30 @@ function goToCurrentCycle() {
         if (tab.querySelector('#tutorAIChatArea')) return; // Already rendered
         var isES = L();
         // Build system prompt with learner profile
+        // ── Build profile-aware tutor system prompt ──
+        var allProfiles = [];
+        try { allProfiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(e) {}
+        var profileListStr = '';
+        if (allProfiles.length > 0) {
+            profileListStr = allProfiles.map(function(p, i) {
+                return (i+1) + '. ' + (p.name || 'Sin nombre') + ' (' + (p.date || '?') + ', ' + (p.city || '?') + ')' + (p.id === localStorage.getItem('activeProfileId') ? ' [ACTIVO]' : '');
+            }).join('\n');
+        }
         var sysCtx = (isES
-            ? 'Eres un tutor profesional de astrología dentro de Moon Sync. El estudiante tiene acceso a su carta natal, tránsitos, aspectos, calendarios lunar/solar y más. Ayúdalo a aprender y profundizar en cualquier tema astrológico. Responde en español, de forma didáctica y profunda. Si pregunta sobre su carta, usa los datos disponibles en la app. IMPORTANTE: Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir la comprensión del estudiante.'
-            : 'You are a professional astrology tutor inside Moon Sync. The student has access to their natal chart, transits, aspects, lunar/solar calendars and more. Help them learn and deepen any astrological topic. Answer didactically and in depth. IMPORTANT: At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
+            ? 'Eres un tutor profesional de astrología dentro de Moon Sync. Tu función PRINCIPAL es ENSEÑAR astrología: explicar conceptos, técnicas, fundamentos teóricos y justificaciones.\n\n═══ MODO EDUCATIVO (por defecto) ═══\nCuando el usuario pregunte sobre un tema (retorno solar, nodos lunares, casas, aspectos, etc.), tu trabajo es EXPLICAR QUÉ ES, CÓMO FUNCIONA, CÓMO SE JUSTIFICA, y CÓMO SE INTERPRETA en general. NO interpretes directamente la carta del usuario a menos que él EXPLÍCITAMENTE lo pida. Ejemplo: si pregunta "¿Qué es el retorno solar?" → Explica qué es, cómo se calcula, qué representa, cómo se lee. NO saltes a interpretar SU retorno solar.\n\n═══ MODO ANÁLISIS PERSONAL (solo si el usuario lo pide) ═══\nSi el usuario EXPLÍCITAMENTE pide que analices SU carta, SU retorno solar, SUS nodos, etc., entonces sí usa los datos de su perfil activo. Pero SIEMPRE verifica primero qué perfil usar.\n\n═══ PERFILES DISPONIBLES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nSi hay más de un perfil y el usuario pide análisis personal, SIEMPRE pregunta primero: "¿Para cuál perfil quieres el análisis?" y lista los nombres disponibles. NUNCA asumas cuál perfil usar si hay más de uno.' : 'No hay perfiles guardados aún.') + '\n\n═══ REGLA CRÍTICA: NO INVENTAR ═══\nSi NO tienes acceso a un dato, si NO estás seguro de algo, si los datos de la carta no están disponibles o están incompletos: PREGUNTA. No inventes posiciones planetarias, grados, casas ni aspectos. Es mejor decir "No tengo ese dato disponible, ¿puedes verificarlo en tu carta?" que inventar información incorrecta. La credibilidad de la app depende de esto.\n\nResponde en español, de forma didáctica y profunda. Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir la comprensión del estudiante.'
+            : 'You are a professional astrology tutor inside Moon Sync. Your PRIMARY function is to TEACH astrology: explain concepts, techniques, theoretical foundations and justifications.\n\n═══ EDUCATIONAL MODE (default) ═══\nWhen the user asks about a topic (solar return, lunar nodes, houses, aspects, etc.), your job is to EXPLAIN WHAT IT IS, HOW IT WORKS, HOW IT IS JUSTIFIED, and HOW TO INTERPRET IT in general. Do NOT directly interpret the user\'s chart unless they EXPLICITLY ask. Example: if they ask "What is a solar return?" → Explain what it is, how it\'s calculated, what it represents, how to read it. Do NOT jump to interpreting THEIR solar return.\n\n═══ PERSONAL ANALYSIS MODE (only if user asks) ═══\nIf the user EXPLICITLY asks to analyze THEIR chart, THEIR solar return, THEIR nodes, etc., then use their active profile data. But ALWAYS verify which profile first.\n\n═══ AVAILABLE PROFILES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nIf there is more than one profile and the user asks for personal analysis, ALWAYS ask first: "Which profile do you want the analysis for?" and list available names. NEVER assume which profile to use if there are multiple.' : 'No profiles saved yet.') + '\n\n═══ CRITICAL RULE: DO NOT MAKE THINGS UP ═══\nIf you do NOT have access to data, if you are NOT sure about something, if chart data is not available or incomplete: ASK. Do not invent planetary positions, degrees, houses or aspects. It is better to say "I don\'t have that data available, can you verify it in your chart?" than to invent incorrect information. The app\'s credibility depends on this.\n\nAnswer didactically and in depth. At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
             + _tutorBuildProfileContext();
+
+        // ── Append full chart data for all profiles so tutor can analyze if asked ──
+        try {
+            var chartCtx = gatherAstroContext();
+            if (chartCtx) {
+                sysCtx += (isES
+                    ? '\n\n═══ DATOS DE CARTAS ASTRALES DISPONIBLES ═══\nA continuación tienes las cartas astrales completas de los perfiles guardados. Usa estos datos SOLO cuando el usuario pida análisis personal. NO los uses por defecto en el modo educativo.\n\n'
+                    : '\n\n═══ AVAILABLE NATAL CHART DATA ═══\nBelow you have the complete natal charts of saved profiles. Use this data ONLY when the user asks for personal analysis. Do NOT use them by default in educational mode.\n\n')
+                    + chartCtx;
+            }
+        } catch(e) {}
 
         // Check for active (ongoing) session to restore
         var activeSession = _tutorGetActiveSession();
@@ -24845,6 +24888,8 @@ function goToCurrentCycle() {
             // Action buttons: New session + History
             '<div style="display:flex;gap:4px;">' +
             (prevSessions.length > 0 ? '<button onclick="_tutorToggleHistory()" id="tutorHistBtn" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Ver historial':'View history') + '">' + (isES?'Historial':'History') + '</button>' : '') +
+            '<button onclick="_tutorClearChat()" style="padding:4px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.65em;cursor:pointer;" title="' + (isES?'Borrar conversación':'Clear conversation') + '">🗑️</button>' +
+            '<button onclick="_tutorSaveChat()" style="padding:4px 8px;background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.25);border-radius:8px;color:#4ecdc4;font-size:0.65em;cursor:pointer;" title="' + (isES?'Guardar conversación':'Save conversation') + '">💾</button>' +
             '<button onclick="_tutorNewSession()" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Nueva conversación':'New conversation') + '">+ ' + (isES?'Nuevo':'New') + '</button>' +
             '</div></div>' +
             // Restored session indicator
@@ -24852,19 +24897,19 @@ function goToCurrentCycle() {
             // Quick topic buttons
             '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
             (isES ? [
-                {t:'Mi carta natal',q:'Explícame los aspectos más importantes de mi carta natal y qué significan para mi vida'},
-                {t:'Tránsitos de hoy',q:'¿Cuáles son los tránsitos más importantes de hoy y cómo me afectan?'},
-                {t:'Retorno Solar',q:'¿Qué es mi retorno solar y cómo interpreto mi año personal?'},
-                {t:'Casas vacías',q:'¿Qué significan las casas vacías en mi carta natal?'},
-                {t:'Nodos Lunares',q:'Explícame los nodos lunares norte y sur y su significado kármico'},
-                {t:'Saturno',q:'¿Qué es el retorno de Saturno y cuándo me afecta?'}
+                {t:'¿Qué es carta natal?',q:'¿Qué es una carta natal, cómo se construye y qué representa cada elemento?'},
+                {t:'Tránsitos',q:'¿Qué son los tránsitos planetarios, cómo funcionan y cómo se interpretan?'},
+                {t:'Retorno Solar',q:'¿Qué es el retorno solar, cómo se calcula y cómo se interpreta?'},
+                {t:'Casas astrológicas',q:'Explícame las 12 casas astrológicas, qué representa cada una y cómo se interpretan'},
+                {t:'Nodos Lunares',q:'¿Qué son los nodos lunares norte y sur, cuál es su fundamento y significado kármico?'},
+                {t:'Retorno de Saturno',q:'¿Qué es el retorno de Saturno, cada cuánto ocurre y por qué es importante?'}
             ] : [
-                {t:'My natal chart',q:'Explain the most important aspects of my natal chart'},
-                {t:'Today\'s transits',q:'What are the most important transits today and how do they affect me?'},
-                {t:'Solar Return',q:'What is my solar return and how do I interpret my personal year?'},
-                {t:'Empty houses',q:'What do empty houses mean in my natal chart?'},
-                {t:'Lunar Nodes',q:'Explain the north and south lunar nodes and their karmic meaning'},
-                {t:'Saturn Return',q:'What is the Saturn return and when does it affect me?'}
+                {t:'What is a natal chart?',q:'What is a natal chart, how is it constructed, and what does each element represent?'},
+                {t:'Transits',q:'What are planetary transits, how do they work, and how are they interpreted?'},
+                {t:'Solar Return',q:'What is a solar return, how is it calculated, and how is it interpreted?'},
+                {t:'Astrological houses',q:'Explain the 12 astrological houses, what each represents and how to interpret them'},
+                {t:'Lunar Nodes',q:'What are the north and south lunar nodes, their foundation and karmic meaning?'},
+                {t:'Saturn Return',q:'What is the Saturn return, how often does it happen, and why is it important?'}
             ]).map(function(b) {
                 return '<button onclick="document.getElementById(\'tutorInput\').value=\'' + b.q.replace(/'/g, "\\'") + '\';sendTutorAIMsg();" style="padding:6px 12px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:20px;color:#667eea;font-size:0.72em;cursor:pointer;white-space:nowrap;">' + b.t + '</button>';
             }).join('') +
@@ -24878,7 +24923,8 @@ function goToCurrentCycle() {
             // Input area with voice buttons
             '<div style="display:flex;gap:6px;align-items:flex-end;">' +
             '<button onclick="startGenericVoice(\'tutorInput\',\'sendTutorAIMsg()\',\'tutorVoiceBtn\')" id="tutorVoiceBtn" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1.1em;cursor:pointer;flex-shrink:0;" title="' + (isES ? 'Dictar por voz' : 'Voice dictation') + '">🎙️</button>' +
-            '<button onclick="_toggleTutorVoiceConvo()" id="tutorConvoBtn" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1.1em;cursor:pointer;flex-shrink:0;" title="' + (isES ? 'Conversación por voz' : 'Voice conversation') + '">🔊</button>' +
+            '<button onclick="readAloudLastMsg(\'tutorAIChatArea\')" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1.1em;cursor:pointer;flex-shrink:0;line-height:1;" title="' + (isES ? 'Leer en voz alta' : 'Read aloud') + '">🔊</button>' +
+            '<button onclick="_toggleTutorVoiceConvo()" id="tutorConvoBtn" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1.1em;cursor:pointer;flex-shrink:0;" title="' + (isES ? 'Conversación por voz' : 'Voice conversation') + '">🗣️</button>' +
             '<textarea id="tutorInput" rows="1" placeholder="' + (isES ? 'Pregúntale al tutor...' : 'Ask the tutor...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:white;padding:8px 10px;font-size:0.85em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendTutorAIMsg();}"></textarea>' +
             '<button onclick="sendTutorAIMsg()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 14px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
             '</div></div>';
@@ -24900,6 +24946,34 @@ function goToCurrentCycle() {
     window._tutorToggleHistory = function() {
         var panel = document.getElementById('tutorHistoryPanel');
         if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    };
+
+    // Clear current tutor chat (with confirmation)
+    window._tutorClearChat = function() {
+        var isES = L();
+        if (!confirm(isES ? '¿Borrar esta conversación del tutor?' : 'Clear this tutor conversation?')) return;
+        var tab = document.getElementById('natalTabTutor');
+        if (!tab) return;
+        tab._tutorHistory = [];
+        var area = document.getElementById('tutorAIChatArea');
+        if (area) area.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:0.8em;">' + (isES ? 'Conversación borrada. Escribe tu pregunta.' : 'Conversation cleared. Type your question.') + '</div>';
+        try { _tutorPersistChat([], ''); } catch(e) {}
+    };
+
+    // Save/export tutor chat
+    window._tutorSaveChat = function() {
+        var tab = document.getElementById('natalTabTutor');
+        if (!tab || !tab._tutorHistory || tab._tutorHistory.length === 0) {
+            var isES = L();
+            alert(isES ? 'No hay conversación para guardar.' : 'No conversation to save.');
+            return;
+        }
+        _tutorArchiveSession();
+        var isES = L();
+        alert(isES ? 'Conversación guardada en el historial.' : 'Conversation saved to history.');
+        // Re-render to show updated history button
+        tab.innerHTML = '';
+        renderTutorInTab();
     };
 
     // Start new session (archive current)
@@ -25010,7 +25084,12 @@ function goToCurrentCycle() {
                 var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
                 tab._tutorHistory.push({role: 'model', parts: [{text: reply}]});
                 var fmt = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-                area.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;"><p>' + fmt + '</p></div></div>';
+                area.innerHTML += '<div class="tutorAIReply" style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;"><p>' + fmt + '</p></div></div>';
+                // Scroll last reply into view smoothly (karaoke-style follow)
+                setTimeout(function() {
+                    var lastReply = area.querySelector('.tutorAIReply:last-child');
+                    if (lastReply) lastReply.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 50);
                 // Voice conversation: read aloud then re-activate mic
                 if (tab._tutorVoiceConvo && typeof window.speechSynthesis !== 'undefined') {
                     var utt = new SpeechSynthesisUtterance(reply.replace(/\*+/g, '').replace(/<[^>]+>/g, '').substring(0, 3000));
@@ -25031,7 +25110,8 @@ function goToCurrentCycle() {
             area.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ ' + (e.message || 'Error') + '</div></div>';
         }
         tab._tutorTyping = false;
-        area.scrollTop = area.scrollHeight;
+        // Smooth scroll to bottom after response
+        setTimeout(function() { area.scrollTop = area.scrollHeight; }, 100);
         // Persist chat to localStorage
         try { _tutorPersistChat(tab._tutorHistory, area.innerHTML); } catch(e) {}
     };
@@ -32387,49 +32467,44 @@ function gatherAstroContext() {
 
     ctx += '\n';
 
-    // ========== NATAL CHART DATA ==========
+    // ========== NATAL CHART DATA (ALL PROFILES) ==========
     try {
-        const stored = localStorage.getItem('natalChart');
-        if (stored) {
-            const nc = JSON.parse(stored);
-            const pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
+        const pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
+        const allProfiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+        const activeId = localStorage.getItem('activeProfileId');
 
-            // Birth data
-            const natal = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
-            const activeId = localStorage.getItem('activeProfileId');
-            const profile = natal.find(p => p.id === activeId) || natal[0];
-            if (profile) {
-                ctx += 'DATOS DE NACIMIENTO:\n';
-                ctx += 'Fecha: ' + (profile.date || localStorage.getItem('natalBirthDate') || '?') + '\n';
-                ctx += 'Hora: ' + (profile.time || localStorage.getItem('natalBirthTime') || '?') + '\n';
-                ctx += 'Ciudad: ' + (profile.city || localStorage.getItem('natalCityName') || '?') + '\n\n';
-            }
+        // Helper function to format a natal chart as text
+        function _formatChartForAI(nc, profileLabel, isActive) {
+            var out = '';
+            if (!nc) return out;
+            var tag = isActive ? ' [PERFIL ACTIVO]' : '';
+            out += '══════ CARTA NATAL: ' + profileLabel + tag + ' ══════\n';
 
             // Planet positions
-            ctx += 'CARTA NATAL COMPLETA — PLANETAS:\n';
             if (nc.planets) {
+                out += 'PLANETAS:\n';
                 Object.entries(nc.planets).forEach(function(entry) {
                     var p = entry[0], d = entry[1];
                     var house = nc.houses ? getHouseForLongitude(d.longitude, nc.houses.cusps) : '?';
-                    ctx += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + ' (Casa ' + house + ')' + (d.isRetrograde ? ' RETRÓGRADO' : '') + '\n';
+                    out += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + ' (Casa ' + house + ')' + (d.isRetrograde ? ' RETRÓGRADO' : '') + '\n';
                 });
             }
 
             // Houses
             if (nc.houses && nc.houses.cusps) {
-                ctx += '\nCASAS (Cúspides):\n';
+                out += '\nCASAS (Cúspides):\n';
                 var houseNames = ['I (ASC)', 'II', 'III', 'IV (IC)', 'V', 'VI', 'VII (DESC)', 'VIII', 'IX', 'X (MC)', 'XI', 'XII'];
                 nc.houses.cusps.forEach(function(cusp, i) {
                     var info = getZodiacSignWithDegree(cusp);
-                    ctx += 'Casa ' + houseNames[i] + ': ' + info.sign + ' ' + info.degree + '°' + (info.minute<10?'0':'') + info.minute + "'\n";
+                    out += 'Casa ' + houseNames[i] + ': ' + info.sign + ' ' + info.degree + '°' + (info.minute<10?'0':'') + info.minute + "'\n";
                 });
             }
 
             // Natal aspects
             if (nc.natalAspects && nc.natalAspects.length > 0) {
-                ctx += '\nASPECTOS NATALES:\n';
+                out += '\nASPECTOS NATALES:\n';
                 nc.natalAspects.forEach(function(a) {
-                    ctx += (pN[a.planet1]||a.planet1) + ' ' + a.aspect.name + ' ' + (pN[a.planet2]||a.planet2) + ' (orbe: ' + a.orbFormatted + ')\n';
+                    out += (pN[a.planet1]||a.planet1) + ' ' + a.aspect.name + ' ' + (pN[a.planet2]||a.planet2) + ' (orbe: ' + a.orbFormatted + ')\n';
                 });
             }
 
@@ -32438,35 +32513,101 @@ function gatherAstroContext() {
                 var eq = nc.elementQuality;
                 var ep = eq.elementPercents || {};
                 var qp = eq.qualityPercents || {};
-                ctx += '\nELEMENTOS: Fuego ' + (ep.Fire||0) + '%, Tierra ' + (ep.Earth||0) + '%, Aire ' + (ep.Air||0) + '%, Agua ' + (ep.Water||0) + '%\n';
-                ctx += 'CUALIDADES: Cardinal ' + (qp.Cardinal||0) + '%, Fijo ' + (qp.Fixed||0) + '%, Mutable ' + (qp.Mutable||0) + '%\n';
+                out += '\nELEMENTOS: Fuego ' + (ep.Fire||0) + '%, Tierra ' + (ep.Earth||0) + '%, Aire ' + (ep.Air||0) + '%, Agua ' + (ep.Water||0) + '%\n';
+                out += 'CUALIDADES: Cardinal ' + (qp.Cardinal||0) + '%, Fijo ' + (qp.Fixed||0) + '%, Mutable ' + (qp.Mutable||0) + '%\n';
             }
+            return out;
+        }
 
-            // ========== ASTROCARTOGRAPHY LINES ==========
-            if (profile && nc) {
-                try {
-                    var birthUTC = getBirthUTCTime(profile.date, profile.time, profile.lat, profile.lon, profile.countryCode);
-                    var acLines = calculateAstroCartographyLines(birthUTC, nc);
-                    if (acLines && acLines.length > 0) {
-                        var pNcarto = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón'};
-                        ctx += '\nCARTOGRAFÍA ASTRAL — LÍNEAS PLANETARIAS:\n';
-                        acLines.forEach(function(line) {
-                            var pName = pNcarto[line.planet] || line.planet;
-                            var countries = (typeof getCountriesForLine === 'function') ? getCountriesForLine(line, true) : [];
-                            var countriesStr = countries.length > 0 ? countries.join(', ') : 'Océano';
-                            if (line.type === 'MC' || line.type === 'IC') {
-                                var lonStr = line.geoLon >= 0 ? line.geoLon.toFixed(1) + '°E' : Math.abs(line.geoLon).toFixed(1) + '°W';
-                                ctx += line.symbol + ' ' + pName + ' ' + line.type + ' (lon: ' + lonStr + ') — Países: ' + countriesStr + '\n';
-                            } else {
-                                ctx += line.symbol + ' ' + pName + ' ' + line.type + ' — Países: ' + countriesStr + '\n';
-                            }
-                        });
-                        ctx += '\n';
-                    }
-                } catch(cartoErr) { /* cartography context optional */ }
-            }
-
+        if (allProfiles.length > 0) {
+            // List all profiles
+            ctx += 'PERFILES GUARDADOS (' + allProfiles.length + '):\n';
+            allProfiles.forEach(function(p, i) {
+                var isAct = p.id === activeId;
+                ctx += (i+1) + '. ' + (p.name || 'Sin nombre') + ' — Nacimiento: ' + (p.date || '?') + ' ' + (p.time || '?') + ', ' + (p.city || '?') + (isAct ? ' [ACTIVO]' : '') + '\n';
+            });
             ctx += '\n';
+
+            // Include full chart for EACH profile
+            allProfiles.forEach(function(prof) {
+                var isAct = prof.id === activeId;
+                var profileLabel = (prof.name || 'Sin nombre') + ' (' + (prof.date || '?') + ', ' + (prof.city || '?') + ')';
+
+                // Try to load this profile's chart
+                var chartKey = 'natalChart_' + prof.id;
+                var chartData = localStorage.getItem(chartKey);
+                if (!chartData && isAct) chartData = localStorage.getItem('natalChart');
+                if (chartData) {
+                    try {
+                        var nc = JSON.parse(chartData);
+                        ctx += _formatChartForAI(nc, profileLabel, isAct);
+
+                        // Astrocartography for this profile
+                        try {
+                            var birthUTC = getBirthUTCTime(prof.date, prof.time, prof.lat, prof.lon, prof.countryCode);
+                            var acLines = calculateAstroCartographyLines(birthUTC, nc);
+                            if (acLines && acLines.length > 0) {
+                                var pNcarto = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón'};
+                                ctx += '\nCARTOGRAFÍA ASTRAL — LÍNEAS PLANETARIAS:\n';
+                                acLines.forEach(function(line) {
+                                    var pName = pNcarto[line.planet] || line.planet;
+                                    var countries = (typeof getCountriesForLine === 'function') ? getCountriesForLine(line, true) : [];
+                                    var countriesStr = countries.length > 0 ? countries.join(', ') : 'Océano';
+                                    if (line.type === 'MC' || line.type === 'IC') {
+                                        var lonStr = line.geoLon >= 0 ? line.geoLon.toFixed(1) + '°E' : Math.abs(line.geoLon).toFixed(1) + '°W';
+                                        ctx += line.symbol + ' ' + pName + ' ' + line.type + ' (lon: ' + lonStr + ') — Países: ' + countriesStr + '\n';
+                                    } else {
+                                        ctx += line.symbol + ' ' + pName + ' ' + line.type + ' — Países: ' + countriesStr + '\n';
+                                    }
+                                });
+                            }
+                        } catch(cartoErr) { /* cartography context optional */ }
+
+                        ctx += '\n';
+                    } catch(e) { ctx += '(Error al leer carta de ' + profileLabel + ')\n\n'; }
+                } else {
+                    ctx += '══════ CARTA NATAL: ' + profileLabel + (isAct ? ' [PERFIL ACTIVO]' : '') + ' ══════\n';
+                    ctx += '(Carta no calculada aún para este perfil)\n\n';
+                }
+            });
+        } else {
+            // Fallback: try single chart (old format, no profiles)
+            const stored = localStorage.getItem('natalChart');
+            if (stored) {
+                var nc = JSON.parse(stored);
+                var bDate = localStorage.getItem('natalBirthDate') || '?';
+                var bTime = localStorage.getItem('natalBirthTime') || '?';
+                var bCity = localStorage.getItem('natalCityName') || '?';
+                ctx += 'DATOS DE NACIMIENTO: ' + bDate + ' ' + bTime + ', ' + bCity + '\n\n';
+                ctx += _formatChartForAI(nc, 'Usuario (' + bDate + ', ' + bCity + ')', true);
+
+                // Astrocartography fallback
+                try {
+                    var bLat = parseFloat(localStorage.getItem('natalLat'));
+                    var bLon = parseFloat(localStorage.getItem('natalLon'));
+                    var bCC = localStorage.getItem('natalCountryCode');
+                    if (!isNaN(bLat) && !isNaN(bLon)) {
+                        var birthUTC = getBirthUTCTime(bDate, bTime, bLat, bLon, bCC);
+                        var acLines = calculateAstroCartographyLines(birthUTC, nc);
+                        if (acLines && acLines.length > 0) {
+                            var pNcarto = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón'};
+                            ctx += '\nCARTOGRAFÍA ASTRAL — LÍNEAS PLANETARIAS:\n';
+                            acLines.forEach(function(line) {
+                                var pName = pNcarto[line.planet] || line.planet;
+                                var countries = (typeof getCountriesForLine === 'function') ? getCountriesForLine(line, true) : [];
+                                var countriesStr = countries.length > 0 ? countries.join(', ') : 'Océano';
+                                if (line.type === 'MC' || line.type === 'IC') {
+                                    var lonStr = line.geoLon >= 0 ? line.geoLon.toFixed(1) + '°E' : Math.abs(line.geoLon).toFixed(1) + '°W';
+                                    ctx += line.symbol + ' ' + pName + ' ' + line.type + ' (lon: ' + lonStr + ') — Países: ' + countriesStr + '\n';
+                                } else {
+                                    ctx += line.symbol + ' ' + pName + ' ' + line.type + ' — Países: ' + countriesStr + '\n';
+                                }
+                            });
+                        }
+                    }
+                } catch(cartoErr) {}
+                ctx += '\n';
+            }
         }
     } catch(e) { console.warn('AI context natal error:', e); }
 
@@ -33182,6 +33323,24 @@ function buildSystemPrompt(contextLevel) {
     base += isEs
         ? '\n\n═══ FORMATO DE RESPUESTA OBLIGATORIO ═══\nTodas tus interpretaciones DEBEN seguir este formato:\n1. Organiza por SECCIONES TEMÁTICAS claras usando encabezados con **negrita** (ej: **Capa Simbólica**, **Capa Astrológica**, **Capa Psicológica**, **Síntesis**).\n2. Deja UNA LÍNEA EN BLANCO entre cada sección/tema.\n3. Usa **negrita** para conceptos clave, nombres de planetas, signos, aspectos y términos importantes.\n4. Cada sección debe ser un párrafo coherente, NO listas con viñetas.\n5. La última sección siempre debe ser una **Síntesis** o **Mensaje Final** que integre todo.\nEsto es OBLIGATORIO en TODAS las respuestas.'
         : '\n\n═══ MANDATORY RESPONSE FORMAT ═══\nAll your interpretations MUST follow this format:\n1. Organize by clear THEMATIC SECTIONS using **bold** headers (e.g.: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**).\n2. Leave ONE BLANK LINE between each section/theme.\n3. Use **bold** for key concepts, planet names, signs, aspects, and important terms.\n4. Each section should be a coherent paragraph, NOT bullet lists.\n5. The last section should always be a **Synthesis** or **Final Message** that integrates everything.\nThis is MANDATORY in ALL responses.';
+
+    // ── CRITICAL: DO NOT HALLUCINATE — ask when unsure ──
+    base += isEs
+        ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto, posición planetaria), NO LO INVENTES. Es mejor decir "No tengo ese dato disponible en este momento" o "¿Puedes verificar eso en tu carta?" que dar información incorrecta. Si no estás seguro de algo, PREGUNTA antes de asumir. La credibilidad de esta app depende de la precisión. Inventar datos astrológicos es peor que no responder.\n\nSi los datos de la carta natal no están cargados o están incompletos, avisa al usuario: "No encuentro tu carta natal completa. ¿Podrías verificar que tus datos de nacimiento estén guardados en la app?"'
+        : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect, planetary position), DO NOT INVENT IT. It is better to say "I don\'t have that data available right now" or "Can you verify that in your chart?" than to give incorrect information. If you are unsure about something, ASK before assuming. This app\'s credibility depends on accuracy. Inventing astrological data is worse than not answering.\n\nIf natal chart data is not loaded or incomplete, tell the user: "I don\'t find your complete natal chart. Could you verify that your birth data is saved in the app?"';
+
+    // ── Multi-profile awareness ──
+    try {
+        var _profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+        if (_profiles.length > 1) {
+            var _profileList = _profiles.map(function(p, i) {
+                return (i+1) + '. ' + (p.name || 'Sin nombre') + ' (' + (p.date || '?') + ')' + (p.id === localStorage.getItem('activeProfileId') ? ' [ACTIVO]' : '');
+            }).join(', ');
+            base += isEs
+                ? '\n\n═══ MÚLTIPLES PERFILES ═══\nHay ' + _profiles.length + ' perfiles de carta astral guardados: ' + _profileList + '. Los datos que ves corresponden al perfil ACTIVO. Si el usuario pide análisis personal y no queda claro para quién, PREGUNTA: "¿Para cuál perfil quieres el análisis?" Nunca asumas cuál perfil sin confirmar.'
+                : '\n\n═══ MULTIPLE PROFILES ═══\nThere are ' + _profiles.length + ' natal chart profiles saved: ' + _profileList + '. The data you see corresponds to the ACTIVE profile. If the user asks for personal analysis and it\'s not clear for whom, ASK: "Which profile do you want the analysis for?" Never assume which profile without confirming.';
+        }
+    } catch(e) {}
 
     return base;
 }
