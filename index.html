@@ -3261,15 +3261,15 @@ function calculateLunarCycle(startDate) {
 
     for (var i = 0; i < 4; i++) {
         var currentPerfection = perfections[i]; // allPhases[i+1]
-        var prevPhaseDate = allPhases[i].date;       // phase before this one
         var nextPhaseDate = allPhases[i + 2].date;   // phase after this one
 
-        // Week starts at midpoint between previous phase and current phase, +1 day
-        // so that the perfection (exact phase) lands on day 4 of the week
-        var weekStart = _midDate(prevPhaseDate, currentPerfection.date);
-        weekStart.setDate(weekStart.getDate() + 1);
+        // ── FORCE perfection on day 4 (index 3) of the week ──
+        // Week starts exactly 3 days before the perfection date
+        var perfDateMidnight = new Date(currentPerfection.date);
+        perfDateMidnight.setHours(0, 0, 0, 0);
+        var weekStart = new Date(perfDateMidnight);
+        weekStart.setDate(weekStart.getDate() - 3);
         // Week ends at midpoint between current phase and next phase
-        // (no -1 because we shifted start +1)
         var weekEndMid = _midDate(currentPerfection.date, nextPhaseDate);
         var weekEnd = new Date(weekEndMid);
 
@@ -22472,7 +22472,15 @@ function getMoonEventForDate(checkDate) {
         }
     }
 
-    // ── FALLBACK: elongation check for dates outside data range ──
+    // ── FALLBACK: elongation check ONLY for dates outside exact data range ──
+    // If we have exact UTC data, the PRIMARY check above is authoritative — skip fallback
+    // to avoid showing duplicate icons on adjacent days
+    var _hasExactFullData = (window.LUNAR_FULL_MOONS_UTC && window.LUNAR_FULL_MOONS_UTC.length > 0);
+    var _hasExactNewData = (window.LUNAR_NEW_MOONS_UTC && window.LUNAR_NEW_MOONS_UTC.length > 0);
+
+    // If we have exact data for BOTH full and new moons, no need for fallback at all
+    if (_hasExactFullData && _hasExactNewData) return null;
+
     var checkNoon = new Date(checkY, checkM, checkD, 12, 0, 0);
     var elongNoon = (typeof calculateLunarPhase === 'function') ? calculateLunarPhase(checkNoon) : -1;
     if (elongNoon < 0) return null;
@@ -22482,20 +22490,24 @@ function getMoonEventForDate(checkDate) {
     var elongPrev = calculateLunarPhase(prevNoon);
     var elongNext = calculateLunarPhase(nextNoon);
 
-    // New Moon: elongation closest to 0 (wraps around 360)
-    var distNew = elongNoon > 180 ? 360 - elongNoon : elongNoon;
-    var distNewPrev = elongPrev > 180 ? 360 - elongPrev : elongPrev;
-    var distNewNext = elongNext > 180 ? 360 - elongNext : elongNext;
-    if (distNew < 15 && distNew <= distNewPrev && distNew <= distNewNext) {
-        return {type: 'new', icon: '<svg width="10" height="10" viewBox="0 0 14 14" style="display:inline;vertical-align:middle;"><circle cx="7" cy="7" r="6" fill="#222" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/><circle cx="7" cy="7" r="6.5" fill="none" stroke="rgba(200,180,100,0.25)" stroke-width="1"/></svg>', label: currentLang==='es'?'Nueva':'New'};
+    // New Moon: elongation closest to 0 (wraps around 360) — only if no exact new moon data
+    if (!_hasExactNewData) {
+        var distNew = elongNoon > 180 ? 360 - elongNoon : elongNoon;
+        var distNewPrev = elongPrev > 180 ? 360 - elongPrev : elongPrev;
+        var distNewNext = elongNext > 180 ? 360 - elongNext : elongNext;
+        if (distNew < 15 && distNew <= distNewPrev && distNew <= distNewNext) {
+            return {type: 'new', icon: '<svg width="10" height="10" viewBox="0 0 14 14" style="display:inline;vertical-align:middle;"><circle cx="7" cy="7" r="6" fill="#222" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/><circle cx="7" cy="7" r="6.5" fill="none" stroke="rgba(200,180,100,0.25)" stroke-width="1"/></svg>', label: currentLang==='es'?'Nueva':'New'};
+        }
     }
 
-    // Full Moon: elongation closest to 180
-    var distFull = Math.abs(elongNoon - 180);
-    var distFullPrev = Math.abs(elongPrev - 180);
-    var distFullNext = Math.abs(elongNext - 180);
-    if (distFull < 15 && distFull <= distFullPrev && distFull <= distFullNext) {
-        return {type: 'full', icon: '🌕', label: currentLang==='es'?'Llena':'Full'};
+    // Full Moon: elongation closest to 180 — only if no exact full moon data
+    if (!_hasExactFullData) {
+        var distFull = Math.abs(elongNoon - 180);
+        var distFullPrev = Math.abs(elongPrev - 180);
+        var distFullNext = Math.abs(elongNext - 180);
+        if (distFull < 15 && distFull <= distFullPrev && distFull <= distFullNext) {
+            return {type: 'full', icon: '🌕', label: currentLang==='es'?'Llena':'Full'};
+        }
     }
 
     return null;
@@ -24532,11 +24544,11 @@ function renderCalendar() {
         weekDiv.innerHTML = `
             <div class="week-header" style="display:grid;grid-template-columns:repeat(8,1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/4;font-size:0.6em;color:#8899cc;white-space:nowrap;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
-                <div style="grid-column:4/5;display:flex;align-items:center;justify-content:center;gap:3px;">
+                <div style="grid-column:4/5;display:flex;align-items:center;justify-content:center;">
                     <div class="moon-icon" style="margin:0;">${week.emoji}</div>
-                    <span style="font-weight:bold;white-space:nowrap;color:#e8c84a;font-size:0.65em;">${week.name}</span>
                 </div>
-                <div style="grid-column:5/9;font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;padding-right:4px;">${week.zodiacSign}</div>
+                <div style="grid-column:5/6;font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;text-align:left;">${week.name}</div>
+                <div style="grid-column:7/9;font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;padding-right:4px;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(8,1fr);">${daysHTML}${(() => {
                 // Fill empty cells at the END to complete 8 columns (lunar week = 8 days)
