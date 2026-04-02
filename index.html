@@ -228,7 +228,8 @@
         }
 
         .week-header { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
-        .moon-icon { font-size: 0.75em; filter: drop-shadow(0 0 5px rgba(126,200,255,0.8)); display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .moon-icon { font-size: 0.75em; filter: drop-shadow(0 0 5px rgba(126,200,255,0.8)); display: inline-flex; align-items: center; justify-content: center; line-height: 0; vertical-align: middle; }
+        .moon-icon svg { display: block; }
         .week-info { display: flex; align-items: center; gap: 4px; flex: 1; flex-wrap: nowrap; overflow: hidden; }
         .week-title-group { display: flex; align-items: center; gap: 3px; }
         .week-title { font-family: 'Cinzel', serif; font-size: 0.65em; font-weight: 600; white-space: nowrap; color: var(--gold-bright); letter-spacing: 0.8px; }
@@ -622,7 +623,7 @@
             .week-info { flex-direction: row; align-items: center; gap: 2px; flex: 1; }
             .week-title { font-size: 0.62em; }
             .week-details { display: none; }
-            .moon-icon { font-size: 0.7em; display: flex; align-items: center; justify-content: center; line-height: 1; }
+            .moon-icon { font-size: 0.7em; display: inline-flex; align-items: center; justify-content: center; line-height: 0; vertical-align: middle; }
             .days-container { grid-template-columns: var(--day-cell-grid-cols, repeat(auto-fill, minmax(70px, 1fr))); gap: var(--day-cell-gap, 2px); }
             .lunar-week > div:not(.week-header) { gap: 2px; }
             .day-cell { min-width: 0; min-height: var(--day-cell-min-height, 85px); font-size: var(--day-cell-font-size, 0.7em); padding: var(--day-cell-padding, 3px); overflow: hidden; word-break: break-word; }
@@ -30360,7 +30361,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v504';
+const APP_VERSION = 'v505';
 var _pendingSW = null;
 
 // What's New removed per user request
