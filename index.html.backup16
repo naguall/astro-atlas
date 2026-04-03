@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v522';
+        var REQUIRED_VER = 'v521';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -18494,7 +18494,6 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('curso',this)" style="color:#e040fb;border-color:rgba(224,64,251,0.3);">🎓 ${L?'Curso':'Course'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;border-color:rgba(102,126,234,0.3);">🤖 Tutor</button>
-            <button class="natal-subtab" onclick="switchNatalTab('mapa',this)" style="color:#ffd700;border-color:rgba(255,215,0,0.3);">🗺️ ${L?'Mapa':'Map Pro'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
@@ -18507,8 +18506,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div id="natalTabCompuesta" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabDavison" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabCurso" class="natal-tab-content" style="display:none;"></div>
-        <div id="natalTabTutor" class="natal-tab-content" style="display:none;"></div>
-        <div id="natalTabMapa" class="natal-tab-content" style="display:none;"></div>`;
+        <div id="natalTabTutor" class="natal-tab-content" style="display:none;"></div>`;
 }
 
 // Switch natal sub-tab
@@ -18584,9 +18582,6 @@ function switchNatalTab(tabName, btn) {
     }
     if (tabName === 'tutor') {
         setTimeout(function() { if (typeof renderTutorInTab === 'function') renderTutorInTab(); }, 100);
-    }
-    if (tabName === 'mapa') {
-        setTimeout(function() { if (typeof renderMapaProInTab === 'function') renderMapaProInTab(); }, 100);
     }
     // Hide Gemini FAB when tutor chat is active to avoid overlap with tutor send button
     var fab = document.getElementById('aiChatFab');
@@ -25051,26 +25046,6 @@ function goToCurrentCycle() {
             : 'You are a professional astrology tutor inside Moon Sync. Your PRIMARY function is to TEACH astrology: explain concepts, techniques, theoretical foundations and justifications.\n\n═══ EDUCATIONAL MODE (default) ═══\nWhen the user asks about a topic (solar return, lunar nodes, houses, aspects, etc.), your job is to EXPLAIN WHAT IT IS, HOW IT WORKS, HOW IT IS JUSTIFIED, and HOW TO INTERPRET IT in general. Do NOT directly interpret the user\'s chart unless they EXPLICITLY ask. Example: if they ask "What is a solar return?" → Explain what it is, how it\'s calculated, what it represents, how to read it. Do NOT jump to interpreting THEIR solar return.\n\n═══ PERSONAL ANALYSIS MODE (only if user asks) ═══\nIf the user EXPLICITLY asks to analyze THEIR chart, THEIR solar return, THEIR nodes, etc., then use their active profile data. But ALWAYS verify which profile first.\n\n═══ AVAILABLE PROFILES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nIf there is more than one profile and the user asks for personal analysis, ALWAYS ask first: "Which profile do you want the analysis for?" and list available names. NEVER assume which profile to use if there are multiple.' : 'No profiles saved yet.') + '\n\n═══ CRITICAL RULE: DO NOT MAKE THINGS UP ═══\nIf you do NOT have access to data, if you are NOT sure about something, if chart data is not available or incomplete: ASK. Do not invent planetary positions, degrees, houses or aspects. It is better to say "I don\'t have that data available, can you verify it in your chart?" than to invent incorrect information. The app\'s credibility depends on this.\n\nAnswer didactically and in depth. At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
             + _tutorBuildProfileContext();
 
-        // ── Append adaptive learning context from Knowledge Graph + Learner Profile ──
-        try {
-            if (typeof LearnerProfile !== 'undefined' && typeof ASTRO_KNOWLEDGE_GRAPH !== 'undefined') {
-                LearnerProfile.load();
-                LearnerProfile.migrateFromOldCourse(); // sync old course progress
-                LearnerProfile.updateStreak();
-                var lpCtx = LearnerProfile.generateTutorContext();
-                if (lpCtx) {
-                    sysCtx += '\n\n═══ SISTEMA DE APRENDIZAJE ADAPTATIVO ═══\n'
-                        + lpCtx
-                        + '\n═══ REGLAS DEL TUTOR ADAPTATIVO ═══\n'
-                        + '1. SIGUE LA CURIOSIDAD: Si el usuario pregunta sobre un tema, responde a esa pregunta. No fuerces un camino.\n'
-                        + '2. VERIFICA PREREQUISITOS: Si el usuario pregunta sobre algo avanzado sin bases, guíalo suavemente: "Para entender X, necesitamos Y. ¿Empezamos por ahí?"\n'
-                        + '3. PROPÓN EVALUACIONES: Cuando notes que el usuario domina un tema (buenas preguntas, comprensión clara), sugiere: "Parece que dominas esto. ¿Quieres un mini-test de 5 preguntas?"\n'
-                        + '4. SUGIERE PRÓXIMOS PASOS: Después de cubrir un tema, sugiere los siguientes naturales basándote en el perfil.\n'
-                        + '5. ADAPTA TU NIVEL: Usa vocabulario y profundidad acordes al nivel del estudiante mostrado en el perfil.\n';
-                }
-            }
-        } catch(e) { console.log('[Tutor] Adaptive context error:', e); }
-
         // ── Append full chart data for all profiles so tutor can analyze if asked ──
         try {
             var chartCtx = gatherAstroContext();
@@ -31083,351 +31058,8 @@ if ('serviceWorker' in navigator) {
         });
     }
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// MAPA PROFESIONAL DE PROGRESO — Hybrid Intelligent Learning System
-// ═══════════════════════════════════════════════════════════════════
-
-window.renderMapaProInTab = function() {
-    var tab = document.getElementById('natalTabMapa');
-    if (!tab) return;
-    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
-
-    // Initialize systems
-    if (typeof LearnerProfile === 'undefined' || typeof ASTRO_KNOWLEDGE_GRAPH === 'undefined') {
-        tab.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;">' + (isES ? 'Cargando sistema de aprendizaje...' : 'Loading learning system...') + '</div>';
-        return;
-    }
-
-    var LP = LearnerProfile;
-    LP.load();
-    LP.migrateFromOldCourse();
-    var G = ASTRO_KNOWLEDGE_GRAPH;
-    var level = LP.getStudentLevel();
-    var progress = LP.getOverallProgress();
-    var profile = LP.getProfile();
-    var suggestions = LP.getSuggestedNextNodes(3);
-
-    var html = '<div style="padding:12px 8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
-
-    // Header with level and overall progress
-    html += '<div style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(102,126,234,0.15));border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;">';
-    html += '<div style="font-size:2.5em;margin-bottom:4px;">' + level.icon + '</div>';
-    html += '<div style="font-size:1.1em;font-weight:700;color:#ffd700;">' + level.label + '</div>';
-    html += '<div style="font-size:0.8em;color:#aaa;margin:4px 0 12px;">' + (isES ? 'Camino al Astrólogo Profesional' : 'Path to Professional Astrologer') + '</div>';
-    // Progress bar
-    html += '<div style="background:rgba(255,255,255,0.1);border-radius:10px;height:20px;margin:8px auto;max-width:300px;overflow:hidden;position:relative;">';
-    html += '<div style="background:linear-gradient(90deg,#ffd700,#e040fb);height:100%;width:' + progress + '%;border-radius:10px;transition:width 0.5s;"></div>';
-    html += '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:0.75em;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5);">' + progress + '%</span>';
-    html += '</div>';
-    // Stats row
-    html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:10px;font-size:0.75em;color:#bbb;">';
-    html += '<span>📚 ' + profile.stats.nodesMastered + '/' + Object.keys(G.nodes).length + ' ' + (isES ? 'dominados' : 'mastered') + '</span>';
-    html += '<span>🔥 ' + profile.stats.currentStreak + ' ' + (isES ? 'días' : 'days') + '</span>';
-    html += '<span>🎯 ' + profile.stats.quizzesPassed + '/' + profile.stats.quizzesTaken + ' tests</span>';
-    html += '</div>';
-    html += '</div>';
-
-    // Suggested next topics
-    if (suggestions.length > 0) {
-        html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:0.85em;font-weight:600;color:#ffd700;margin-bottom:8px;">✨ ' + (isES ? 'Siguiente paso sugerido' : 'Suggested next step') + '</div>';
-        suggestions.forEach(function(s) {
-            var reasonText = s.reason === 'casi_dominado' ? (isES ? '¡Casi dominado!' : 'Almost mastered!')
-                : s.reason === 'ya_explorado' ? (isES ? 'Ya explorado' : 'Already explored')
-                : (isES ? 'Siguiente natural' : 'Natural next');
-            var mod = G.modules.find(function(m) { return m.id === s.moduleId; });
-            html += '<div onclick="openMapaNode(\'' + s.nodeId + '\')" style="cursor:pointer;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">';
-            html += '<span style="font-size:1.4em;">' + (mod ? mod.icon : '📖') + '</span>';
-            html += '<div style="flex:1;">';
-            html += '<div style="font-size:0.85em;font-weight:600;color:#eee;">' + s.title + '</div>';
-            html += '<div style="font-size:0.7em;color:#999;">' + (mod ? mod.title : '') + ' · ' + reasonText + '</div>';
-            html += '</div>';
-            html += '<span style="color:#ffd700;font-size:0.8em;">→</span>';
-            html += '</div>';
-        });
-        html += '</div>';
-    }
-
-    // Achievements
-    if (profile.achievements.length > 0) {
-        html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:0.85em;font-weight:600;color:#e040fb;margin-bottom:8px;">🏆 ' + (isES ? 'Logros' : 'Achievements') + ' (' + profile.achievements.length + ')</div>';
-        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-        profile.achievements.forEach(function(a) {
-            html += '<span style="background:rgba(224,64,251,0.15);border:1px solid rgba(224,64,251,0.3);border-radius:8px;padding:4px 10px;font-size:0.75em;color:#e0b0ff;">' + a.title + '</span>';
-        });
-        html += '</div></div>';
-    }
-
-    // Module grid
-    html += '<div style="font-size:0.85em;font-weight:600;color:#667eea;margin-bottom:10px;">📊 ' + (isES ? 'Módulos del Curso Profesional' : 'Professional Course Modules') + '</div>';
-
-    G.modules.forEach(function(mod) {
-        var mp = LP.getModuleProgress(mod.id);
-        var pct = mp.pct;
-        var barColor = pct === 100 ? '#4caf50' : pct > 0 ? '#ffd700' : '#444';
-        var bgColor = pct === 100 ? 'rgba(76,175,80,0.08)' : pct > 0 ? 'rgba(255,215,0,0.05)' : 'rgba(255,255,255,0.03)';
-
-        html += '<div onclick="openMapaModule(\'' + mod.id + '\')" style="cursor:pointer;background:' + bgColor + ';border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">';
-        html += '<span style="font-size:1.5em;">' + mod.icon + '</span>';
-        html += '<div style="flex:1;">';
-        html += '<div style="font-size:0.82em;font-weight:600;color:#ddd;">' + mod.title + '</div>';
-        html += '<div style="background:rgba(255,255,255,0.1);border-radius:4px;height:6px;margin-top:4px;overflow:hidden;">';
-        html += '<div style="background:' + barColor + ';height:100%;width:' + pct + '%;border-radius:4px;transition:width 0.3s;"></div>';
-        html += '</div>';
-        html += '<div style="font-size:0.65em;color:#888;margin-top:2px;">' + mp.mastered + '/' + mp.total + ' ' + (isES ? 'dominados' : 'mastered') + ' · ' + mp.explored + ' ' + (isES ? 'explorados' : 'explored') + '</div>';
-        html += '</div>';
-        html += '<span style="color:' + (pct === 100 ? '#4caf50' : '#666') + ';font-size:0.8em;font-weight:600;">' + pct + '%</span>';
-        html += '</div>';
-    });
-
-    html += '</div>';
-    tab.innerHTML = html;
-};
-
-// Open module detail in Mapa tab
-window.openMapaModule = function(moduleId) {
-    var tab = document.getElementById('natalTabMapa');
-    if (!tab) return;
-    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
-    var G = ASTRO_KNOWLEDGE_GRAPH;
-    var LP = LearnerProfile;
-    var mod = G.modules.find(function(m) { return m.id === moduleId; });
-    if (!mod) return;
-
-    var html = '<div style="padding:12px 8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
-
-    // Back button
-    html += '<div onclick="renderMapaProInTab()" style="cursor:pointer;color:#667eea;font-size:0.8em;margin-bottom:12px;">← ' + (isES ? 'Volver al mapa' : 'Back to map') + '</div>';
-
-    // Module header
-    html += '<div style="text-align:center;margin-bottom:16px;">';
-    html += '<span style="font-size:2.2em;">' + mod.icon + '</span>';
-    html += '<div style="font-size:1.1em;font-weight:700;color:#eee;margin-top:4px;">' + mod.title + '</div>';
-    var mp = LP.getModuleProgress(moduleId);
-    html += '<div style="font-size:0.75em;color:#aaa;margin-top:4px;">' + mp.mastered + '/' + mp.total + ' ' + (isES ? 'dominados' : 'mastered') + ' · ' + mp.pct + '%</div>';
-    html += '</div>';
-
-    // Node list
-    mod.nodeIds.forEach(function(nodeId) {
-        var node = G.nodes[nodeId];
-        if (!node) return;
-        var m = LP.getNodeMastery(nodeId);
-        var prereqsMet = LP.arePrerequisitesMet(nodeId);
-
-        var statusIcon = '⚫'; // not exposed
-        var statusColor = '#555';
-        if (m.level === 'maestria') { statusIcon = '💎'; statusColor = '#e040fb'; }
-        else if (m.level === 'dominado') { statusIcon = '⭐'; statusColor = '#4caf50'; }
-        else if (m.level === 'en_desarrollo') { statusIcon = '🔶'; statusColor = '#ff9800'; }
-        else if (m.level === 'explorado') { statusIcon = '🔵'; statusColor = '#2196f3'; }
-        else if (!prereqsMet) { statusIcon = '🔒'; statusColor = '#333'; }
-
-        var levelBadge = node.level === 'basico' ? '🟢' : node.level === 'intermedio' ? '🟡' : node.level === 'avanzado' ? '🟠' : '🔴';
-
-        html += '<div onclick="openMapaNode(\'' + nodeId + '\')" style="cursor:pointer;opacity:' + (prereqsMet ? '1' : '0.5') + ';background:rgba(255,255,255,0.03);border:1px solid ' + statusColor + '33;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">';
-        html += '<span style="font-size:1.2em;">' + statusIcon + '</span>';
-        html += '<div style="flex:1;">';
-        html += '<div style="font-size:0.82em;font-weight:600;color:#ddd;">' + node.title + '</div>';
-        html += '<div style="font-size:0.65em;color:#888;">' + levelBadge + ' ' + node.level.charAt(0).toUpperCase() + node.level.slice(1);
-        if (m.score > 0) html += ' · ' + Math.round(m.score * 100) + '%';
-        html += '</div>';
-        html += '</div>';
-        if (LP.shouldSuggestQuiz(nodeId)) {
-            html += '<span style="background:rgba(255,215,0,0.2);color:#ffd700;font-size:0.65em;padding:2px 8px;border-radius:4px;">Test?</span>';
-        }
-        html += '</div>';
-    });
-
-    html += '</div>';
-    tab.innerHTML = html;
-};
-
-// Open individual node detail with content and quiz
-window.openMapaNode = function(nodeId) {
-    var tab = document.getElementById('natalTabMapa');
-    if (!tab) return;
-    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
-    var G = ASTRO_KNOWLEDGE_GRAPH;
-    var LP = LearnerProfile;
-    var node = G.nodes[nodeId];
-    if (!node) return;
-
-    var mod = G.modules.find(function(m) { return m.id === node.moduleId; });
-    var m = LP.getNodeMastery(nodeId);
-    var prereqsMet = LP.arePrerequisitesMet(nodeId);
-
-    // Record exploration
-    LP.recordExploration(nodeId);
-
-    var html = '<div style="padding:12px 8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
-
-    // Back button
-    html += '<div onclick="openMapaModule(\'' + node.moduleId + '\')" style="cursor:pointer;color:#667eea;font-size:0.8em;margin-bottom:12px;">← ' + (mod ? mod.title : 'Back') + '</div>';
-
-    // Check prerequisites
-    if (!prereqsMet) {
-        var missing = LP.getMissingPrerequisites(nodeId);
-        html += '<div style="background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:12px;margin-bottom:12px;">';
-        html += '<div style="font-size:0.85em;font-weight:600;color:#ff9800;">🔒 ' + (isES ? 'Prerequisitos pendientes' : 'Missing prerequisites') + '</div>';
-        html += '<div style="font-size:0.75em;color:#bbb;margin-top:6px;">';
-        missing.forEach(function(pid) {
-            var pn = G.nodes[pid];
-            html += '<div onclick="openMapaNode(\'' + pid + '\')" style="cursor:pointer;color:#ff9800;margin:2px 0;">→ ' + (pn ? pn.title : pid) + '</div>';
-        });
-        html += '</div></div>';
-    }
-
-    // Node header
-    html += '<div style="text-align:center;margin-bottom:16px;">';
-    html += '<div style="font-size:1.1em;font-weight:700;color:#eee;">' + node.title + '</div>';
-    html += '<div style="font-size:0.7em;color:#888;margin-top:2px;">' + (mod ? mod.icon + ' ' + mod.title : '') + ' · ' + node.level + '</div>';
-    html += '</div>';
-
-    // Content summary
-    if (node.content) {
-        html += '<div style="background:rgba(102,126,234,0.08);border-radius:10px;padding:12px;margin-bottom:12px;">';
-        html += '<div style="font-size:0.82em;color:#ccc;line-height:1.5;">' + node.content.summary + '</div>';
-        if (node.content.keyPoints) {
-            html += '<div style="margin-top:10px;">';
-            node.content.keyPoints.forEach(function(kp) {
-                html += '<div style="font-size:0.75em;color:#aaa;padding:3px 0 3px 12px;border-left:2px solid rgba(102,126,234,0.3);">' + kp + '</div>';
-            });
-            html += '</div>';
-        }
-        html += '</div>';
-    }
-
-    // Action buttons
-    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-
-    // Ask tutor button
-    html += '<button onclick="switchNatalTab(\'tutor\',document.querySelector(\'[onclick*=tutor]\'));setTimeout(function(){var inp=document.getElementById(\'tutorAIChatInput\');if(inp){inp.value=\'' + (isES ? 'Explícame sobre: ' : 'Explain to me: ') + node.title.replace(/'/g, "\\'") + '\';inp.focus();}},300)" style="flex:1;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;">🤖 ' + (isES ? 'Preguntar al Tutor' : 'Ask Tutor') + '</button>';
-
-    // Quiz button
-    if (node.questions && node.questions.length > 0) {
-        html += '<button onclick="startMapaQuiz(\'' + nodeId + '\')" style="flex:1;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;font-weight:600;">🎯 ' + (isES ? 'Tomar Test' : 'Take Test') + '</button>';
-    }
-    html += '</div>';
-
-    // Show mastery info
-    if (m.level !== 'no_expuesto') {
-        html += '<div style="font-size:0.7em;color:#888;text-align:center;margin-bottom:8px;">';
-        html += (isES ? 'Estado: ' : 'Status: ') + m.level + (m.score > 0 ? ' · ' + (isES ? 'Mejor score: ' : 'Best score: ') + Math.round(m.score * 100) + '%' : '') + (m.attempts > 0 ? ' · ' + m.attempts + ' ' + (isES ? 'intentos' : 'attempts') : '');
-        html += '</div>';
-    }
-
-    html += '</div>';
-    tab.innerHTML = html;
-};
-
-// Start quiz for a node
-window.startMapaQuiz = function(nodeId) {
-    var tab = document.getElementById('natalTabMapa');
-    if (!tab) return;
-    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
-    var G = ASTRO_KNOWLEDGE_GRAPH;
-    var LP = LearnerProfile;
-    var node = G.nodes[nodeId];
-    if (!node || !node.questions) return;
-
-    // Select 5 random questions (or all if less than 5)
-    var qs = node.questions.slice();
-    for (var i = qs.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var t = qs[i]; qs[i] = qs[j]; qs[j] = t;
-    }
-    qs = qs.slice(0, Math.min(5, qs.length));
-
-    window._mapaQuizState = { nodeId: nodeId, questions: qs, answers: {} };
-
-    var html = '<div style="padding:12px 8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
-    html += '<div onclick="openMapaNode(\'' + nodeId + '\')" style="cursor:pointer;color:#667eea;font-size:0.8em;margin-bottom:12px;">← ' + node.title + '</div>';
-    html += '<div style="text-align:center;margin-bottom:16px;">';
-    html += '<div style="font-size:1em;font-weight:700;color:#ffd700;">🎯 Test: ' + node.title + '</div>';
-    html += '<div style="font-size:0.7em;color:#aaa;">' + qs.length + ' ' + (isES ? 'preguntas' : 'questions') + '</div>';
-    html += '</div>';
-
-    qs.forEach(function(q, qi) {
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">';
-        html += '<div style="font-size:0.82em;font-weight:600;color:#ddd;margin-bottom:8px;">' + (qi + 1) + '. ' + q.q + '</div>';
-        q.options.forEach(function(opt, oi) {
-            html += '<label style="display:block;cursor:pointer;padding:6px 10px;margin:3px 0;border-radius:6px;font-size:0.78em;color:#bbb;background:rgba(255,255,255,0.05);border:1px solid transparent;" onmouseover="this.style.borderColor=\'rgba(255,215,0,0.3)\'" onmouseout="this.style.borderColor=\'transparent\'">';
-            html += '<input type="radio" name="mq_' + qi + '" value="' + oi + '" style="margin-right:8px;" onchange="window._mapaQuizState.answers[' + qi + ']=' + oi + '"> ' + opt;
-            html += '</label>';
-        });
-        html += '</div>';
-    });
-
-    html += '<button onclick="submitMapaQuiz()" style="width:100%;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:10px;padding:12px;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:8px;">' + (isES ? 'Enviar Respuestas' : 'Submit Answers') + '</button>';
-    html += '</div>';
-    tab.innerHTML = html;
-};
-
-// Submit quiz and show results
-window.submitMapaQuiz = function() {
-    var tab = document.getElementById('natalTabMapa');
-    if (!tab || !window._mapaQuizState) return;
-    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
-    var state = window._mapaQuizState;
-    var G = ASTRO_KNOWLEDGE_GRAPH;
-    var LP = LearnerProfile;
-    var node = G.nodes[state.nodeId];
-    if (!node) return;
-
-    var correct = 0;
-    var total = state.questions.length;
-
-    state.questions.forEach(function(q, qi) {
-        if (state.answers[qi] === q.correct) correct++;
-    });
-
-    var result = LP.recordQuizResult(state.nodeId, correct, total);
-    var pct = Math.round((correct / total) * 100);
-
-    var html = '<div style="padding:12px 8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
-
-    // Results header
-    html += '<div style="text-align:center;margin-bottom:16px;">';
-    html += '<div style="font-size:3em;margin-bottom:8px;">' + (result.passed ? '🎉' : '📚') + '</div>';
-    html += '<div style="font-size:1.2em;font-weight:700;color:' + (result.passed ? '#4caf50' : '#ff9800') + ';">' + pct + '%</div>';
-    html += '<div style="font-size:0.85em;color:#aaa;">' + correct + '/' + total + ' ' + (isES ? 'correctas' : 'correct') + '</div>';
-    html += '<div style="font-size:0.8em;color:' + (result.passed ? '#4caf50' : '#ff9800') + ';margin-top:4px;">';
-    html += result.passed ? (isES ? '¡Tema dominado!' : 'Topic mastered!') : (isES ? 'Sigue estudiando, vas bien' : 'Keep studying, you\'re doing well');
-    html += '</div>';
-    html += '<div style="font-size:0.7em;color:#888;margin-top:2px;">' + (isES ? 'Nivel: ' : 'Level: ') + result.level + '</div>';
-    html += '</div>';
-
-    // Review answers
-    html += '<div style="font-size:0.8em;font-weight:600;color:#667eea;margin-bottom:8px;">' + (isES ? 'Revisión' : 'Review') + '</div>';
-    state.questions.forEach(function(q, qi) {
-        var userAnswer = state.answers[qi];
-        var isCorrect = userAnswer === q.correct;
-        html += '<div style="background:rgba(' + (isCorrect ? '76,175,80' : '255,152,0') + ',0.08);border-radius:8px;padding:10px;margin-bottom:8px;">';
-        html += '<div style="font-size:0.78em;font-weight:600;color:#ddd;">' + (qi + 1) + '. ' + q.q + ' ' + (isCorrect ? '✅' : '❌') + '</div>';
-        if (!isCorrect) {
-            html += '<div style="font-size:0.72em;color:#ff9800;margin-top:4px;">' + (isES ? 'Tu respuesta: ' : 'Your answer: ') + (userAnswer !== undefined ? q.options[userAnswer] : (isES ? 'Sin respuesta' : 'No answer')) + '</div>';
-            html += '<div style="font-size:0.72em;color:#4caf50;margin-top:2px;">' + (isES ? 'Correcta: ' : 'Correct: ') + q.options[q.correct] + '</div>';
-        }
-        html += '<div style="font-size:0.68em;color:#999;margin-top:4px;font-style:italic;">' + q.explanation + '</div>';
-        html += '</div>';
-    });
-
-    // Action buttons
-    html += '<div style="display:flex;gap:8px;margin-top:12px;">';
-    html += '<button onclick="openMapaNode(\'' + state.nodeId + '\')" style="flex:1;background:rgba(102,126,234,0.2);color:#667eea;border:1px solid rgba(102,126,234,0.3);border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;">' + (isES ? 'Volver al tema' : 'Back to topic') + '</button>';
-    if (!result.passed) {
-        html += '<button onclick="startMapaQuiz(\'' + state.nodeId + '\')" style="flex:1;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;font-weight:600;">' + (isES ? 'Reintentar' : 'Retry') + '</button>';
-    } else {
-        html += '<button onclick="renderMapaProInTab()" style="flex:1;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;font-weight:600;">' + (isES ? 'Ver Mapa' : 'See Map') + '</button>';
-    }
-    html += '</div>';
-    html += '</div>';
-    tab.innerHTML = html;
-};
     </script>
-
+    
     <!-- DATOS LUNARES EXTERNOS — editar lunar-data.js para actualizar años -->
     <script src="lunar-data.js"></script>
 
@@ -31439,13 +31071,6 @@ window.submitMapaQuiz = function() {
     <script src="csv-loader.js"></script>
     <script src="event-reminders.js"></script>
     <script src="notifications-final.js"></script>
-
-    <!-- SISTEMA DE APRENDIZAJE PROFESIONAL — Knowledge Graph + Adaptive Learning -->
-    <script src="knowledge-graph.js"></script>
-    <script src="knowledge-graph-part2.js"></script>
-    <script src="knowledge-graph-part3.js"></script>
-    <script src="ai-adapter.js"></script>
-    <script src="learner-profile.js"></script>
     <!-- Modal: Lunas 2026 -->
     <div id="lunarCal2026Modal" class="modal" onclick="if(event.target===this)closeLunarCalendar2026()">
         <div class="modal-content" style="max-width:860px;">
