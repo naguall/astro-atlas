@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v519';
+        var REQUIRED_VER = 'v520';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -3270,20 +3270,50 @@ function calculateLunarCycle(startDate) {
     // Previous cycle length (typically 29-30 days)
     var _prevCycleLen = _prevNewMoon ? Math.round((newMoonMidnight.getTime() - _prevNewMoon.getTime()) / 86400000) : 30;
 
-    for (var i = 0; i < 4; i++) {
-        var currentPerfection = perfections[i]; // allPhases[i+1]
-        var nextPhaseDate = allPhases[i + 2].date;   // phase after this one
+    // Build weeks sequentially: no day overlap, no day skipped.
+    // Week 1 starts 3 days before New Moon. Each subsequent week starts
+    // the day after the previous week ends. Week ends at the day before
+    // the next week would start (3 days before next perfection), capped at 8 days.
+    // Last week ends at the day before next New Moon (or 8 days max).
+    var _nextWeekStarts = [];
+    for (var _wi = 0; _wi < 4; _wi++) {
+        var _perfMid = new Date(perfections[_wi].date);
+        _perfMid.setHours(0, 0, 0, 0);
+        var _ws = new Date(_perfMid);
+        _ws.setDate(_ws.getDate() - 3);
+        _nextWeekStarts.push(_ws);
+    }
+    // The end boundary for the last week: day before next New Moon
+    var _nextNMDay = new Date(nextNewMoon);
+    _nextNMDay.setHours(0, 0, 0, 0);
+    var _lastWeekBoundary = new Date(_nextNMDay);
+    _lastWeekBoundary.setDate(_lastWeekBoundary.getDate() - 1);
 
-        // ── FORCE perfection on day 4 (index 3) of the week ──
-        // Week starts exactly 3 days before the perfection date
-        var perfDateMidnight = new Date(currentPerfection.date);
-        perfDateMidnight.setHours(0, 0, 0, 0);
-        var weekStart = new Date(perfDateMidnight);
-        weekStart.setDate(weekStart.getDate() - 3);
-        // Week ends at midpoint between current phase and next phase
-        var weekEndMid = _midDate(currentPerfection.date, nextPhaseDate);
-        var weekEnd = new Date(weekEndMid);
-        // Cap at 8 days max (perfection on day 4 + max 4 after)
+    for (var i = 0; i < 4; i++) {
+        var currentPerfection = perfections[i];
+
+        // Week start: for week 0, use 3 days before perfection.
+        // For weeks 1-3, start the day after previous week ended.
+        var weekStart;
+        if (i === 0) {
+            weekStart = new Date(_nextWeekStarts[0]);
+        } else {
+            weekStart = new Date(weeks[i - 1].endDate);
+            weekStart.setDate(weekStart.getDate() + 1);
+        }
+        weekStart.setHours(0, 0, 0, 0);
+
+        // Week end: day before next week starts, or for last week, day before next New Moon
+        var weekEnd;
+        if (i < 3) {
+            weekEnd = new Date(_nextWeekStarts[i + 1]);
+            weekEnd.setDate(weekEnd.getDate() - 1);
+        } else {
+            weekEnd = new Date(_lastWeekBoundary);
+        }
+        weekEnd.setHours(0, 0, 0, 0);
+
+        // Cap at 8 days max
         var _maxEnd = new Date(weekStart);
         _maxEnd.setDate(_maxEnd.getDate() + 7); // 8 days = index 0-7
         if (weekEnd > _maxEnd) weekEnd = _maxEnd;
@@ -30920,7 +30950,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v519';
+const APP_VERSION = 'v520';
 var _pendingSW = null;
 
 // What's New removed per user request
