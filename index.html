@@ -29823,6 +29823,7 @@ var _db = null;
 var _auth = null;
 var _socialUser = null;
 var _socialProfile = null;
+var _profileLoading = false;
 var _socialView = 'home'; // home, discover, communities, messages, profile, notifications
 var _matchCache = null;
 var _chatListeners = {};
@@ -29892,6 +29893,7 @@ function _signUpEmail(email, pass, displayName) {
 function _signOut() {
     if (_auth) _auth.signOut();
     _socialProfile = null;
+    _profileLoading = false;
     _matchCache = null;
     Object.keys(_chatListeners).forEach(function(k) { if (_chatListeners[k]) _chatListeners[k](); });
     _chatListeners = {};
@@ -29901,11 +29903,20 @@ function _signOut() {
 // ── Profile Management ──
 function _loadProfile(uid) {
     if (!_db) return;
+    _profileLoading = true;
     _db.collection('users').doc(uid).get().then(function(doc) {
         if (doc.exists) {
             _socialProfile = doc.data();
             _socialProfile._uid = uid;
         }
+        _profileLoading = false;
+        // Re-render social if currently visible so UI updates from loading→profile
+        if (typeof calendarMode !== 'undefined' && calendarMode === 'social') {
+            _renderSocial();
+        }
+    }).catch(function(err) {
+        console.error('Error loading social profile:', err);
+        _profileLoading = false;
     });
 }
 
@@ -30439,15 +30450,48 @@ function _sendNotification(toUid, type, data) {
     });
 }
 
+var _loggedSocialNotifs = {}; // Track which social notifs we already logged to header bell
+
+function _socialNotifToHeader(snap) {
+    // Log new social notifications to the app's header 🔔 bell system
+    snap.docChanges().forEach(function(change) {
+        if (change.type === 'added') {
+            var doc = change.doc;
+            var id = doc.id;
+            if (_loggedSocialNotifs[id]) return; // Already logged
+            _loggedSocialNotifs[id] = true;
+            var d = doc.data();
+            var isES = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+            var typeIcons = { match_found: '🌟', new_message: '💬', community_post: '👥', like: '❤️', comment: '💭' };
+            var typeLabels = {
+                match_found: isES ? 'Nuevo gemelo cósmico' : 'New cosmic twin',
+                new_message: isES ? 'Nuevo mensaje' : 'New message',
+                community_post: isES ? 'Nuevo post en grupo' : 'New group post',
+                like: isES ? 'Le gustó tu post' : 'Liked your post',
+                comment: isES ? 'Comentó en tu post' : 'Commented on your post'
+            };
+            var icon = typeIcons[d.type] || '🌐';
+            var label = typeLabels[d.type] || 'AstroConnect';
+            var from = d.fromName ? (' — ' + d.fromName) : '';
+            var msg = icon + ' ' + label + from;
+            if (typeof logNotificationEvent === 'function') {
+                logNotificationEvent(msg, 'social', { detail: d.type, actionType: 'social_notif' });
+            }
+        }
+    });
+}
+
 function _listenNotifications(uid) {
     if (!_db) return;
     if (_notifListener) _notifListener();
+    _loggedSocialNotifs = {};
     // Try with orderBy first, fallback to simple query if composite index missing
     _notifListener = _db.collection('notifications').doc(uid).collection('items')
         .where('read', '==', false).orderBy('createdAt', 'desc').limit(20)
         .onSnapshot(function(snap) {
             _unreadCount = snap.size;
             _updateNotifBadges();
+            _socialNotifToHeader(snap);
         }, function(err) {
             console.warn('Notification listener with orderBy failed, using simple query:', err);
             // Fallback without orderBy (no composite index needed)
@@ -30456,6 +30500,7 @@ function _listenNotifications(uid) {
                 .onSnapshot(function(snap) {
                     _unreadCount = snap.size;
                     _updateNotifBadges();
+                    _socialNotifToHeader(snap);
                 }, function(err2) {
                     console.error('Notification listener fallback also failed:', err2);
                 });
@@ -30487,6 +30532,10 @@ function _updateNotifBadges() {
         } else if (existingBadge) {
             existingBadge.remove();
         }
+    }
+    // Also update the main header 🔔 bell badge
+    if (typeof updateNotifBadge === 'function') {
+        updateNotifBadge();
     }
 }
 
@@ -30542,6 +30591,17 @@ function _renderSocial() {
     // Not logged in
     if (!_socialUser) {
         _renderAuthScreen(container, isES);
+        return;
+    }
+
+    // Profile still loading from Firestore
+    if (_profileLoading && !_socialProfile) {
+        container.innerHTML =
+            '<div style="padding:40px;text-align:center;">' +
+            '<div style="font-size:2em;margin-bottom:12px;">🌐</div>' +
+            '<div style="color:rgba(255,255,255,0.5);font-size:0.9em;">' +
+                (isES ? 'Cargando perfil...' : 'Loading profile...') +
+            '</div></div>';
         return;
     }
 
@@ -30691,6 +30751,7 @@ function _renderMainSocial(container, isES) {
     var tabs = [
         { id: 'home', icon: '🏠', label: isES ? 'Inicio' : 'Home' },
         { id: 'discover', icon: '🔍', label: isES ? 'Descubrir' : 'Discover' },
+        { id: 'cosmic', icon: '🪐', label: isES ? 'Cósmicos' : 'Cosmic' },
         { id: 'communities', icon: '👥', label: isES ? 'Grupos' : 'Groups' },
         { id: 'messages', icon: '💬', label: isES ? 'Chat' : 'Chat' },
         { id: 'profile', icon: '⚙️', label: isES ? 'Perfil' : 'Profile' }
@@ -30710,6 +30771,7 @@ function _renderMainSocial(container, isES) {
     var content = document.getElementById('socialContent');
     if (_socialView === 'home') _renderHomeFeed(content, isES);
     else if (_socialView === 'discover') _renderDiscover(content, isES);
+    else if (_socialView === 'cosmic') _renderCosmicGroups(content, isES);
     else if (_socialView === 'communities') _renderCommunities(content, isES);
     else if (_socialView === 'messages') _renderMessages(content, isES);
     else if (_socialView === 'profile') _renderProfile(content, isES);
@@ -30923,6 +30985,8 @@ window._loadTopMatches = function() {
     var el = document.getElementById('topMatchesArea');
     if (el) el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;">' + (L() ? 'Buscando...' : 'Searching...') + '</div>';
     _findTopMatches(function(results) {
+        // Auto-process cosmic groups in background
+        _processCosmicMatches(results);
         if (!el) return;
         if (results.length === 0) {
             el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;padding:10px;">' + (L() ? 'No se encontraron usuarios aún.' : 'No users found yet.') + '</div>';
@@ -30982,6 +31046,415 @@ function _renderUserCard(user, isES) {
         '<button onclick="window._startChatWith(\'' + user._uid + '\',\'' + _escAttr(user.displayName) + '\')" style="background:rgba(0,188,212,0.15);border:1px solid rgba(0,188,212,0.3);border-radius:8px;color:#00bcd4;padding:6px 10px;font-size:0.75em;cursor:pointer;flex-shrink:0;">💬</button>' +
     '</div>';
 }
+
+// ── COSMIC GROUPS (auto-match 65%+) ──
+var _COSMIC_MATCH_THRESHOLD = 65;
+
+// Build a canonical "astrological signature" from shared placements between two charts
+function _buildCosmicSignature(myChart, theirChart) {
+    if (!myChart || !theirChart || !myChart.planets || !theirChart.planets) return null;
+    var shared = [];
+    // Core planets that define the signature (weighted — same order as _calcSimilarity)
+    var corePlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn'];
+    corePlanets.forEach(function(p) {
+        var my = myChart.planets[p];
+        var their = theirChart.planets[p];
+        if (my && their && my.sign === their.sign) {
+            shared.push(p + ':' + my.sign);
+        }
+    });
+    // Ascendant
+    if (myChart.houses && theirChart.houses) {
+        var myAsc = _signFromLong(myChart.houses.ascendant);
+        var theirAsc = _signFromLong(theirChart.houses.ascendant);
+        if (myAsc === theirAsc) {
+            shared.push('asc:' + myAsc);
+        }
+    }
+    // Need at least 3 shared placements to form a meaningful group
+    if (shared.length < 3) return null;
+    shared.sort(); // Canonical order
+    return shared.join(',');
+}
+
+// Human-readable group name from signature
+function _cosmicGroupName(signature, isES) {
+    var parts = signature.split(',');
+    var planetNames = {
+        sun: '☀️ Sol', moon: '🌙 Luna', mercury: '☿ Mercurio', venus: '♀ Venus',
+        mars: '♂ Marte', jupiter: '♃ Júpiter', saturn: '♄ Saturno', asc: '⬆️ Asc'
+    };
+    var planetNamesEN = {
+        sun: '☀️ Sun', moon: '🌙 Moon', mercury: '☿ Mercury', venus: '♀ Venus',
+        mars: '♂ Mars', jupiter: '♃ Jupiter', saturn: '♄ Saturn', asc: '⬆️ Asc'
+    };
+    var names = isES ? planetNames : planetNamesEN;
+    // Show top 3 placements for group name
+    var top = parts.slice(0, 3).map(function(p) {
+        var kv = p.split(':');
+        return (names[kv[0]] || kv[0]) + ' ' + _signEmoji(kv[1]) + kv[1];
+    });
+    return top.join(' · ');
+}
+
+// Build description from full signature
+function _cosmicGroupDesc(signature, isES) {
+    var parts = signature.split(',');
+    return (isES ? 'Grupo cósmico con ' + parts.length + ' posiciones astrológicas compartidas'
+                 : 'Cosmic group with ' + parts.length + ' shared astrological placements');
+}
+
+// Create or join cosmic group in Firestore
+function _ensureCosmicGroup(signature, userUid, userName, matchPct, callback) {
+    if (!_db || !signature) return;
+    // Use signature hash as doc ID (deterministic)
+    var groupId = 'cg_' + _hashSignature(signature);
+
+    var groupRef = _db.collection('cosmicGroups').doc(groupId);
+    groupRef.get().then(function(doc) {
+        if (doc.exists) {
+            // Group exists — join if not already member
+            var data = doc.data();
+            if (data.memberUids && data.memberUids.indexOf(userUid) >= 0) {
+                // Already a member
+                if (callback) callback(groupId, false);
+                return;
+            }
+            // Add user to group
+            groupRef.update({
+                memberUids: firebase.firestore.FieldValue.arrayUnion(userUid),
+                members: firebase.firestore.FieldValue.arrayUnion({
+                    uid: userUid,
+                    name: userName,
+                    matchPct: matchPct,
+                    joinedAt: new Date().toISOString()
+                }),
+                memberCount: firebase.firestore.FieldValue.increment(1),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(function() {
+                if (callback) callback(groupId, false);
+            });
+        } else {
+            // Create new group
+            var isES = L();
+            groupRef.set({
+                signature: signature,
+                name: _cosmicGroupName(signature, isES),
+                description: _cosmicGroupDesc(signature, isES),
+                createdBy: userUid,
+                createdByName: userName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                memberCount: 1,
+                memberUids: [userUid],
+                members: [{
+                    uid: userUid,
+                    name: userName,
+                    matchPct: matchPct,
+                    joinedAt: new Date().toISOString()
+                }],
+                threshold: _COSMIC_MATCH_THRESHOLD
+            }).then(function() {
+                if (callback) callback(groupId, true);
+            });
+        }
+    });
+}
+
+// Simple hash for deterministic doc ID from signature string
+function _hashSignature(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+}
+
+// Auto-process matches and create/join cosmic groups for 65%+ matches
+function _processCosmicMatches(matchResults) {
+    if (!_socialProfile || !_socialProfile.chartData || !_socialUser) return;
+    var processed = {};
+    matchResults.forEach(function(user) {
+        if ((user._similarity || 0) < _COSMIC_MATCH_THRESHOLD) return;
+        var sig = _buildCosmicSignature(_socialProfile.chartData, user.chartData);
+        if (!sig || processed[sig]) return;
+        processed[sig] = true;
+        _ensureCosmicGroup(sig, _socialUser.uid, _socialUser.displayName || _socialUser.email.split('@')[0], user._similarity);
+    });
+}
+
+// Get cosmic groups where current user is a member
+function _getMyCosmicGroups(callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('cosmicGroups').where('memberUids', 'array-contains', _socialUser.uid)
+        .orderBy('updatedAt', 'desc').limit(20)
+        .get().then(function(snap) {
+            var groups = [];
+            snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; groups.push(d); });
+            callback(groups);
+        }).catch(function(err) {
+            console.warn('Cosmic groups query failed, trying without orderBy:', err);
+            _db.collection('cosmicGroups').where('memberUids', 'array-contains', _socialUser.uid)
+                .limit(20).get().then(function(snap) {
+                    var groups = [];
+                    snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; groups.push(d); });
+                    callback(groups);
+                }).catch(function(err2) {
+                    console.error('Cosmic groups fallback also failed:', err2);
+                    callback([]);
+                });
+        });
+}
+
+// ── COSMIC GROUPS UI ──
+function _renderCosmicGroups(content, isES) {
+    var html = '<div style="margin-bottom:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+            '<div style="font-weight:700;color:#e040fb;font-size:1em;">🪐 ' + (isES ? 'Grupos Cósmicos' : 'Cosmic Groups') + '</div>' +
+        '</div>' +
+        '<div style="color:rgba(255,255,255,0.4);font-size:0.78em;margin-bottom:14px;line-height:1.5;">' +
+            (isES
+                ? 'Grupos automáticos creados cuando compartes <b style="color:#e040fb;">65%+</b> de afinidad astrológica con otros usuarios. Solo los miembros pueden ver su grupo.'
+                : 'Auto-created groups when you share <b style="color:#e040fb;">65%+</b> astrological affinity with other users. Only members can see their group.') +
+        '</div>' +
+    '</div>';
+
+    // Scan for matches button
+    html += '<div style="text-align:center;margin-bottom:14px;">' +
+        '<button id="cosmicScanBtn" onclick="window._scanCosmicMatches()" style="' + _SCbtn + 'background:linear-gradient(135deg,#e040fb,#7c4dff);color:#fff;width:100%;">' +
+            '✨ ' + (isES ? 'Escanear Matches Cósmicos' : 'Scan Cosmic Matches') +
+        '</button>' +
+    '</div>';
+
+    html += '<div id="cosmicGroupsList" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' +
+        (isES ? 'Cargando tus grupos cósmicos...' : 'Loading your cosmic groups...') +
+    '</div>';
+
+    content.innerHTML = html;
+
+    // Load existing cosmic groups
+    _getMyCosmicGroups(function(groups) {
+        var el = document.getElementById('cosmicGroupsList');
+        if (!el) return;
+        if (groups.length === 0) {
+            el.innerHTML = '<div style="padding:20px;text-align:center;">' +
+                '<div style="font-size:1.5em;margin-bottom:8px;">🔭</div>' +
+                '<div style="color:rgba(255,255,255,0.4);font-size:0.85em;">' +
+                    (L() ? 'Aún no tienes grupos cósmicos. Presiona "Escanear" para encontrar tus afines astrológicos.'
+                         : 'No cosmic groups yet. Press "Scan" to find your astrological kin.') +
+                '</div></div>';
+            return;
+        }
+        var html = '';
+        groups.forEach(function(g) {
+            var sigParts = (g.signature || '').split(',');
+            // Build visual signature badges
+            var badges = '';
+            var planetIcons = { sun: '☀️', moon: '🌙', mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄', asc: '⬆️' };
+            sigParts.forEach(function(part) {
+                var kv = part.split(':');
+                var icon = planetIcons[kv[0]] || '🌟';
+                badges += '<span style="display:inline-block;background:rgba(224,64,251,0.1);border:1px solid rgba(224,64,251,0.25);border-radius:6px;padding:2px 6px;margin:2px;font-size:0.72em;color:#e0b0ff;">' +
+                    icon + ' ' + _signEmoji(kv[1] || '') + (kv[1] || '') + '</span>';
+            });
+
+            html += '<div style="' + _SC + 'padding:14px;margin-bottom:10px;border-color:rgba(224,64,251,0.25);cursor:pointer;" onclick="window._openCosmicGroup(\'' + g._id + '\')">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+                    '<div style="flex:1;">' +
+                        '<div style="font-weight:700;color:#e040fb;font-size:0.9em;margin-bottom:4px;">🪐 ' +
+                            (L() ? 'Grupo Cósmico' : 'Cosmic Group') +
+                        '</div>' +
+                        '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">👤 ' + (g.memberCount || 0) + ' ' +
+                            (L() ? 'miembros' : 'members') + '</div>' +
+                    '</div>' +
+                    '<div style="background:rgba(224,64,251,0.15);border:1px solid rgba(224,64,251,0.3);border-radius:8px;padding:4px 10px;text-align:center;">' +
+                        '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);">' + (L() ? 'afinidad' : 'affinity') + '</div>' +
+                        '<div style="font-weight:800;color:#e040fb;font-size:0.95em;">65%+</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="line-height:1.8;">' + badges + '</div>' +
+            '</div>';
+        });
+        el.innerHTML = html;
+    });
+}
+
+// Scan for cosmic matches
+window._scanCosmicMatches = function() {
+    var btn = document.getElementById('cosmicScanBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ ' + (L() ? 'Escaneando...' : 'Scanning...');
+    }
+    _findTopMatches(function(results) {
+        // Process all 65%+ matches into cosmic groups
+        _processCosmicMatches(results);
+        // Wait a moment for Firestore writes, then refresh
+        setTimeout(function() {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '✨ ' + (L() ? 'Escanear Matches Cósmicos' : 'Scan Cosmic Matches');
+            }
+            // Refresh the groups list
+            _getMyCosmicGroups(function(groups) {
+                var el = document.getElementById('cosmicGroupsList');
+                if (!el) return;
+                if (groups.length === 0) {
+                    el.innerHTML = '<div style="padding:16px;text-align:center;">' +
+                        '<div style="color:rgba(255,255,255,0.4);font-size:0.85em;">' +
+                            (L() ? 'No se encontraron matches de 65%+ todavía. ¡Comparte Moon Sync para crecer la comunidad!'
+                                 : 'No 65%+ matches found yet. Share Moon Sync to grow the community!') +
+                        '</div></div>';
+                    return;
+                }
+                // Re-render the list
+                _renderCosmicGroups(document.getElementById('socialContent'), L());
+            });
+        }, 2000);
+    });
+};
+
+// Open a cosmic group detail view
+window._openCosmicGroup = function(groupId) {
+    if (!_db) return;
+    var content = document.getElementById('socialContent');
+    if (!content) return;
+    var isES = L();
+
+    content.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:30px;">' +
+        (isES ? 'Cargando grupo...' : 'Loading group...') + '</div>';
+
+    _db.collection('cosmicGroups').doc(groupId).get().then(function(doc) {
+        if (!doc.exists) {
+            content.innerHTML = '<div style="color:#ff6b6b;text-align:center;padding:20px;">' + (isES ? 'Grupo no encontrado' : 'Group not found') + '</div>';
+            return;
+        }
+        var g = doc.data();
+        g._id = doc.id;
+        var sigParts = (g.signature || '').split(',');
+        var planetIcons = { sun: '☀️', moon: '🌙', mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄', asc: '⬆️' };
+        var planetLabels = isES
+            ? { sun: 'Sol', moon: 'Luna', mercury: 'Mercurio', venus: 'Venus', mars: 'Marte', jupiter: 'Júpiter', saturn: 'Saturno', asc: 'Ascendente' }
+            : { sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus', mars: 'Mars', jupiter: 'Jupiter', saturn: 'Saturn', asc: 'Ascendant' };
+
+        var html = '';
+        // Back button
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">' +
+            '<button onclick="window._switchSocialTab(\'cosmic\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
+            '<div style="font-weight:700;color:#e040fb;font-size:0.95em;">🪐 ' + (isES ? 'Grupo Cósmico' : 'Cosmic Group') + '</div>' +
+        '</div>';
+
+        // Shared signature display
+        html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;border-color:rgba(224,64,251,0.25);">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:10px;">' +
+                (isES ? '🔮 Configuración Astrológica Compartida' : '🔮 Shared Astrological Configuration') +
+            '</div>';
+        sigParts.forEach(function(part) {
+            var kv = part.split(':');
+            var icon = planetIcons[kv[0]] || '🌟';
+            var label = planetLabels[kv[0]] || kv[0];
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 10px;background:rgba(224,64,251,0.06);border-radius:8px;">' +
+                '<span style="font-size:1.1em;">' + icon + '</span>' +
+                '<span style="color:rgba(255,255,255,0.6);font-size:0.82em;flex:1;">' + label + '</span>' +
+                '<span style="font-weight:700;color:#e0b0ff;font-size:0.88em;">' + _signEmoji(kv[1] || '') + ' ' + (kv[1] || '') + '</span>' +
+            '</div>';
+        });
+        html += '</div>';
+
+        // Members section
+        html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:10px;">👥 ' +
+                (isES ? 'Miembros (' + (g.memberCount || 0) + ')' : 'Members (' + (g.memberCount || 0) + ')') +
+            '</div>';
+        var members = g.members || [];
+        members.forEach(function(m) {
+            var isSelf = m.uid === _socialUser.uid;
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 8px;' +
+                (isSelf ? 'background:rgba(0,188,212,0.08);border-radius:8px;' : '') + '">' +
+                '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,' +
+                    (isSelf ? '#00bcd4,#0097a7' : '#e040fb,#7c4dff') +
+                    ');display:flex;align-items:center;justify-content:center;font-size:0.7em;color:#fff;flex-shrink:0;">' +
+                    (m.name ? m.name.charAt(0).toUpperCase() : '?') + '</div>' +
+                '<div style="flex:1;font-size:0.82em;color:' + (isSelf ? '#00bcd4' : 'rgba(255,255,255,0.7)') + ';">' +
+                    _escHtml(m.name || 'User') + (isSelf ? ' (' + (isES ? 'tú' : 'you') + ')' : '') +
+                '</div>' +
+                (m.matchPct ? '<div style="font-size:0.75em;font-weight:700;color:#e040fb;">' + m.matchPct + '%</div>' : '') +
+                (!isSelf ? '<button onclick="window._startChatWith(\'' + m.uid + '\',\'' + _escAttr(m.name) + '\')" style="background:rgba(0,188,212,0.15);border:1px solid rgba(0,188,212,0.3);border-radius:6px;color:#00bcd4;padding:4px 8px;font-size:0.7em;cursor:pointer;">💬</button>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+
+        // Group chat
+        html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:10px;">💬 ' +
+                (isES ? 'Chat del Grupo' : 'Group Chat') +
+            '</div>' +
+            '<div id="cosmicChatMsgs" style="min-height:120px;max-height:300px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:10px;">' +
+                '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+                '<input id="cosmicChatInput" placeholder="' + (isES ? 'Escribe al grupo...' : 'Write to the group...') + '" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;" onkeydown="if(event.key===\'Enter\')window._sendCosmicChat(\'' + groupId + '\')" />' +
+                '<button onclick="window._sendCosmicChat(\'' + groupId + '\')" style="' + _SCbtn + 'background:linear-gradient(135deg,#e040fb,#7c4dff);color:#fff;">➤</button>' +
+            '</div>' +
+        '</div>';
+
+        content.innerHTML = html;
+
+        // Listen to group chat
+        _listenCosmicChat(groupId);
+    });
+};
+
+// Cosmic group chat — Firestore subcollection
+function _listenCosmicChat(groupId) {
+    if (!_db) return;
+    _db.collection('cosmicGroups').doc(groupId).collection('chat')
+        .orderBy('createdAt', 'asc').limit(50)
+        .onSnapshot(function(snap) {
+            var el = document.getElementById('cosmicChatMsgs');
+            if (!el) return;
+            if (snap.empty) {
+                el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' +
+                    (L() ? '¡Sé el primero en saludar!' : 'Be the first to say hi!') + '</div>';
+                return;
+            }
+            var html = '';
+            snap.forEach(function(doc) {
+                var msg = doc.data();
+                var isMine = msg.senderUid === _socialUser.uid;
+                html += '<div style="margin-bottom:6px;display:flex;justify-content:' + (isMine ? 'flex-end' : 'flex-start') + ';">' +
+                    '<div style="max-width:80%;padding:6px 10px;border-radius:10px;' +
+                        (isMine ? 'background:rgba(224,64,251,0.15);border:1px solid rgba(224,64,251,0.25);' : 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);') +
+                    '">' +
+                        (isMine ? '' : '<div style="font-size:0.68em;font-weight:600;color:#e040fb;margin-bottom:2px;">' + _escHtml(msg.senderName || 'User') + '</div>') +
+                        '<div style="color:rgba(255,255,255,0.85);font-size:0.8em;">' + _escHtml(msg.text) + '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            el.innerHTML = html;
+            el.scrollTop = el.scrollHeight;
+        }, function(err) {
+            console.warn('Cosmic chat listener error:', err);
+        });
+}
+
+window._sendCosmicChat = function(groupId) {
+    var inp = document.getElementById('cosmicChatInput');
+    if (!inp || !inp.value.trim() || !_db || !_socialUser) return;
+    var text = inp.value.trim();
+    inp.value = '';
+    _db.collection('cosmicGroups').doc(groupId).collection('chat').add({
+        text: text,
+        senderUid: _socialUser.uid,
+        senderName: _socialUser.displayName || _socialUser.email.split('@')[0],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Update group's updatedAt
+    _db.collection('cosmicGroups').doc(groupId).update({
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+};
 
 // ── COMMUNITIES ──
 function _renderCommunities(content, isES) {
