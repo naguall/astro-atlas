@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v522';
+        var REQUIRED_VER = 'v523';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -729,7 +729,7 @@
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
                     <button id="moonCompassBtn" onclick="openMoonCompass()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">🧭</button>
-                    <button id="astroCourseBtn" onclick="switchToPersonalMode();setTimeout(function(){switchNatalTab('curso',document.querySelector('[onclick*=&quot;curso&quot;]'))},200)" style="background:transparent;border:1px solid rgba(201,168,64,0.4);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:#c9a840;line-height:1;" title="Curso de Astrología">🎓</button>
+                    <button id="astroCourseBtn" onclick="switchToPersonalMode();setTimeout(function(){switchNatalTab('mapa',document.querySelector('[onclick*=mapa]'))},200)" style="background:transparent;border:1px solid rgba(201,168,64,0.4);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:#c9a840;line-height:1;" title="Curso de Astrología">🎓</button>
                     <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">⚙️</button>
                 </div>
             </div>
@@ -18492,9 +18492,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${L?'Sinastría':'Synastry'}</span><span class="subtab-full">${L?'Sinastría':'Synastry'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${L?'Compuesta':'Composite'}</span><span class="subtab-full">${L?'Carta Compuesta':'Composite Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('curso',this)" style="color:#e040fb;border-color:rgba(224,64,251,0.3);">🎓 ${L?'Curso':'Course'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;border-color:rgba(102,126,234,0.3);">🤖 Tutor</button>
-            <button class="natal-subtab" onclick="switchNatalTab('mapa',this)" style="color:#ffd700;border-color:rgba(255,215,0,0.3);">🗺️ ${L?'Mapa':'Map Pro'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('mapa',this)" style="color:#ffd700;border-color:rgba(255,215,0,0.3);">🎓 ${L?'Curso Pro':'Course Pro'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
@@ -18506,7 +18505,6 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div id="natalTabSinastria" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabCompuesta" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabDavison" class="natal-tab-content" style="display:none;"></div>
-        <div id="natalTabCurso" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabTutor" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabMapa" class="natal-tab-content" style="display:none;"></div>`;
 }
@@ -27236,7 +27234,7 @@ window.openAstroModal = openAstroModal;
 
         // Don't swipe inside modals, AI chat, or scrollable tables
         const target = e.target;
-        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabCurso'))) return;
+        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabMapa'))) return;
 
         if (dx < 0) {
             // Swipe LEFT → next
@@ -27750,11 +27748,11 @@ function openPreferencesModal() {
         '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial':'View Tutorial') + '</button>'
     );
 
-    // ── Curso de Astrología ──
-    var _courseOverall = (function() { try { var p = JSON.parse(localStorage.getItem('moonSync_astroCourse') || '{}'); var d=0,t=0; [3+2,3+2,2+2,2+2,2+1,2+1].forEach(function(n){t+=n;}); Object.keys(p).forEach(function(){d++;}); return {pct:t>0?Math.round(d/t*100):0}; } catch(e){return{pct:0};} })();
-    sectionsHtml += _s('🔭', currentLang==='es'?'Curso de Astrología':'Astrology Course', '#e040fb',
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Curso profesional interactivo con 6 módulos: teoría, práctica con tu carta natal y evaluaciones.':'Interactive professional course with 6 modules: theory, practice with your natal chart and quizzes.') + '</div>' +
-        '<button onclick="document.getElementById(\'preferencesModal\')&&document.getElementById(\'preferencesModal\').classList.remove(\'show\');switchToPersonalMode();setTimeout(function(){switchNatalTab(\'curso\',document.querySelector(\'[onclick*=curso]\'))},300)" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(224,64,251,0.2),rgba(224,64,251,0.05));border:1px solid rgba(224,64,251,0.45);border-radius:8px;color:#e040fb;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Abrir Curso':'Open Course') + ' (' + _courseOverall.pct + '%)</button>'
+    // ── Curso Pro de Astrología ──
+    var _courseProOverall = (function() { try { if (typeof LearnerProfile !== 'undefined') { LearnerProfile.load(); return {pct:Math.round(LearnerProfile.getOverallProgress())}; } return {pct:0}; } catch(e){return{pct:0};} })();
+    sectionsHtml += _s('🔭', currentLang==='es'?'Curso Pro de Astrología':'Pro Astrology Course', '#ffd700',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Curso profesional con 18 módulos, 130 temas, tests adaptativos y chat AI por tema.':'Professional course with 18 modules, 130 topics, adaptive tests and AI chat per topic.') + '</div>' +
+        '<button onclick="document.getElementById(\'preferencesModal\')&&document.getElementById(\'preferencesModal\').classList.remove(\'show\');switchToPersonalMode();setTimeout(function(){switchNatalTab(\'mapa\',document.querySelector(\'[onclick*=mapa]\'))},300)" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(255,215,0,0.05));border:1px solid rgba(255,215,0,0.45);border-radius:8px;color:#ffd700;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Abrir Curso Pro':'Open Course Pro') + ' (' + _courseProOverall.pct + '%)</button>'
     );
 
     // ── Actualización / Update ──
@@ -31245,6 +31243,103 @@ window.openMapaModule = function(moduleId) {
 };
 
 // Open individual node detail with content and quiz
+// ── Topic chat state management ──
+window._mapaTopicChats = {}; // { 'nodeId_kpIdx': { history: [], html: '' } }
+
+window._mapaTopicSendMsg = function(nodeId, kpIdx) {
+    var chatId = nodeId + '_kp' + kpIdx;
+    var inputEl = document.getElementById('mapaTopicInput_' + chatId);
+    var areaEl = document.getElementById('mapaTopicChat_' + chatId);
+    if (!inputEl || !areaEl) return;
+    var msg = inputEl.value.trim();
+    if (!msg) return;
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    var isES = (typeof currentLang !== 'undefined' && currentLang === 'es');
+    var G = ASTRO_KNOWLEDGE_GRAPH;
+    var node = G.nodes[nodeId];
+    if (!node) return;
+    var kp = (node.content && node.content.keyPoints) ? node.content.keyPoints[kpIdx] : '';
+
+    // Init state
+    if (!window._mapaTopicChats[chatId]) window._mapaTopicChats[chatId] = { history: [], html: '' };
+    var state = window._mapaTopicChats[chatId];
+
+    // Show user message
+    areaEl.innerHTML += '<div style="text-align:right;margin:6px 0;"><span style="display:inline-block;max-width:85%;background:rgba(102,126,234,0.2);color:#ddd;padding:8px 12px;border-radius:12px 12px 2px 12px;font-size:0.8em;">' + msg.replace(/</g,'&lt;') + '</span></div>';
+    state.history.push({ role: 'user', parts: [{ text: msg }] });
+
+    // Show typing
+    areaEl.innerHTML += '<div id="mapaTyping_' + chatId + '" style="text-align:left;margin:6px 0;"><span style="display:inline-block;background:rgba(255,215,0,0.08);color:#aaa;padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;">⏳ ' + (isES ? 'Pensando...' : 'Thinking...') + '</span></div>';
+    areaEl.scrollTop = areaEl.scrollHeight;
+
+    // Build system prompt
+    var mod = G.modules.find(function(m) { return m.id === node.moduleId; });
+    var sysPrompt = (isES
+        ? 'Eres un tutor experto de astrología. El estudiante está aprendiendo sobre "' + node.title + '" dentro del módulo "' + (mod ? mod.title : '') + '". El subtema específico es: "' + kp + '". Responde de forma didáctica, profunda y en español. Si el estudiante pregunta algo fuera de este tema, redirige amablemente al subtema.'
+        : 'You are an expert astrology tutor. The student is learning about "' + node.title + '" in module "' + (mod ? mod.title : '') + '". The specific subtopic is: "' + kp + '". Answer didactically and in depth. If the student asks something off-topic, gently redirect to the subtopic.');
+
+    // Append learner context
+    try {
+        if (typeof LearnerProfile !== 'undefined') {
+            LearnerProfile.load();
+            var lpCtx = LearnerProfile.generateTutorContext();
+            if (lpCtx) sysPrompt += '\n\n' + lpCtx;
+        }
+    } catch(e) {}
+
+    // Call AI
+    var apiKey = localStorage.getItem('gemini_api_key') || '';
+    if (!apiKey) {
+        var t = document.getElementById('mapaTyping_' + chatId);
+        if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (isES ? '⚠️ Configura tu API key de Gemini en Preferencias' : '⚠️ Configure your Gemini API key in Preferences') + '</span>';
+        return;
+    }
+
+    var body = {
+        system_instruction: { parts: [{ text: sysPrompt }] },
+        contents: state.history,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+    };
+
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        var t = document.getElementById('mapaTyping_' + chatId);
+        if (t) t.remove();
+        var reply = '';
+        try { reply = data.candidates[0].content.parts[0].text; } catch(e) { reply = isES ? 'Error al obtener respuesta.' : 'Error getting response.'; }
+        state.history.push({ role: 'model', parts: [{ text: reply }] });
+        // Format markdown-like response
+        var formatted = reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/\n/g, '<br>');
+        var respId = 'mapaResp_' + chatId + '_' + Date.now();
+        areaEl.innerHTML += '<div id="' + respId + '" style="text-align:left;margin:6px 0;"><span style="display:inline-block;max-width:92%;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.12);color:#ccc;padding:10px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;line-height:1.5;">' + formatted + '</span></div>';
+        state.html = areaEl.innerHTML;
+        areaEl.scrollTop = areaEl.scrollHeight;
+    }).catch(function(err) {
+        var t = document.getElementById('mapaTyping_' + chatId);
+        if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">❌ Error: ' + err.message + '</span>';
+    });
+};
+
+window._mapaToggleKP = function(nodeId, kpIdx) {
+    var chatId = nodeId + '_kp' + kpIdx;
+    var panel = document.getElementById('mapaKPPanel_' + chatId);
+    var arrow = document.getElementById('mapaKPArrow_' + chatId);
+    if (!panel) return;
+    var isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
+    // Restore chat HTML if exists
+    if (!isOpen && window._mapaTopicChats[chatId] && window._mapaTopicChats[chatId].html) {
+        var chatArea = document.getElementById('mapaTopicChat_' + chatId);
+        if (chatArea && !chatArea.innerHTML.trim()) chatArea.innerHTML = window._mapaTopicChats[chatId].html;
+    }
+};
+
 window.openMapaNode = function(nodeId) {
     var tab = document.getElementById('natalTabMapa');
     if (!tab) return;
@@ -31289,26 +31384,71 @@ window.openMapaNode = function(nodeId) {
     if (node.content) {
         html += '<div style="background:rgba(102,126,234,0.08);border-radius:10px;padding:12px;margin-bottom:12px;">';
         html += '<div style="font-size:0.82em;color:#ccc;line-height:1.5;">' + node.content.summary + '</div>';
-        if (node.content.keyPoints) {
-            html += '<div style="margin-top:10px;">';
-            node.content.keyPoints.forEach(function(kp) {
-                html += '<div style="font-size:0.75em;color:#aaa;padding:3px 0 3px 12px;border-left:2px solid rgba(102,126,234,0.3);">' + kp + '</div>';
-            });
-            html += '</div>';
-        }
         html += '</div>';
+
+        // Expandable key points with mini-chat
+        if (node.content.keyPoints) {
+            node.content.keyPoints.forEach(function(kp, kpIdx) {
+                var chatId = nodeId + '_kp' + kpIdx;
+                var hasChat = window._mapaTopicChats[chatId] && window._mapaTopicChats[chatId].history.length > 0;
+
+                html += '<div style="margin-bottom:6px;border:1px solid rgba(255,215,0,0.15);border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.15);">';
+
+                // Clickable header
+                html += '<div onclick="_mapaToggleKP(\'' + nodeId + '\',' + kpIdx + ')" style="cursor:pointer;padding:10px 12px;display:flex;align-items:center;gap:8px;background:rgba(255,215,0,0.04);">';
+                html += '<span id="mapaKPArrow_' + chatId + '" style="color:#ffd700;font-size:0.7em;flex-shrink:0;">▸</span>';
+                html += '<span style="font-size:0.78em;color:#ddd;flex:1;">' + kp + '</span>';
+                if (hasChat) html += '<span style="font-size:0.6em;color:#667eea;">💬</span>';
+                html += '</div>';
+
+                // Expandable panel (hidden by default)
+                html += '<div id="mapaKPPanel_' + chatId + '" style="display:none;padding:8px 12px;border-top:1px solid rgba(255,215,0,0.08);">';
+
+                // Chat area
+                html += '<div id="mapaTopicChat_' + chatId + '" style="min-height:40px;max-height:35vh;overflow-y:auto;padding:6px;background:rgba(0,0,0,0.1);border-radius:8px;margin-bottom:8px;">';
+                if (hasChat) {
+                    html += window._mapaTopicChats[chatId].html;
+                } else {
+                    html += '<div style="text-align:center;padding:12px;color:rgba(255,255,255,0.25);font-size:0.72em;">' + (isES ? 'Pregunta lo que quieras sobre este tema' : 'Ask anything about this topic') + '</div>';
+                }
+                html += '</div>';
+
+                // Input area with all buttons
+                html += '<div style="display:flex;gap:4px;align-items:flex-end;">';
+                // Voice dictation
+                html += '<button onclick="startGenericVoice(\'mapaTopicInput_' + chatId + '\',\'_mapaTopicSendMsg(\\x27' + nodeId + '\\x27,' + kpIdx + ')\',\'mapaVoice_' + chatId + '\')" id="mapaVoice_' + chatId + '" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;flex-shrink:0;" title="' + (isES?'Voz':'Voice') + '">🎙️</button>';
+                // Read aloud
+                html += '<button onclick="readAloudLastMsg(\'mapaTopicChat_' + chatId + '\')" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);color:#ffd700;font-size:0.9em;cursor:pointer;flex-shrink:0;" title="' + (isES?'Leer':'Read') + '">🔊</button>';
+                // Text input
+                html += '<textarea id="mapaTopicInput_' + chatId + '" rows="1" placeholder="' + (isES?'Pregunta...':'Ask...') + '" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:8px;color:white;padding:6px 8px;font-size:0.78em;resize:none;outline:none;font-family:inherit;min-width:0;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,60)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();_mapaTopicSendMsg(\'' + nodeId + '\',' + kpIdx + ');}"></textarea>';
+                // Send
+                html += '<button onclick="_mapaTopicSendMsg(\'' + nodeId + '\',' + kpIdx + ')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,215,0,0.1));border:1px solid rgba(255,215,0,0.35);color:#ffd700;font-size:0.9em;cursor:pointer;flex-shrink:0;">➤</button>';
+                html += '</div>';
+
+                // Quick action buttons
+                html += '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">';
+                var quickQ = isES ? 'Explícame "' + kp.substring(0,40) + '" en detalle' : 'Explain "' + kp.substring(0,40) + '" in detail';
+                html += '<button onclick="document.getElementById(\'mapaTopicInput_' + chatId + '\').value=\'' + quickQ.replace(/'/g, "\\'") + '\';_mapaTopicSendMsg(\'' + nodeId + '\',' + kpIdx + ')" style="padding:4px 8px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:12px;color:#ffd700;font-size:0.65em;cursor:pointer;">' + (isES?'📖 Explicar':'📖 Explain') + '</button>';
+                var exQ = isES ? 'Dame un ejemplo práctico de "' + kp.substring(0,30) + '"' : 'Give me a practical example of "' + kp.substring(0,30) + '"';
+                html += '<button onclick="document.getElementById(\'mapaTopicInput_' + chatId + '\').value=\'' + exQ.replace(/'/g, "\\'") + '\';_mapaTopicSendMsg(\'' + nodeId + '\',' + kpIdx + ')" style="padding:4px 8px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px;color:#667eea;font-size:0.65em;cursor:pointer;">' + (isES?'💡 Ejemplo':'💡 Example') + '</button>';
+                html += '</div>';
+
+                html += '</div>'; // end panel
+                html += '</div>'; // end kp container
+            });
+        }
     }
 
     // Action buttons
-    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-
-    // Ask tutor button
-    html += '<button onclick="switchNatalTab(\'tutor\',document.querySelector(\'[onclick*=tutor]\'));setTimeout(function(){var inp=document.getElementById(\'tutorAIChatInput\');if(inp){inp.value=\'' + (isES ? 'Explícame sobre: ' : 'Explain to me: ') + node.title.replace(/'/g, "\\'") + '\';inp.focus();}},300)" style="flex:1;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;">🤖 ' + (isES ? 'Preguntar al Tutor' : 'Ask Tutor') + '</button>';
+    html += '<div style="display:flex;gap:8px;margin:12px 0;">';
 
     // Quiz button
     if (node.questions && node.questions.length > 0) {
         html += '<button onclick="startMapaQuiz(\'' + nodeId + '\')" style="flex:1;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;font-weight:600;">🎯 ' + (isES ? 'Tomar Test' : 'Take Test') + '</button>';
     }
+
+    // Ask general tutor
+    html += '<button onclick="switchNatalTab(\'tutor\',document.querySelector(\'[onclick*=tutor]\'));setTimeout(function(){var inp=document.getElementById(\'tutorInput\');if(inp){inp.value=\'' + (isES ? 'Quiero profundizar en: ' : 'I want to learn more about: ') + node.title.replace(/'/g, "\\'") + '\';inp.focus();}},300)" style="flex:1;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.8em;cursor:pointer;">🤖 ' + (isES ? 'Tutor General' : 'General Tutor') + '</button>';
     html += '</div>';
 
     // Show mastery info
