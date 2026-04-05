@@ -32934,7 +32934,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v556';
+const APP_VERSION = 'v557';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -36374,5 +36374,61 @@ async function sendAIMessage() {
     aiIsTyping = false;
 }
 </script>
+
+    <!-- CAPACITOR NATIVE BRIDGE — loads only when running as native app -->
+    <script src="capacitor-bridge.js"></script>
+
+    <!-- CAPACITOR: Auto-register push notifications on first native launch -->
+    <script>
+    (function() {
+        if (typeof window.MoonSyncNative !== 'undefined' && window.MoonSyncNative.isNative) {
+            // Override the existing notification toggle to use native push
+            var _origToggleNotif = window.toggleNotifications;
+            window.toggleNotifications = function() {
+                if (window.MoonSyncNative.isNative && !localStorage.getItem('pushToken')) {
+                    // First time: register for native push
+                    window.MoonSyncNative.registerPush().then(function(token) {
+                        console.log('[MoonSync] Push registered! Token:', token);
+                        // Send token to your backend/Firebase for server-side push
+                        _sendTokenToServer(token);
+                        if (typeof _origToggleNotif === 'function') _origToggleNotif();
+                    }).catch(function(err) {
+                        console.warn('[MoonSync] Push registration failed:', err);
+                        // Fall back to web notifications
+                        if (typeof _origToggleNotif === 'function') _origToggleNotif();
+                    });
+                } else {
+                    if (typeof _origToggleNotif === 'function') _origToggleNotif();
+                }
+            };
+
+            // Send push token to Firestore for server-side push
+            function _sendTokenToServer(token) {
+                try {
+                    var db = firebase.firestore();
+                    var uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+                    if (!uid || !db) return;
+                    db.collection('pushTokens').doc(uid).set({
+                        token: token,
+                        platform: window.MoonSyncNative.platform,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).then(function() {
+                        console.log('[MoonSync] Push token saved to Firestore');
+                    }).catch(function(e) {
+                        console.warn('[MoonSync] Failed to save token:', e);
+                    });
+                } catch(e) {}
+            }
+
+            // Auto-register if returning user
+            if (localStorage.getItem('pushToken')) {
+                setTimeout(function() {
+                    var token = localStorage.getItem('pushToken');
+                    if (token) _sendTokenToServer(token);
+                }, 3000);
+            }
+        }
+    })();
+    </script>
 </body>
 </html>

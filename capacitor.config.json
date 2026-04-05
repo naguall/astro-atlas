@@ -1,15 +1,39 @@
 {
-  "appId": "com.moontracker.app",
-  "appName": "Moon Tracker",
+  "appId": "com.moonsync.app",
+  "appName": "Moon Sync",
   "webDir": "www",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "allowNavigation": [
+      "*.googleapis.com",
+      "*.firebaseio.com",
+      "*.firebase.google.com",
+      "*.gstatic.com",
+      "*.openai.com",
+      "*.anthropic.com"
+    ]
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
       "backgroundColor": "#02020F",
-      "showSpinner": false
+      "showSpinner": false,
+      "launchAutoHide": true,
+      "androidSplashResourceName": "splash",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#07092a"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "DARK"
     }
   }
 }
