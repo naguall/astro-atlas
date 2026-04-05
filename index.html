@@ -18921,12 +18921,25 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     var lineTypes = ['MC','IC','AC','DC'];
                     var typeLabels = {MC: L?'Medio Cielo':'Midheaven', IC: L?'Fondo del Cielo':'Imum Coeli', AC: L?'Ascendente':'Ascendant', DC: L?'Descendente':'Descendant'};
                     var typeDesc = {MC:'━', IC:'╌', AC:'━', DC:'╌'};
+                    var typeColors = {MC:'#e8c84a', IC:'#4ecdc4', AC:'#ff6b6b', DC:'#ba68c8'};
+                    var typeExplain = {
+                        MC: L ? 'Carrera, reputación y vida pública. Donde pasa esta línea, esa energía planetaria influye en tu profesión y estatus social.' : 'Career, reputation and public life. Where this line passes, that planetary energy influences your profession and social status.',
+                        IC: L ? 'Hogar, raíces y vida privada. Muestra dónde un planeta influye en tu sentido de pertenencia, familia y bienestar emocional.' : 'Home, roots and private life. Shows where a planet influences your sense of belonging, family and emotional wellbeing.',
+                        AC: L ? 'Identidad y presencia personal. Muestra dónde un planeta afecta cómo te presentas, tu primera impresión y energía vital.' : 'Identity and personal presence. Shows where a planet affects how you present yourself, your first impression and vital energy.',
+                        DC: L ? 'Relaciones y asociaciones. Muestra dónde un planeta influye en tus relaciones de pareja y cómo atraes a otros.' : 'Relationships and partnerships. Shows where a planet influences your romantic relationships and how you attract others.'
+                    };
                     var html = '';
                     lineTypes.forEach(function(lt) {
                         var linesOfType = acLines.filter(function(l) { return l.type === lt; });
                         if (linesOfType.length === 0) return;
                         html += '<div style="margin-bottom:10px;">';
-                        html += '<div style="font-size:0.72em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">' + typeDesc[lt] + ' ' + lt + ' — ' + typeLabels[lt] + '</div>';
+                        html += '<details style="margin-bottom:5px;">';
+                        html += '<summary style="font-size:0.72em;font-weight:700;color:' + typeColors[lt] + ';cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;letter-spacing:0.5px;text-transform:uppercase;">';
+                        html += '<span style="color:rgba(255,255,255,0.4);">' + typeDesc[lt] + '</span> ' + lt + ' — ' + typeLabels[lt];
+                        html += ' <span style="font-size:0.85em;color:rgba(255,255,255,0.25);transition:transform 0.2s;">▸</span>';
+                        html += '</summary>';
+                        html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.5);padding:6px 10px;margin:4px 0 6px 0;background:' + typeColors[lt] + '0a;border-left:2px solid ' + typeColors[lt] + '55;border-radius:0 6px 6px 0;line-height:1.5;">' + typeExplain[lt] + '</div>';
+                        html += '</details>';
                         html += '<div style="display:flex;flex-direction:column;gap:3px;font-size:0.78em;">';
                         linesOfType.forEach(function(l) {
                             var countries = getCountriesForLine(l, L);
@@ -21179,9 +21192,9 @@ function renderPersonalCalendar() {
                 <div style="display:flex;align-items:baseline;justify-content:space-between;width:100%;">
                     <div style="display:flex;align-items:baseline;gap:3px;">
                         <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
-                        <div style="font-size:0.65em;font-weight:700;color:#b39ddb;opacity:0.8;" title="${L?'Numerología del día':'Day numerology'}">${(() => { let n = personalDay; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; })()}</div>
+                        ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                     </div>
-                    ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
+                    <div style="font-size:0.95em;font-weight:800;color:#b39ddb;min-width:18px;text-align:right;line-height:1;" title="${L?'Numerología del día':'Day numerology'}">${(() => { let n = personalDay; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; })()}</div>
                 </div>
                 <div style="font-size:0.6em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
                 ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
@@ -22170,9 +22183,10 @@ function showPersonalDayDetail(year, month, day) {
                 <div style="font-size:0.75em;font-weight:700;color:#7ec8ff;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Posiciones Planetarias' : 'Planetary Positions'}</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:0.78em;">
                     ${Object.entries(transitPositions).map(([p, data]) => {
-                        const pNameL = planetNames[p] || p;
+                        const pNamesEN = {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node'};
+                        const pNameL = L ? (planetNames[p] || p) : (pNamesEN[p] || p);
                         const safeDate = dateStr.replace(/'/g, "\\'");
-                        return `<div onclick="interpretTransitPosition('${p}','${data.formatted.replace(/'/g,"\\'")}','${safeDate}')" style="padding:4px 6px;cursor:pointer;border-radius:6px;transition:background 0.2s;" onmouseover="this.style.background='rgba(126,200,255,0.1)'" onmouseout="this.style.background=''"><span style="opacity:0.5;">${planetSymbols[p]}</span> ${data.formatted} <span style="font-size:0.7em;color:rgba(201,168,64,0.4);">✨</span></div>`;
+                        return `<div onclick="interpretTransitPosition('${p}','${data.formatted.replace(/'/g,"\\'")}','${safeDate}')" style="padding:5px 7px;cursor:pointer;border-radius:6px;transition:background 0.2s;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(126,200,255,0.12)'" onmouseout="this.style.background=''"><span style="opacity:0.5;font-size:1.1em;">${planetSymbols[p]}</span><span style="font-weight:600;color:#7ec8ff;font-size:0.85em;">${pNameL}</span> <span style="color:rgba(255,255,255,0.7);">${data.formatted}</span> <span style="font-size:0.7em;color:rgba(201,168,64,0.4);">✨</span></div>`;
                     }).join('')}
                 </div>
             </div>
@@ -26292,87 +26306,153 @@ function goToCurrentCycle() {
     // ── Slide data ──
     function _getSlides() {
         var L = currentLang === 'es';
+        // Helper: format a button list as styled HTML items
+        function _btn(icon, label, desc) {
+            return '<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">' +
+                '<span style="font-size:1em;flex-shrink:0;">' + icon + '</span>' +
+                '<div><span style="font-weight:700;color:#fff;">' + label + '</span> — ' +
+                '<span style="color:rgba(255,255,255,0.55);">' + desc + '</span></div></div>';
+        }
         return [
             {
                 icon: '🌙',
                 title: L ? 'Bienvenido a Moon Sync' : 'Welcome to Moon Sync',
-                text: '',
+                text: L ? 'Tu app de astrología completa. Desliza para conocer todo lo que puedes hacer.' : 'Your complete astrology app. Swipe to discover everything you can do.',
                 color: '#667eea'
             },
             {
                 icon: '📅',
-                title: L ? 'Calendarios' : 'Calendars',
-                text: L ? 'Sincronízate con los ciclos naturales reales, anota tus eventos, recibe notificaciones, consulta aspectos del día, escribe en tu diario, sincroniza con Google Calendar. Calendarios sincronizados: lunar, solar, gregoriano y personal.' : 'Sync with real natural cycles, note your events, receive notifications, check daily aspects, write in your diary, sync with Google Calendar. Synchronized calendars: lunar, solar, gregorian and personal.',
+                title: L ? 'Calendarios y Navegación' : 'Calendars & Navigation',
+                text: L ? 'Cinco modos de calendario en la barra superior:' : 'Five calendar modes in the top bar:',
+                buttons: _btn('🌑', 'Lunar', L ? 'Ciclo lunar con fases, mareas y aspectos diarios' : 'Lunar cycle with phases, tides and daily aspects') +
+                    _btn('☉', 'Solar', L ? 'Posición del Sol en tiempo real, amanecer/atardecer, estaciones' : 'Real-time Sun position, sunrise/sunset, seasons') +
+                    _btn('📅', L ? 'Greg' : 'Greg', L ? 'Calendario gregoriano clásico con eventos y aspectos' : 'Classic gregorian calendar with events and aspects') +
+                    _btn('🔮', 'Astro', L ? 'Calendario personal basado en tu carta natal' : 'Personal calendar based on your natal chart') +
+                    _btn('🌐', 'Social', L ? 'Red social astrológica AstroConnect' : 'AstroConnect astrological social network'),
                 color: '#4a9eff'
             },
             {
+                icon: '🔔',
+                title: L ? 'Botones de la Barra Superior' : 'Top Bar Buttons',
+                text: L ? 'Cuatro botones de acceso rápido arriba a la derecha:' : 'Four quick-access buttons in the top right:',
+                buttons: _btn('🔔', L ? 'Notificaciones' : 'Notifications', L ? 'Historial de notificaciones de eventos astronómicos' : 'History of astronomical event notifications') +
+                    _btn('📚', L ? 'Lecturas Guardadas' : 'Saved Readings', L ? 'Todas tus interpretaciones y lecturas guardadas' : 'All your saved interpretations and readings') +
+                    _btn('🧭', L ? 'Brújula Celeste' : 'Celestial Compass', L ? 'Encuentra planetas y constelaciones en el cielo en tiempo real' : 'Find planets and constellations in the sky in real time') +
+                    _btn('⚙️', L ? 'Preferencias' : 'Preferences', L ? 'Idioma, notificaciones, ubicación, voz, backup y más' : 'Language, notifications, location, voice, backup and more'),
+                color: '#7ec8ff'
+            },
+            {
                 icon: '🌑',
-                title: L ? 'Calendario Lunar' : 'Lunar Calendar',
-                text: L ? 'Sincronízate con el ciclo lunar, los movimientos de mareas, movimiento de la Luna, información lunar detallada.' : 'Sync with the lunar cycle, tidal movements, Moon movement, detailed lunar information.',
+                title: L ? 'Calendario Lunar — Detalle' : 'Lunar Calendar — Detail',
+                text: L ? 'Toca cualquier día para ver sus opciones:' : 'Tap any day to see its options:',
+                buttons: _btn('📅', L ? 'Agenda / Eventos' : 'Agenda / Events', L ? 'Crea citas, recordatorios y eventos personales' : 'Create appointments, reminders and personal events') +
+                    _btn('⭐', L ? 'Aspectos Planetarios' : 'Planetary Aspects', L ? 'Conjunciones, trígonos, cuadraturas del día. Toca cada uno para interpretación AI' : 'Conjunctions, trines, squares of the day. Tap each for AI interpretation') +
+                    _btn('📓', L ? 'Diario y Sueños' : 'Diary & Dreams', L ? 'Escribe reflexiones del día y sueños con interpretación AI' : 'Write daily reflections and dreams with AI interpretation') +
+                    '<div style="margin-top:4px;font-size:0.85em;color:rgba(255,255,255,0.4);">' + (L ? 'Panel "HOY": muestra fase lunar, ciclo, mareas, distancia y declinación de la Luna.' : '"TODAY" panel: shows lunar phase, cycle, tides, distance and Moon declination.') + '</div>',
                 color: '#7ec8ff',
                 highlight: '#lunarModeBtn'
             },
             {
                 icon: '☉',
-                title: L ? 'Calendario Solar' : 'Solar Calendar',
-                text: L ? 'Sincronízate con la danza del Sol y la Tierra, los equinoccios y solsticios, las estaciones.' : 'Sync with the dance of the Sun and the Earth, the equinoxes and solstices, the seasons.',
+                title: L ? 'Calendario Solar — Detalle' : 'Solar Calendar — Detail',
+                text: L ? 'Mapa interactivo del Sol en tiempo real:' : 'Real-time interactive Sun map:',
+                buttons: _btn('🗺️', L ? 'Mapa Solar' : 'Solar Map', L ? 'Posición del Sol sobre la Tierra con línea día/noche' : 'Sun position over Earth with day/night line') +
+                    _btn('🌅', L ? 'Amanecer / Atardecer' : 'Sunrise / Sunset', L ? 'Horas exactas para tu ubicación' : 'Exact times for your location') +
+                    _btn('📏', L ? 'Duración del Día' : 'Day Duration', L ? 'Horas de luz solar y ángulo máximo del Sol' : 'Hours of sunlight and maximum Sun angle') +
+                    _btn('🌍', L ? 'Distancia Tierra-Sol' : 'Earth-Sun Distance', L ? 'Distancia actual en kilómetros' : 'Current distance in kilometers'),
                 color: '#e8c84a',
                 highlight: '#solarModeBtn'
             },
             {
                 icon: '🔮',
-                title: L ? 'Calendario Personal' : 'Personal Calendar',
-                text: L ? 'Mapa de tu año personal con tus equinoccios y solsticios, retornos lunares y más.' : 'Map of your personal year with your equinoxes and solstices, lunar returns and more.',
+                title: L ? 'Tab Astro — Sub-pestañas' : 'Astro Tab — Sub-tabs',
+                text: L ? 'Dentro de Astro tienes 12 sub-pestañas:' : 'Inside Astro you have 12 sub-tabs:',
+                buttons: _btn('🪐', L ? 'Carta' : 'Chart', L ? 'Visualización de tu carta natal con rueda zodiacal' : 'Your natal chart visualization with zodiac wheel') +
+                    _btn('📊', L ? 'Tablas' : 'Tables', L ? 'Posiciones planetarias en tabla detallada' : 'Planetary positions in detailed table') +
+                    _btn('📅', L ? 'Calendario' : 'Calendar', L ? 'Calendario personal con tránsitos a tu carta natal' : 'Personal calendar with transits to your natal chart') +
+                    _btn('🌟', L ? 'Hoy' : 'Today', L ? 'Aspectos planetarios de hoy sobre tu carta natal' : "Today's planetary aspects to your natal chart"),
                 color: '#c39bd3',
                 highlight: '#personalModeBtn'
             },
             {
-                icon: '📔',
-                title: L ? 'Diario Personal y Diario de Sueños' : 'Personal Diary & Dream Journal',
-                text: L ? 'Escribe o graba tus reflexiones del día y tus sueños. Chat de interpretación de sueños.' : 'Write or record your daily reflections and your dreams. Dream interpretation chat.',
-                color: '#4ecdc4'
-            },
-            {
-                icon: '🪐',
-                title: L ? 'Tu Carta Natal' : 'Your Natal Chart',
-                text: L ? 'Creación de múltiples perfiles de usuario y análisis profundo. Pregunta y expande cualquier aspecto que te interese.' : 'Create multiple user profiles and deep analysis. Ask and expand on any aspect that interests you.',
-                color: '#9b59b6'
-            },
-            {
-                icon: '💫',
-                title: L ? 'Sinastría, Carta Compuesta, Davison y Astrocartografía' : 'Synastry, Composite Chart, Davison & Astrocartography',
-                text: L ? 'Información detallada.' : 'Detailed information.',
+                icon: '🔮',
+                title: L ? 'Tab Astro — Más Sub-pestañas' : 'Astro Tab — More Sub-tabs',
+                text: '',
+                buttons: _btn('🔄', L ? 'Ciclos' : 'Cycles', L ? 'Ciclos cósmicos del mes: retornos lunares, progresiones' : 'Cosmic cycles of the month: lunar returns, progressions') +
+                    _btn('📆', '2026', L ? 'Aspectos planetarios del año completo' : 'Planetary aspects for the full year') +
+                    _btn('🗺️', L ? 'Mapa (Astrocartografía)' : 'Map (Astrocartography)', L ? 'Líneas MC/IC/AC/DC: dónde cada planeta influye más en tu vida' : 'MC/IC/AC/DC lines: where each planet influences your life most') +
+                    _btn('💞', L ? 'Sinastría' : 'Synastry', L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts') +
+                    _btn('💫', L ? 'Compuesta' : 'Composite', L ? 'Carta compuesta: la energía combinada de la relación' : 'Composite chart: the combined energy of the relationship') +
+                    _btn('🤝', 'Davison', L ? 'Carta Davison: punto medio de tiempo y espacio' : 'Davison chart: midpoint in time and space'),
                 color: '#e040fb'
             },
             {
+                icon: '🎓',
+                title: L ? 'Tab Astro — Tutor y Curso' : 'Astro Tab — Tutor & Course',
+                text: '',
+                buttons: _btn('🤖', L ? 'Tutor AI' : 'AI Tutor', L ? 'Chat de astrología interactivo. Pregunta lo que quieras y aprende con explicaciones personalizadas' : 'Interactive astrology chat. Ask anything and learn with personalized explanations') +
+                    _btn('🎓', L ? 'Curso Pro' : 'Pro Course', L ? '18 módulos, 130 temas, tests adaptativos y chat AI por tema. Mapa de progreso profesional' : '18 modules, 130 topics, adaptive tests and AI chat per topic. Professional progress map'),
+                color: '#ffd700'
+            },
+            {
                 icon: '🌐',
-                title: L ? 'AstroConnect — Red Social' : 'AstroConnect — Social Network',
-                text: L ? 'Encuentra tus clústeres astrológicos, encuentra tu manada astrológica y el desafío de encontrar a tu gemelo astrológico.' : 'Find your astrological clusters, find your astrological pack and the challenge of finding your astrological twin.',
+                title: L ? 'Social — Sub-pestañas' : 'Social — Sub-tabs',
+                text: L ? 'Red social AstroConnect con 7 secciones:' : 'AstroConnect social network with 7 sections:',
+                buttons: _btn('🏠', L ? 'Inicio' : 'Home', L ? 'Feed de publicaciones, likes y comentarios' : 'Post feed, likes and comments') +
+                    _btn('❤️', L ? 'Actividad' : 'Activity', L ? 'Notificaciones de likes, comentarios y seguidores' : 'Notifications of likes, comments and followers') +
+                    _btn('🔍', L ? 'Descubrir' : 'Discover', L ? 'Busca usuarios por planeta y signo, encuentra gemelos astrológicos' : 'Search users by planet and sign, find astrological twins') +
+                    _btn('🪐', L ? 'Cósmicos' : 'Cosmic', L ? 'Grupos automáticos por compatibilidad (65%+ match)' : 'Auto groups by compatibility (65%+ match)'),
                 color: '#00bcd4',
                 highlight: '#socialModeBtn'
             },
             {
-                icon: '✨',
-                title: L ? 'App Totalmente Interactiva' : 'Fully Interactive App',
-                text: L ? 'Chats para expandir en aspectos que te interesan. Guarda, comparte, expande, escucha, habla.' : 'Chats to expand on aspects that interest you. Save, share, expand, listen, speak.',
-                color: '#ffd54f'
+                icon: '🌐',
+                title: L ? 'Social — Más Secciones' : 'Social — More Sections',
+                text: '',
+                buttons: _btn('👥', L ? 'Grupos' : 'Groups', L ? 'Crea y únete a comunidades astrológicas temáticas' : 'Create and join themed astrological communities') +
+                    _btn('💬', 'Chat', L ? 'Mensajes privados con otros usuarios' : 'Private messages with other users') +
+                    _btn('⚙️', L ? 'Perfil' : 'Profile', L ? 'Tu perfil, privacidad y datos astrológicos públicos' : 'Your profile, privacy and public astrological data') +
+                    '<div style="margin-top:4px;font-size:0.85em;color:rgba(255,255,255,0.4);">' + (L ? 'En Descubrir puedes buscar por cualquier planeta + signo, grado y orbe.' : 'In Discover you can search by any planet + sign, degree and orb.') + '</div>',
+                color: '#00bcd4'
             },
             {
-                icon: '🎓',
-                title: L ? 'Curso Pro de Astrología' : 'Pro Astrology Course',
-                text: L ? 'Pregunta y aprende lo que quieras. Aprende con el programa desarrollado y/o dile al tutor qué quieres aprender hoy.' : 'Ask and learn whatever you want. Learn with the developed program and/or tell the tutor what you want to learn today.',
-                color: '#ffd700'
+                icon: '📓',
+                title: L ? 'Diario y Sueños' : 'Diary & Dreams',
+                text: L ? 'Toca un día → Diarios y Reflexiones:' : 'Tap a day → Diary & Reflections:',
+                buttons: _btn('📓', L ? 'Diario Personal' : 'Personal Diary', L ? 'Escribe o dicta tus reflexiones del día. Se guardan por fecha' : 'Write or dictate your daily reflections. Saved by date') +
+                    _btn('🌙', L ? 'Diario de Sueños' : 'Dream Journal', L ? 'Registra tus sueños con interpretación AI integrada' : 'Record your dreams with built-in AI interpretation') +
+                    _btn('🎤', L ? 'Dictado de Voz' : 'Voice Dictation', L ? 'Habla y el texto se transcribe automáticamente' : 'Speak and the text is automatically transcribed') +
+                    _btn('🔊', L ? 'Lectura en Voz Alta' : 'Read Aloud', L ? 'La app lee las interpretaciones en voz alta' : 'The app reads interpretations out loud'),
+                color: '#4ecdc4'
+            },
+            {
+                icon: '✨',
+                title: L ? 'Interacción AI' : 'AI Interaction',
+                text: L ? 'Toda la app es interactiva con AI:' : 'The entire app is interactive with AI:',
+                buttons: _btn('✨', L ? 'Toca Cualquier Aspecto' : 'Tap Any Aspect', L ? 'Cada aspecto, tránsito o evento se puede interpretar con AI' : 'Every aspect, transit or event can be interpreted with AI') +
+                    _btn('💾', L ? 'Guardar' : 'Save', L ? 'Guarda interpretaciones para leer después (📚)' : 'Save interpretations to read later (📚)') +
+                    _btn('📤', L ? 'Compartir' : 'Share', L ? 'Comparte lecturas como imagen o texto' : 'Share readings as image or text') +
+                    _btn('🔊', L ? 'Escuchar / Hablar' : 'Listen / Speak', L ? 'La app lee y tú puedes dictar. Conversación fluida' : 'The app reads and you can dictate. Fluid conversation'),
+                color: '#ffd54f'
             },
             {
                 icon: '🧭',
                 title: L ? 'Brújula Celeste' : 'Celestial Compass',
-                text: L ? 'Brújula de cuerpos celestes. Encuentra y conoce la posición de los planetas y constelaciones en cualquier momento.' : 'Celestial body compass. Find and know the position of planets and constellations at any time.',
+                text: L ? 'Abre con el botón 🧭 de la barra superior:' : 'Open with the 🧭 button in the top bar:',
+                buttons: _btn('🧭', L ? 'Brújula en Tiempo Real' : 'Real-Time Compass', L ? 'Apunta al cielo y encuentra planetas y constelaciones' : 'Point at the sky and find planets and constellations') +
+                    _btn('🪐', L ? 'Info de Planetas' : 'Planet Info', L ? 'Toca cualquier planeta para ver su posición, signo y magnitud' : 'Tap any planet to see its position, sign and magnitude') +
+                    _btn('🌅', L ? 'Salida / Puesta' : 'Rise / Set', L ? 'Horas de salida y puesta de cada cuerpo celeste' : 'Rise and set times for each celestial body'),
                 color: '#78909c'
             },
             {
                 icon: '⚙️',
-                title: L ? 'Preferencias' : 'Preferences',
-                text: L ? 'Escoge idioma, notificaciones, alarma de ensueño, ubicación, enfoque de interpretaciones, sincronización con Google Calendar, voz de lecturas, tamaño de calendario, copia de seguridad, dictado de voz y tutoría.' : 'Choose language, notifications, dream alarm, location, interpretation focus, Google Calendar sync, reading voice, calendar size, backup, voice dictation and tutoring.',
+                title: L ? 'Preferencias — Detalle' : 'Preferences — Detail',
+                text: L ? 'Abre con el botón ⚙️ de la barra superior:' : 'Open with the ⚙️ button in the top bar:',
+                buttons: _btn('🌐', L ? 'Idioma' : 'Language', L ? 'Español / English' : 'Spanish / English') +
+                    _btn('🔔', L ? 'Notificaciones' : 'Notifications', L ? 'Activa por categoría: fases, eclipses, retrógrados, aspectos' : 'Enable by category: phases, eclipses, retrogrades, aspects') +
+                    _btn('🌙', L ? 'Alarma de Ensueño' : 'Dream Alarm', L ? 'Alarma programada para registrar sueños' : 'Scheduled alarm to record dreams') +
+                    _btn('📍', L ? 'Ubicación' : 'Location', L ? 'Configura tu ubicación para datos astronómicos precisos' : 'Set your location for precise astronomical data') +
+                    _btn('🔄', L ? 'Forzar Actualización' : 'Force Update', L ? 'Limpia caché y recarga la última versión' : 'Clear cache and reload the latest version'),
                 color: '#78909c'
             }
         ];
@@ -26408,7 +26488,9 @@ function goToCurrentCycle() {
                 // Title
                 '<h2 style="font-family:\'Cinzel\',serif;font-size:1.3em;color:' + s.color + ';margin:0 0 12px;letter-spacing:1px;">' + s.title + '</h2>' +
                 // Text
-                '<p style="font-size:0.9em;color:rgba(255,255,255,0.75);line-height:1.6;margin:0 0 28px;padding:0 10px;">' + s.text + '</p>' +
+                (s.text ? '<p style="font-size:0.88em;color:rgba(255,255,255,0.7);line-height:1.5;margin:0 0 ' + (s.buttons ? '10px' : '28px') + ';padding:0 10px;">' + s.text + '</p>' : '') +
+                // Button list (if present)
+                (s.buttons ? '<div style="text-align:left;font-size:0.82em;line-height:1.5;color:rgba(255,255,255,0.6);padding:0 8px;margin-bottom:20px;max-height:40vh;overflow-y:auto;">' + s.buttons + '</div>' : '') +
                 // Last slide: "Don't show again" checkbox
                 (isLast ? '<label style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;cursor:pointer;"><input type="checkbox" id="onbHideForever" style="width:18px;height:18px;accent-color:' + s.color + ';cursor:pointer;"><span style="font-size:0.8em;color:rgba(255,255,255,0.45);">' + (L ? 'No mostrar más al abrir la app' : 'Don\'t show again when opening the app') + '</span></label>' : '') +
                 // Buttons
@@ -26904,6 +26986,8 @@ function sendNotif(title, opts) {
             return reg.showNotification(title, opts);
         }).then(function() {
             console.log('🔔 SW notification shown:', title);
+            // Update app icon badge on home screen
+            _syncAppBadge();
         }).catch(function(err) {
             console.log('🔔 SW failed:', err, '- trying native');
             try { new _Notif(title, opts); } catch(e) { console.log('❌ Native also failed:', e); }
@@ -26912,6 +26996,24 @@ function sendNotif(title, opts) {
         console.log('🔔 No SW, using native Notification');
         try { new _Notif(title, opts); } catch(e) { console.log('❌ Native failed:', e); }
     }
+}
+
+// Sync the app icon badge with unseen notification count
+function _syncAppBadge() {
+    try {
+        var history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+        var todayStr = getDateKey(new Date());
+        var unseen = history.filter(function(h) { return !h.seen && (h.localDate === todayStr || (!h.localDate && h.timestamp && h.timestamp.slice(0,10) === todayStr)); }).length;
+        if (unseen > 0) {
+            if (navigator.setAppBadge) navigator.setAppBadge(unseen).catch(function(){});
+            // Also tell the SW to set the badge (works even when page is in background)
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({type: 'SET_BADGE', count: unseen});
+            }
+        } else {
+            if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
+        }
+    } catch(e) {}
 }
 
 // Navigate back to today's month/sign when clicking HOY
@@ -28492,10 +28594,17 @@ function updateNotifBadge() {
     if (unseen > 0) {
         badge.textContent = unseen > 99 ? '99+' : unseen;
         badge.style.display = 'block';
+        // Update home screen app icon badge
         if ('setAppBadge' in navigator) { navigator.setAppBadge(unseen).catch(()=>{}); }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({type: 'SET_BADGE', count: unseen});
+        }
     } else {
         badge.style.display = 'none';
         if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({type: 'SET_BADGE', count: 0});
+        }
     }
 }
 
@@ -30385,7 +30494,7 @@ function _searchUsers(filters, callback) {
     }
 
     // Always do client-side filtering to catch chartData matches that top-level fields miss
-    _db.collection('users').where('privacy.showOnSearch', '==', true).limit(200).get().then(function(snap) {
+    _db.collection('users').where('privacy.showOnSearch', '==', true).limit(500).get().then(function(snap) {
         var results = [];
         snap.forEach(function(doc) {
             if (doc.id === _socialUser.uid) return;
@@ -31096,8 +31205,8 @@ function _renderFeedPostCard(post, isES) {
     var likedBy = post.likedBy || [];
     if (likeCount > 0) {
         var names = likedBy.map(function(lb) { return lb.name || 'User'; });
-        var preview = names.slice(0, 2).join(', ');
-        var remaining = likeCount - Math.min(names.length, 2);
+        var preview = names.slice(0, 3).join(', ');
+        var remaining = likeCount - Math.min(names.length, 3);
         var likeText = '';
         if (names.length === 0) {
             likeText = likeCount + (isES ? ' persona' + (likeCount > 1 ? 's' : '') : ' person' + (likeCount > 1 ? 's' : ''));
@@ -31110,12 +31219,17 @@ function _renderFeedPostCard(post, isES) {
             '❤️ ' + (isES ? 'Le gusta a ' : 'Liked by ') + '<span style="color:rgba(255,255,255,0.6);font-weight:600;">' + likeText + '</span>' +
         '</div>' +
         '<div id="fpLikers_' + post._id + '" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;">';
-        likedBy.forEach(function(lb) {
-            likedByHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
-                '<div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#ff4081,#f50057);display:flex;align-items:center;justify-content:center;font-size:0.55em;color:#fff;">' + (lb.name ? lb.name.charAt(0).toUpperCase() : '?') + '</div>' +
-                '<span style="font-size:0.72em;color:rgba(255,255,255,0.6);">' + _escHtml(lb.name || 'User') + '</span>' +
-            '</div>';
-        });
+        if (likedBy.length > 0) {
+            likedBy.forEach(function(lb) {
+                likedByHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
+                    '<div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#ff4081,#f50057);display:flex;align-items:center;justify-content:center;font-size:0.55em;color:#fff;">' + (lb.name ? lb.name.charAt(0).toUpperCase() : '?') + '</div>' +
+                    '<span style="font-size:0.72em;color:rgba(255,255,255,0.6);">' + _escHtml(lb.name || 'User') + '</span>' +
+                '</div>';
+            });
+        } else {
+            // likedBy empty (old likes) — show loading placeholder, fetch names on expand
+            likedByHtml += '<div id="fpLikersLoading_' + post._id + '" style="font-size:0.72em;color:rgba(255,255,255,0.3);">' + (isES ? 'Cargando nombres...' : 'Loading names...') + '</div>';
+        }
         likedByHtml += '</div>';
     }
 
@@ -31143,10 +31257,45 @@ function _renderFeedPostCard(post, isES) {
     '</div>';
 }
 
-// Toggle likers list
+// Toggle likers list — fetch names from UIDs if likedBy was empty
 window._toggleLikers = function(postId) {
     var el = document.getElementById('fpLikers_' + postId);
-    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (!el) return;
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        // If there's a loading placeholder, fetch names from Firestore
+        var loadingEl = document.getElementById('fpLikersLoading_' + postId);
+        if (loadingEl && _db) {
+            _db.collection('feed').doc(postId).get().then(function(doc) {
+                if (!doc.exists) return;
+                var post = doc.data();
+                var uids = post.likes || [];
+                if (uids.length === 0) { loadingEl.textContent = '—'; return; }
+                // Fetch user display names for each UID
+                var promises = uids.slice(0, 20).map(function(uid) {
+                    return _db.collection('users').doc(uid).get().then(function(uDoc) {
+                        return uDoc.exists ? { uid: uid, name: uDoc.data().displayName || uDoc.data().email || uid.substring(0,8) } : { uid: uid, name: uid.substring(0,8) };
+                    }).catch(function() { return { uid: uid, name: uid.substring(0,8) }; });
+                });
+                Promise.all(promises).then(function(users) {
+                    var html = '';
+                    users.forEach(function(u) {
+                        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
+                            '<div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#ff4081,#f50057);display:flex;align-items:center;justify-content:center;font-size:0.55em;color:#fff;">' + (u.name ? u.name.charAt(0).toUpperCase() : '?') + '</div>' +
+                            '<span style="font-size:0.72em;color:rgba(255,255,255,0.6);">' + _escHtml(u.name) + '</span>' +
+                        '</div>';
+                    });
+                    el.innerHTML = html;
+                    // Also update the likedBy in Firestore so next time it's already there
+                    _db.collection('feed').doc(postId).update({
+                        likedBy: users.map(function(u) { return { uid: u.uid, name: u.name }; })
+                    }).catch(function() {});
+                });
+            }).catch(function() { loadingEl.textContent = '?'; });
+        }
+    } else {
+        el.style.display = 'none';
+    }
 };
 
 window._submitFeedPost = function() {
@@ -31407,7 +31556,7 @@ function _renderDiscover(content, isES) {
         '</div>' +
         '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
             '<input id="searchDegree" type="number" min="0" max="29" placeholder="' + (isES ? 'Grado (opcional)' : 'Degree (optional)') + '" style="flex:1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;" />' +
-            '<input id="searchOrb" type="number" min="0" max="10" placeholder="' + (isES ? 'Orbe ±' : 'Orb ±') + '" value="0" style="width:70px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;" />' +
+            '<input id="searchOrb" type="number" min="0" max="10" placeholder="' + (isES ? 'Orbe ±' : 'Orb ±') + '" style="width:70px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;" />' +
         '</div>' +
         '<button onclick="window._doSearch()" style="' + _SCbtn + 'width:100%;background:rgba(0,188,212,0.15);color:#00bcd4;border:1px solid rgba(0,188,212,0.3);">' + (isES ? 'Buscar' : 'Search') + '</button>' +
         '<div id="searchResults" style="margin-top:12px;"></div>' +
@@ -32103,15 +32252,46 @@ function _renderMessages(content, isES) {
             '</div>';
             return;
         }
-        var html = '';
+        // Collect all other UIDs to look up names
+        var otherUids = [];
         chats.forEach(function(chat) {
-            var otherUid = chat.participants.find(function(p) { return p !== _socialUser.uid; });
-            html += '<div onclick="window._openChat(\'' + chat._id + '\',\'' + (otherUid || '') + '\')" style="' + _SC + 'padding:12px;margin-bottom:8px;cursor:pointer;">' +
-                '<div style="font-weight:600;color:#fff;font-size:0.85em;">' + (otherUid ? otherUid.substring(0, 8) + '...' : 'Chat') + '</div>' +
-                '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _escHtml(chat.lastMessage || '') + '</div>' +
-            '</div>';
+            var otherUid = chat.participants ? chat.participants.find(function(p) { return p !== _socialUser.uid; }) : null;
+            if (otherUid) otherUids.push(otherUid);
         });
-        el.innerHTML = html;
+        // Batch lookup user names
+        var nameMap = {};
+        var lookupPromises = otherUids.map(function(uid) {
+            return _db.collection('users').doc(uid).get().then(function(doc) {
+                if (doc.exists) {
+                    var d = doc.data();
+                    nameMap[uid] = d.displayName || d.email || uid.substring(0, 8);
+                } else {
+                    nameMap[uid] = uid.substring(0, 8);
+                }
+            }).catch(function() { nameMap[uid] = uid.substring(0, 8); });
+        });
+        Promise.all(lookupPromises).then(function() {
+            var html = '';
+            chats.forEach(function(chat) {
+                var otherUid = chat.participants ? chat.participants.find(function(p) { return p !== _socialUser.uid; }) : null;
+                var chatName = chat.groupName || (otherUid ? nameMap[otherUid] || otherUid.substring(0, 8) : 'Chat');
+                var initial = chatName.charAt(0).toUpperCase();
+                var timeStr = chat.lastMessageAt ? _timeAgo(chat.lastMessageAt.toDate ? chat.lastMessageAt.toDate() : new Date(chat.lastMessageAt)) : '';
+                html += '<div onclick="window._openChat(\'' + chat._id + '\',\'' + (otherUid || '') + '\')" style="' + _SC + 'padding:12px;margin-bottom:8px;cursor:pointer;">' +
+                    '<div style="display:flex;align-items:center;gap:10px;">' +
+                        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:0.85em;color:#fff;flex-shrink:0;">' + initial + '</div>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                                '<div style="font-weight:600;color:#fff;font-size:0.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _escHtml(chatName) + '</div>' +
+                                (timeStr ? '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);flex-shrink:0;">' + timeStr + '</div>' : '') +
+                            '</div>' +
+                            '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _escHtml(chat.lastMessage || '') + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            el.innerHTML = html;
+        });
     });
 }
 
@@ -32128,12 +32308,31 @@ window._openChat = function(chatId, otherUid, otherName) {
     var content = document.getElementById('socialContent');
     if (!content) return;
     var isES = L();
-    var displayName = otherName || (otherUid ? otherUid.substring(0, 8) : 'Chat');
+    var displayName = otherName || 'Chat';
+
+    // Render chat UI immediately (name may update async)
+    function _renderChatHeader(name) {
+        var hdr = document.getElementById('chatHeaderName');
+        if (hdr) hdr.textContent = '💬 ' + name;
+    }
+
+    // If no name provided, look it up from Firestore
+    if (!otherName && otherUid && _db) {
+        _db.collection('users').doc(otherUid).get().then(function(doc) {
+            if (doc.exists) {
+                var d = doc.data();
+                displayName = d.displayName || d.email || otherUid.substring(0, 8);
+            } else {
+                displayName = otherUid.substring(0, 8);
+            }
+            _renderChatHeader(displayName);
+        }).catch(function() {});
+    }
 
     content.innerHTML =
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
             '<button onclick="window._switchSocialTab(\'messages\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
-            '<div style="font-weight:700;color:#fff;font-size:0.9em;">💬 ' + _escHtml(displayName) + '</div>' +
+            '<div id="chatHeaderName" style="font-weight:700;color:#fff;font-size:0.9em;">💬 ' + _escHtml(displayName) + '</div>' +
         '</div>' +
         '<div id="chatMessages" style="min-height:200px;max-height:400px;overflow-y:auto;' + _SC + 'padding:12px;margin-bottom:10px;">' +
             '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>' +
@@ -32300,7 +32499,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v542';
+const APP_VERSION = 'v547';
 var _pendingSW = null;
 
 // What's New removed per user request

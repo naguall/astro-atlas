@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v542';
+const CACHE_NAME = 'moon-sync-v547';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -97,10 +97,30 @@ self.addEventListener('message', e => {
         requireInteraction: true,
         vibrate: [300, 200, 300, 200, 300],
         data: { dreamAlarm: true }
-      })
+      }).then(() => updateBadgeCount())
+    );
+  }
+  if (e.data && e.data.type === 'SET_BADGE') {
+    var count = e.data.count || 0;
+    e.waitUntil(
+      count > 0
+        ? (self.navigator.setAppBadge ? self.navigator.setAppBadge(count).catch(()=>{}) : Promise.resolve())
+        : (self.navigator.clearAppBadge ? self.navigator.clearAppBadge().catch(()=>{}) : Promise.resolve())
     );
   }
 });
+
+// Count active notifications and update app icon badge
+function updateBadgeCount() {
+  return self.registration.getNotifications().then(notifications => {
+    var count = notifications.length;
+    if (count > 0 && self.navigator.setAppBadge) {
+      return self.navigator.setAppBadge(count).catch(()=>{});
+    } else if (count === 0 && self.navigator.clearAppBadge) {
+      return self.navigator.clearAppBadge().catch(()=>{});
+    }
+  }).catch(()=>{});
+}
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
