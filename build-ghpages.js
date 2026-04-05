@@ -101,7 +101,7 @@ console.log('  ✓ manifest.json (GitHub Pages paths)');
 copied++;
 
 // === Create sw.js with GitHub Pages paths ===
-const swContent = `const CACHE_NAME = 'astro-currents-v558';
+const swContent = `const CACHE_NAME = 'astro-currents-v559';
 const BASE = '${BASE_PATH}';
 const ASSETS = [
   BASE + '/',
