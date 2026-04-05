@@ -1,6 +1,6 @@
 {
-  "appId": "com.moonsync.app",
-  "appName": "Moon Sync",
+  "appId": "com.astrocurrents.app",
+  "appName": "Astro Currents",
   "webDir": "www",
   "server": {
     "androidScheme": "https",

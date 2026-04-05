@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Moon Sync — Build script for Capacitor
+ * Astro Currents — Build script for Capacitor
  * Copies all web assets to www/ directory
  */
 

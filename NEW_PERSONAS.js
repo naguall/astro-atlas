@@ -776,7 +776,7 @@ Cover without exception: Sun (core aspect), Moon (emotional aspect), ASC (incarn
     }
 ];
 
-// Export for use in Moon Sync app
+// Export for use in Astro Currents app
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = _newAiPersonas;
 }

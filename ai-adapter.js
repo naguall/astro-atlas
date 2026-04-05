@@ -1,5 +1,5 @@
 /**
- * AI Adapter — Model-agnostic AI interface for Moon Tracker
+ * AI Adapter — Model-agnostic AI interface for Astro Current
  * Supports: Gemini, OpenAI (GPT), Anthropic (Claude)
  */
 window.AIAdapter = (function() {

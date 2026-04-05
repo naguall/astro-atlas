@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg7" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0d1b3e"/>
+      <stop offset="100%" stop-color="#050a1a"/>
+    </radialGradient>
+    <filter id="soft7" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12"/>
+    </filter>
+    <filter id="med7" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg7)"/>
+  
+  <!-- Watercolor nebula blobs -->
+  <circle cx="220" cy="180" r="100" fill="rgba(102,126,234,0.12)" filter="url(#soft7)"/>
+  <circle cx="300" cy="200" r="80" fill="rgba(156,39,176,0.1)" filter="url(#soft7)"/>
+  <circle cx="260" cy="240" r="60" fill="rgba(233,30,99,0.08)" filter="url(#soft7)"/>
+  <circle cx="190" cy="220" r="70" fill="rgba(63,81,181,0.1)" filter="url(#soft7)"/>
+  <circle cx="320" cy="160" r="50" fill="rgba(0,188,212,0.08)" filter="url(#soft7)"/>
+  
+  <!-- Crescent moon — delicate -->
+  <circle cx="256" cy="195" r="60" fill="rgba(255,255,255,0.85)"/>
+  <circle cx="278" cy="183" r="50" fill="url(#bg7)"/>
+  
+  <!-- Moon glow -->
+  <circle cx="256" cy="195" r="80" fill="rgba(255,255,255,0.04)" filter="url(#med7)"/>
+  
+  <!-- Delicate stars -->
+  <circle cx="150" cy="110" r="2" fill="white" opacity="0.7"/>
+  <circle cx="380" cy="100" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="120" cy="280" r="1" fill="white" opacity="0.5"/>
+  <circle cx="400" cy="260" r="1.8" fill="white" opacity="0.4"/>
+  <circle cx="340" cy="300" r="1.2" fill="white" opacity="0.5"/>
+  <circle cx="180" cy="300" r="1.5" fill="rgba(156,39,176,0.6)"/>
+  <circle cx="360" cy="140" r="1" fill="rgba(0,188,212,0.5)"/>
+  
+  <!-- Thin orbital arc -->
+  <ellipse cx="256" cy="210" rx="130" ry="45" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" transform="rotate(-15,256,210)"/>
+  
+  <!-- Small dot planets on orbit -->
+  <circle cx="370" cy="180" r="3" fill="rgba(233,30,99,0.6)"/>
+  <circle cx="135" cy="230" r="2.5" fill="rgba(0,188,212,0.5)"/>
+  
+  <!-- Text — elegant and light -->
+  <text x="256" y="395" text-anchor="middle" font-family="'Georgia', serif" font-weight="400" font-size="42" fill="rgba(255,255,255,0.9)" letter-spacing="5">ASTRO</text>
+  <text x="256" y="440" text-anchor="middle" font-family="'Georgia', serif" font-weight="300" font-size="26" fill="rgba(255,255,255,0.45)" letter-spacing="10">CURRENTS</text>
+  
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+</svg>

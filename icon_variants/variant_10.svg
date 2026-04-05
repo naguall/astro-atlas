@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg10" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0020"/><stop offset="100%" stop-color="#05000f"/>
+    </linearGradient>
+    <radialGradient id="sun10" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff3e0"/><stop offset="100%" stop-color="#ff9800"/>
+    </radialGradient>
+    <radialGradient id="jup10" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffcc80"/><stop offset="100%" stop-color="#e65100"/>
+    </radialGradient>
+    <radialGradient id="nep10" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#80deea"/><stop offset="100%" stop-color="#006064"/>
+    </radialGradient>
+    <radialGradient id="ven10" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#f8bbd0"/><stop offset="100%" stop-color="#c2185b"/>
+    </radialGradient>
+    <linearGradient id="arc10" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffd54f" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="g10"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg10)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(255,152,0,0.2)" stroke-width="2"/>
+  
+  <!-- Vertical alignment line -->
+  <line x1="256" y1="60" x2="256" y2="340" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  
+  <!-- Golden arc on side -->
+  <path d="M120,80 Q80,200 120,320" fill="none" stroke="url(#arc10)" stroke-width="2"/>
+  <path d="M392,80 Q432,200 392,320" fill="none" stroke="url(#arc10)" stroke-width="2"/>
+  
+  <!-- Planets top to bottom -->
+  <circle cx="256" cy="85" r="12" fill="url(#ven10)"/>
+  <circle cx="256" cy="85" r="18" fill="rgba(248,187,208,0.08)"/>
+  
+  <circle cx="256" cy="160" r="18" fill="url(#nep10)"/>
+  <circle cx="256" cy="160" r="25" fill="rgba(128,222,234,0.06)"/>
+  
+  <circle cx="256" cy="250" r="24" fill="url(#jup10)"/>
+  <circle cx="256" cy="250" r="34" fill="rgba(255,204,128,0.06)"/>
+  <!-- Jupiter bands -->
+  <ellipse cx="256" cy="245" rx="22" ry="3" fill="rgba(230,81,0,0.25)"/>
+  <ellipse cx="256" cy="255" rx="20" ry="2.5" fill="rgba(230,81,0,0.15)"/>
+  
+  <!-- Sun at bottom (largest, with glow) -->
+  <circle cx="256" cy="340" r="8" fill="url(#sun10)" filter="url(#g10)" opacity="0.6"/>
+  
+  <!-- Connection dots -->
+  <circle cx="256" cy="120" r="2" fill="rgba(255,255,255,0.2)"/>
+  <circle cx="256" cy="205" r="2" fill="rgba(255,255,255,0.2)"/>
+  <circle cx="256" cy="290" r="2" fill="rgba(255,255,255,0.15)"/>
+  
+  <!-- Stars -->
+  <circle cx="150" cy="120" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="370" cy="100" r="1" fill="white" opacity="0.4"/>
+  <circle cx="140" cy="260" r="1" fill="#ffd54f" opacity="0.3"/>
+  <circle cx="380" cy="220" r="1.2" fill="white" opacity="0.3"/>
+  
+  <text x="256" y="400" text-anchor="middle" font-family="'Georgia',serif" font-weight="700" font-size="44" fill="white" letter-spacing="3">ASTRO</text>
+  <text x="256" y="445" text-anchor="middle" font-family="'Georgia',serif" font-weight="300" font-size="28" fill="rgba(255,183,77,0.65)" letter-spacing="8">CURRENTS</text>
+</svg>

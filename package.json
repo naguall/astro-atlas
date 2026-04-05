@@ -1,7 +1,7 @@
 {
-  "name": "moon-sync",
+  "name": "astro-currents",
   "version": "5.56.0",
-  "description": "Moon Sync - Calendario Lunar & Astrología",
+  "description": "Astro Currents - Calendario Lunar & Astrología",
   "main": "index.js",
   "scripts": {
     "build": "node build.js",

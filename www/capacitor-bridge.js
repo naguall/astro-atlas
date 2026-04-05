@@ -1,5 +1,5 @@
 /**
- * Moon Sync — Capacitor Native Bridge
+ * Astro Currents — Capacitor Native Bridge
  *
  * Detects if running inside Capacitor and provides native APIs:
  * - Push Notifications (FCM on Android, APNs on iOS)
@@ -102,7 +102,7 @@
      * Handle foreground push: show in-app banner
      */
     function _handlePushForeground(notification) {
-        var title = notification.title || 'Moon Sync';
+        var title = notification.title || 'Astro Currents';
         var body = notification.body || '';
         var data = notification.data || {};
 

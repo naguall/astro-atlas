@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg15" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#15093a"/><stop offset="100%" stop-color="#050210"/>
+    </radialGradient>
+    <linearGradient id="sp15a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.8"/><stop offset="100%" stop-color="#ff8f00" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="sp15b" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#80deea" stop-opacity="0.7"/><stop offset="100%" stop-color="#00838f" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg15)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(255,213,79,0.15)" stroke-width="2"/>
+  
+  <!-- Spiral A (golden, expanding outward) -->
+  <path d="M256,200 C256,175 275,158 298,165 C325,175 330,205 315,225 C296,250 260,248 245,228 C226,203 238,168 265,155 C298,140 338,158 348,192 C360,232 338,272 298,280 C252,290 215,262 210,218" 
+    fill="none" stroke="url(#sp15a)" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Spiral B (cyan, opposite direction) -->
+  <path d="M256,200 C256,225 237,242 214,235 C187,225 182,195 197,175 C216,150 252,152 267,172 C286,197 274,232 247,245 C214,260 174,242 164,208 C152,168 174,128 214,120 C260,110 297,138 302,182" 
+    fill="none" stroke="url(#sp15b)" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Center dot -->
+  <circle cx="256" cy="200" r="5" fill="white" opacity="0.9"/>
+  <circle cx="256" cy="200" r="10" fill="rgba(255,255,255,0.08)"/>
+  
+  <!-- Planets at spiral ends -->
+  <circle cx="210" cy="218" r="8" fill="#ffd54f" opacity="0.8"/>
+  <circle cx="302" cy="182" r="8" fill="#80deea" opacity="0.8"/>
+  
+  <!-- Small accent planets -->
+  <circle cx="348" cy="192" r="5" fill="#ff8a65" opacity="0.6"/>
+  <circle cx="164" cy="208" r="5" fill="#ce93d8" opacity="0.6"/>
+  
+  <!-- Stars -->
+  <circle cx="100" cy="90" r="1.5" fill="#ffd54f" opacity="0.5"/>
+  <circle cx="420" cy="100" r="1" fill="#80deea" opacity="0.4"/>
+  <circle cx="90" cy="290" r="1" fill="white" opacity="0.3"/>
+  <circle cx="430" cy="300" r="1.2" fill="white" opacity="0.3"/>
+  
+  <text x="256" y="395" text-anchor="middle" font-family="'Georgia',serif" font-weight="700" font-size="44" fill="white" letter-spacing="3">ASTRO</text>
+  <text x="256" y="440" text-anchor="middle" font-family="'Georgia',serif" font-weight="300" font-size="28" fill="rgba(255,213,79,0.5)" letter-spacing="8">CURRENTS</text>
+</svg>

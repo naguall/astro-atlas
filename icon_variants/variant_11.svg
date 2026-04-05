@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg11" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#0d1b3e"/><stop offset="100%" stop-color="#030810"/>
+    </radialGradient>
+    <linearGradient id="sp11" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#c9a840" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="mg11"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg11)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(201,168,64,0.2)" stroke-width="2"/>
+  
+  <!-- Moon glow -->
+  <circle cx="256" cy="195" r="90" fill="rgba(255,255,255,0.04)" filter="url(#mg11)"/>
+  
+  <!-- Big crescent moon -->
+  <circle cx="256" cy="195" r="72" fill="rgba(232,234,246,0.9)"/>
+  <circle cx="284" cy="178" r="60" fill="url(#bg11)"/>
+  
+  <!-- Golden spiral wrapping around the moon -->
+  <path d="M225,140 C200,110 230,75 270,85 C315,95 335,140 318,180 C300,225 250,240 210,220 C168,198 160,145 185,110 C215,70 278,55 320,80 C368,108 382,170 355,220 C325,275 255,295 200,265" 
+    fill="none" stroke="url(#sp11)" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Small planets on spiral -->
+  <circle cx="270" cy="85" r="5" fill="#ff8a65"/>
+  <circle cx="210" cy="220" r="4" fill="#4fc3f7"/>
+  <circle cx="355" cy="220" r="6" fill="#ce93d8"/>
+  <circle cx="200" cy="265" r="3.5" fill="#69f0ae"/>
+  
+  <!-- Stars -->
+  <circle cx="100" cy="85" r="1.5" fill="#ffd54f" opacity="0.6"/>
+  <circle cx="420" cy="90" r="1" fill="white" opacity="0.5"/>
+  <circle cx="90" cy="290" r="1.2" fill="white" opacity="0.4"/>
+  <circle cx="430" cy="270" r="1.5" fill="#c9a840" opacity="0.3"/>
+  <circle cx="350" cy="100" r="1" fill="white" opacity="0.4"/>
+  
+  <text x="256" y="395" text-anchor="middle" font-family="'Georgia',serif" font-weight="700" font-size="44" fill="white" letter-spacing="3">ASTRO</text>
+  <text x="256" y="440" text-anchor="middle" font-family="'Georgia',serif" font-weight="300" font-size="28" fill="rgba(201,168,64,0.6)" letter-spacing="8">CURRENTS</text>
+</svg>

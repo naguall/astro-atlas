@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="50%" stop-color="#1a1245"/>
+      <stop offset="100%" stop-color="#24243e"/>
+    </linearGradient>
+    <linearGradient id="bolt2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd54f"/>
+      <stop offset="50%" stop-color="#ffab40"/>
+      <stop offset="100%" stop-color="#ff6e40"/>
+    </linearGradient>
+    <linearGradient id="zodiac2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c4dff"/>
+      <stop offset="100%" stop-color="#448aff"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="url(#bg2)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(124,77,255,0.35)" stroke-width="2"/>
+  
+  <!-- Zodiac circle -->
+  <circle cx="256" cy="215" r="120" fill="none" stroke="url(#zodiac2)" stroke-width="2.5" opacity="0.6"/>
+  <circle cx="256" cy="215" r="105" fill="none" stroke="rgba(124,77,255,0.2)" stroke-width="1"/>
+  <circle cx="256" cy="215" r="135" fill="none" stroke="rgba(124,77,255,0.15)" stroke-width="1"/>
+    <text x="256" y="95" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♈</text>
+  <text x="316" y="111" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♉</text>
+  <text x="360" y="155" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♊</text>
+  <text x="376" y="215" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♋</text>
+  <text x="360" y="275" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♌</text>
+  <text x="316" y="319" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♍</text>
+  <text x="256" y="335" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♎</text>
+  <text x="196" y="319" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♏</text>
+  <text x="152" y="275" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♐</text>
+  <text x="136" y="215" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♑</text>
+  <text x="152" y="155" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♒</text>
+  <text x="196" y="111" text-anchor="middle" dominant-baseline="central" font-size="18" fill="rgba(200,180,255,0.5)">♓</text>
+  <line x1="256" y1="107" x2="256" y2="115" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="310" y1="121" x2="306" y2="128" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="350" y1="161" x2="343" y2="165" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="364" y1="215" x2="356" y2="215" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="350" y1="269" x2="343" y2="265" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="310" y1="309" x2="306" y2="302" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="256" y1="323" x2="256" y2="315" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="202" y1="309" x2="206" y2="302" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="162" y1="269" x2="169" y2="265" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="148" y1="215" x2="156" y2="215" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="162" y1="161" x2="169" y2="165" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+  <line x1="202" y1="121" x2="206" y2="128" stroke="rgba(124,77,255,0.4)" stroke-width="2"/>
+
+  <!-- Lightning bolt (center) -->
+  <polygon points="270,95 230,205 268,195 238,320 300,180 262,190" fill="url(#bolt2)"/>
+  <polygon points="270,95 230,205 268,195 238,320 300,180 262,190" fill="none" stroke="rgba(255,213,79,0.4)" stroke-width="1"/>
+  
+  <!-- Glow behind bolt -->
+  <circle cx="256" cy="210" r="50" fill="rgba(255,213,79,0.08)"/>
+  
+  <!-- Text -->
+  <text x="256" y="390" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="700" font-size="42" fill="white" letter-spacing="4">ASTRO</text>
+  <text x="256" y="432" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="400" font-size="28" fill="rgba(255,213,79,0.8)" letter-spacing="6">CURRENT</text>
+  
+  <line x1="175" y1="445" x2="337" y2="445" stroke="rgba(255,171,64,0.4)" stroke-width="1"/>
+</svg>

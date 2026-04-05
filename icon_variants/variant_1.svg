@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg1" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1a1050"/>
+      <stop offset="60%" stop-color="#0d0a2a"/>
+      <stop offset="100%" stop-color="#050318"/>
+    </radialGradient>
+    <radialGradient id="moonGlow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#667eea" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#764ba2" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#667eea" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="url(#bg1)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(102,126,234,0.3)" stroke-width="2"/>
+  
+  <!-- Subtle star field -->
+  <circle cx="80" cy="90" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="420" cy="70" r="1" fill="white" opacity="0.5"/>
+  <circle cx="350" cy="130" r="1.8" fill="white" opacity="0.4"/>
+  <circle cx="130" cy="160" r="1" fill="white" opacity="0.5"/>
+  <circle cx="450" cy="200" r="1.2" fill="white" opacity="0.3"/>
+  <circle cx="60" cy="250" r="1.5" fill="white" opacity="0.4"/>
+  <circle cx="380" cy="280" r="1" fill="white" opacity="0.5"/>
+  <circle cx="100" cy="340" r="1.3" fill="white" opacity="0.3"/>
+  
+  <!-- Moon glow -->
+  <circle cx="256" cy="210" r="120" fill="url(#moonGlow1)"/>
+  
+  <!-- Crescent Moon -->
+  <circle cx="256" cy="210" r="75" fill="#e8eaf6"/>
+  <circle cx="286" cy="195" r="62" fill="url(#bg1)"/>
+  
+  <!-- Orbital rings -->
+  <ellipse cx="256" cy="220" rx="140" ry="50" fill="none" stroke="url(#ring1)" stroke-width="2" transform="rotate(-20,256,220)"/>
+  <ellipse cx="256" cy="220" rx="120" ry="42" fill="none" stroke="url(#ring1)" stroke-width="1.5" transform="rotate(15,256,220)" stroke-dasharray="8,6"/>
+  <ellipse cx="256" cy="220" rx="160" ry="58" fill="none" stroke="rgba(102,126,234,0.2)" stroke-width="1" transform="rotate(-35,256,220)"/>
+  
+  <!-- Small planet on orbit -->
+  <circle cx="380" cy="185" r="6" fill="#667eea"/>
+  <circle cx="380" cy="185" r="10" fill="rgba(102,126,234,0.2)"/>
+  
+  <!-- Sacred geometry hexagon (subtle) -->
+  <polygon points="256,130 365,180 365,270 256,320 147,270 147,180" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  
+  <!-- Text -->
+  <text x="256" y="390" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="700" font-size="42" fill="white" letter-spacing="4">ASTRO</text>
+  <text x="256" y="432" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="400" font-size="28" fill="rgba(200,210,255,0.7)" letter-spacing="6">CURRENT</text>
+  
+  <!-- Subtle line under text -->
+  <line x1="180" y1="445" x2="332" y2="445" stroke="rgba(102,126,234,0.4)" stroke-width="1"/>
+</svg>

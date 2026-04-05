@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg16" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#08001a"/><stop offset="50%" stop-color="#0e0028"/><stop offset="100%" stop-color="#05000f"/>
+    </linearGradient>
+    <radialGradient id="sun16" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="30%" stop-color="#fff8e1"/><stop offset="100%" stop-color="#ffa000"/>
+    </radialGradient>
+    <radialGradient id="flare16" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(255,213,79,0.4)"/><stop offset="100%" stop-color="rgba(255,213,79,0)"/>
+    </radialGradient>
+    <linearGradient id="line16" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255,213,79,0)"/>
+      <stop offset="30%" stop-color="rgba(255,213,79,0.5)"/>
+      <stop offset="50%" stop-color="rgba(255,213,79,0.8)"/>
+      <stop offset="70%" stop-color="rgba(255,213,79,0.5)"/>
+      <stop offset="100%" stop-color="rgba(255,213,79,0)"/>
+    </linearGradient>
+    <filter id="g16"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="g16s"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg16)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(255,160,0,0.2)" stroke-width="2"/>
+  
+  <!-- Horizontal lens flare line -->
+  <line x1="50" y1="200" x2="462" y2="200" stroke="url(#line16)" stroke-width="1.5"/>
+  <ellipse cx="256" cy="200" rx="200" ry="3" fill="url(#flare16)"/>
+  
+  <!-- Sun (center, bright) -->
+  <circle cx="256" cy="200" r="28" fill="url(#sun16)"/>
+  <circle cx="256" cy="200" r="45" fill="rgba(255,213,79,0.08)" filter="url(#g16)"/>
+  
+  <!-- Lens flare dots (classic cinema effect) -->
+  <circle cx="340" cy="200" r="8" fill="rgba(255,213,79,0.15)"/>
+  <circle cx="380" cy="200" r="12" fill="rgba(255,213,79,0.08)"/>
+  <circle cx="172" cy="200" r="6" fill="rgba(255,213,79,0.12)"/>
+  <circle cx="130" cy="200" r="10" fill="rgba(255,213,79,0.06)"/>
+  
+  <!-- Planets (silhouettes against the flare) -->
+  <circle cx="130" cy="200" r="16" fill="#0e0028" stroke="rgba(255,213,79,0.15)" stroke-width="1"/>
+  <circle cx="400" cy="200" r="20" fill="#0e0028" stroke="rgba(255,213,79,0.12)" stroke-width="1"/>
+  <!-- Saturn ring on right planet -->
+  <ellipse cx="400" cy="200" rx="32" ry="7" fill="none" stroke="rgba(255,213,79,0.2)" stroke-width="1.5"/>
+  
+  <!-- Tiny planet top -->
+  <circle cx="200" cy="155" r="6" fill="#0e0028" stroke="rgba(255,213,79,0.1)" stroke-width="0.8"/>
+  
+  <!-- Stars -->
+  <circle cx="100" cy="90" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="420" cy="100" r="1" fill="white" opacity="0.4"/>
+  <circle cx="380" cy="300" r="1.2" fill="white" opacity="0.3"/>
+  <circle cx="130" cy="310" r="1" fill="white" opacity="0.3"/>
+  <circle cx="300" cy="100" r="1.5" fill="#ffd54f" opacity="0.3"/>
+  
+  <text x="256" y="310" text-anchor="middle" font-family="'Georgia',serif" font-weight="700" font-size="48" fill="white" letter-spacing="4">ASTRO</text>
+  <text x="256" y="355" text-anchor="middle" font-family="'Georgia',serif" font-weight="300" font-size="30" fill="rgba(255,213,79,0.7)" letter-spacing="8">CURRENTS</text>
+</svg>

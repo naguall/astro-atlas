@@ -1,6 +1,6 @@
-# Moon Sync — Proyecto PWA Lunar/Solar/Astrológico
+# Astro Current — Proyecto PWA Lunar/Solar/Astrológico
 
-## Qué es Moon Sync
+## Qué es Astro Current
 PWA de una sola página (`index.html`, ~23000 líneas) para seguimiento lunar, solar y astrológico. Incluye calendarios, brújula lunar, mapas 2D/3D, aspectos planetarios, integración con Google Calendar, diario personal y lecturas de IA.
 
 ## Reglas críticas del proyecto
@@ -13,7 +13,7 @@ PWA de una sola página (`index.html`, ~23000 líneas) para seguimiento lunar, s
 
 ### Versionado
 - `APP_VERSION` en `index.html` y `CACHE_NAME` en `sw.js` **deben coincidir siempre**
-- Formato: `'v382'` en index.html, `'moon-sync-v382'` en sw.js
+- Formato: `'v382'` en index.html, `'astro-current-v382'` en sw.js
 - Incrementar en cada commit
 - **Al inicio de cada chat**: decirle al usuario cuál es la versión actual (leer `APP_VERSION` de index.html)
 - **Al terminar cada commit**: informar la nueva versión claramente en el chat

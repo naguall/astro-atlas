@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg4" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#1a0a3e"/>
+      <stop offset="60%" stop-color="#0d0620"/>
+      <stop offset="100%" stop-color="#050210"/>
+    </radialGradient>
+    <radialGradient id="nebula4" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7c4dff" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#536dfe" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#304ffe" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="eye4" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e1f5fe"/>
+      <stop offset="70%" stop-color="#81d4fa"/>
+      <stop offset="100%" stop-color="#4fc3f7"/>
+    </radialGradient>
+    <linearGradient id="glow4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c4dff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#7c4dff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7c4dff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="url(#bg4)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(124,77,255,0.3)" stroke-width="2"/>
+  
+  <!-- Nebula glow -->
+  <ellipse cx="256" cy="210" rx="180" ry="90" fill="url(#nebula4)"/>
+  
+  <!-- Horizontal glow line -->
+  <line x1="80" y1="210" x2="432" y2="210" stroke="url(#glow4)" stroke-width="1.5"/>
+  
+  <!-- Eye shape (almond) -->
+  <path d="M100,210 Q256,110 412,210 Q256,310 100,210Z" fill="none" stroke="rgba(124,77,255,0.5)" stroke-width="2"/>
+  <path d="M130,210 Q256,130 382,210 Q256,290 130,210Z" fill="rgba(124,77,255,0.05)"/>
+  
+  <!-- Iris -->
+  <circle cx="256" cy="210" r="55" fill="url(#eye4)" opacity="0.15"/>
+  <circle cx="256" cy="210" r="55" fill="none" stroke="rgba(129,212,250,0.4)" stroke-width="1.5"/>
+  
+  <!-- Pupil — dark circle with stars inside -->
+  <circle cx="256" cy="210" r="28" fill="url(#bg4)" stroke="rgba(129,212,250,0.3)" stroke-width="1"/>
+  <circle cx="250" cy="204" r="6" fill="rgba(255,255,255,0.8)"/>
+  <circle cx="265" cy="215" r="3" fill="rgba(255,255,255,0.4)"/>
+  
+  <!-- Planetary alignment dots along the horizontal -->
+  <circle cx="120" cy="210" r="4" fill="#e040fb" opacity="0.7"/>
+  <circle cx="165" cy="210" r="3" fill="#448aff" opacity="0.6"/>
+  <circle cx="348" cy="210" r="5" fill="#ff6e40" opacity="0.5"/>
+  <circle cx="400" cy="210" r="3.5" fill="#69f0ae" opacity="0.4"/>
+  
+  <!-- Stars -->
+  <circle cx="90" cy="100" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="420" cy="90" r="1" fill="white" opacity="0.4"/>
+  <circle cx="70" cy="310" r="1.2" fill="white" opacity="0.3"/>
+  <circle cx="440" cy="300" r="1" fill="white" opacity="0.4"/>
+  <circle cx="200" cy="110" r="1" fill="#7c4dff" opacity="0.5"/>
+  <circle cx="340" cy="320" r="1.3" fill="#7c4dff" opacity="0.3"/>
+  
+  <!-- Text -->
+  <text x="256" y="390" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="700" font-size="42" fill="white" letter-spacing="4">ASTRO</text>
+  <text x="256" y="432" text-anchor="middle" font-family="'Cinzel', 'Georgia', serif" font-weight="400" font-size="28" fill="rgba(124,77,255,0.8)" letter-spacing="6">CURRENT</text>
+  
+  <line x1="175" y1="445" x2="337" y2="445" stroke="rgba(124,77,255,0.4)" stroke-width="1"/>
+</svg>

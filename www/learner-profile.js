@@ -1,10 +1,10 @@
 /**
- * Learner Profile — Adaptive learning system for Moon Tracker
+ * Learner Profile — Adaptive learning system for Astro Currents
  * Tracks knowledge mastery, learning style, and progress
  */
 window.LearnerProfile = (function() {
 
-  const STORAGE_KEY = 'moonSync_learnerProfile';
+  const STORAGE_KEY = 'astroCurrents_learnerProfile';
   const MASTERY_THRESHOLD = 0.7; // 70% to mark as "dominado"
 
   // Mastery levels
@@ -543,12 +543,12 @@ window.LearnerProfile = (function() {
     return _profile;
   }
 
-  // Migrate from old course progress (moonSync_astroCourse)
+  // Migrate from old course progress (astroCurrents_astroCourse)
   function migrateFromOldCourse() {
     if (!_profile) load();
 
     try {
-      const oldProgress = localStorage.getItem('moonSync_astroCourse');
+      const oldProgress = localStorage.getItem('astroCurrents_astroCourse');
       if (!oldProgress) return false;
 
       const old = JSON.parse(oldProgress);

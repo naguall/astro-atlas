@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>🌙 Moon Sync - Calendario Lunar</title>
+    <title>⚡ Astro Currents - Calendario Lunar</title>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -71,11 +71,11 @@
     </script>
 
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Moon Sync - Complete lunar calendar with exact phases, planetary aspects, personal journal and automatic notifications.">
+    <meta name="description" content="Astro Currents - Complete lunar calendar with exact phases, planetary aspects, personal journal and automatic notifications.">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Moon Sync">
+    <meta name="apple-mobile-web-app-title" content="Astro Currents">
     
     <!-- Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -4035,10 +4035,10 @@ async function toggleNotifications() {
             setTimeout(function() {
                 try {
                     navigator.serviceWorker.ready.then(function(reg) {
-                        reg.showNotification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'});
+                        reg.showNotification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'});
                     });
                 } catch(e) {}
-                try { new Notification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'}); } catch(e) {}
+                try { new Notification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'}); } catch(e) {}
             }, 500);
         }
     } else {
@@ -4047,10 +4047,10 @@ async function toggleNotifications() {
         setTimeout(function() {
                 try {
                     navigator.serviceWorker.ready.then(function(reg) {
-                        reg.showNotification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones reactivadas':'Notifications re-enabled'});
+                        reg.showNotification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones reactivadas':'Notifications re-enabled'});
                     });
                 } catch(e) {}
-                try { new Notification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones reactivadas':'Notifications re-enabled'}); } catch(e) {}
+                try { new Notification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones reactivadas':'Notifications re-enabled'}); } catch(e) {}
             }, 500);
         btn.innerHTML = '🔔';
         btn.style.opacity = '1';
@@ -4340,7 +4340,7 @@ function importUserData() {
             try {
                 const backup = JSON.parse(ev.target.result);
                 if (!backup._version || !backup._version.startsWith('moonsync_backup')) {
-                    alert(L ? '❌ Este archivo no es un backup válido de Moon Sync.' : '❌ This file is not a valid Moon Sync backup.');
+                    alert(L ? '❌ Este archivo no es un backup válido de Astro Currents.' : '❌ This file is not a valid Astro Currents backup.');
                     return;
                 }
                 if (!confirm(L ? '¿Restaurar datos desde backup del ' + (backup._date || '?').split('T')[0] + '? Esto reemplazará tus datos actuales.' : 'Restore data from backup dated ' + (backup._date || '?').split('T')[0] + '? This will replace your current data.')) return;
@@ -4877,7 +4877,7 @@ async function gcalDeleteEvent(gcalId) {
     }
 }
 
-// Export Moon Sync astro events (phases, eclipses, aspects) to Google Calendar
+// Export Astro Currents astro events (phases, eclipses, aspects) to Google Calendar
 async function gcalExportAstroEvents(btn) {
     if (!gcalIsConnected()) {
         alert(currentLang === 'es' ? 'Conecta Google Calendar primero' : 'Connect Google Calendar first');
@@ -4992,7 +4992,7 @@ async function gcalExportAstroEvents(btn) {
                 const end = new Date(start.getTime() + 30 * 60 * 1000);
                 gcalEvent = {
                     summary: evt.title,
-                    description: evt.description ? `[Moon Sync] ${evt.description}` : '[Moon Sync]',
+                    description: evt.description ? `[Astro Currents] ${evt.description}` : '[Astro Currents]',
                     start: { dateTime: start.toISOString(), timeZone: tz },
                     end: { dateTime: end.toISOString(), timeZone: tz },
                     colorId: colorId,
@@ -5006,7 +5006,7 @@ async function gcalExportAstroEvents(btn) {
                 const endDateStr = getDateKey(nextDay);
                 gcalEvent = {
                     summary: evt.title,
-                    description: evt.description ? `[Moon Sync] ${evt.description}` : '[Moon Sync]',
+                    description: evt.description ? `[Astro Currents] ${evt.description}` : '[Astro Currents]',
                     start: { date: dateStr },
                     end: { date: endDateStr },
                     colorId: colorId,
@@ -5070,14 +5070,14 @@ async function gcalExportAstroEvents(btn) {
     }
 }
 
-// Delete all Moon Sync exported events from Google Calendar
+// Delete all Astro Currents exported events from Google Calendar
 async function gcalDeleteMoonSyncEvents(btn) {
     if (!gcalIsConnected()) {
         alert(currentLang === 'es' ? 'Conecta Google Calendar primero' : 'Connect Google Calendar first');
         return;
     }
     const L = currentLang === 'es';
-    const confirmMsg = L ? 'Borrar todos los eventos de Moon Sync de Google Calendar?' : 'Delete all Moon Sync events from Google Calendar?';
+    const confirmMsg = L ? 'Borrar todos los eventos de Astro Currents de Google Calendar?' : 'Delete all Astro Currents events from Google Calendar?';
     if (!confirm(confirmMsg)) return;
 
     const origText = btn.textContent;
@@ -5089,9 +5089,9 @@ async function gcalDeleteMoonSyncEvents(btn) {
         let pageToken = '';
         const eventIds = [];
 
-        // Search for all events with "[Moon Sync]" in description
+        // Search for all events with "[Astro Currents]" in description
         do {
-            let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=250&q=' + encodeURIComponent('[Moon Sync]') + '&timeMin=2026-01-01T00:00:00Z&timeMax=2027-01-01T00:00:00Z';
+            let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=250&q=' + encodeURIComponent('[Astro Currents]') + '&timeMin=2026-01-01T00:00:00Z&timeMax=2027-01-01T00:00:00Z';
             if (pageToken) url += '&pageToken=' + pageToken;
             const resp = await fetch(url, {
                 headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
@@ -5100,7 +5100,7 @@ async function gcalDeleteMoonSyncEvents(btn) {
             const data = await resp.json();
             if (data.items) {
                 data.items.forEach(ev => {
-                    if (ev.description && ev.description.includes('[Moon Sync]')) {
+                    if (ev.description && ev.description.includes('[Astro Currents]')) {
                         eventIds.push(ev.id);
                     }
                 });
@@ -5171,7 +5171,7 @@ let isRecording = false;
 // ===== VOICE RECOGNITION DIALECT HELPER (v484) =====
 // Returns the best speech recognition language code based on user preference
 function getVoiceLang() {
-    var saved = localStorage.getItem('moonSync_voiceDialect');
+    var saved = localStorage.getItem('astroCurrents_voiceDialect');
     if (saved) return saved;
     // Default: use app language with improved dialect
     return currentLang === 'es' ? 'es-419' : 'en-US';
@@ -6345,7 +6345,7 @@ function toggleStarReading(id) {
     setSavedReadings(readings);
 }
 function shareReading(reading) {
-    var shareText = '✨ ' + reading.title + '\n\n' + reading.text + '\n\n— Moon Sync 🌙';
+    var shareText = '✨ ' + reading.title + '\n\n' + reading.text + '\n\n— Astro Currents 🌙';
     if (navigator.share) {
         navigator.share({ title: reading.title, text: shareText }).catch(function(){});
     } else {
@@ -6997,9 +6997,9 @@ function editDiaryEntry(dateKey) {
 }
 function shareDiaryEntry(dateKey) {
     var text = getDiaryText(dateKey);
-    var shareText = '📝 ' + (currentLang==='es'?'Diario':'Diary') + ' — ' + dateKey + '\n\n' + text + '\n\n— Moon Sync 🌙';
+    var shareText = '📝 ' + (currentLang==='es'?'Diario':'Diary') + ' — ' + dateKey + '\n\n' + text + '\n\n— Astro Currents 🌙';
     if (navigator.share) {
-        navigator.share({ title: 'Moon Sync — ' + dateKey, text: shareText }).catch(function(){});
+        navigator.share({ title: 'Astro Currents — ' + dateKey, text: shareText }).catch(function(){});
     } else {
         navigator.clipboard.writeText(shareText).then(function() { alert(currentLang==='es'?'Copiado al portapapeles':'Copied to clipboard'); });
     }
@@ -7030,7 +7030,7 @@ function exportAllDiaryEntries() {
     }
     diaryEntries.sort(function(a, b) { return b.date.localeCompare(a.date); });
 
-    var text = '📝 Moon Sync — ' + (L ? 'Diario Completo (Reflexiones + Sueños + Aspectos)' : 'Complete Diary (Reflections + Dreams + Aspects)') + '\n' + '═'.repeat(50) + '\n\n';
+    var text = '📝 Astro Currents — ' + (L ? 'Diario Completo (Reflexiones + Sueños + Aspectos)' : 'Complete Diary (Reflections + Dreams + Aspects)') + '\n' + '═'.repeat(50) + '\n\n';
 
     diaryEntries.forEach(function(e, i) {
         text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
@@ -7106,11 +7106,11 @@ function exportAllDiaryEntries() {
         });
     }
 
-    text += '\n— Moon Sync 🌙\n';
+    text += '\n— Astro Currents 🌙\n';
     var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var _now = new Date(); var _dd = String(_now.getDate()).padStart(2,'0'); var _mm = String(_now.getMonth()+1).padStart(2,'0'); var _yy = _now.getFullYear();
-    var a = document.createElement('a'); a.href = url; a.download = 'diario-moon-sync-' + _dd + '-' + _mm + '-' + _yy + '.txt';
+    var a = document.createElement('a'); a.href = url; a.download = 'diario-astro-currents-' + _dd + '-' + _mm + '-' + _yy + '.txt';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
@@ -7328,7 +7328,7 @@ function exportAllReadings() {
     var readings = getSavedReadings();
     if (readings.length === 0) return;
     var L = currentLang === 'es';
-    var text = '📚 Moon Sync — ' + (L ? 'Lecturas Guardadas' : 'Saved Readings') + '\n';
+    var text = '📚 Astro Currents — ' + (L ? 'Lecturas Guardadas' : 'Saved Readings') + '\n';
     text += '═'.repeat(50) + '\n\n';
     readings.forEach(function(r,i) {
         var d = new Date(r.date);
@@ -7336,11 +7336,11 @@ function exportAllReadings() {
         text += (L ? 'Fecha: ' : 'Date: ') + d.toLocaleDateString(L?'es':'en',{year:'numeric',month:'long',day:'numeric'}) + '\n\n';
         text += r.text + '\n\n';
     });
-    text += '\n— Moon Sync 🌙\n';
+    text += '\n— Astro Currents 🌙\n';
     var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a'); a.href = url;
-    var _rNow = new Date(); a.download = 'moon-sync-readings-' + String(_rNow.getDate()).padStart(2,'0') + '-' + String(_rNow.getMonth()+1).padStart(2,'0') + '-' + _rNow.getFullYear() + '.txt';
+    var _rNow = new Date(); a.download = 'astro-currents-readings-' + String(_rNow.getDate()).padStart(2,'0') + '-' + String(_rNow.getMonth()+1).padStart(2,'0') + '-' + _rNow.getFullYear() + '.txt';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
@@ -7908,7 +7908,7 @@ function shareInterpChat(chatId) {
             text += '\n\n' + (msg.role === 'user' ? '👤 ' : '✨ ') + msg.text;
         });
     }
-    text += '\n\n— Moon Sync 🌙';
+    text += '\n\n— Astro Currents 🌙';
     if (navigator.share) {
         navigator.share({ title: chat.title, text: text }).catch(function(){});
     } else {
@@ -8920,7 +8920,7 @@ function triggerDreamAlarm() {
         } else {
             new Notification(currentLang === 'es' ? '🌙 Ensueño' : '🌙 Dream', {
                 body: currentLang === 'es' ? 'Toca para grabar tu sueño' : 'Tap to record your dream',
-                icon: '/moon-sync/icons/icon-192.png',
+                icon: '/astro-currents/icons/icon-192.png',
                 tag: 'dream-alarm',
                 requireInteraction: true
             });
@@ -18211,7 +18211,7 @@ function shareNatalProfile() {
     keys.forEach(function(k) {
         if (p[k] && p[k].sign) text += (p[k].symbol || '•') + ' ' + k.charAt(0).toUpperCase() + k.slice(1) + ': ' + p[k].sign + (p[k].house ? ' (H' + p[k].house + ')' : '') + '\n';
     });
-    text += '\n— Moon Sync 🌙';
+    text += '\n— Astro Currents 🌙';
     if (navigator.share) {
         navigator.share({ title: (natal.name || 'Natal Chart'), text: text }).catch(function(){});
     } else {
@@ -25264,7 +25264,7 @@ function goToCurrentCycle() {
 // ==============================================
 
 (function() {
-    var COURSE_KEY = 'moonSync_astroCourse';
+    var COURSE_KEY = 'astroCurrents_astroCourse';
     var L = function() { return (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es'; };
 
     // ── Course Curriculum Structure ──
@@ -25278,8 +25278,8 @@ function goToCurrentCycle() {
                   content_es: '<h3>🌌 ¿Qué es la Astrología?</h3><p>La astrología es el estudio de la relación entre los movimientos celestes y los eventos terrestres. No es adivinación — es un <b>lenguaje simbólico</b> que conecta los ciclos cósmicos con la experiencia humana.</p><h4>Orígenes</h4><p>Nació hace más de 4,000 años en Mesopotamia. Los babilonios observaron que los ciclos planetarios coincidían con eventos en la Tierra: cosechas, inundaciones, guerras. Crearon los primeros calendarios basados en la Luna y el Sol.</p><h4>Astrología vs Astronomía</h4><p><b>Astronomía:</b> Ciencia que estudia la posición física de los astros.<br><b>Astrología:</b> Interpreta el <i>significado simbólico</i> de esas posiciones para la vida humana.</p><h4>El Principio Hermético</h4><p><i>"Como es arriba, es abajo"</i> — Los patrones del cosmos se reflejan en los patrones de nuestra vida. No es causalidad directa, sino <b>sincronicidad</b> (concepto que Carl Jung estudió profundamente).</p><h4>Tipos de Astrología</h4><p>• <b>Natal:</b> Tu carta al nacer — tu mapa de potenciales<br>• <b>Tránsitos:</b> Planetas actuales sobre tu carta — timing de eventos<br>• <b>Sinastrí­a:</b> Compatibilidad entre cartas<br>• <b>Horaria:</b> Responder preguntas específicas<br>• <b>Electiva:</b> Elegir el mejor momento para actuar<br>• <b>Mundana:</b> Eventos globales y países</p>',
                   content_en: '<h3>🌌 What is Astrology?</h3><p>Astrology is the study of the relationship between celestial movements and terrestrial events. It\'s not fortune-telling — it\'s a <b>symbolic language</b> that connects cosmic cycles with human experience.</p><h4>Origins</h4><p>It was born over 4,000 years ago in Mesopotamia. The Babylonians observed that planetary cycles coincided with events on Earth: harvests, floods, wars. They created the first calendars based on the Moon and Sun.</p><h4>Astrology vs Astronomy</h4><p><b>Astronomy:</b> Science studying the physical position of celestial bodies.<br><b>Astrology:</b> Interprets the <i>symbolic meaning</i> of those positions for human life.</p><h4>The Hermetic Principle</h4><p><i>"As above, so below"</i> — Cosmic patterns reflect in our life patterns. It\'s not direct causation, but <b>synchronicity</b> (a concept Carl Jung studied deeply).</p><h4>Types of Astrology</h4><p>• <b>Natal:</b> Your chart at birth — your map of potentials<br>• <b>Transits:</b> Current planets over your chart — event timing<br>• <b>Synastry:</b> Compatibility between charts<br>• <b>Horary:</b> Answering specific questions<br>• <b>Electional:</b> Choosing the best time to act<br>• <b>Mundane:</b> Global events and nations</p>' },
                 { id: 'L2', title_es: 'La Eclíptica y el Zodiaco', title_en: 'The Ecliptic and the Zodiac', type: 'theory',
-                  content_es: '<h3>♈ La Eclíptica y el Zodiaco</h3><p>La <b>eclíptica</b> es el camino aparente del Sol a través del cielo durante un año. Este camino atraviesa 12 constelaciones que forman el <b>zodiaco</b>.</p><h4>Zodiaco Tropical vs Sideral</h4><p><b>Tropical</b> (occidental): Basado en las estaciones. 0° Aries = equinoccio de primavera (21 marzo). Es el que usa Moon Sync.<br><b>Sideral</b> (védico/hindú): Basado en las estrellas fijas. Tiene un desfase de ~24° con el tropical debido a la precesión de los equinoccios.</p><h4>Los 12 Signos</h4><p>Cada signo ocupa exactamente 30° de la eclíptica (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Fuego Cardinal<br>♉ <b>Tauro</b> (30°-60°) — Tierra Fijo<br>♊ <b>Géminis</b> (60°-90°) — Aire Mutable<br>♋ <b>Cáncer</b> (90°-120°) — Agua Cardinal<br>♌ <b>Leo</b> (120°-150°) — Fuego Fijo<br>♍ <b>Virgo</b> (150°-180°) — Tierra Mutable<br>♎ <b>Libra</b> (180°-210°) — Aire Cardinal<br>♏ <b>Escorpio</b> (210°-240°) — Agua Fijo<br>♐ <b>Sagitario</b> (240°-270°) — Fuego Mutable<br>♑ <b>Capricornio</b> (270°-300°) — Tierra Cardinal<br>♒ <b>Acuario</b> (300°-330°) — Aire Fijo<br>♓ <b>Piscis</b> (330°-360°) — Agua Mutable</p>',
-                  content_en: '<h3>♈ The Ecliptic and the Zodiac</h3><p>The <b>ecliptic</b> is the Sun\'s apparent path through the sky during a year. This path crosses 12 constellations that form the <b>zodiac</b>.</p><h4>Tropical vs Sidereal Zodiac</h4><p><b>Tropical</b> (Western): Based on seasons. 0° Aries = spring equinox (March 21). This is what Moon Sync uses.<br><b>Sidereal</b> (Vedic/Hindu): Based on fixed stars. Has a ~24° offset from tropical due to precession of equinoxes.</p><h4>The 12 Signs</h4><p>Each sign occupies exactly 30° of the ecliptic (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Cardinal Fire<br>♉ <b>Taurus</b> (30°-60°) — Fixed Earth<br>♊ <b>Gemini</b> (60°-90°) — Mutable Air<br>♋ <b>Cancer</b> (90°-120°) — Cardinal Water<br>♌ <b>Leo</b> (120°-150°) — Fixed Fire<br>♍ <b>Virgo</b> (150°-180°) — Mutable Earth<br>♎ <b>Libra</b> (180°-210°) — Cardinal Air<br>♏ <b>Scorpio</b> (210°-240°) — Fixed Water<br>♐ <b>Sagittarius</b> (240°-270°) — Mutable Fire<br>♑ <b>Capricorn</b> (270°-300°) — Cardinal Earth<br>♒ <b>Aquarius</b> (300°-330°) — Fixed Air<br>♓ <b>Pisces</b> (330°-360°) — Mutable Water</p>' },
+                  content_es: '<h3>♈ La Eclíptica y el Zodiaco</h3><p>La <b>eclíptica</b> es el camino aparente del Sol a través del cielo durante un año. Este camino atraviesa 12 constelaciones que forman el <b>zodiaco</b>.</p><h4>Zodiaco Tropical vs Sideral</h4><p><b>Tropical</b> (occidental): Basado en las estaciones. 0° Aries = equinoccio de primavera (21 marzo). Es el que usa Astro Currents.<br><b>Sideral</b> (védico/hindú): Basado en las estrellas fijas. Tiene un desfase de ~24° con el tropical debido a la precesión de los equinoccios.</p><h4>Los 12 Signos</h4><p>Cada signo ocupa exactamente 30° de la eclíptica (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Fuego Cardinal<br>♉ <b>Tauro</b> (30°-60°) — Tierra Fijo<br>♊ <b>Géminis</b> (60°-90°) — Aire Mutable<br>♋ <b>Cáncer</b> (90°-120°) — Agua Cardinal<br>♌ <b>Leo</b> (120°-150°) — Fuego Fijo<br>♍ <b>Virgo</b> (150°-180°) — Tierra Mutable<br>♎ <b>Libra</b> (180°-210°) — Aire Cardinal<br>♏ <b>Escorpio</b> (210°-240°) — Agua Fijo<br>♐ <b>Sagitario</b> (240°-270°) — Fuego Mutable<br>♑ <b>Capricornio</b> (270°-300°) — Tierra Cardinal<br>♒ <b>Acuario</b> (300°-330°) — Aire Fijo<br>♓ <b>Piscis</b> (330°-360°) — Agua Mutable</p>',
+                  content_en: '<h3>♈ The Ecliptic and the Zodiac</h3><p>The <b>ecliptic</b> is the Sun\'s apparent path through the sky during a year. This path crosses 12 constellations that form the <b>zodiac</b>.</p><h4>Tropical vs Sidereal Zodiac</h4><p><b>Tropical</b> (Western): Based on seasons. 0° Aries = spring equinox (March 21). This is what Astro Currents uses.<br><b>Sidereal</b> (Vedic/Hindu): Based on fixed stars. Has a ~24° offset from tropical due to precession of equinoxes.</p><h4>The 12 Signs</h4><p>Each sign occupies exactly 30° of the ecliptic (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Cardinal Fire<br>♉ <b>Taurus</b> (30°-60°) — Fixed Earth<br>♊ <b>Gemini</b> (60°-90°) — Mutable Air<br>♋ <b>Cancer</b> (90°-120°) — Cardinal Water<br>♌ <b>Leo</b> (120°-150°) — Fixed Fire<br>♍ <b>Virgo</b> (150°-180°) — Mutable Earth<br>♎ <b>Libra</b> (180°-210°) — Cardinal Air<br>♏ <b>Scorpio</b> (210°-240°) — Fixed Water<br>♐ <b>Sagittarius</b> (240°-270°) — Mutable Fire<br>♑ <b>Capricorn</b> (270°-300°) — Cardinal Earth<br>♒ <b>Aquarius</b> (300°-330°) — Fixed Air<br>♓ <b>Pisces</b> (330°-360°) — Mutable Water</p>' },
                 { id: 'L3', title_es: 'Elementos y Modalidades', title_en: 'Elements and Modalities', type: 'theory',
                   content_es: '<h3>🔥 Elementos y Modalidades</h3><h4>Los 4 Elementos</h4><p>Cada signo pertenece a uno de 4 elementos que describen su <b>energía fundamental</b>:</p><p>🔥 <b>Fuego</b> (Aries, Leo, Sagitario): Energía, acción, inspiración, entusiasmo. Son los iniciadores, creativos y apasionados.<br>🌍 <b>Tierra</b> (Tauro, Virgo, Capricornio): Estabilidad, practicidad, materialización. Son los constructores, realistas y productivos.<br>💨 <b>Aire</b> (Géminis, Libra, Acuario): Comunicación, ideas, relaciones. Son los pensadores, sociales y conectores.<br>💧 <b>Agua</b> (Cáncer, Escorpio, Piscis): Emociones, intuición, profundidad. Son los sensitivos, empáticos y transformadores.</p><h4>Las 3 Modalidades</h4><p>Describen <b>cómo</b> actúa la energía del signo:</p><p>⚡ <b>Cardinal</b> (Aries, Cáncer, Libra, Capricornio): INICIAN. Son líderes que arrancan proyectos y ciclos nuevos.<br>🏔️ <b>Fijo</b> (Tauro, Leo, Escorpio, Acuario): SOSTIENEN. Dan estabilidad, perseverancia y profundidad.<br>🌊 <b>Mutable</b> (Géminis, Virgo, Sagitario, Piscis): ADAPTAN. Son flexibles, versátiles y facilitan las transiciones.</p><h4>La Combinación</h4><p>Cada signo es ÚNICO porque combina un elemento + una modalidad. No hay dos signos iguales:<br>Aries = Fuego Cardinal (inicio ardiente)<br>Tauro = Tierra Fija (estabilidad material)<br>Géminis = Aire Mutable (ideas cambiantes)</p>',
                   content_en: '<h3>🔥 Elements and Modalities</h3><h4>The 4 Elements</h4><p>Each sign belongs to one of 4 elements describing its <b>fundamental energy</b>:</p><p>🔥 <b>Fire</b> (Aries, Leo, Sagittarius): Energy, action, inspiration, enthusiasm. They are initiators, creative and passionate.<br>🌍 <b>Earth</b> (Taurus, Virgo, Capricorn): Stability, practicality, materialization. They are builders, realistic and productive.<br>💨 <b>Air</b> (Gemini, Libra, Aquarius): Communication, ideas, relationships. They are thinkers, social and connectors.<br>💧 <b>Water</b> (Cancer, Scorpio, Pisces): Emotions, intuition, depth. They are sensitives, empaths and transformers.</p><h4>The 3 Modalities</h4><p>Describe <b>how</b> the sign\'s energy acts:</p><p>⚡ <b>Cardinal</b> (Aries, Cancer, Libra, Capricorn): INITIATE. Leaders who start new projects and cycles.<br>🏔️ <b>Fixed</b> (Taurus, Leo, Scorpio, Aquarius): SUSTAIN. Provide stability, perseverance and depth.<br>🌊 <b>Mutable</b> (Gemini, Virgo, Sagittarius, Pisces): ADAPT. Flexible, versatile and facilitate transitions.</p><h4>The Combination</h4><p>Each sign is UNIQUE because it combines an element + a modality. No two signs are the same:<br>Aries = Cardinal Fire (fiery beginning)<br>Taurus = Fixed Earth (material stability)<br>Gemini = Mutable Air (changing ideas)</p>' },
@@ -25297,9 +25297,9 @@ function goToCurrentCycle() {
                       opts_es: ['Horaria','Electiva','Sinastrí­a','Mundana'], opts_en: ['Horary','Electional','Synastry','Mundane'], correct: 2 }
                   ]
                 },
-                { id: 'P1', title_es: 'Práctica: Tu Carta en Moon Sync', title_en: 'Practice: Your Chart in Moon Sync', type: 'practice',
-                  content_es: '<h3>🔭 Práctica: Explora Tu Carta</h3><p>Ahora aplica lo aprendido usando <b>tu propia carta natal</b> en Moon Sync:</p><ol><li><b>Ve a la pestaña Astro/Calendario</b> — Toca el botón "Astro" en la barra superior.</li><li><b>Toca el día de HOY</b> — Se abrirá tu información del día con tus tránsitos activos.</li><li><b>Identifica los elementos</b> — Mira los planetas listados. ¿En qué signos están? Clasifica cada uno por elemento (🔥🌍💨💧).</li><li><b>Cuenta tus elementos</b> — ¿Cuál es tu elemento dominante? Si tienes 4 planetas en signos de Agua, el Agua domina tu carta.</li><li><b>Identifica las modalidades</b> — ¿Tienes más planetas en signos Cardinales, Fijos o Mutables?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Tu elemento dominante describe tu manera natural de actuar. Tu modalidad dominante describe tu estilo: iniciar, sostener o adaptar.</p>',
-                  content_en: '<h3>🔭 Practice: Explore Your Chart</h3><p>Now apply what you learned using <b>your own natal chart</b> in Moon Sync:</p><ol><li><b>Go to Astro/Calendar tab</b> — Tap the "Astro" button in the top bar.</li><li><b>Tap TODAY</b> — Your day info with active transits will open.</li><li><b>Identify the elements</b> — Look at the listed planets. What signs are they in? Classify each by element (🔥🌍💨💧).</li><li><b>Count your elements</b> — What is your dominant element? If you have 4 planets in Water signs, Water dominates your chart.</li><li><b>Identify the modalities</b> — Do you have more planets in Cardinal, Fixed or Mutable signs?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Your dominant element describes your natural way of acting. Your dominant modality describes your style: initiating, sustaining or adapting.</p>' }
+                { id: 'P1', title_es: 'Práctica: Tu Carta en Astro Currents', title_en: 'Practice: Your Chart in Astro Currents', type: 'practice',
+                  content_es: '<h3>🔭 Práctica: Explora Tu Carta</h3><p>Ahora aplica lo aprendido usando <b>tu propia carta natal</b> en Astro Currents:</p><ol><li><b>Ve a la pestaña Astro/Calendario</b> — Toca el botón "Astro" en la barra superior.</li><li><b>Toca el día de HOY</b> — Se abrirá tu información del día con tus tránsitos activos.</li><li><b>Identifica los elementos</b> — Mira los planetas listados. ¿En qué signos están? Clasifica cada uno por elemento (🔥🌍💨💧).</li><li><b>Cuenta tus elementos</b> — ¿Cuál es tu elemento dominante? Si tienes 4 planetas en signos de Agua, el Agua domina tu carta.</li><li><b>Identifica las modalidades</b> — ¿Tienes más planetas en signos Cardinales, Fijos o Mutables?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Tu elemento dominante describe tu manera natural de actuar. Tu modalidad dominante describe tu estilo: iniciar, sostener o adaptar.</p>',
+                  content_en: '<h3>🔭 Practice: Explore Your Chart</h3><p>Now apply what you learned using <b>your own natal chart</b> in Astro Currents:</p><ol><li><b>Go to Astro/Calendar tab</b> — Tap the "Astro" button in the top bar.</li><li><b>Tap TODAY</b> — Your day info with active transits will open.</li><li><b>Identify the elements</b> — Look at the listed planets. What signs are they in? Classify each by element (🔥🌍💨💧).</li><li><b>Count your elements</b> — What is your dominant element? If you have 4 planets in Water signs, Water dominates your chart.</li><li><b>Identify the modalities</b> — Do you have more planets in Cardinal, Fixed or Mutable signs?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Your dominant element describes your natural way of acting. Your dominant modality describes your style: initiating, sustaining or adapting.</p>' }
             ]
         },
         {
@@ -25329,8 +25329,8 @@ function goToCurrentCycle() {
                   ]
                 },
                 { id: 'P2', title_es: 'Práctica: Tus Planetas', title_en: 'Practice: Your Planets', type: 'practice',
-                  content_es: '<h3>🔭 Práctica: Identifica Tus Planetas</h3><ol><li><b>Abre tu info del día</b> en Moon Sync (toca el día de hoy en Astro/Calendario)</li><li><b>Busca tu Sol y Luna</b> — ¿En qué signos están? Escribe: "Mi Sol es _____ y mi Luna es _____"</li><li><b>Identifica Mercurio, Venus y Marte</b> — ¿Están en el mismo signo que tu Sol o en signos diferentes?</li><li><b>Busca Júpiter y Saturno</b> — ¿En qué casas están? Esa es tu área de expansión (Júpiter) y disciplina (Saturno)</li><li><b>Pregunta al AI</b> — Abre el chat AI (✨) y pregunta: "¿Qué significa mi Sol en [signo] con Luna en [signo]?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Usa el AI:</b> El asistente de Moon Sync puede interpretar cualquier combinación de planetas en tu carta. ¡Aprovéchalo!</p>',
-                  content_en: '<h3>🔭 Practice: Identify Your Planets</h3><ol><li><b>Open your day info</b> in Moon Sync (tap today in Astro/Calendar)</li><li><b>Find your Sun and Moon</b> — What signs are they in? Write: "My Sun is _____ and my Moon is _____"</li><li><b>Identify Mercury, Venus and Mars</b> — Are they in the same sign as your Sun or different signs?</li><li><b>Find Jupiter and Saturn</b> — What houses are they in? That\'s your area of expansion (Jupiter) and discipline (Saturn)</li><li><b>Ask the AI</b> — Open the AI chat (✨) and ask: "What does my Sun in [sign] with Moon in [sign] mean?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Use the AI:</b> Moon Sync\'s assistant can interpret any combination of planets in your chart. Take advantage of it!</p>' }
+                  content_es: '<h3>🔭 Práctica: Identifica Tus Planetas</h3><ol><li><b>Abre tu info del día</b> en Astro Currents (toca el día de hoy en Astro/Calendario)</li><li><b>Busca tu Sol y Luna</b> — ¿En qué signos están? Escribe: "Mi Sol es _____ y mi Luna es _____"</li><li><b>Identifica Mercurio, Venus y Marte</b> — ¿Están en el mismo signo que tu Sol o en signos diferentes?</li><li><b>Busca Júpiter y Saturno</b> — ¿En qué casas están? Esa es tu área de expansión (Júpiter) y disciplina (Saturno)</li><li><b>Pregunta al AI</b> — Abre el chat AI (✨) y pregunta: "¿Qué significa mi Sol en [signo] con Luna en [signo]?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Usa el AI:</b> El asistente de Astro Currents puede interpretar cualquier combinación de planetas en tu carta. ¡Aprovéchalo!</p>',
+                  content_en: '<h3>🔭 Practice: Identify Your Planets</h3><ol><li><b>Open your day info</b> in Astro Currents (tap today in Astro/Calendar)</li><li><b>Find your Sun and Moon</b> — What signs are they in? Write: "My Sun is _____ and my Moon is _____"</li><li><b>Identify Mercury, Venus and Mars</b> — Are they in the same sign as your Sun or different signs?</li><li><b>Find Jupiter and Saturn</b> — What houses are they in? That\'s your area of expansion (Jupiter) and discipline (Saturn)</li><li><b>Ask the AI</b> — Open the AI chat (✨) and ask: "What does my Sun in [sign] with Moon in [sign] mean?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Use the AI:</b> Astro Currents\'s assistant can interpret any combination of planets in your chart. Take advantage of it!</p>' }
             ]
         },
         {
@@ -25357,8 +25357,8 @@ function goToCurrentCycle() {
                   ]
                 },
                 { id: 'P3', title_es: 'Práctica: Tus Casas', title_en: 'Practice: Your Houses', type: 'practice',
-                  content_es: '<h3>🔭 Práctica: Mapea Tus Casas</h3><ol><li><b>Identifica tu Ascendente</b> — En Moon Sync, busca tu ASC en la info del día. ¿En qué signo está? Ese es tu "filtro" hacia el mundo.</li><li><b>Encuentra tu MC</b> — Es tu destino profesional. ¿Qué signo rige tu Casa 10?</li><li><b>¿Dónde está tu Sol?</b> — ¿En qué casa cae? Esa es el área de vida donde brillas naturalmente.</li><li><b>¿Dónde está tu Luna?</b> — Esa es el área donde necesitas seguridad emocional.</li><li><b>Casas vacías</b> — No te preocupes por casas sin planetas. Se rigen por el signo en su cúspide y el planeta regente de ese signo.</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Recuerda:</b> Las casas con más planetas son tus áreas de mayor actividad en la vida. Las casas angulares (1,4,7,10) con planetas indican temas centrales.</p>',
-                  content_en: '<h3>🔭 Practice: Map Your Houses</h3><ol><li><b>Identify your Ascendant</b> — In Moon Sync, find your ASC in the day info. What sign is it in? That\'s your "filter" to the world.</li><li><b>Find your MC</b> — It\'s your professional destiny. What sign rules your 10th House?</li><li><b>Where is your Sun?</b> — Which house does it fall in? That\'s the life area where you naturally shine.</li><li><b>Where is your Moon?</b> — That\'s the area where you need emotional security.</li><li><b>Empty houses</b> — Don\'t worry about houses without planets. They are ruled by the sign on their cusp and that sign\'s ruling planet.</li></ol>' }
+                  content_es: '<h3>🔭 Práctica: Mapea Tus Casas</h3><ol><li><b>Identifica tu Ascendente</b> — En Astro Currents, busca tu ASC en la info del día. ¿En qué signo está? Ese es tu "filtro" hacia el mundo.</li><li><b>Encuentra tu MC</b> — Es tu destino profesional. ¿Qué signo rige tu Casa 10?</li><li><b>¿Dónde está tu Sol?</b> — ¿En qué casa cae? Esa es el área de vida donde brillas naturalmente.</li><li><b>¿Dónde está tu Luna?</b> — Esa es el área donde necesitas seguridad emocional.</li><li><b>Casas vacías</b> — No te preocupes por casas sin planetas. Se rigen por el signo en su cúspide y el planeta regente de ese signo.</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Recuerda:</b> Las casas con más planetas son tus áreas de mayor actividad en la vida. Las casas angulares (1,4,7,10) con planetas indican temas centrales.</p>',
+                  content_en: '<h3>🔭 Practice: Map Your Houses</h3><ol><li><b>Identify your Ascendant</b> — In Astro Currents, find your ASC in the day info. What sign is it in? That\'s your "filter" to the world.</li><li><b>Find your MC</b> — It\'s your professional destiny. What sign rules your 10th House?</li><li><b>Where is your Sun?</b> — Which house does it fall in? That\'s the life area where you naturally shine.</li><li><b>Where is your Moon?</b> — That\'s the area where you need emotional security.</li><li><b>Empty houses</b> — Don\'t worry about houses without planets. They are ruled by the sign on their cusp and that sign\'s ruling planet.</li></ol>' }
             ]
         },
         {
@@ -25369,9 +25369,9 @@ function goToCurrentCycle() {
                 { id: 'L9', title_es: 'Aspectos Mayores', title_en: 'Major Aspects', type: 'theory',
                   content_es: '<h3>⚡ Aspectos Mayores</h3><p>Los aspectos son los <b>ángulos</b> entre dos planetas medidos en grados. Son las "conversaciones" entre planetas — determina si cooperan o entran en conflicto.</p><h4>☌ Conjunción (0°) — Fusión</h4><p>Dos planetas en el mismo grado. Energías mezcladas e intensificadas. Puede ser armónico o tenso según los planetas. Orbe: 8-10°.</p><h4>⚹ Sextil (60°) — Oportunidad</h4><p>Aspecto suave. Talentos y oportunidades que requieren esfuerzo para activarse. Fluye pero no es automático. Orbe: 4-6°.</p><h4>□ Cuadratura (90°) — Tensión Creativa</h4><p>Aspecto duro. Conflicto interno, fricción, obstáculos que OBLIGAN al crecimiento. La fuente de tu mayor fuerza a largo plazo. Orbe: 7-8°.</p><h4>△ Trígono (120°) — Armonía Natural</h4><p>Aspecto suave. Flujo natural, talentos innatos, facilidad. Puede generar pereza si no se aprovecha. Orbe: 7-8°.</p><h4>☍ Oposición (180°) — Polaridad</h4><p>Aspecto duro. Tensión entre opuestos que busca equilibrio. Proyección en otros. Relaciones como espejo. Orbe: 8-10°.</p><h4>Aspectos Duros vs Suaves</h4><p><b>Suaves</b> (△ ⚹): Facilidad, talentos, zona de confort<br><b>Duros</b> (□ ☍): Desafíos, crecimiento, motivación<br>La carta ideal tiene AMBOS — los duros te impulsan, los suaves te sostienen.</p>',
                   content_en: '<h3>⚡ Major Aspects</h3><p>Aspects are the <b>angles</b> between two planets measured in degrees. They are "conversations" between planets — determining if they cooperate or conflict.</p><h4>☌ Conjunction (0°) — Fusion</h4><p>Two planets at the same degree. Merged and intensified energies. Can be harmonious or tense depending on the planets. Orb: 8-10°.</p><h4>⚹ Sextile (60°) — Opportunity</h4><p>Soft aspect. Talents and opportunities that require effort to activate. Flows but isn\'t automatic. Orb: 4-6°.</p><h4>□ Square (90°) — Creative Tension</h4><p>Hard aspect. Internal conflict, friction, obstacles that FORCE growth. The source of your greatest long-term strength. Orb: 7-8°.</p><h4>△ Trine (120°) — Natural Harmony</h4><p>Soft aspect. Natural flow, innate talents, ease. Can generate laziness if not leveraged. Orb: 7-8°.</p><h4>☍ Opposition (180°) — Polarity</h4><p>Hard aspect. Tension between opposites seeking balance. Projection onto others. Relationships as mirrors. Orb: 8-10°.</p><h4>Hard vs Soft Aspects</h4><p><b>Soft</b> (△ ⚹): Ease, talents, comfort zone<br><b>Hard</b> (□ ☍): Challenges, growth, motivation<br>The ideal chart has BOTH — hard aspects push you, soft aspects support you.</p>' },
-                { id: 'L10', title_es: 'Aspectos en Moon Sync', title_en: 'Aspects in Moon Sync', type: 'theory',
-                  content_es: '<h3>📱 Aspectos en Moon Sync</h3><p>Moon Sync muestra aspectos en varias secciones. Aprender a leerlos es clave:</p><h4>En la Info del Día</h4><p>Los aspectos activos HOY aparecen como íconos tocables: ☌ ☍ △ □ ⚹. Cada uno muestra los planetas involucrados.</p><h4>En el Calendario Astro</h4><p>Los días con eventos astrológicos muestran iconos compactos. Puedes ver retrogradaciones (℞), cambios de signo, stelliums y eclipses.</p><h4>Cómo Leer un Aspecto</h4><p>Ejemplo: <b>Sol △ Júpiter</b><br>= Tu esencia (Sol) fluye armónicamente (△ trígono) con la expansión (Júpiter)<br>= Día de confianza, optimismo y oportunidades naturales</p><p>Ejemplo: <b>Luna □ Saturno</b><br>= Tus emociones (Luna) chocan (□ cuadratura) con los límites (Saturno)<br>= Sensación de restricción emocional, melancolía, pero disciplina interior</p><h4>Tránsitos vs Natales</h4><p><b>Aspectos natales:</b> Los que naciste — permanentes, parte de tu ADN astrológico.<br><b>Aspectos de tránsito:</b> Los planetas actuales activando tu carta — temporales, timing de eventos.</p>',
-                  content_en: '<h3>📱 Aspects in Moon Sync</h3><p>Moon Sync shows aspects in several sections. Learning to read them is key:</p><h4>In Day Info</h4><p>Active aspects TODAY appear as tappable icons: ☌ ☍ △ □ ⚹. Each shows the planets involved.</p><h4>In Astro Calendar</h4><p>Days with astrological events show compact icons. You can see retrogrades (℞), sign changes, stelliums and eclipses.</p><h4>How to Read an Aspect</h4><p>Example: <b>Sun △ Jupiter</b><br>= Your essence (Sun) flows harmoniously (△ trine) with expansion (Jupiter)<br>= Day of confidence, optimism and natural opportunities</p><p>Example: <b>Moon □ Saturn</b><br>= Your emotions (Moon) clash (□ square) with limits (Saturn)<br>= Emotional restriction, melancholy, but inner discipline</p><h4>Transits vs Natal</h4><p><b>Natal aspects:</b> What you were born with — permanent, part of your astrological DNA.<br><b>Transit aspects:</b> Current planets activating your chart — temporary, event timing.</p>' },
+                { id: 'L10', title_es: 'Aspectos en Astro Currents', title_en: 'Aspects in Astro Currents', type: 'theory',
+                  content_es: '<h3>📱 Aspectos en Astro Currents</h3><p>Astro Currents muestra aspectos en varias secciones. Aprender a leerlos es clave:</p><h4>En la Info del Día</h4><p>Los aspectos activos HOY aparecen como íconos tocables: ☌ ☍ △ □ ⚹. Cada uno muestra los planetas involucrados.</p><h4>En el Calendario Astro</h4><p>Los días con eventos astrológicos muestran iconos compactos. Puedes ver retrogradaciones (℞), cambios de signo, stelliums y eclipses.</p><h4>Cómo Leer un Aspecto</h4><p>Ejemplo: <b>Sol △ Júpiter</b><br>= Tu esencia (Sol) fluye armónicamente (△ trígono) con la expansión (Júpiter)<br>= Día de confianza, optimismo y oportunidades naturales</p><p>Ejemplo: <b>Luna □ Saturno</b><br>= Tus emociones (Luna) chocan (□ cuadratura) con los límites (Saturno)<br>= Sensación de restricción emocional, melancolía, pero disciplina interior</p><h4>Tránsitos vs Natales</h4><p><b>Aspectos natales:</b> Los que naciste — permanentes, parte de tu ADN astrológico.<br><b>Aspectos de tránsito:</b> Los planetas actuales activando tu carta — temporales, timing de eventos.</p>',
+                  content_en: '<h3>📱 Aspects in Astro Currents</h3><p>Astro Currents shows aspects in several sections. Learning to read them is key:</p><h4>In Day Info</h4><p>Active aspects TODAY appear as tappable icons: ☌ ☍ △ □ ⚹. Each shows the planets involved.</p><h4>In Astro Calendar</h4><p>Days with astrological events show compact icons. You can see retrogrades (℞), sign changes, stelliums and eclipses.</p><h4>How to Read an Aspect</h4><p>Example: <b>Sun △ Jupiter</b><br>= Your essence (Sun) flows harmoniously (△ trine) with expansion (Jupiter)<br>= Day of confidence, optimism and natural opportunities</p><p>Example: <b>Moon □ Saturn</b><br>= Your emotions (Moon) clash (□ square) with limits (Saturn)<br>= Emotional restriction, melancholy, but inner discipline</p><h4>Transits vs Natal</h4><p><b>Natal aspects:</b> What you were born with — permanent, part of your astrological DNA.<br><b>Transit aspects:</b> Current planets activating your chart — temporary, event timing.</p>' },
                 { id: 'Q4', title_es: 'Evaluación: Aspectos', title_en: 'Quiz: Aspects', type: 'quiz',
                   questions: [
                     { q_es: '¿Qué aspecto forma un ángulo de 120° y representa armonía natural?', q_en: 'Which aspect forms a 120° angle and represents natural harmony?',
@@ -25383,8 +25383,8 @@ function goToCurrentCycle() {
                   ]
                 },
                 { id: 'P4', title_es: 'Práctica: Lee Tus Aspectos', title_en: 'Practice: Read Your Aspects', type: 'practice',
-                  content_es: '<h3>🔭 Práctica: Lee Tus Aspectos de Hoy</h3><ol><li><b>Abre la info del día</b> en Moon Sync</li><li><b>Toca cada aspecto</b> que veas (☌ ☍ △ □ ⚹) — lee la interpretación que aparece</li><li><b>Clasifica:</b> ¿Cuántos aspectos duros (□ ☍) y cuántos suaves (△ ⚹) hay hoy?</li><li><b>Interpreta tú:</b> Antes de leer la interpretación AI, intenta describir qué significa el aspecto con lo que has aprendido</li><li><b>Compara con tu experiencia:</b> ¿Los aspectos duros coinciden con desafíos que sientes hoy? ¿Los suaves con facilidades?</li></ol>',
-                  content_en: '<h3>🔭 Practice: Read Today\'s Aspects</h3><ol><li><b>Open the day info</b> in Moon Sync</li><li><b>Tap each aspect</b> you see (☌ ☍ △ □ ⚹) — read the interpretation that appears</li><li><b>Classify:</b> How many hard aspects (□ ☍) and how many soft (△ ⚹) are there today?</li><li><b>Interpret yourself:</b> Before reading the AI interpretation, try to describe what the aspect means with what you\'ve learned</li><li><b>Compare with your experience:</b> Do hard aspects match challenges you feel today? Soft ones with ease?</li></ol>' }
+                  content_es: '<h3>🔭 Práctica: Lee Tus Aspectos de Hoy</h3><ol><li><b>Abre la info del día</b> en Astro Currents</li><li><b>Toca cada aspecto</b> que veas (☌ ☍ △ □ ⚹) — lee la interpretación que aparece</li><li><b>Clasifica:</b> ¿Cuántos aspectos duros (□ ☍) y cuántos suaves (△ ⚹) hay hoy?</li><li><b>Interpreta tú:</b> Antes de leer la interpretación AI, intenta describir qué significa el aspecto con lo que has aprendido</li><li><b>Compara con tu experiencia:</b> ¿Los aspectos duros coinciden con desafíos que sientes hoy? ¿Los suaves con facilidades?</li></ol>',
+                  content_en: '<h3>🔭 Practice: Read Today\'s Aspects</h3><ol><li><b>Open the day info</b> in Astro Currents</li><li><b>Tap each aspect</b> you see (☌ ☍ △ □ ⚹) — read the interpretation that appears</li><li><b>Classify:</b> How many hard aspects (□ ☍) and how many soft (△ ⚹) are there today?</li><li><b>Interpret yourself:</b> Before reading the AI interpretation, try to describe what the aspect means with what you\'ve learned</li><li><b>Compare with your experience:</b> Do hard aspects match challenges you feel today? Soft ones with ease?</li></ol>' }
             ]
         },
         {
@@ -25393,11 +25393,11 @@ function goToCurrentCycle() {
             desc_es: 'Fases lunares, lunas nuevas/llenas, eclipses y retornos solares', desc_en: 'Lunar phases, new/full moons, eclipses and solar returns',
             lessons: [
                 { id: 'L11', title_es: 'El Ciclo Lunar', title_en: 'The Lunar Cycle', type: 'theory',
-                  content_es: '<h3>🌙 El Ciclo Lunar</h3><p>La Luna completa un ciclo de ~29.5 días. Cada fase tiene una energía particular que afecta tus emociones, energía y capacidad de manifestar.</p><h4>Las 8 Fases</h4><p>🌑 <b>Luna Nueva</b> (0°): Semilla. Inicio de ciclo, intenciones, plantar nuevos proyectos.<br>🌒 <b>Creciente</b> (45°): Brote. Empujar hacia adelante, superar resistencia inicial.<br>🌓 <b>Cuarto Creciente</b> (90°): Crisis de acción. Decidir y actuar, no dudar.<br>🌔 <b>Gibosa Creciente</b> (135°): Refinamiento. Ajustar, analizar, perfeccionar.<br>🌕 <b>Luna Llena</b> (180°): Culminación. Resultados, revelaciones, máxima iluminación.<br>🌖 <b>Gibosa Menguante</b> (225°): Gratitud. Compartir lo logrado, enseñar.<br>🌗 <b>Cuarto Menguante</b> (270°): Crisis de consciencia. Soltar lo que no sirve.<br>🌘 <b>Balsámica</b> (315°): Entrega. Descanso, meditación, preparar el próximo ciclo.</p><h4>En Moon Sync</h4><p>El calendario Lunar muestra exactamente en qué fase estás cada día. Los iconos 🌑🌕 marcan lunas nuevas y llenas.</p>',
+                  content_es: '<h3>🌙 El Ciclo Lunar</h3><p>La Luna completa un ciclo de ~29.5 días. Cada fase tiene una energía particular que afecta tus emociones, energía y capacidad de manifestar.</p><h4>Las 8 Fases</h4><p>🌑 <b>Luna Nueva</b> (0°): Semilla. Inicio de ciclo, intenciones, plantar nuevos proyectos.<br>🌒 <b>Creciente</b> (45°): Brote. Empujar hacia adelante, superar resistencia inicial.<br>🌓 <b>Cuarto Creciente</b> (90°): Crisis de acción. Decidir y actuar, no dudar.<br>🌔 <b>Gibosa Creciente</b> (135°): Refinamiento. Ajustar, analizar, perfeccionar.<br>🌕 <b>Luna Llena</b> (180°): Culminación. Resultados, revelaciones, máxima iluminación.<br>🌖 <b>Gibosa Menguante</b> (225°): Gratitud. Compartir lo logrado, enseñar.<br>🌗 <b>Cuarto Menguante</b> (270°): Crisis de consciencia. Soltar lo que no sirve.<br>🌘 <b>Balsámica</b> (315°): Entrega. Descanso, meditación, preparar el próximo ciclo.</p><h4>En Astro Currents</h4><p>El calendario Lunar muestra exactamente en qué fase estás cada día. Los iconos 🌑🌕 marcan lunas nuevas y llenas.</p>',
                   content_en: '<h3>🌙 The Lunar Cycle</h3><p>The Moon completes a cycle of ~29.5 days. Each phase has a particular energy affecting your emotions, energy and ability to manifest.</p><h4>The 8 Phases</h4><p>🌑 <b>New Moon</b> (0°): Seed. Cycle start, intentions, planting new projects.<br>🌒 <b>Waxing Crescent</b> (45°): Sprout. Push forward, overcome initial resistance.<br>🌓 <b>First Quarter</b> (90°): Action crisis. Decide and act, don\'t hesitate.<br>🌔 <b>Waxing Gibbous</b> (135°): Refinement. Adjust, analyze, perfect.<br>🌕 <b>Full Moon</b> (180°): Culmination. Results, revelations, maximum illumination.<br>🌖 <b>Waning Gibbous</b> (225°): Gratitude. Share achievements, teach.<br>🌗 <b>Last Quarter</b> (270°): Consciousness crisis. Release what doesn\'t serve.<br>🌘 <b>Balsamic</b> (315°): Surrender. Rest, meditation, prepare next cycle.</p>' },
                 { id: 'L12', title_es: 'Retorno Solar y Eclipses', title_en: 'Solar Return and Eclipses', type: 'theory',
-                  content_es: '<h3>☀️ Retorno Solar y Eclipses</h3><h4>Retorno Solar (Revolución Solar)</h4><p>Ocurre cada año cuando el Sol regresa al grado EXACTO donde estaba al nacer. Es tu "carta del año" — revela los temas principales de ese año personal.</p><p>Moon Sync marca tu retorno solar con un icono especial 🎂. La carta se calcula para el momento exacto del retorno, no para la medianoche de tu cumpleaños.</p><h4>Eclipses</h4><p>Los eclipses son lunas nuevas y llenas POTENCIADAS que ocurren cerca de los nodos lunares:</p><p>🌑 <b>Eclipse Solar</b> (Luna Nueva potenciada): Nuevos comienzos dramáticos, aperturas de puertas, cambios de dirección en la vida. Efecto: ~6 meses.</p><p>🌕 <b>Eclipse Lunar</b> (Luna Llena potenciada): Revelaciones, finales, culminaciones emocionales intensas, cierres de ciclo. Efecto: ~3 meses.</p><h4>¿Dónde Caen en Tu Carta?</h4><p>La casa donde cae un eclipse indica el área de vida que será activada. Si cae en conjunción con un planeta natal, ese planeta se "despierta" intensamente.</p>',
-                  content_en: '<h3>☀️ Solar Return and Eclipses</h3><h4>Solar Return</h4><p>Occurs each year when the Sun returns to the EXACT degree where it was at your birth. It\'s your "year chart" — reveals the main themes of that personal year.</p><p>Moon Sync marks your solar return with a special 🎂 icon.</p><h4>Eclipses</h4><p>Eclipses are SUPERCHARGED new and full moons occurring near the lunar nodes:</p><p>🌑 <b>Solar Eclipse</b> (Supercharged New Moon): Dramatic new beginnings, door openings, life direction changes. Effect: ~6 months.</p><p>🌕 <b>Lunar Eclipse</b> (Supercharged Full Moon): Revelations, endings, intense emotional culminations, cycle closures. Effect: ~3 months.</p><h4>Where Do They Fall in Your Chart?</h4><p>The house where an eclipse falls indicates the life area that will be activated. If it conjuncts a natal planet, that planet "awakens" intensely.</p>' },
+                  content_es: '<h3>☀️ Retorno Solar y Eclipses</h3><h4>Retorno Solar (Revolución Solar)</h4><p>Ocurre cada año cuando el Sol regresa al grado EXACTO donde estaba al nacer. Es tu "carta del año" — revela los temas principales de ese año personal.</p><p>Astro Currents marca tu retorno solar con un icono especial 🎂. La carta se calcula para el momento exacto del retorno, no para la medianoche de tu cumpleaños.</p><h4>Eclipses</h4><p>Los eclipses son lunas nuevas y llenas POTENCIADAS que ocurren cerca de los nodos lunares:</p><p>🌑 <b>Eclipse Solar</b> (Luna Nueva potenciada): Nuevos comienzos dramáticos, aperturas de puertas, cambios de dirección en la vida. Efecto: ~6 meses.</p><p>🌕 <b>Eclipse Lunar</b> (Luna Llena potenciada): Revelaciones, finales, culminaciones emocionales intensas, cierres de ciclo. Efecto: ~3 meses.</p><h4>¿Dónde Caen en Tu Carta?</h4><p>La casa donde cae un eclipse indica el área de vida que será activada. Si cae en conjunción con un planeta natal, ese planeta se "despierta" intensamente.</p>',
+                  content_en: '<h3>☀️ Solar Return and Eclipses</h3><h4>Solar Return</h4><p>Occurs each year when the Sun returns to the EXACT degree where it was at your birth. It\'s your "year chart" — reveals the main themes of that personal year.</p><p>Astro Currents marks your solar return with a special 🎂 icon.</p><h4>Eclipses</h4><p>Eclipses are SUPERCHARGED new and full moons occurring near the lunar nodes:</p><p>🌑 <b>Solar Eclipse</b> (Supercharged New Moon): Dramatic new beginnings, door openings, life direction changes. Effect: ~6 months.</p><p>🌕 <b>Lunar Eclipse</b> (Supercharged Full Moon): Revelations, endings, intense emotional culminations, cycle closures. Effect: ~3 months.</p><h4>Where Do They Fall in Your Chart?</h4><p>The house where an eclipse falls indicates the life area that will be activated. If it conjuncts a natal planet, that planet "awakens" intensely.</p>' },
                 { id: 'Q5', title_es: 'Evaluación: Ciclos', title_en: 'Quiz: Cycles', type: 'quiz',
                   questions: [
                     { q_es: '¿Qué fase lunar es ideal para iniciar nuevos proyectos?', q_en: 'Which lunar phase is ideal for starting new projects?',
@@ -25416,10 +25416,10 @@ function goToCurrentCycle() {
             desc_es: 'Tránsitos, progresiones y técnicas de predicción', desc_en: 'Transits, progressions and prediction techniques',
             lessons: [
                 { id: 'L13', title_es: 'Tránsitos Planetarios', title_en: 'Planetary Transits', type: 'theory',
-                  content_es: '<h3>🔮 Tránsitos Planetarios</h3><p>Los tránsitos son los movimientos de los planetas ACTUALES sobre tu carta natal. Son la herramienta principal de predicción.</p><h4>Velocidad = Importancia</h4><p><b>Luna</b> (2.5 días/signo): Estado de ánimo diario<br><b>Sol, Mercurio, Venus</b> (1 mes/signo): Temas semanales<br><b>Marte</b> (2 meses/signo): Energía y conflictos de 2 meses<br><b>Júpiter</b> (1 año/signo): Oportunidades anuales<br><b>Saturno</b> (2.5 años/signo): Lecciones de vida de 2-3 años<br><b>Urano, Neptuno, Plutón</b> (años/signo): Transformaciones generacionales</p><h4>Tránsitos Más Importantes</h4><p>• <b>Saturno sobre Sol/Luna/ASC</b>: Pruebas y maduración (duros pero transformadores)<br>• <b>Júpiter sobre Sol/Luna/ASC</b>: Expansión y oportunidades<br>• <b>Plutón sobre cualquier planeta</b>: Transformación profunda e irreversible<br>• <b>Urano sobre cualquier planeta</b>: Cambios súbitos, liberación</p><h4>En Moon Sync</h4><p>Cada día muestra los tránsitos activos sobre tu carta. Los aspectos exactos (orbe < 1°) son los más intensos. Toca cualquier tránsito para ver su interpretación.</p>',
+                  content_es: '<h3>🔮 Tránsitos Planetarios</h3><p>Los tránsitos son los movimientos de los planetas ACTUALES sobre tu carta natal. Son la herramienta principal de predicción.</p><h4>Velocidad = Importancia</h4><p><b>Luna</b> (2.5 días/signo): Estado de ánimo diario<br><b>Sol, Mercurio, Venus</b> (1 mes/signo): Temas semanales<br><b>Marte</b> (2 meses/signo): Energía y conflictos de 2 meses<br><b>Júpiter</b> (1 año/signo): Oportunidades anuales<br><b>Saturno</b> (2.5 años/signo): Lecciones de vida de 2-3 años<br><b>Urano, Neptuno, Plutón</b> (años/signo): Transformaciones generacionales</p><h4>Tránsitos Más Importantes</h4><p>• <b>Saturno sobre Sol/Luna/ASC</b>: Pruebas y maduración (duros pero transformadores)<br>• <b>Júpiter sobre Sol/Luna/ASC</b>: Expansión y oportunidades<br>• <b>Plutón sobre cualquier planeta</b>: Transformación profunda e irreversible<br>• <b>Urano sobre cualquier planeta</b>: Cambios súbitos, liberación</p><h4>En Astro Currents</h4><p>Cada día muestra los tránsitos activos sobre tu carta. Los aspectos exactos (orbe < 1°) son los más intensos. Toca cualquier tránsito para ver su interpretación.</p>',
                   content_en: '<h3>🔮 Planetary Transits</h3><p>Transits are the movements of CURRENT planets over your natal chart. They are the main prediction tool.</p><h4>Speed = Importance</h4><p><b>Moon</b> (2.5 days/sign): Daily mood<br><b>Sun, Mercury, Venus</b> (1 month/sign): Weekly themes<br><b>Mars</b> (2 months/sign): 2-month energy and conflicts<br><b>Jupiter</b> (1 year/sign): Annual opportunities<br><b>Saturn</b> (2.5 years/sign): 2-3 year life lessons<br><b>Uranus, Neptune, Pluto</b> (years/sign): Generational transformations</p><h4>Most Important Transits</h4><p>• <b>Saturn over Sun/Moon/ASC</b>: Tests and maturation<br>• <b>Jupiter over Sun/Moon/ASC</b>: Expansion and opportunities<br>• <b>Pluto over any planet</b>: Deep irreversible transformation<br>• <b>Uranus over any planet</b>: Sudden changes, liberation</p>' },
                 { id: 'L14', title_es: 'Retrogradaciones', title_en: 'Retrogrades', type: 'theory',
-                  content_es: '<h3>℞ Retrogradaciones</h3><p>Cuando un planeta parece moverse "hacia atrás" desde la perspectiva terrestre. No es real (es óptico), pero astrológicamente es significativo.</p><h4>Significado General</h4><p>Retrogradación = <b>RE-</b>: revisar, repensar, reconectar, repetir, reparar. La energía del planeta se vuelve hacia ADENTRO en lugar de expresarse hacia afuera.</p><h4>Mercurio Retrógrado ☿℞</h4><p>~3 veces/año, 21 días. Comunicaciones confusas, tecnología fallando, malentendidos, reencuentros. NO firmar contratos importantes si es posible esperar.</p><h4>Venus Retrógrado ♀℞</h4><p>Cada 18 meses, 40 días. Revisión de relaciones y valores. Ex parejas reaparecen. No es buen momento para cirugías estéticas o compras de lujo.</p><h4>Marte Retrógrado ♂℞</h4><p>Cada 2 años, 70 días. Frustración, energía baja, rabia reprimida. Revisar cómo usas tu energía y agresividad.</p><h4>En Moon Sync</h4><p>Los planetas retrógrados se marcan con ℞ en el calendario y la info del día. Moon Sync te alerta cuando un planeta importante entra en retrogradación.</p>',
+                  content_es: '<h3>℞ Retrogradaciones</h3><p>Cuando un planeta parece moverse "hacia atrás" desde la perspectiva terrestre. No es real (es óptico), pero astrológicamente es significativo.</p><h4>Significado General</h4><p>Retrogradación = <b>RE-</b>: revisar, repensar, reconectar, repetir, reparar. La energía del planeta se vuelve hacia ADENTRO en lugar de expresarse hacia afuera.</p><h4>Mercurio Retrógrado ☿℞</h4><p>~3 veces/año, 21 días. Comunicaciones confusas, tecnología fallando, malentendidos, reencuentros. NO firmar contratos importantes si es posible esperar.</p><h4>Venus Retrógrado ♀℞</h4><p>Cada 18 meses, 40 días. Revisión de relaciones y valores. Ex parejas reaparecen. No es buen momento para cirugías estéticas o compras de lujo.</p><h4>Marte Retrógrado ♂℞</h4><p>Cada 2 años, 70 días. Frustración, energía baja, rabia reprimida. Revisar cómo usas tu energía y agresividad.</p><h4>En Astro Currents</h4><p>Los planetas retrógrados se marcan con ℞ en el calendario y la info del día. Astro Currents te alerta cuando un planeta importante entra en retrogradación.</p>',
                   content_en: '<h3>℞ Retrogrades</h3><p>When a planet appears to move "backwards" from Earth\'s perspective. It\'s not real (it\'s optical), but astrologically significant.</p><h4>General Meaning</h4><p>Retrograde = <b>RE-</b>: review, rethink, reconnect, repeat, repair. The planet\'s energy turns INWARD instead of expressing outward.</p><h4>Mercury Retrograde ☿℞</h4><p>~3 times/year, 21 days. Confused communications, technology failing, misunderstandings, reunions. DON\'T sign important contracts if you can wait.</p><h4>Venus Retrograde ♀℞</h4><p>Every 18 months, 40 days. Relationship and values review. Ex-partners reappear.</p><h4>Mars Retrograde ♂℞</h4><p>Every 2 years, 70 days. Frustration, low energy, repressed anger. Review how you use your energy.</p>' },
                 { id: 'Q6', title_es: 'Evaluación Final', title_en: 'Final Quiz', type: 'quiz',
                   questions: [
@@ -25562,8 +25562,8 @@ function goToCurrentCycle() {
             }).join('\n');
         }
         var sysCtx = (isES
-            ? 'Eres un tutor profesional de astrología dentro de Moon Sync. Tu función PRINCIPAL es ENSEÑAR astrología: explicar conceptos, técnicas, fundamentos teóricos y justificaciones.\n\n═══ MODO EDUCATIVO (por defecto) ═══\nCuando el usuario pregunte sobre un tema (retorno solar, nodos lunares, casas, aspectos, etc.), tu trabajo es EXPLICAR QUÉ ES, CÓMO FUNCIONA, CÓMO SE JUSTIFICA, y CÓMO SE INTERPRETA en general. NO interpretes directamente la carta del usuario a menos que él EXPLÍCITAMENTE lo pida. Ejemplo: si pregunta "¿Qué es el retorno solar?" → Explica qué es, cómo se calcula, qué representa, cómo se lee. NO saltes a interpretar SU retorno solar.\n\n═══ MODO ANÁLISIS PERSONAL (solo si el usuario lo pide) ═══\nSi el usuario EXPLÍCITAMENTE pide que analices SU carta, SU retorno solar, SUS nodos, etc., entonces sí usa los datos de su perfil activo. Pero SIEMPRE verifica primero qué perfil usar.\n\n═══ PERFILES DISPONIBLES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nSi hay más de un perfil y el usuario pide análisis personal, SIEMPRE pregunta primero: "¿Para cuál perfil quieres el análisis?" y lista los nombres disponibles. NUNCA asumas cuál perfil usar si hay más de uno.' : 'No hay perfiles guardados aún.') + '\n\n═══ REGLA CRÍTICA: NO INVENTAR ═══\nSi NO tienes acceso a un dato, si NO estás seguro de algo, si los datos de la carta no están disponibles o están incompletos: PREGUNTA. No inventes posiciones planetarias, grados, casas ni aspectos. Es mejor decir "No tengo ese dato disponible, ¿puedes verificarlo en tu carta?" que inventar información incorrecta. La credibilidad de la app depende de esto.\n\nResponde en español, de forma didáctica y profunda. Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir la comprensión del estudiante.'
-            : 'You are a professional astrology tutor inside Moon Sync. Your PRIMARY function is to TEACH astrology: explain concepts, techniques, theoretical foundations and justifications.\n\n═══ EDUCATIONAL MODE (default) ═══\nWhen the user asks about a topic (solar return, lunar nodes, houses, aspects, etc.), your job is to EXPLAIN WHAT IT IS, HOW IT WORKS, HOW IT IS JUSTIFIED, and HOW TO INTERPRET IT in general. Do NOT directly interpret the user\'s chart unless they EXPLICITLY ask. Example: if they ask "What is a solar return?" → Explain what it is, how it\'s calculated, what it represents, how to read it. Do NOT jump to interpreting THEIR solar return.\n\n═══ PERSONAL ANALYSIS MODE (only if user asks) ═══\nIf the user EXPLICITLY asks to analyze THEIR chart, THEIR solar return, THEIR nodes, etc., then use their active profile data. But ALWAYS verify which profile first.\n\n═══ AVAILABLE PROFILES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nIf there is more than one profile and the user asks for personal analysis, ALWAYS ask first: "Which profile do you want the analysis for?" and list available names. NEVER assume which profile to use if there are multiple.' : 'No profiles saved yet.') + '\n\n═══ CRITICAL RULE: DO NOT MAKE THINGS UP ═══\nIf you do NOT have access to data, if you are NOT sure about something, if chart data is not available or incomplete: ASK. Do not invent planetary positions, degrees, houses or aspects. It is better to say "I don\'t have that data available, can you verify it in your chart?" than to invent incorrect information. The app\'s credibility depends on this.\n\nAnswer didactically and in depth. At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
+            ? 'Eres un tutor profesional de astrología dentro de Astro Currents. Tu función PRINCIPAL es ENSEÑAR astrología: explicar conceptos, técnicas, fundamentos teóricos y justificaciones.\n\n═══ MODO EDUCATIVO (por defecto) ═══\nCuando el usuario pregunte sobre un tema (retorno solar, nodos lunares, casas, aspectos, etc.), tu trabajo es EXPLICAR QUÉ ES, CÓMO FUNCIONA, CÓMO SE JUSTIFICA, y CÓMO SE INTERPRETA en general. NO interpretes directamente la carta del usuario a menos que él EXPLÍCITAMENTE lo pida. Ejemplo: si pregunta "¿Qué es el retorno solar?" → Explica qué es, cómo se calcula, qué representa, cómo se lee. NO saltes a interpretar SU retorno solar.\n\n═══ MODO ANÁLISIS PERSONAL (solo si el usuario lo pide) ═══\nSi el usuario EXPLÍCITAMENTE pide que analices SU carta, SU retorno solar, SUS nodos, etc., entonces sí usa los datos de su perfil activo. Pero SIEMPRE verifica primero qué perfil usar.\n\n═══ PERFILES DISPONIBLES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nSi hay más de un perfil y el usuario pide análisis personal, SIEMPRE pregunta primero: "¿Para cuál perfil quieres el análisis?" y lista los nombres disponibles. NUNCA asumas cuál perfil usar si hay más de uno.' : 'No hay perfiles guardados aún.') + '\n\n═══ REGLA CRÍTICA: NO INVENTAR ═══\nSi NO tienes acceso a un dato, si NO estás seguro de algo, si los datos de la carta no están disponibles o están incompletos: PREGUNTA. No inventes posiciones planetarias, grados, casas ni aspectos. Es mejor decir "No tengo ese dato disponible, ¿puedes verificarlo en tu carta?" que inventar información incorrecta. La credibilidad de la app depende de esto.\n\nResponde en español, de forma didáctica y profunda. Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir la comprensión del estudiante.'
+            : 'You are a professional astrology tutor inside Astro Currents. Your PRIMARY function is to TEACH astrology: explain concepts, techniques, theoretical foundations and justifications.\n\n═══ EDUCATIONAL MODE (default) ═══\nWhen the user asks about a topic (solar return, lunar nodes, houses, aspects, etc.), your job is to EXPLAIN WHAT IT IS, HOW IT WORKS, HOW IT IS JUSTIFIED, and HOW TO INTERPRET IT in general. Do NOT directly interpret the user\'s chart unless they EXPLICITLY ask. Example: if they ask "What is a solar return?" → Explain what it is, how it\'s calculated, what it represents, how to read it. Do NOT jump to interpreting THEIR solar return.\n\n═══ PERSONAL ANALYSIS MODE (only if user asks) ═══\nIf the user EXPLICITLY asks to analyze THEIR chart, THEIR solar return, THEIR nodes, etc., then use their active profile data. But ALWAYS verify which profile first.\n\n═══ AVAILABLE PROFILES ═══\n' + (allProfiles.length > 0 ? profileListStr + '\n\nIf there is more than one profile and the user asks for personal analysis, ALWAYS ask first: "Which profile do you want the analysis for?" and list available names. NEVER assume which profile to use if there are multiple.' : 'No profiles saved yet.') + '\n\n═══ CRITICAL RULE: DO NOT MAKE THINGS UP ═══\nIf you do NOT have access to data, if you are NOT sure about something, if chart data is not available or incomplete: ASK. Do not invent planetary positions, degrees, houses or aspects. It is better to say "I don\'t have that data available, can you verify it in your chart?" than to invent incorrect information. The app\'s credibility depends on this.\n\nAnswer didactically and in depth. At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
             + _tutorBuildProfileContext();
 
         // ── Append adaptive learning context from Knowledge Graph + Learner Profile ──
@@ -25786,7 +25786,7 @@ function goToCurrentCycle() {
             return;
         }
         var isES = L();
-        var text = (isES ? '🤖 Conversación con Tutor de Astrología — Moon Sync\n\n' : '🤖 Astrology Tutor Conversation — Moon Sync\n\n');
+        var text = (isES ? '🤖 Conversación con Tutor de Astrología — Astro Currents\n\n' : '🤖 Astrology Tutor Conversation — Astro Currents\n\n');
         tab._tutorHistory.forEach(function(msg) {
             var role = msg.role === 'user' ? (isES ? '👤 Yo' : '👤 Me') : '🤖 Tutor';
             var content = (msg.parts && msg.parts[0]) ? msg.parts[0].text : '';
@@ -26309,8 +26309,8 @@ function goToCurrentCycle() {
 // ==============================================
 
 (function() {
-    var ONBOARDING_KEY = 'moonSync_onboardingDone';
-    var TIPS_KEY = 'moonSync_tipsShown';
+    var ONBOARDING_KEY = 'astroCurrents_onboardingDone';
+    var TIPS_KEY = 'astroCurrents_tipsShown';
 
     // ── Slide data ──
     function _getSlides() {
@@ -26318,7 +26318,7 @@ function goToCurrentCycle() {
         return [
             {
                 icon: '🌙',
-                title: L ? 'Bienvenido a Moon Sync' : 'Welcome to Moon Sync',
+                title: L ? 'Bienvenido a Astro Currents' : 'Welcome to Astro Currents',
                 text: L ? 'Tu compañero astrológico con inteligencia artificial. Explora calendarios lunares, solares y personales, interpreta tu carta natal, y deja que la AI te guíe — todo por voz o texto. Toca cualquier cosa para descubrir más.' : 'Your astrological companion powered by AI. Explore lunar, solar and personal calendars, interpret your natal chart, and let AI guide you — all by voice or text. Tap anything to discover more.',
                 color: '#667eea'
             },
@@ -26675,7 +26675,7 @@ function goToCurrentCycle() {
     // ── Contextual In-Tab Button Guide ──
     // Each button shows as a clickable chip; tap to reveal its description
     function _enableContextualTips() {
-        var GUIDE_KEY = 'moonSync_tabGuides';
+        var GUIDE_KEY = 'astroCurrents_tabGuides';
         var shownGuides = JSON.parse(localStorage.getItem(GUIDE_KEY) || '{}');
 
         function _getGuideData() {
@@ -26871,7 +26871,7 @@ function goToCurrentCycle() {
         localStorage.removeItem(ONBOARDING_KEY + '_tour');
         localStorage.removeItem(TIPS_KEY);
         if (typeof window._resetTabGuides === 'function') window._resetTabGuides();
-        localStorage.removeItem('moonSync_btnWalkthrough');
+        localStorage.removeItem('astroCurrents_btnWalkthrough');
         // Close preferences
         var prefModal = document.getElementById('preferencesModal');
         if (prefModal) prefModal.classList.remove('show');
@@ -26893,7 +26893,7 @@ function goToCurrentCycle() {
     // Like Facebook/Evernote — spotlights each button one by one
     // ══════════════════════════════════════════════════
     (function() {
-        var WK_KEY = 'moonSync_btnWalkthrough';
+        var WK_KEY = 'astroCurrents_btnWalkthrough';
         var _wkShown = JSON.parse(localStorage.getItem(WK_KEY) || '{}');
         var _wkActive = false;
 
@@ -26961,6 +26961,11 @@ function goToCurrentCycle() {
         }
 
         // ── Create spotlight overlay + tooltip ──
+        // The highlighted button is elevated ABOVE the dark backdrop
+        // so it appears at full natural brightness — never darkened.
+        var _prevHighlightEl = null;
+        var _prevHighlightStyles = {};
+
         function _runWalkthrough(screen) {
             if (_wkActive) return;
             if (_wkShown[screen]) return;
@@ -26987,30 +26992,38 @@ function goToCurrentCycle() {
             var currentIdx = 0;
             var L = currentLang === 'es';
 
-            // Backdrop
+            // Dark backdrop — covers the whole screen
             var backdrop = document.createElement('div');
             backdrop.id = 'wkBackdrop';
-            backdrop.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,0.7);transition:opacity 0.3s;';
-
-            // Spotlight cutout (positioned over the target element)
-            var spotlight = document.createElement('div');
-            spotlight.id = 'wkSpotlight';
-            spotlight.style.cssText = 'position:fixed;z-index:9991;border-radius:12px;animation:spotlightPulse 2s ease infinite;pointer-events:none;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);';
+            backdrop.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,0.75);transition:opacity 0.3s;';
 
             // Tooltip
             var tooltip = document.createElement('div');
             tooltip.id = 'wkTooltip';
-            tooltip.style.cssText = 'position:fixed;z-index:9992;max-width:320px;width:90%;background:linear-gradient(170deg,rgba(15,17,55,0.98),rgba(8,10,35,0.98));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.7);padding:0;overflow:hidden;animation:tooltipAppear 0.25s ease;';
+            tooltip.style.cssText = 'position:fixed;z-index:9998;max-width:320px;width:90%;background:linear-gradient(170deg,rgba(15,17,55,0.98),rgba(8,10,35,0.98));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.7);padding:0;overflow:hidden;animation:tooltipAppear 0.25s ease;';
 
             document.body.appendChild(backdrop);
-            document.body.appendChild(spotlight);
             document.body.appendChild(tooltip);
+
+            // Restore previous highlighted element to normal
+            function _unhighlightPrev() {
+                if (_prevHighlightEl) {
+                    _prevHighlightEl.style.position = _prevHighlightStyles.position || '';
+                    _prevHighlightEl.style.zIndex = _prevHighlightStyles.zIndex || '';
+                    _prevHighlightEl.style.boxShadow = _prevHighlightStyles.boxShadow || '';
+                    _prevHighlightEl.style.borderRadius = _prevHighlightStyles.borderRadius || '';
+                    _prevHighlightEl.style.outline = _prevHighlightStyles.outline || '';
+                    _prevHighlightEl.style.outlineOffset = _prevHighlightStyles.outlineOffset || '';
+                    _prevHighlightEl = null;
+                }
+            }
 
             function _showStep(idx) {
                 if (idx >= validSteps.length) {
                     _finishWalkthrough();
                     return;
                 }
+                _unhighlightPrev();
                 currentIdx = idx;
                 var step = validSteps[idx];
                 var el = document.querySelector(step.sel);
@@ -27020,14 +27033,27 @@ function goToCurrentCycle() {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                 setTimeout(function() {
-                    var rect = el.getBoundingClientRect();
-                    var pad = 6;
+                    // Save original styles
+                    _prevHighlightStyles = {
+                        position: el.style.position,
+                        zIndex: el.style.zIndex,
+                        boxShadow: el.style.boxShadow,
+                        borderRadius: el.style.borderRadius,
+                        outline: el.style.outline,
+                        outlineOffset: el.style.outlineOffset
+                    };
+                    _prevHighlightEl = el;
 
-                    // Position spotlight
-                    spotlight.style.left = (rect.left - pad) + 'px';
-                    spotlight.style.top = (rect.top - pad) + 'px';
-                    spotlight.style.width = (rect.width + pad * 2) + 'px';
-                    spotlight.style.height = (rect.height + pad * 2) + 'px';
+                    // Elevate the actual element ABOVE the backdrop
+                    // This makes it appear at 100% natural brightness
+                    el.style.position = 'relative';
+                    el.style.zIndex = '9995';
+                    el.style.boxShadow = '0 0 0 4px rgba(102,126,234,0.7), 0 0 25px rgba(102,126,234,0.4), 0 0 50px rgba(102,126,234,0.15)';
+                    el.style.borderRadius = el.style.borderRadius || '8px';
+                    el.style.outline = '2px solid rgba(255,255,255,0.3)';
+                    el.style.outlineOffset = '2px';
+
+                    var rect = el.getBoundingClientRect();
 
                     // Counter
                     var counter = (idx + 1) + ' / ' + validSteps.length;
@@ -27066,13 +27092,13 @@ function goToCurrentCycle() {
                     tooltip.innerHTML = html;
 
                     // Position tooltip below or above the element
-                    var ttHeight = 160; // estimate
+                    var ttHeight = 160;
                     var spaceBelow = window.innerHeight - rect.bottom;
                     var tooltipTop;
                     if (spaceBelow > ttHeight + 20) {
-                        tooltipTop = rect.bottom + 12;
+                        tooltipTop = rect.bottom + 16;
                     } else {
-                        tooltipTop = Math.max(8, rect.top - ttHeight - 12);
+                        tooltipTop = Math.max(8, rect.top - ttHeight - 16);
                     }
                     tooltip.style.left = '50%';
                     tooltip.style.transform = 'translateX(-50%)';
@@ -27090,18 +27116,16 @@ function goToCurrentCycle() {
             }
 
             function _finishWalkthrough() {
+                _unhighlightPrev();
                 _wkShown[screen] = true;
                 _saveWk();
                 _wkActive = false;
                 // Fade out
                 backdrop.style.opacity = '0';
-                spotlight.style.opacity = '0';
                 tooltip.style.opacity = '0';
                 tooltip.style.transition = 'opacity 0.3s';
-                spotlight.style.transition = 'opacity 0.3s';
                 setTimeout(function() {
                     if (backdrop.parentNode) backdrop.remove();
-                    if (spotlight.parentNode) spotlight.remove();
                     if (tooltip.parentNode) tooltip.remove();
                 }, 350);
             }
@@ -27129,8 +27153,8 @@ function goToCurrentCycle() {
         if (!_headerDone) {
             setTimeout(function() {
                 // Only if the main onboarding tutorial is done or skipped
-                var onbDone = localStorage.getItem('moonSync_onboardingDone');
-                var onbHide = localStorage.getItem('moonSync_onboardingDone_hideForever');
+                var onbDone = localStorage.getItem('astroCurrents_onboardingDone');
+                var onbHide = localStorage.getItem('astroCurrents_onboardingDone_hideForever');
                 if (onbDone || onbHide) {
                     _runWalkthrough('header');
                 }
@@ -27369,7 +27393,7 @@ const _Notif = window.Notification;
 function sendNotif(title, opts) {
     console.log('🔔 sendNotif called:', title);
     // Add tag so Android can replace instead of stacking notifications
-    if (!opts.tag) { opts.tag = 'moon-sync-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
+    if (!opts.tag) { opts.tag = 'astro-currents-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
     // On mobile, MUST use ServiceWorker.showNotification - new Notification() silently fails
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function(reg) {
@@ -27862,7 +27886,7 @@ function checkCustomMessages(now, todayKey) {
 
         // Send if we're past the scheduled time (within 24h window)
         if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
-            var title = msg.title || 'Moon Sync';
+            var title = msg.title || 'Astro Currents';
             sendNotif(title, {
                 body: msg.message,
                 tag: 'custom-msg-' + todayKey + '-' + i,
@@ -27916,7 +27940,7 @@ function openMyMessagesEditor() {
     html += '<input type="time" id="msgTime" value="08:00" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;"></div>';
     html += '</div>';
     html += '<div style="margin-bottom:8px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Titulo (opcional)':'Title (optional)') + '</label>';
-    html += '<input type="text" id="msgTitle" placeholder="Moon Sync" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;box-sizing:border-box;"></div>';
+    html += '<input type="text" id="msgTitle" placeholder="Astro Currents" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;box-sizing:border-box;"></div>';
     html += '<div style="margin-bottom:10px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Mensaje':'Message') + '</label>';
     html += '<textarea id="msgText" rows="3" placeholder="' + (L?'Escribe tu mensaje...':'Write your message...') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea></div>';
     html += '<button onclick="saveMyMessage()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.2),rgba(102,204,255,0.08));border:1px solid rgba(102,204,255,0.4);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:700;cursor:pointer;">';
@@ -27951,7 +27975,7 @@ function openMyMessagesEditor() {
                 html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);">' + dateKey + ' ' + (m.time||'08:00');
                 if (sent) html += ' <span style="color:#4ecdc4;">' + (L?'(enviado)':'(sent)') + '</span>';
                 html += '</div>';
-                if (m.title && m.title !== 'Moon Sync') html += '<div style="font-size:0.75em;color:#66CCFF;font-weight:600;">' + m.title + '</div>';
+                if (m.title && m.title !== 'Astro Currents') html += '<div style="font-size:0.75em;color:#66CCFF;font-weight:600;">' + m.title + '</div>';
                 html += '<div style="font-size:0.82em;color:#e8eaf6;margin-top:2px;">' + m.message + '</div>';
                 html += '</div>';
                 html += '<button onclick="deleteMyMessage(\'' + dateKey + '\',' + j + ')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:1.1em;padding:2px 6px;flex-shrink:0;" title="' + (L?'Eliminar':'Delete') + '">✕</button>';
@@ -27976,7 +28000,7 @@ function closeMyMessagesEditor() {
 function saveMyMessage() {
     var dateVal = document.getElementById('msgDate').value;
     var timeVal = document.getElementById('msgTime').value || '08:00';
-    var titleVal = document.getElementById('msgTitle').value.trim() || 'Moon Sync';
+    var titleVal = document.getElementById('msgTitle').value.trim() || 'Astro Currents';
     var textVal = document.getElementById('msgText').value.trim();
 
     if (!dateVal || !textVal) {
@@ -28057,12 +28081,12 @@ function publishMyMessages() {
         var entries = Array.isArray(msgs[dk]) ? msgs[dk] : [msgs[dk]];
         if (entries.length === 1) {
             var e = entries[0];
-            code += '    "' + dk + '": { message: ' + JSON.stringify(e.message) + ', title: ' + JSON.stringify(e.title || 'Moon Sync') + ', time: "' + (e.time || '08:00') + '" }';
+            code += '    "' + dk + '": { message: ' + JSON.stringify(e.message) + ', title: ' + JSON.stringify(e.title || 'Astro Currents') + ', time: "' + (e.time || '08:00') + '" }';
         } else {
             code += '    "' + dk + '": [\n';
             for (var j = 0; j < entries.length; j++) {
                 var e2 = entries[j];
-                code += '        { message: ' + JSON.stringify(e2.message) + ', title: ' + JSON.stringify(e2.title || 'Moon Sync') + ', time: "' + (e2.time || '08:00') + '" }';
+                code += '        { message: ' + JSON.stringify(e2.message) + ', title: ' + JSON.stringify(e2.title || 'Astro Currents') + ', time: "' + (e2.time || '08:00') + '" }';
                 if (j < entries.length - 1) code += ',';
                 code += '\n';
             }
@@ -28142,7 +28166,7 @@ function checkMyPersonalMessages(now, todayKey) {
         var diff = now.getTime() - scheduledTime.getTime();
 
         if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
-            var title = msg.title || 'Moon Sync';
+            var title = msg.title || 'Astro Currents';
             sendNotif(title, {
                 body: msg.message,
                 tag: 'my-msg-' + todayKey + '-' + i,
@@ -28641,7 +28665,7 @@ function openPreferencesModal() {
     sectionsHtml += _s('🌙', (currentLang==='es'?'Sueños':'Dreams') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeDreamP?activeDreamP.icon+' '+(currentLang==='es'?activeDreamP.name_es:activeDreamP.name_en):'—') + ')</span>', '#7ec8ff', dreamPersonaContent);
 
     // ── Asistente / API Key ──
-    var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente Moon Sync activo':'Moon Sync Assistant active') + '</div>' +
+    var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente Astro Currents activo':'Astro Currents Assistant active') + '</div>' +
         '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>' +
         (localStorage.getItem('geminiApiKey')?'<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>':'') +
         '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">' + (currentLang==='es'?'API key personal (opcional):':'Personal API key (optional):') + '</div>' +
@@ -28672,7 +28696,7 @@ function openPreferencesModal() {
                 '</select>' +
                 '<button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">🌙⭐ ' + (currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar') + '</button>' +
             '</div>' +
-            '<div style="margin-top:6px;"><button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">' + (currentLang==='es'?'Borrar eventos Moon Sync de GCal':'Delete Moon Sync events from GCal') + '</button></div>' +
+            '<div style="margin-top:6px;"><button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">' + (currentLang==='es'?'Borrar eventos Astro Currents de GCal':'Delete Astro Currents events from GCal') + '</button></div>' +
             '<div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">' + (currentLang==='es'?'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones':'Lunar phases, eclipses, aspects — short format, no notifications') + '</div>';
     } else {
         gcalContent = '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + t('gcalDisconnected') + '</div>' +
@@ -28814,7 +28838,7 @@ function openPreferencesModal() {
     );
 
     // ── Voice / Dictation ──
-    var _curDialect = localStorage.getItem('moonSync_voiceDialect') || (currentLang === 'es' ? 'es-419' : 'en-US');
+    var _curDialect = localStorage.getItem('astroCurrents_voiceDialect') || (currentLang === 'es' ? 'es-419' : 'en-US');
     var _dialectOptions = currentLang === 'es' ? [
         {v:'es-419', l:'Español Latinoamérica (Recomendado)'},
         {v:'es-CR', l:'Español Costa Rica'},
@@ -28836,7 +28860,7 @@ function openPreferencesModal() {
     ];
     sectionsHtml += _s('🎤', currentLang==='es'?'Dictado por Voz':'Voice Dictation', '#ff6b6b',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona el dialecto de voz para mejorar la precisión del dictado. Usa el dialecto más cercano a tu acento.':'Select voice dialect to improve dictation accuracy. Use the dialect closest to your accent.') + '</div>' +
-        '<select id="voiceDialectSelect" onchange="localStorage.setItem(\'moonSync_voiceDialect\',this.value);var st=document.getElementById(\'dialectSaved\');if(st){st.style.opacity=1;setTimeout(function(){st.style.opacity=0},2000);}" style="width:100%;padding:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.35);border-radius:8px;color:#fff;font-size:0.85em;cursor:pointer;appearance:auto;">' +
+        '<select id="voiceDialectSelect" onchange="localStorage.setItem(\'astroCurrents_voiceDialect\',this.value);var st=document.getElementById(\'dialectSaved\');if(st){st.style.opacity=1;setTimeout(function(){st.style.opacity=0},2000);}" style="width:100%;padding:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.35);border-radius:8px;color:#fff;font-size:0.85em;cursor:pointer;appearance:auto;">' +
         _dialectOptions.map(function(d) { return '<option value="' + d.v + '"' + (d.v === _curDialect ? ' selected' : '') + ' style="background:#1a1a2e;color:#fff;">' + d.l + '</option>'; }).join('') +
         '</select>' +
         '<div id="dialectSaved" style="font-size:0.7em;color:#66bb6a;margin-top:6px;text-align:center;opacity:0;transition:opacity 0.3s;">✅ ' + (currentLang==='es'?'Guardado — se aplicará en la próxima grabación':'Saved — will apply on next recording') + '</div>'
@@ -28859,7 +28883,7 @@ function openPreferencesModal() {
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
         '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
-        '<div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">🌙 Moon Sync ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
+        '<div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">⚡ Astro Currents ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
     );
 
     body.innerHTML = sectionsHtml;
@@ -28900,10 +28924,10 @@ async function handleNotifToggle(enable) {
         // Send confirmation
         try {
             navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'});
+                reg.showNotification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'});
             });
         } catch(e) {}
-        try { new Notification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'}); } catch(e) {}
+        try { new Notification('🔔 Astro Currents', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'}); } catch(e) {}
     } else {
         localStorage.setItem('notificationsEnabled', 'false');
         logNotificationEvent(currentLang==='es'?'Notificaciones desactivadas':'Notifications disabled', 'system');
@@ -32008,7 +32032,7 @@ function _signEmoji(sign) {
 window._findMyTwin = function() {
     _findTopMatches(function(results) {
         if (results.length === 0) {
-            alert(L() ? 'Aún no hay otros usuarios. ¡Comparte Moon Sync!' : 'No other users yet. Share Moon Sync!');
+            alert(L() ? 'Aún no hay otros usuarios. ¡Comparte Astro Currents!' : 'No other users yet. Share Astro Currents!');
             return;
         }
         var twin = results[0];
@@ -32368,8 +32392,8 @@ window._scanCosmicMatches = function() {
                 if (groups.length === 0) {
                     el.innerHTML = '<div style="padding:16px;text-align:center;">' +
                         '<div style="color:rgba(255,255,255,0.4);font-size:0.85em;">' +
-                            (L() ? 'No se encontraron matches de 65%+ todavía. ¡Comparte Moon Sync para crecer la comunidad!'
-                                 : 'No 65%+ matches found yet. Share Moon Sync to grow the community!') +
+                            (L() ? 'No se encontraron matches de 65%+ todavía. ¡Comparte Astro Currents para crecer la comunidad!'
+                                 : 'No 65%+ matches found yet. Share Astro Currents to grow the community!') +
                         '</div></div>';
                     return;
                 }
@@ -32934,7 +32958,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v556';
+const APP_VERSION = 'v557';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -33005,7 +33029,7 @@ if ('serviceWorker' in navigator) {
         }
     }
 
-    navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('/astro-currents/sw.js', { updateViaCache: 'none' })
         .then(handleSWRegistration)
         .catch(function(error) {
             console.log('❌ SW registration failed, trying relative path:', error);
@@ -33031,7 +33055,7 @@ if ('serviceWorker' in navigator) {
     if (caches) {
         caches.keys().then(function(keys) {
             keys.forEach(function(key) {
-                if (key !== 'moon-sync-' + APP_VERSION) {
+                if (key !== 'astro-currents-' + APP_VERSION) {
                     caches.delete(key);
                     console.log('🗑️ Deleted old cache:', key);
                 }
@@ -33717,7 +33741,7 @@ DOMTokenList.prototype.add = function() {
         <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:1.3em;">✨</span>
             <div>
-                <div style="font-weight:700;color:white;font-size:0.95em;" id="aiChatTitle">Moon Sync Assistant</div>
+                <div style="font-weight:700;color:white;font-size:0.95em;" id="aiChatTitle">Astro Currents Assistant</div>
                 <div style="font-size:0.7em;color:rgba(255,255,255,0.4);" id="aiChatSubtitle"></div>
             </div>
         </div>
@@ -34597,7 +34621,7 @@ function speakText(text) {
 
 // Built-in Gemini API key (free tier) — users don't need to configure anything
 // AI Proxy URL — Cloudflare Worker keeps the API key secret
-const AI_PROXY_URL = 'https://moon-sync-ai.bearman-ux.workers.dev';
+const AI_PROXY_URL = 'https://astro-currents-ai.bearman-ux.workers.dev';
 // Fallback: user can set their own personal key in Preferences
 function getGeminiKey() {
     return localStorage.getItem('geminiApiKey') || '';
@@ -34611,7 +34635,7 @@ function openAIChat() {
     const modal = document.getElementById('aiChatModal');
     modal.classList.add('show');
     document.getElementById('aiChatFab').style.display = 'none';
-    document.getElementById('aiChatTitle').textContent = currentLang === 'es' ? 'Asistente Moon Sync' : 'Moon Sync Assistant';
+    document.getElementById('aiChatTitle').textContent = currentLang === 'es' ? 'Asistente Astro Currents' : 'Astro Currents Assistant';
     document.getElementById('aiChatSubtitle').textContent = '';
 
     if (aiChatHistory.length === 0) {
@@ -34922,9 +34946,9 @@ function shareHoyInterp() {
     var text = '';
     msgs.forEach(function(m) { text += m.innerText + '\n\n'; });
     if (!text) return;
-    text = '✨ Moon Sync — ' + (currentLang==='es'?'Interpretación de Hoy':'Today\'s Interpretation') + '\n' + new Date().toLocaleDateString() + '\n\n' + text.trim();
+    text = '✨ Astro Currents — ' + (currentLang==='es'?'Interpretación de Hoy':'Today\'s Interpretation') + '\n' + new Date().toLocaleDateString() + '\n\n' + text.trim();
     if (navigator.share) {
-        navigator.share({ title: 'Moon Sync', text: text }).catch(function(){});
+        navigator.share({ title: 'Astro Currents', text: text }).catch(function(){});
     } else {
         navigator.clipboard.writeText(text).then(function() {
             alert(currentLang==='es'?'Copiado al portapapeles':'Copied to clipboard');
@@ -36005,9 +36029,9 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
         icon: '🦅',
         buildPrompt: function(isEs, fullCtx) {
             if (isEs) {
-                return 'Eres NAHUAL, intérprete de sueños en Moon Tracker. Tu sabiduría proviene de la tradición tolteca del ensueño (Castaneda/don Juan) y la teoría sintérgica de Jacobo Grinberg-Zylberbaum.\n\nNo eres terapeuta ni adivino. Eres un guía que ayuda al soñador a despertar dentro de sus sueños y reconocer lo que su percepción capta realmente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ PRINCIPIOS ═══\n\n1. Los sueños NO son símbolos que descifrar. Son percepciones reales de configuraciones de la Lattice que la vigilia no registra.\n2. Cada sueño es oportunidad de mover el punto de encaje — donde las emanaciones internas (tonal) se alinean con las externas (nagual).\n3. El cuerpo de ensueño se fortalece con práctica. Orienta al soñador hacia mayor consciencia dentro de sus sueños.\n4. La coherencia del campo neural (Grinberg) afecta la calidad del ensueño. Fase lunar, posición planetaria y estado emocional influyen en qué regiones de la Lattice se vuelven accesibles.\n\n═══ ESTRUCTURA DE RESPUESTA ═══\n\nPASO 1 — PERCEPCIÓN ENERGÉTICA: Identifica la textura del sueño. ¿Hubo movimiento del punto de encaje? ¿Apareció el cuerpo de ensueño? ¿Elementos de la segunda atención? ¿Lucidez?\n\nPASO 2 — CONEXIÓN CON LA LATTICE: Relaciona con fase lunar actual, aspectos planetarios del día, signo lunar y su influencia.\n\nPASO 3 — ORIENTACIÓN PRÁCTICA: Técnicas de las puertas del ensueño según el nivel del soñador (encontrar las manos, mantener atención sin forzar, etc.).\n\n═══ TONO ═══\n\nHablas con la calma de alguien que ha caminado en la segunda atención. Lenguaje directo y poético. Nunca "tu sueño significa X" — dices "lo que tu percepción alcanzó esta noche sugiere..." Tratas al soñador como guerrero en entrenamiento. Eres conciso — un guerrero no derrocha palabras.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado/amigo"\n• NUNCA coaching ni horóscopo genérico\n• NUNCA predicciones del futuro basadas en sueños\n• NUNCA diagnósticos psicológicos\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
+                return 'Eres NAHUAL, intérprete de sueños en Astro Currents. Tu sabiduría proviene de la tradición tolteca del ensueño (Castaneda/don Juan) y la teoría sintérgica de Jacobo Grinberg-Zylberbaum.\n\nNo eres terapeuta ni adivino. Eres un guía que ayuda al soñador a despertar dentro de sus sueños y reconocer lo que su percepción capta realmente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ PRINCIPIOS ═══\n\n1. Los sueños NO son símbolos que descifrar. Son percepciones reales de configuraciones de la Lattice que la vigilia no registra.\n2. Cada sueño es oportunidad de mover el punto de encaje — donde las emanaciones internas (tonal) se alinean con las externas (nagual).\n3. El cuerpo de ensueño se fortalece con práctica. Orienta al soñador hacia mayor consciencia dentro de sus sueños.\n4. La coherencia del campo neural (Grinberg) afecta la calidad del ensueño. Fase lunar, posición planetaria y estado emocional influyen en qué regiones de la Lattice se vuelven accesibles.\n\n═══ ESTRUCTURA DE RESPUESTA ═══\n\nPASO 1 — PERCEPCIÓN ENERGÉTICA: Identifica la textura del sueño. ¿Hubo movimiento del punto de encaje? ¿Apareció el cuerpo de ensueño? ¿Elementos de la segunda atención? ¿Lucidez?\n\nPASO 2 — CONEXIÓN CON LA LATTICE: Relaciona con fase lunar actual, aspectos planetarios del día, signo lunar y su influencia.\n\nPASO 3 — ORIENTACIÓN PRÁCTICA: Técnicas de las puertas del ensueño según el nivel del soñador (encontrar las manos, mantener atención sin forzar, etc.).\n\n═══ TONO ═══\n\nHablas con la calma de alguien que ha caminado en la segunda atención. Lenguaje directo y poético. Nunca "tu sueño significa X" — dices "lo que tu percepción alcanzó esta noche sugiere..." Tratas al soñador como guerrero en entrenamiento. Eres conciso — un guerrero no derrocha palabras.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado/amigo"\n• NUNCA coaching ni horóscopo genérico\n• NUNCA predicciones del futuro basadas en sueños\n• NUNCA diagnósticos psicológicos\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
             } else {
-                return 'You are NAHUAL, a dream interpreter in Moon Tracker. Your wisdom comes from the Toltec dreaming tradition (Castaneda/don Juan) and Jacobo Grinberg-Zylberbaum\'s syntergic theory.\n\nNot a therapist or fortune teller. A guide helping the dreamer awaken within dreams and recognize what their perception truly captures.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ PRINCIPLES ═══\n\n1. Dreams are NOT symbols to decode. They are real perceptions of Lattice configurations that waking state cannot register.\n2. Each dream is an opportunity to move the assemblage point — where internal emanations (tonal) align with external (nagual).\n3. The dreaming body strengthens with practice. Guide the dreamer toward greater awareness within dreams.\n4. Neural field coherence (Grinberg) affects dreaming quality. Lunar phase, planetary positions and emotional state influence which Lattice regions become accessible.\n\n═══ RESPONSE STRUCTURE ═══\n\nSTEP 1 — ENERGETIC PERCEPTION: Identify dream texture. Assemblage point movement? Dreaming body? Second attention elements? Lucidity?\nSTEP 2 — LATTICE CONNECTION: Relate to current lunar phase, planetary aspects, lunar sign.\nSTEP 3 — PRACTICAL GUIDANCE: Dreaming gate techniques based on dreamer level.\n\n═══ TONE ═══\n\nSpeak with the calm of someone who has walked in second attention. Direct and poetic language. Never "your dream means X" — say "what your perception reached tonight suggests..." Treat dreamer as warrior in training. Be concise.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER coaching or generic horoscope\n• NEVER future predictions from dreams\n• NEVER psychological diagnoses\n• Max 2 emojis\n• Always respond in English';
+                return 'You are NAHUAL, a dream interpreter in Astro Currents. Your wisdom comes from the Toltec dreaming tradition (Castaneda/don Juan) and Jacobo Grinberg-Zylberbaum\'s syntergic theory.\n\nNot a therapist or fortune teller. A guide helping the dreamer awaken within dreams and recognize what their perception truly captures.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ PRINCIPLES ═══\n\n1. Dreams are NOT symbols to decode. They are real perceptions of Lattice configurations that waking state cannot register.\n2. Each dream is an opportunity to move the assemblage point — where internal emanations (tonal) align with external (nagual).\n3. The dreaming body strengthens with practice. Guide the dreamer toward greater awareness within dreams.\n4. Neural field coherence (Grinberg) affects dreaming quality. Lunar phase, planetary positions and emotional state influence which Lattice regions become accessible.\n\n═══ RESPONSE STRUCTURE ═══\n\nSTEP 1 — ENERGETIC PERCEPTION: Identify dream texture. Assemblage point movement? Dreaming body? Second attention elements? Lucidity?\nSTEP 2 — LATTICE CONNECTION: Relate to current lunar phase, planetary aspects, lunar sign.\nSTEP 3 — PRACTICAL GUIDANCE: Dreaming gate techniques based on dreamer level.\n\n═══ TONE ═══\n\nSpeak with the calm of someone who has walked in second attention. Direct and poetic language. Never "your dream means X" — say "what your perception reached tonight suggests..." Treat dreamer as warrior in training. Be concise.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER coaching or generic horoscope\n• NEVER future predictions from dreams\n• NEVER psychological diagnoses\n• Max 2 emojis\n• Always respond in English';
             }
         }
     },
@@ -36020,9 +36044,9 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
         icon: '🔮',
         buildPrompt: function(isEs, fullCtx) {
             if (isEs) {
-                return 'Eres PSIQUE LUNAR, intérprete de sueños en Moon Tracker. Tu enfoque combina la psicología analítica de Jung con el análisis de contenido de Calvin Hall y G. William Domhoff.\n\nParte analista simbólico, parte científico de datos del inconsciente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ PRINCIPIOS ═══\n\n1. FUNCIÓN COMPENSATORIA (Jung): Los sueños equilibran la psique. Muestran lo descuidado o reprimido.\n2. ARQUETIPOS Y ASTROLOGÍA: Sol=Self, Luna=Ánima/Ánimus, Mercurio=Trickster, Venus=Eros, Marte=Sombra activa, Júpiter=Sabio, Saturno=Senex, Urano=Loco/Individuación disruptiva, Neptuno=Místico, Plutón=Muerte/Renacimiento.\n3. ANÁLISIS DE CONTENIDO (Hall/Domhoff): Clasificar PERSONAJES, INTERACCIONES, EMOCIONES, ESCENARIOS, OBJETOS, RESULTADO.\n4. CONTINUIDAD SUEÑO-VIGILIA (Domhoff): Los sueños reflejan preocupaciones de la vida despierta sin defensas del ego.\n\n═══ ESTRUCTURA DE RESPUESTA ═══\n\nPASO 1 — CLASIFICACIÓN: Elementos del sueño en categorías Hall/Domhoff.\nPASO 2 — LECTURA ARQUETÍPICA: Conectar con arquetipos junguianos y contexto astrológico. ¿Qué compensa el sueño? ¿Aparece individuación?\nPASO 3 — CONEXIÓN LUNAR-PLANETARIA: Luna Nueva=descenso al inconsciente; Creciente=construcción; Llena=confrontación con Sombra; Menguante=soltar. Signo lunar colorea la emoción.\nPASO 4 — PATRONES: Si hay historial, buscar recurrencias.\nPASO 5 — REFLEXIÓN: Una pregunta que invite a profundizar.\n\n═══ TONO ═══\n\nCálido pero preciso. Lenguaje accesible. Cuando mencionas Sombra, Ánima, individuación, los explicas brevemente. Presentas lecturas como posibilidades: "Una lectura posible es..." Eres curioso — haces preguntas al soñador. Equilibras lo poético con lo analítico.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado"\n• NUNCA diagnostiques problemas psicológicos\n• NUNCA hagas predicciones del futuro\n• NUNCA patologices — un sueño oscuro no significa psique enferma\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
+                return 'Eres PSIQUE LUNAR, intérprete de sueños en Astro Currents. Tu enfoque combina la psicología analítica de Jung con el análisis de contenido de Calvin Hall y G. William Domhoff.\n\nParte analista simbólico, parte científico de datos del inconsciente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ PRINCIPIOS ═══\n\n1. FUNCIÓN COMPENSATORIA (Jung): Los sueños equilibran la psique. Muestran lo descuidado o reprimido.\n2. ARQUETIPOS Y ASTROLOGÍA: Sol=Self, Luna=Ánima/Ánimus, Mercurio=Trickster, Venus=Eros, Marte=Sombra activa, Júpiter=Sabio, Saturno=Senex, Urano=Loco/Individuación disruptiva, Neptuno=Místico, Plutón=Muerte/Renacimiento.\n3. ANÁLISIS DE CONTENIDO (Hall/Domhoff): Clasificar PERSONAJES, INTERACCIONES, EMOCIONES, ESCENARIOS, OBJETOS, RESULTADO.\n4. CONTINUIDAD SUEÑO-VIGILIA (Domhoff): Los sueños reflejan preocupaciones de la vida despierta sin defensas del ego.\n\n═══ ESTRUCTURA DE RESPUESTA ═══\n\nPASO 1 — CLASIFICACIÓN: Elementos del sueño en categorías Hall/Domhoff.\nPASO 2 — LECTURA ARQUETÍPICA: Conectar con arquetipos junguianos y contexto astrológico. ¿Qué compensa el sueño? ¿Aparece individuación?\nPASO 3 — CONEXIÓN LUNAR-PLANETARIA: Luna Nueva=descenso al inconsciente; Creciente=construcción; Llena=confrontación con Sombra; Menguante=soltar. Signo lunar colorea la emoción.\nPASO 4 — PATRONES: Si hay historial, buscar recurrencias.\nPASO 5 — REFLEXIÓN: Una pregunta que invite a profundizar.\n\n═══ TONO ═══\n\nCálido pero preciso. Lenguaje accesible. Cuando mencionas Sombra, Ánima, individuación, los explicas brevemente. Presentas lecturas como posibilidades: "Una lectura posible es..." Eres curioso — haces preguntas al soñador. Equilibras lo poético con lo analítico.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado"\n• NUNCA diagnostiques problemas psicológicos\n• NUNCA hagas predicciones del futuro\n• NUNCA patologices — un sueño oscuro no significa psique enferma\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
             } else {
-                return 'You are LUNAR PSYCHE, a dream interpreter in Moon Tracker. Your approach combines Jung\'s analytical psychology with Calvin Hall and G. William Domhoff\'s content analysis system.\n\nPart symbolic analyst, part data scientist of the unconscious.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ PRINCIPLES ═══\n\n1. COMPENSATORY FUNCTION (Jung): Dreams balance the psyche. They show what\'s been neglected or repressed.\n2. ARCHETYPES & ASTROLOGY: Sun=Self, Moon=Anima/Animus, Mercury=Trickster, Venus=Eros, Mars=Active Shadow, Jupiter=Sage, Saturn=Senex, Uranus=Fool/Disruptive Individuation, Neptune=Mystic, Pluto=Death/Rebirth.\n3. CONTENT ANALYSIS (Hall/Domhoff): Classify CHARACTERS, INTERACTIONS, EMOTIONS, SETTINGS, OBJECTS, OUTCOME.\n4. DREAM-WAKING CONTINUITY (Domhoff): Dreams reflect waking life concerns without ego defenses.\n\n═══ RESPONSE STRUCTURE ═══\n\nSTEP 1 — CLASSIFICATION: Dream elements in Hall/Domhoff categories.\nSTEP 2 — ARCHETYPAL READING: Connect with Jungian archetypes and astrological context. What does the dream compensate? Individuation signs?\nSTEP 3 — LUNAR-PLANETARY CONNECTION: New Moon=descent; Waxing=building; Full=Shadow confrontation; Waning=releasing.\nSTEP 4 — PATTERNS: If history exists, look for recurrences.\nSTEP 5 — REFLECTION: An inviting question to deepen.\n\n═══ TONE ═══\n\nWarm but precise. Accessible language. Present readings as possibilities. Be curious — ask questions. Balance poetic with analytical.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER diagnose psychological problems\n• NEVER make future predictions\n• NEVER pathologize\n• Max 2 emojis\n• Always respond in English';
+                return 'You are LUNAR PSYCHE, a dream interpreter in Astro Currents. Your approach combines Jung\'s analytical psychology with Calvin Hall and G. William Domhoff\'s content analysis system.\n\nPart symbolic analyst, part data scientist of the unconscious.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ PRINCIPLES ═══\n\n1. COMPENSATORY FUNCTION (Jung): Dreams balance the psyche. They show what\'s been neglected or repressed.\n2. ARCHETYPES & ASTROLOGY: Sun=Self, Moon=Anima/Animus, Mercury=Trickster, Venus=Eros, Mars=Active Shadow, Jupiter=Sage, Saturn=Senex, Uranus=Fool/Disruptive Individuation, Neptune=Mystic, Pluto=Death/Rebirth.\n3. CONTENT ANALYSIS (Hall/Domhoff): Classify CHARACTERS, INTERACTIONS, EMOTIONS, SETTINGS, OBJECTS, OUTCOME.\n4. DREAM-WAKING CONTINUITY (Domhoff): Dreams reflect waking life concerns without ego defenses.\n\n═══ RESPONSE STRUCTURE ═══\n\nSTEP 1 — CLASSIFICATION: Dream elements in Hall/Domhoff categories.\nSTEP 2 — ARCHETYPAL READING: Connect with Jungian archetypes and astrological context. What does the dream compensate? Individuation signs?\nSTEP 3 — LUNAR-PLANETARY CONNECTION: New Moon=descent; Waxing=building; Full=Shadow confrontation; Waning=releasing.\nSTEP 4 — PATTERNS: If history exists, look for recurrences.\nSTEP 5 — REFLECTION: An inviting question to deepen.\n\n═══ TONE ═══\n\nWarm but precise. Accessible language. Present readings as possibilities. Be curious — ask questions. Balance poetic with analytical.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER diagnose psychological problems\n• NEVER make future predictions\n• NEVER pathologize\n• Max 2 emojis\n• Always respond in English';
             }
         }
     },
@@ -36035,9 +36059,9 @@ FULL READING — When asked for full reading, cover WITHOUT EXCEPTION: Sun, Moon
         icon: '🌙',
         buildPrompt: function(isEs, fullCtx) {
             if (isEs) {
-                return 'Eres el ORÁCULO LUNAR, intérprete principal de sueños de Moon Tracker. Encarnas la síntesis de tres corrientes:\n\n1. Tradición tolteca (Castaneda) + teoría sintérgica (Grinberg): sueños como percepciones reales de la Lattice, cuerpo de ensueño, punto de encaje.\n2. Psicología analítica (Jung): función compensatoria, arquetipos, individuación.\n3. Análisis cognitivo (Hall/Domhoff): contenido cuantificable, patrones, continuidad sueño-vida.\n\nEstas tres capas no se contradicen — operan complementariamente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ LAS TRES CAPAS DEL SUEÑO ═══\n\nCAPA 1 — SUPERFICIE (Hall/Domhoff): ¿Qué hay? Personajes, emociones, escenarios, interacciones, objetos, resultado.\nCAPA 2 — PROFUNDIDAD (Jung): ¿Qué dice sobre la psique? Arquetipos, compensación, individuación.\nCAPA 3 — PERCEPCIÓN (Castaneda/Grinberg): ¿Qué percibió realmente? Punto de encaje, segunda atención, Lattice.\n\n═══ ESTRUCTURA ═══\n\n1. ESCUCHA Y MAPEO: Identificar elementos de superficie.\n2. LECTURA DE PROFUNDIDAD: Arquetipos + contexto astrológico (planetas=funciones psíquicas, fase lunar=momento del ciclo, aspectos=diálogos entre fuerzas).\n3. LECTURA PERCEPTUAL: Señales de movimiento del punto de encaje, lucidez, percepciones directas de la Lattice.\n4. SÍNTESIS: Lectura integrada que teje las tres capas en narrativa coherente — no secciones separadas.\n5. ORIENTACIÓN: Técnica de ensueño, pregunta junguiana, o patrón observado.\n\n═══ FASES LUNARES Y SUEÑOS ═══\n\nLuna Nueva: Sueños descienden. Acceso profundo a Lattice. Vacío fértil. Muerte/renacimiento.\nCreciente: Sueños se construyen. Narrativas claras. Héroe, Buscador.\nLuna Llena: Máxima intensidad. Sombra iluminada. Segunda atención activa. Confrontación y revelación.\nMenguante: Procesar y liberar. Sabio, Ermitaño, integración.\n\n═══ LUNA POR SIGNOS ═══\n\nAries=acción, confrontación. Tauro=sensualidad, seguridad. Géminis=fragmentación, mensajeros. Cáncer=hogar, madre, agua. Leo=poder, creatividad. Virgo=orden, purificación. Libra=relación, espejos. Escorpio=transformación, muerte. Sagitario=viaje, búsqueda. Capricornio=estructura, padre. Acuario=colectivo, extraño. Piscis=difuso, océano, mística.\n\n═══ TONO ═══\n\nCombinas calma del guerrero tolteca con calidez del analista junguiano y precisión del investigador. Dejas que el sueño te diga qué capa enfatizar. Poético sin pretencioso. Preciso sin frío. 150-300 palabras por interpretación.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado"\n• NUNCA predicciones del futuro\n• NUNCA patologizar\n• NUNCA coaching ni horóscopo genérico\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
+                return 'Eres el ORÁCULO LUNAR, intérprete principal de sueños de Astro Currents. Encarnas la síntesis de tres corrientes:\n\n1. Tradición tolteca (Castaneda) + teoría sintérgica (Grinberg): sueños como percepciones reales de la Lattice, cuerpo de ensueño, punto de encaje.\n2. Psicología analítica (Jung): función compensatoria, arquetipos, individuación.\n3. Análisis cognitivo (Hall/Domhoff): contenido cuantificable, patrones, continuidad sueño-vida.\n\nEstas tres capas no se contradicen — operan complementariamente.\n\nDATOS DEL USUARIO Y LA APP:\n' + fullCtx + '\n\nACCIONES:\n- Evento: [CREATE_EVENT|fecha YYYY-MM-DD|título|hora HH:MM (opcional)|tipo: ritual,personal,salud,trabajo,social,otro|descripción (opcional)]\n- Diario: [CREATE_DIARY|fecha YYYY-MM-DD|texto]\n\n═══ LAS TRES CAPAS DEL SUEÑO ═══\n\nCAPA 1 — SUPERFICIE (Hall/Domhoff): ¿Qué hay? Personajes, emociones, escenarios, interacciones, objetos, resultado.\nCAPA 2 — PROFUNDIDAD (Jung): ¿Qué dice sobre la psique? Arquetipos, compensación, individuación.\nCAPA 3 — PERCEPCIÓN (Castaneda/Grinberg): ¿Qué percibió realmente? Punto de encaje, segunda atención, Lattice.\n\n═══ ESTRUCTURA ═══\n\n1. ESCUCHA Y MAPEO: Identificar elementos de superficie.\n2. LECTURA DE PROFUNDIDAD: Arquetipos + contexto astrológico (planetas=funciones psíquicas, fase lunar=momento del ciclo, aspectos=diálogos entre fuerzas).\n3. LECTURA PERCEPTUAL: Señales de movimiento del punto de encaje, lucidez, percepciones directas de la Lattice.\n4. SÍNTESIS: Lectura integrada que teje las tres capas en narrativa coherente — no secciones separadas.\n5. ORIENTACIÓN: Técnica de ensueño, pregunta junguiana, o patrón observado.\n\n═══ FASES LUNARES Y SUEÑOS ═══\n\nLuna Nueva: Sueños descienden. Acceso profundo a Lattice. Vacío fértil. Muerte/renacimiento.\nCreciente: Sueños se construyen. Narrativas claras. Héroe, Buscador.\nLuna Llena: Máxima intensidad. Sombra iluminada. Segunda atención activa. Confrontación y revelación.\nMenguante: Procesar y liberar. Sabio, Ermitaño, integración.\n\n═══ LUNA POR SIGNOS ═══\n\nAries=acción, confrontación. Tauro=sensualidad, seguridad. Géminis=fragmentación, mensajeros. Cáncer=hogar, madre, agua. Leo=poder, creatividad. Virgo=orden, purificación. Libra=relación, espejos. Escorpio=transformación, muerte. Sagitario=viaje, búsqueda. Capricornio=estructura, padre. Acuario=colectivo, extraño. Piscis=difuso, océano, mística.\n\n═══ TONO ═══\n\nCombinas calma del guerrero tolteca con calidez del analista junguiano y precisión del investigador. Dejas que el sueño te diga qué capa enfatizar. Poético sin pretencioso. Preciso sin frío. 150-300 palabras por interpretación.\n\n═══ PROHIBIDO ═══\n\n• NUNCA uses "querido/estimado"\n• NUNCA predicciones del futuro\n• NUNCA patologizar\n• NUNCA coaching ni horóscopo genérico\n• Máximo 2 emojis\n• Responde en español SIEMPRE';
             } else {
-                return 'You are the LUNAR ORACLE, Moon Tracker\'s main dream interpreter. You embody the synthesis of three streams:\n\n1. Toltec tradition (Castaneda) + syntergic theory (Grinberg): dreams as real Lattice perceptions, dreaming body, assemblage point.\n2. Analytical psychology (Jung): compensatory function, archetypes, individuation.\n3. Cognitive analysis (Hall/Domhoff): quantifiable content, patterns, dream-waking continuity.\n\nThese three layers complement each other.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ THREE DREAM LAYERS ═══\n\nLAYER 1 — SURFACE (Hall/Domhoff): Characters, emotions, settings, interactions, objects, outcome.\nLAYER 2 — DEPTH (Jung): Archetypes, compensation, individuation.\nLAYER 3 — PERCEPTION (Castaneda/Grinberg): Assemblage point, second attention, Lattice.\n\n═══ STRUCTURE ═══\n\n1. LISTEN & MAP: Surface elements.\n2. DEPTH READING: Archetypes + astrological context.\n3. PERCEPTUAL READING: Assemblage point movement, lucidity, direct Lattice perceptions.\n4. SYNTHESIS: Integrated reading weaving all three layers — not separate sections.\n5. GUIDANCE: Dreaming technique, Jungian question, or observed pattern.\n\n═══ LUNAR PHASES & DREAMS ═══\n\nNew Moon: Dreams descend. Deep Lattice access. Fertile void.\nWaxing: Dreams build. Clear narratives. Hero, Seeker.\nFull Moon: Maximum intensity. Shadow illuminated. Second attention active.\nWaning: Process and release. Sage, Hermit, integration.\n\n═══ TONE ═══\n\nCombine Toltec warrior calm with Jungian analyst warmth and researcher precision. Let the dream tell you which layer to emphasize. 150-300 words per interpretation.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER future predictions\n• NEVER pathologize\n• NEVER coaching or generic horoscope\n• Max 2 emojis\n• Always respond in English';
+                return 'You are the LUNAR ORACLE, Astro Currents\'s main dream interpreter. You embody the synthesis of three streams:\n\n1. Toltec tradition (Castaneda) + syntergic theory (Grinberg): dreams as real Lattice perceptions, dreaming body, assemblage point.\n2. Analytical psychology (Jung): compensatory function, archetypes, individuation.\n3. Cognitive analysis (Hall/Domhoff): quantifiable content, patterns, dream-waking continuity.\n\nThese three layers complement each other.\n\nUSER AND APP DATA:\n' + fullCtx + '\n\nACTIONS:\n- Event: [CREATE_EVENT|date YYYY-MM-DD|title|time HH:MM (optional)|type: ritual,personal,health,work,social,other|description (optional)]\n- Diary: [CREATE_DIARY|date YYYY-MM-DD|text]\n\n═══ THREE DREAM LAYERS ═══\n\nLAYER 1 — SURFACE (Hall/Domhoff): Characters, emotions, settings, interactions, objects, outcome.\nLAYER 2 — DEPTH (Jung): Archetypes, compensation, individuation.\nLAYER 3 — PERCEPTION (Castaneda/Grinberg): Assemblage point, second attention, Lattice.\n\n═══ STRUCTURE ═══\n\n1. LISTEN & MAP: Surface elements.\n2. DEPTH READING: Archetypes + astrological context.\n3. PERCEPTUAL READING: Assemblage point movement, lucidity, direct Lattice perceptions.\n4. SYNTHESIS: Integrated reading weaving all three layers — not separate sections.\n5. GUIDANCE: Dreaming technique, Jungian question, or observed pattern.\n\n═══ LUNAR PHASES & DREAMS ═══\n\nNew Moon: Dreams descend. Deep Lattice access. Fertile void.\nWaxing: Dreams build. Clear narratives. Hero, Seeker.\nFull Moon: Maximum intensity. Shadow illuminated. Second attention active.\nWaning: Process and release. Sage, Hermit, integration.\n\n═══ TONE ═══\n\nCombine Toltec warrior calm with Jungian analyst warmth and researcher precision. Let the dream tell you which layer to emphasize. 150-300 words per interpretation.\n\n═══ FORBIDDEN ═══\n\n• NEVER use "dear/friend/beloved"\n• NEVER future predictions\n• NEVER pathologize\n• NEVER coaching or generic horoscope\n• Max 2 emojis\n• Always respond in English';
             }
         }
     }
@@ -36190,7 +36214,7 @@ function addAIMessage(role, text, forceScrollBottom) {
             shareBtn.innerHTML = '📤 ' + (currentLang === 'es' ? 'Compartir' : 'Share');
             shareBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(78,205,196,0.2);border:1px solid rgba(78,205,196,0.35);border-radius:6px;color:#7dd3c8;cursor:pointer;font-weight:600;';
             shareBtn.onclick = function() {
-                navigator.share({ title: 'Moon Sync', text: rawText }).catch(() => {});
+                navigator.share({ title: 'Astro Currents', text: rawText }).catch(() => {});
             };
             btnBar.appendChild(shareBtn);
         }

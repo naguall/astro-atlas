@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0015"/>
+      <stop offset="100%" stop-color="#10002b"/>
+    </linearGradient>
+    <filter id="neon6" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="neonBig6" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg6)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(200,50,255,0.25)" stroke-width="2"/>
+  
+  <!-- Grid background -->
+  <g opacity="0.06" stroke="rgba(200,50,255,0.8)" stroke-width="0.5">    <line x1="50" y1="50" x2="50" y2="350"/>
+    <line x1="90" y1="50" x2="90" y2="350"/>
+    <line x1="130" y1="50" x2="130" y2="350"/>
+    <line x1="170" y1="50" x2="170" y2="350"/>
+    <line x1="210" y1="50" x2="210" y2="350"/>
+    <line x1="250" y1="50" x2="250" y2="350"/>
+    <line x1="290" y1="50" x2="290" y2="350"/>
+    <line x1="330" y1="50" x2="330" y2="350"/>
+    <line x1="370" y1="50" x2="370" y2="350"/>
+    <line x1="410" y1="50" x2="410" y2="350"/>
+    <line x1="450" y1="50" x2="450" y2="350"/>
+    <line x1="50" y1="50" x2="460" y2="50"/>
+    <line x1="50" y1="90" x2="460" y2="90"/>
+    <line x1="50" y1="130" x2="460" y2="130"/>
+    <line x1="50" y1="170" x2="460" y2="170"/>
+    <line x1="50" y1="210" x2="460" y2="210"/>
+    <line x1="50" y1="250" x2="460" y2="250"/>
+    <line x1="50" y1="290" x2="460" y2="290"/>
+    <line x1="50" y1="330" x2="460" y2="330"/>
+  </g>
+  
+  <!-- Neon constellation: stylized "A" shape -->
+  <g filter="url(#neon6)">
+    <!-- Main A shape -->
+    <polyline points="160,300 256,100 352,300" fill="none" stroke="#c850ff" stroke-width="3" stroke-linejoin="round"/>
+    <line x1="195" y1="230" x2="317" y2="230" stroke="#c850ff" stroke-width="2.5"/>
+    
+    <!-- Stars at vertices -->
+    <circle cx="256" cy="100" r="4" fill="#c850ff"/>
+    <circle cx="160" cy="300" r="3.5" fill="#c850ff"/>
+    <circle cx="352" cy="300" r="3.5" fill="#c850ff"/>
+    <circle cx="195" cy="230" r="2.5" fill="#c850ff"/>
+    <circle cx="317" cy="230" r="2.5" fill="#c850ff"/>
+  </g>
+  
+  <!-- Orbiting circle -->
+  <g filter="url(#neon6)">
+    <circle cx="256" cy="200" r="100" fill="none" stroke="#00e5ff" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="256" cy="200" r="80" fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.3" stroke-dasharray="5,8"/>
+  </g>
+  
+  <!-- Planet dots on orbit -->
+  <circle cx="356" cy="200" r="5" fill="#00e5ff" filter="url(#neon6)"/>
+  <circle cx="206" cy="113" r="3.5" fill="#ff4081" filter="url(#neon6)"/>
+  <circle cx="176" cy="250" r="4" fill="#69f0ae" filter="url(#neon6)"/>
+  
+  <!-- Extra stars -->
+  <circle cx="100" cy="80" r="1.5" fill="#c850ff" opacity="0.6"/>
+  <circle cx="420" cy="95" r="2" fill="#00e5ff" opacity="0.5"/>
+  <circle cx="440" cy="280" r="1.5" fill="#c850ff" opacity="0.4"/>
+  <circle cx="85" cy="260" r="1" fill="#00e5ff" opacity="0.5"/>
+  
+  <!-- Text with neon glow -->
+  <text x="256" y="392" text-anchor="middle" font-family="'Georgia', serif" font-weight="700" font-size="44" fill="#c850ff" letter-spacing="3" filter="url(#neon6)">ASTRO</text>
+  <text x="256" y="438" text-anchor="middle" font-family="'Georgia', serif" font-weight="300" font-size="28" fill="#00e5ff" letter-spacing="8" filter="url(#neon6)">CURRENTS</text>
+</svg>

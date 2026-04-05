@@ -1,15 +1,15 @@
-const CACHE_NAME = 'moon-sync-v556';
+const CACHE_NAME = 'astro-currents-v557';
 const ASSETS = [
-  '/moon-sync/',
-  '/moon-sync/index.html',
-  '/moon-sync/lunar-data.js',
-  '/moon-sync/custom-messages.js',
-  '/moon-sync/manifest.json',
-  '/moon-sync/knowledge-graph.js',
-  '/moon-sync/knowledge-graph-part2.js',
-  '/moon-sync/knowledge-graph-part3.js',
-  '/moon-sync/ai-adapter.js',
-  '/moon-sync/learner-profile.js',
+  '/astro-currents/',
+  '/astro-currents/index.html',
+  '/astro-currents/lunar-data.js',
+  '/astro-currents/custom-messages.js',
+  '/astro-currents/manifest.json',
+  '/astro-currents/knowledge-graph.js',
+  '/astro-currents/knowledge-graph-part2.js',
+  '/astro-currents/knowledge-graph-part3.js',
+  '/astro-currents/ai-adapter.js',
+  '/astro-currents/learner-profile.js',
   'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js',
   'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Blue_Marble_2002.png/1280px-Blue_Marble_2002.png'
 ];
@@ -52,9 +52,9 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clearEverything().then(() => {
-      var url = '/moon-sync/';
+      var url = '/astro-currents/';
       if (e.notification.data && e.notification.data.dreamAlarm) {
-        url = '/moon-sync/?dreamAlarm=1';
+        url = '/astro-currents/?dreamAlarm=1';
       }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
         if (cls.length > 0) {
@@ -91,8 +91,8 @@ self.addEventListener('message', e => {
     e.waitUntil(
       self.registration.showNotification(e.data.title, {
         body: e.data.body,
-        icon: '/moon-sync/icons/icon-192.png',
-        badge: '/moon-sync/icons/icon-192.png',
+        icon: '/astro-currents/icons/icon-192.png',
+        badge: '/astro-currents/icons/icon-192.png',
         tag: 'dream-alarm',
         requireInteraction: true,
         vibrate: [300, 200, 300, 200, 300],

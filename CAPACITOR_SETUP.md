@@ -1,4 +1,4 @@
-# Moon Sync — Capacitor Setup Guide
+# Astro Current — Capacitor Setup Guide
 
 ## Estructura del Proyecto
 
@@ -51,8 +51,8 @@ npm run cap:run:ios
 ### Android (Firebase Cloud Messaging)
 
 1. Ve a [Firebase Console](https://console.firebase.google.com)
-2. Crea un proyecto o usa el existente de Moon Sync
-3. Agrega una app Android con package name: `com.moonsync.app`
+2. Crea un proyecto o usa el existente de Astro Current
+3. Agrega una app Android con package name: `com.astrocurrent.app`
 4. Descarga `google-services.json`
 5. Copia el archivo a: `android/app/google-services.json`
 6. El proyecto Android ya tiene los plugins configurados

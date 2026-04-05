@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg8" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0020"/>
+      <stop offset="50%" stop-color="#100030"/>
+      <stop offset="100%" stop-color="#05000f"/>
+    </linearGradient>
+    <radialGradient id="sun8" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="60%" stop-color="#ffcc80"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </radialGradient>
+    <radialGradient id="earth8" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#0277bd"/>
+    </radialGradient>
+    <radialGradient id="mars8" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff8a65"/>
+      <stop offset="100%" stop-color="#d84315"/>
+    </radialGradient>
+    <radialGradient id="saturn8" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffe0b2"/>
+      <stop offset="100%" stop-color="#bcaaa4"/>
+    </radialGradient>
+    <filter id="glow8" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg8)"/>
+  <rect width="512" height="512" rx="110" fill="none" stroke="rgba(255,152,0,0.2)" stroke-width="2"/>
+  
+  <!-- Alignment line -->
+  <line x1="80" y1="210" x2="432" y2="210" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  
+  <!-- Sun (left) -->
+  <circle cx="100" cy="210" r="35" fill="url(#sun8)" filter="url(#glow8)" opacity="0.9"/>
+  <circle cx="100" cy="210" r="42" fill="rgba(255,152,0,0.1)"/>
+  
+  <!-- Earth (center-left) -->
+  <circle cx="210" cy="210" r="22" fill="url(#earth8)"/>
+  <circle cx="210" cy="210" r="28" fill="rgba(79,195,247,0.08)"/>
+  <!-- Tiny moon -->
+  <circle cx="237" cy="200" r="5" fill="rgba(200,200,210,0.8)"/>
+  
+  <!-- Mars (center) -->
+  <circle cx="300" cy="210" r="18" fill="url(#mars8)"/>
+  
+  <!-- Saturn (right) -->
+  <circle cx="400" cy="210" r="25" fill="url(#saturn8)"/>
+  <!-- Saturn rings -->
+  <ellipse cx="400" cy="210" rx="42" ry="10" fill="none" stroke="rgba(188,170,164,0.5)" stroke-width="2.5"/>
+  <ellipse cx="400" cy="210" rx="48" ry="12" fill="none" stroke="rgba(188,170,164,0.2)" stroke-width="1"/>
+  
+  <!-- Small stars -->
+  <circle cx="140" cy="100" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="350" cy="90" r="1" fill="white" opacity="0.4"/>
+  <circle cx="450" cy="130" r="1.2" fill="white" opacity="0.3"/>
+  <circle cx="80" cy="300" r="1" fill="white" opacity="0.4"/>
+  <circle cx="250" cy="120" r="1.5" fill="white" opacity="0.3"/>
+  <circle cx="420" cy="310" r="1" fill="white" opacity="0.4"/>
+  <circle cx="170" cy="310" r="1.3" fill="white" opacity="0.3"/>
+  
+  <!-- Text -->
+  <text x="256" y="392" text-anchor="middle" font-family="'Georgia', serif" font-weight="700" font-size="46" fill="white" letter-spacing="3">ASTRO</text>
+  <text x="256" y="440" text-anchor="middle" font-family="'Georgia', serif" font-weight="300" font-size="28" fill="rgba(255,183,77,0.7)" letter-spacing="8">CURRENTS</text>
+  
+  <line x1="170" y1="452" x2="342" y2="452" stroke="rgba(255,152,0,0.25)" stroke-width="1"/>
+</svg>
