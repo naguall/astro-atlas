@@ -26319,7 +26319,7 @@ function goToCurrentCycle() {
             {
                 icon: '<img src="icons/icon-192x192.png" style="width:80px;height:80px;border-radius:18px;box-shadow:0 4px 20px rgba(102,126,234,0.4);">',
                 title: L ? 'Bienvenido a Astro Currents' : 'Welcome to Astro Currents',
-                text: L ? 'App interactiva diseñada para sincronizarnos con los movimientos naturales reales. Consulta dónde está cada cuerpo celeste en cualquier momento. Sincroniza tu agenda, eventos, diarios, y atención consciente de estos movimientos. Crea tu propio mapa y encuentra los patrones. Compártelos con nuestra comunidad Astro Connect y pregunta, aprende, expande con los chats interactivos con el curso de astrología Astro Currents.' : 'Interactive app designed to sync us with real natural movements. Check where each celestial body is at any moment. Sync your agenda, events, journals, and conscious attention to these movements. Create your own map and find the patterns. Share them with our Astro Connect community and ask, learn, expand with the interactive chats and the Astro Currents astrology course.',
+                text: L ? 'App interactiva diseñada para sincronizarnos con los movimientos naturales reales. Consulta dónde está cada cuerpo celeste en cualquier momento. 4 calendarios en 1 sincronizados entre sí. Sincroniza tu agenda, eventos, diarios, y atención consciente con estos movimientos celestes. Sincroniza con Google Calendar. Crea tu propio mapa y encuentra los patrones. Compártelos con nuestra comunidad Astro Connect y pregunta, aprende, expande con los chats interactivos y con el curso de astrología Astro Currents.' : 'Interactive app designed to sync us with real natural movements. Check where each celestial body is at any moment. 4 calendars in 1 synced together. Sync your agenda, events, journals, and conscious attention with these celestial movements. Sync with Google Calendar. Create your own map and find the patterns. Share them with our Astro Connect community and ask, learn, expand with the interactive chats and the Astro Currents astrology course.',
                 color: '#667eea'
             },
             {
@@ -26809,7 +26809,7 @@ function goToCurrentCycle() {
 
     // CSS animation keyframes
     var styleEl = document.createElement('style');
-    styleEl.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes slideDown{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}} @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} @keyframes spotlightPulse{0%,100%{box-shadow:0 0 0 3px rgba(102,126,234,0.6),0 0 20px rgba(102,126,234,0.3)}50%{box-shadow:0 0 0 6px rgba(102,126,234,0.4),0 0 30px rgba(102,126,234,0.2)}} @keyframes tooltipAppear{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}';
+    styleEl.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes slideDown{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}} @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} @keyframes spotlightPulse{0%,100%{box-shadow:0 0 0 5px rgba(102,126,234,1),0 0 20px 10px rgba(102,126,234,0.8),0 0 60px 20px rgba(102,126,234,0.5),0 0 100px 40px rgba(102,126,234,0.3);transform:scale(1.15)}50%{box-shadow:0 0 0 8px rgba(102,126,234,1),0 0 30px 15px rgba(102,126,234,0.9),0 0 80px 30px rgba(102,126,234,0.6),0 0 120px 50px rgba(102,126,234,0.3);transform:scale(1.2)}} @keyframes tooltipAppear{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}';
     document.head.appendChild(styleEl);
 
     // ══════════════════════════════════════════════════
@@ -26828,15 +26828,16 @@ function goToCurrentCycle() {
             var L = currentLang === 'es';
             var steps = {
                 'header': [
-                    { sel: '#savedReadingsBtn', icon: '📚', title: L ? 'Lecturas Guardadas' : 'Saved Readings', desc: L ? 'Tus interpretaciones AI guardadas, diario personal y registro de sueños' : 'Your saved AI interpretations, personal diary and dream journal' },
-                    { sel: '#moonCompassBtn', icon: '🧭', title: L ? 'Brújula Lunar' : 'Moon Compass', desc: L ? 'Brújula que apunta hacia la posición real de la Luna en el cielo' : 'Compass pointing to the Moon\'s real position in the sky' },
-                    { sel: '#preferencesBtn', icon: '⚙️', title: L ? 'Preferencias' : 'Preferences', desc: L ? 'Idioma, notificaciones, tamaño del calendario, ubicación y más' : 'Language, notifications, calendar size, location and more' },
-                    { sel: '#lunarModeBtn', icon: '🌙', title: L ? 'Tab Lunar' : 'Lunar Tab', desc: L ? 'Calendario por ciclos lunares con fases, aspectos y diario' : 'Calendar by lunar cycles with phases, aspects and diary' },
-                    { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Mapa del Sol, amanecer/atardecer, zodiaco solar, numerología' : 'Sun map, sunrise/sunset, solar zodiac, numerology' },
-                    { sel: '#gregorianModeBtn', icon: '📅', title: L ? 'Tab Gregoriano' : 'Gregorian Tab', desc: L ? 'Calendario clásico semanal con eventos lunares integrados' : 'Classic weekly calendar with integrated lunar events' },
-                    { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astro' : 'Astro Tab', desc: L ? 'Carta natal, tránsitos, sinastría, astrocartografía y curso completo' : 'Natal chart, transits, synastry, astrocartography and full course' },
-                    { sel: '#socialModeBtn', icon: '🌐', title: 'AstroConnect', desc: L ? 'Red social astrológica: feed, comunidades, chat y compatibilidad' : 'Astrological social network: feed, communities, chat and compatibility' },
-                    { sel: '#aiChatFab', icon: '✨', title: L ? 'Asistente AI' : 'AI Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal y más' : 'Smart chat answering questions about astrology, your natal chart and more' }
+                    { sel: '#notificationBtn', icon: '🔔', title: L ? 'Notificaciones' : 'Notifications', desc: L ? 'Recibe las notificaciones de eventos en tu agenda, aspectos planetarios, comunidad y más.' : 'Get notifications for agenda events, planetary aspects, community and more.' },
+                    { sel: '#savedReadingsBtn', icon: '📚', title: L ? 'Lecturas Guardadas' : 'Saved Readings', desc: L ? 'Al salvar cualquier interpretación de la app puedes releerla, editar, preguntar y expandir acá. Lo mismo con tu diario personal y diario de sueños.' : 'Save any app interpretation to reread, edit, ask questions and expand. Same with your personal diary and dream journal.' },
+                    { sel: '#moonCompassBtn', icon: '🧭', title: L ? 'Brújula Celeste' : 'Celestial Compass', desc: L ? 'Brújula que apunta hacia la posición real de los astros en el cielo en tiempo real.' : 'Compass pointing to the real-time position of celestial bodies in the sky.' },
+                    { sel: '#preferencesBtn', icon: '⚙️', title: L ? 'Preferencias' : 'Preferences', desc: L ? 'Idioma, notificaciones, tamaño del calendario, ubicación, programación de alarma de sueños, interpretadores y más.' : 'Language, notifications, calendar size, location, dream alarm scheduling, interpreters and more.' },
+                    { sel: '#lunarModeBtn', icon: '🌙', title: L ? 'Tab Lunar' : 'Lunar Tab', desc: L ? 'Calendario por ciclos lunares con fases, información lunar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Calendar by lunar cycles with phases, lunar info, planetary aspects, event notes, notifications, personal and dream diary.' },
+                    { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Calendario solar real, información solar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Real solar calendar, solar info, planetary aspects, event notes, notifications, personal and dream diary.' },
+                    { sel: '#gregorianModeBtn', icon: '📅', title: L ? 'Tab Gregoriano' : 'Gregorian Tab', desc: L ? 'Calendario clásico semanal, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Classic weekly calendar, planetary aspects, event notes, notifications, personal and dream diary.' },
+                    { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astro' : 'Astro Tab', desc: L ? 'Sección astrológica: carta natal, astrología avanzada, curso Astro Currents y más.' : 'Astrology section: natal chart, advanced astrology, Astro Currents course and more.' },
+                    { sel: '#socialModeBtn', icon: '🌐', title: 'AstroConnect', desc: L ? 'Red social astrológica: feed, comunidades, chat, encuentra tu especie astrológica.' : 'Astrological social network: feed, communities, chat, find your astrological species.' },
+                    { sel: '#aiChatFab', icon: '✨', title: L ? 'Asistente A.C.' : 'A.C. Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal, agenda y más.' : 'Smart chat answering questions about astrology, your natal chart, agenda and more.' }
                 ],
                 'lunar': [
                     { sel: '.moon-grid,.calendar-grid', icon: '📅', title: L ? 'Calendario Lunar' : 'Lunar Calendar', desc: L ? 'Toca cualquier día para ver detalle con aspectos, diario y eventos' : 'Tap any day to see detail with aspects, diary and events' },
@@ -26919,7 +26920,7 @@ function goToCurrentCycle() {
             // Dark backdrop — covers the whole screen
             var backdrop = document.createElement('div');
             backdrop.id = 'wkBackdrop';
-            backdrop.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,0.75);transition:opacity 0.3s;';
+            backdrop.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,0.6);transition:opacity 0.3s;';
 
             // Tooltip
             var tooltip = document.createElement('div');
@@ -26938,6 +26939,10 @@ function goToCurrentCycle() {
                     _prevHighlightEl.style.borderRadius = _prevHighlightStyles.borderRadius || '';
                     _prevHighlightEl.style.outline = _prevHighlightStyles.outline || '';
                     _prevHighlightEl.style.outlineOffset = _prevHighlightStyles.outlineOffset || '';
+                    _prevHighlightEl.style.background = _prevHighlightStyles.background || '';
+                    _prevHighlightEl.style.animation = _prevHighlightStyles.animation || '';
+                    _prevHighlightEl.style.transform = _prevHighlightStyles.transform || '';
+                    _prevHighlightEl.style.filter = _prevHighlightStyles.filter || '';
                     _prevHighlightEl = null;
                 }
             }
@@ -26969,13 +26974,21 @@ function goToCurrentCycle() {
                     _prevHighlightEl = el;
 
                     // Elevate the actual element ABOVE the backdrop
-                    // This makes it appear at 100% natural brightness
+                    // Make it VERY visible — bright glow + scale + bright bg
+                    _prevHighlightStyles.background = el.style.background;
+                    _prevHighlightStyles.animation = el.style.animation;
+                    _prevHighlightStyles.transform = el.style.transform;
+                    _prevHighlightStyles.filter = el.style.filter;
                     el.style.position = 'relative';
                     el.style.zIndex = '9995';
-                    el.style.boxShadow = '0 0 0 4px rgba(102,126,234,0.7), 0 0 25px rgba(102,126,234,0.4), 0 0 50px rgba(102,126,234,0.15)';
+                    el.style.boxShadow = '0 0 0 5px rgba(102,126,234,1), 0 0 20px 10px rgba(102,126,234,0.8), 0 0 60px 20px rgba(102,126,234,0.5), 0 0 100px 40px rgba(102,126,234,0.3)';
                     el.style.borderRadius = el.style.borderRadius || '8px';
-                    el.style.outline = '2px solid rgba(255,255,255,0.3)';
-                    el.style.outlineOffset = '2px';
+                    el.style.outline = '3px solid rgba(255,255,255,0.8)';
+                    el.style.outlineOffset = '4px';
+                    el.style.background = 'rgba(102,126,234,0.35)';
+                    el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
+                    el.style.transform = 'scale(1.15)';
+                    el.style.filter = 'brightness(1.8)';
 
                     var rect = el.getBoundingClientRect();
 
