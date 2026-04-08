@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-currents-v572';
+const CACHE_NAME = 'astro-currents-v573';
 const ASSETS = [
   '/astro-currents/',
   '/astro-currents/index.html',
