@@ -21716,7 +21716,7 @@ function renderPersonalCalendar() {
         // Numerology reduction
         const reduceNum = (num) => { let n = num; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; };
         const numDay = reduceNum(personalDay);
-        const numTotal = reduceNum(totalPersonalDays);
+        const numRemaining = reduceNum(daysRemaining);
 
         // Moon phase icon (new moon / full moon)
         const moonEvent = getMoonEventForDate(date);
@@ -21781,10 +21781,10 @@ function renderPersonalCalendar() {
             <div class="${classes}" onclick="handlePersonalDayClick(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
                 <div style="display:flex;align-items:baseline;justify-content:space-between;width:100%;">
                     <div style="display:flex;align-items:baseline;gap:2px;">
-                        <div class="personal-day-num" style="font-size:1em;font-weight:800;color:#e8c84a;line-height:1;">${isBirthday ? '🎂' : ''}${personalDay}<span style="font-size:0.55em;color:rgba(232,200,74,0.45);font-weight:600;">/${totalPersonalDays}</span></div>
+                        <div class="personal-day-num" style="font-size:1em;font-weight:800;color:#e8c84a;line-height:1;">${isBirthday ? '🎂' : ''}${personalDay}<span style="font-size:0.55em;color:rgba(232,200,74,0.45);font-weight:600;">/${daysRemaining}</span></div>
                         ${seasonIcon ? `<span style="font-size:0.65em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                     </div>
-                    <div style="font-size:0.75em;font-weight:800;color:#b39ddb;text-align:right;line-height:1;" title="${L?'Numerología del día/año':'Day/year numerology'}">${numDay}<span style="font-size:0.7em;color:rgba(179,157,219,0.45);">/${numTotal}</span></div>
+                    <div style="font-size:0.75em;font-weight:800;color:#b39ddb;text-align:right;line-height:1;" title="${L?'Numerología día/faltan':'Numerology day/remaining'}">${numDay}<span style="font-size:0.7em;color:rgba(179,157,219,0.45);">/${numRemaining}</span></div>
                 </div>
                 <div style="font-size:0.55em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
                 ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
@@ -33511,7 +33511,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v591';
+var APP_VERSION = 'v592';
 var _pendingSW = null;
 
 // What's New removed per user request
