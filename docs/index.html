@@ -29978,7 +29978,7 @@ function openPreferencesModal() {
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
         '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
-        '<div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">⚡ AstroField ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
+        '<div onclick="window._creatorTaps=(window._creatorTaps||0)+1;clearTimeout(window._creatorTimer);window._creatorTimer=setTimeout(function(){window._creatorTaps=0;},2000);if(window._creatorTaps>=5){window._creatorTaps=0;if(localStorage.getItem(\'astrofield_creator\')===\'true\'){localStorage.removeItem(\'astrofield_creator\');this.style.borderColor=\'rgba(74,158,255,0.2)\';alert(\'Modo creador desactivado\');}else{var pw=prompt(\'Contraseña de creador:\');if(pw===\'astro2026\'){localStorage.setItem(\'astrofield_creator\',\'true\');this.style.borderColor=\'#4ecdc4\';alert(\'Modo creador activado — reabre Preferencias\');}else if(pw!==null){alert(\'Contraseña incorrecta\');}}}" style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid ' + (localStorage.getItem('astrofield_creator')==='true'?'rgba(78,205,196,0.5)':'rgba(74,158,255,0.2)') + ';border-radius:8px;cursor:pointer;user-select:none;">⚡ AstroField ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?') + '</div>'
     );
 
     body.innerHTML = sectionsHtml;
@@ -34053,7 +34053,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v596';
+var APP_VERSION = 'v597';
 var _pendingSW = null;
 
 // What's New removed per user request
