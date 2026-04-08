@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Astro Currents — Build script for GitHub Pages deployment
+ * AstroField — Build script for GitHub Pages deployment
  * Creates docs/ directory with all web assets, adjusted paths for /moon-sync/ base
  */
 
@@ -72,8 +72,8 @@ DIRS.forEach(dir => {
 
 // === Create manifest.json with GitHub Pages paths ===
 const manifest = {
-    name: "Astro Currents - Calendario Lunar",
-    short_name: "Astro Currents",
+    name: "AstroField - Calendario Lunar",
+    short_name: "AstroField",
     description: "Calendario Lunar con fases, aspectos planetarios, mareas y más",
     start_url: BASE_PATH + "/",
     scope: BASE_PATH + "/",
@@ -93,7 +93,7 @@ const manifest = {
         { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable any" }
     ],
     screenshots: [
-        { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", form_factor: "narrow", label: "Astro Currents" }
+        { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", form_factor: "narrow", label: "AstroField" }
     ]
 };
 fs.writeFileSync(path.join(DOCS, 'manifest.json'), JSON.stringify(manifest, null, 2));
@@ -109,7 +109,7 @@ let appVersion = versionMatch ? versionMatch[1] : 'v559';
 // Read source sw.js and adjust paths
 let swSource = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
 // Update CACHE_NAME to match APP_VERSION
-swSource = swSource.replace(/const CACHE_NAME = '[^']+';/, `const CACHE_NAME = 'astro-currents-${appVersion}';`);
+swSource = swSource.replace(/const CACHE_NAME = '[^']+';/, `const CACHE_NAME = 'astrofield-${appVersion}';`);
 // Fix asset paths: add BASE_PATH prefix to relative paths
 swSource = swSource.replace(
   /const ASSETS = \[[\s\S]*?\];/,
@@ -150,7 +150,7 @@ const installPage = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instalar Astro Currents</title>
+<title>Instalar AstroField</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon-32x32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -239,8 +239,8 @@ h1 {
 </head>
 <body>
 <div class="container">
-  <img src="icons/icon-512x512.png" alt="Astro Currents" class="icon">
-  <h1>Astro Currents</h1>
+  <img src="icons/icon-512x512.png" alt="AstroField" class="icon">
+  <h1>AstroField</h1>
   <p class="subtitle">Calendario Lunar & Astrologia</p>
 
   <div class="features">
@@ -275,7 +275,7 @@ h1 {
     <p style="color:#4ecdc4; font-size:1.2em;">✅ App instalada!</p>
   </div>
 
-  <a href="index.html" class="open-app">Abrir Astro Currents →</a>
+  <a href="index.html" class="open-app">Abrir AstroField →</a>
 </div>
 
 <script>
