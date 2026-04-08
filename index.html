@@ -28263,7 +28263,7 @@ function launchDailyQuiz() {
             html += '</div>';
             html += '<div style="display:none;padding:0 12px 12px;">';
             html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.6);margin-bottom:8px;">' + c.summary + '</div>';
-            html += '<button onclick="openDailyConceptChat(\'' + c.nodeId + '\',\'' + c.title.replace(/'/g, "\\'") + '\')" style="width:100%;padding:8px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(78,205,196,0.05));border:1px solid rgba(78,205,196,0.4);border-radius:8px;color:#4ecdc4;font-size:0.8em;font-weight:600;cursor:pointer;">✨ ' + (L?'Profundizar con AI':'Explore with AI') + '</button>';
+            html += '<button onclick="openDailyConceptChat(\'' + c.nodeId + '\',\'' + c.title.replace(/'/g, "\\'") + '\')" style="width:100%;padding:8px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(78,205,196,0.05));border:1px solid rgba(78,205,196,0.4);border-radius:8px;color:#4ecdc4;font-size:0.8em;font-weight:600;cursor:pointer;">✨ ' + (L?'Profundizar con Tutor':'Explore with Tutor') + '</button>';
             html += '</div></div>';
         });
         html += '</div>';
@@ -28285,7 +28285,7 @@ function launchDailyQuiz() {
             // Expand button for explanation (hidden until answered)
             html += '<div id="dqExplain_' + qi + '" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(255,215,0,0.05);border-radius:8px;border:1px solid rgba(255,215,0,0.15);">';
             html += '<div id="dqExplainText_' + qi + '" style="font-size:0.75em;color:rgba(255,255,255,0.5);"></div>';
-            html += '<button onclick="openDailyConceptChat(\'' + (q.nodeId||'') + '\',\'' + q.q.replace(/'/g, "\\'").substring(0, 60) + '\')" style="margin-top:6px;width:100%;padding:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.72em;cursor:pointer;">✨ ' + (L?'Preguntar al AI':'Ask AI') + '</button>';
+            html += '<button onclick="openDailyConceptChat(\'' + (q.nodeId||'') + '\',\'' + q.q.replace(/'/g, "\\'").substring(0, 60) + '\')" style="margin-top:6px;width:100%;padding:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.72em;cursor:pointer;">✨ ' + (L?'Preguntar al Tutor':'Ask Tutor') + '</button>';
             html += '</div>';
             html += '</div>';
         });
