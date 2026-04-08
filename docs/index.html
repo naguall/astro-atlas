@@ -739,8 +739,8 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 9px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Astro</span></button>
-                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">🌐 Social</button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Astrología</span></button>
+                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Social</button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
@@ -26693,7 +26693,7 @@ function goToCurrentCycle() {
                     { sel: '#lunarModeBtn', icon: '🌙', title: L ? 'Tab Lunar' : 'Lunar Tab', desc: L ? 'Calendario por ciclos lunares con fases, información lunar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Calendar by lunar cycles with phases, lunar info, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Calendario Solar, información solar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Solar Calendar, solar info, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#gregorianModeBtn', icon: '📅', title: L ? 'Tab Gregoriano' : 'Gregorian Tab', desc: L ? 'Calendario clásico semanal, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Classic weekly calendar, planetary aspects, event notes, notifications, personal and dream diary.' },
-                    { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astro' : 'Astro Tab', desc: L ? 'Sección astrológica: carta natal, astrología avanzada, curso AstroField y más.' : 'Astrology section: natal chart, advanced astrology, AstroField course and more.' },
+                    { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astrología' : 'Astrology Tab', desc: L ? 'Sección astrológica: carta natal, astrología avanzada, curso AstroField y más.' : 'Astrology section: natal chart, advanced astrology, AstroField course and more.' },
                     { sel: '#socialModeBtn', icon: '🌐', title: 'AstroConnect', desc: L ? 'Red social astrológica: feed, comunidades, chat, encuentra tu especie astrológica.' : 'Astrological social network: feed, communities, chat, find your astrological species.' },
                     { sel: '#aiChatHeaderBtn', icon: '✨', title: L ? 'Asistente A.C.' : 'A.C. Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal, agenda y más.' : 'Smart chat answering questions about astrology, your natal chart, agenda and more.' },
                     { sel: '#currentDayInfo', icon: '📋', title: L ? 'Info del día de HOY' : 'TODAY\'s Info', desc: L ? 'Información del día HOY con los eventos de agenda, aspectos lunares del día. Haz click y expande la información. Navega en el calendario y regresa al día de hoy haciendo click en día de HOY.' : 'TODAY\'s info with agenda events and daily lunar aspects. Click to expand the information. Navigate the calendar and return to today by clicking on TODAY.' }
@@ -26839,6 +26839,7 @@ function goToCurrentCycle() {
                 // Restore ancestor z-indexes
                 _elevatedAncestors.forEach(function(item) {
                     item.el.style.zIndex = item.origZ;
+                    if (item.origPos !== undefined) item.el.style.position = item.origPos;
                 });
                 _elevatedAncestors = [];
             }
@@ -26874,14 +26875,17 @@ function goToCurrentCycle() {
                     }
                     el.style.filter = 'brightness(1.8)';
                 }
-                // Elevate ancestors
+                // Elevate ancestors — force position:relative + z-index on ALL ancestors
                 var ancestor = el.parentElement;
                 while (ancestor && ancestor !== document.body) {
                     var cs = window.getComputedStyle(ancestor);
-                    if (cs.zIndex !== 'auto' && cs.position !== 'static') {
-                        _elevatedAncestors.push({ el: ancestor, origZ: ancestor.style.zIndex });
-                        ancestor.style.zIndex = '9993';
+                    var origPos = ancestor.style.position;
+                    var origZ = ancestor.style.zIndex;
+                    if (cs.position === 'static') {
+                        ancestor.style.position = 'relative';
                     }
+                    _elevatedAncestors.push({ el: ancestor, origZ: origZ, origPos: origPos });
+                    ancestor.style.zIndex = '9993';
                     ancestor = ancestor.parentElement;
                 }
             }
@@ -26953,8 +26957,9 @@ function goToCurrentCycle() {
                         var ttW = 320;
                         var ttLeft = Math.max(10, Math.min(window.innerWidth - ttW - 10, rect.left + rect.width / 2 - ttW / 2));
                         var ttTop = rect.bottom + 20;
-                        if (ttTop + 200 > window.innerHeight) ttTop = rect.top - 220;
-                        if (ttTop < 10) ttTop = window.innerHeight / 2 - 100;
+                        if (ttTop + 200 > window.innerHeight) ttTop = Math.max(10, rect.top - 220);
+                        if (ttTop < 10) ttTop = 10;
+                        if (ttTop + 200 > window.innerHeight) ttTop = window.innerHeight - 210;
                         tooltip.style.left = ttLeft + 'px';
                         tooltip.style.top = ttTop + 'px';
 
@@ -32896,7 +32901,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v586';
+var APP_VERSION = 'v587';
 var _pendingSW = null;
 
 // What's New removed per user request
