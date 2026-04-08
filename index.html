@@ -26301,15 +26301,27 @@ function goToCurrentCycle() {
 })();
 
 // ==============================================
-// ONBOARDING — Welcome, Tour & Contextual Tips
+// ONBOARDING — Old system removed in v586, replaced by spotlight walkthrough
 // ==============================================
 
 (function() {
-    var ONBOARDING_KEY = 'astroCurrents_onboardingDone';
-    var TIPS_KEY = 'astroCurrents_tipsShown';
 
-    // ── Slide data ──
-    function _getSlides() {
+    // Old onboarding slides, contextual tips, and tab guides removed (v586)
+    // The resetOnboardingTutorial function now resets the new spotlight walkthrough
+    window.resetOnboardingTutorial = function() {
+        localStorage.removeItem('astroCurrents_btnWalkthrough');
+        var prefModal = document.getElementById('preferencesModal');
+        if (prefModal) prefModal.classList.remove('show');
+        // Start fresh walkthrough for current mode
+        setTimeout(function() {
+            var mode = typeof calendarMode !== 'undefined' ? calendarMode : 'lunar';
+            if (typeof _startButtonWalkthrough === 'function') _startButtonWalkthrough(mode);
+        }, 300);
+    };
+    window.showOnboardingWelcome = function() {}; // no-op stub
+
+    // OLD CODE BLOCK START — removed in v586
+    /* OLD ONBOARDING CODE REMOVED v586 — START
         var L = currentLang === 'es';
         return [
             {
@@ -26651,7 +26663,7 @@ function goToCurrentCycle() {
 
     // ── Auto-launch on every app open (unless user checked "don't show again") ──
     setTimeout(function() { showOnboardingWelcome(); }, 800);
-    _enableContextualTips();
+    OLD ONBOARDING CODE REMOVED v586 — END */
 
     // CSS animation keyframes
     var styleEl = document.createElement('style');
@@ -27083,13 +27095,8 @@ function goToCurrentCycle() {
         var _headerDone = _wkShown['header'];
         if (!_headerDone) {
             setTimeout(function() {
-                // Only if the main onboarding tutorial is done or skipped
-                var onbDone = localStorage.getItem('astroCurrents_onboardingDone');
-                var onbHide = localStorage.getItem('astroCurrents_onboardingDone_hideForever');
-                if (onbDone || onbHide) {
-                    _runWalkthrough('header');
-                }
-            }, 2000);
+                _runWalkthrough('header');
+            }, 1500);
         }
 
         // Wrap mode switch functions to trigger walkthroughs
@@ -32889,7 +32896,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v585';
+var APP_VERSION = 'v586';
 var _pendingSW = null;
 
 // What's New removed per user request
