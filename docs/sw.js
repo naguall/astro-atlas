@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-currents-v571';
+const CACHE_NAME = 'astro-currents-v572';
 const ASSETS = [
   '/astro-currents/',
   '/astro-currents/index.html',
@@ -32,7 +32,7 @@ function clearEverything() {
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
-  // Don't skipWaiting here — let the page control when to activate
+  self.skipWaiting(); // Activate immediately — don't wait for old tabs to close
 });
 
 self.addEventListener('activate', e => {
@@ -40,11 +40,18 @@ self.addEventListener('activate', e => {
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => {
-      // On activate (new SW takes control), clear all old notifications
       return clearEverything();
+    }).then(() => {
+      return self.clients.claim();
+    }).then(() => {
+      // Force all open pages to reload with new version
+      return self.clients.matchAll({type: 'window'}).then(windowClients => {
+        windowClients.forEach(client => {
+          client.navigate(client.url);
+        });
+      });
     })
   );
-  self.clients.claim();
 });
 
 // When user clicks a notification, open app and clear everything
