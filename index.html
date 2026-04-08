@@ -29575,6 +29575,18 @@ function openPreferencesModal() {
     };
 
     var sectionsHtml = '';
+    var _sectionHeader = function(icon, title) {
+        return '<div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;padding:0 4px;">' +
+            '<span style="font-size:1em;">' + icon + '</span>' +
+            '<span style="font-size:0.78em;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1.5px;">' + title + '</span>' +
+            '<div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.12),transparent);margin-left:6px;"></div>' +
+        '</div>';
+    };
+
+    // ═══════════════════════════════════════
+    // SECTION: General
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('⚙️', currentLang==='es'?'General':'General');
 
     // ── Idioma ──
     sectionsHtml += _s('🌐', currentLang==='es'?'Idioma':'Language', '#7ec8ff',
@@ -29592,6 +29604,11 @@ function openPreferencesModal() {
             '<label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (useNameOn?'checked':'') + ' onchange="localStorage.setItem(\'prefUseName\',this.checked?\'true\':\'false\');openPreferencesModal();" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (useNameOn?'rgba(78,205,196,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (useNameOn?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>' +
         '</div>'
     );
+
+    // ═══════════════════════════════════════
+    // SECTION: Notificaciones y Mensajes
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('🔔', currentLang==='es'?'Notificaciones y Mensajes':'Notifications & Messages');
 
     // ── Notificaciones ──
     var notifContent = '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">' +
@@ -29639,6 +29656,11 @@ function openPreferencesModal() {
         '<button onclick="closePreferencesModal();setTimeout(()=>openLocationSelector(),200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
     );
 
+    // ═══════════════════════════════════════
+    // SECTION: Asistente y Personalidad
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('🧠', currentLang==='es'?'Asistente y Personalidad':'Assistant & Persona');
+
     // ── Personalidad ──
     var personaContent = '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">';
     _aiPersonas.forEach(function(p) {
@@ -29672,6 +29694,11 @@ function openPreferencesModal() {
             '<button onclick="var k=document.getElementById(\'prefGeminiKey\').value.trim();if(k){localStorage.setItem(\'geminiApiKey\',k);}else{localStorage.removeItem(\'geminiApiKey\');}this.textContent=\'✓\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'Guardar\':\'Save\';},1500);" style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;">' + (currentLang==='es'?'Guardar':'Save') + '</button>' +
         '</div>';
     sectionsHtml += _s('✨', currentLang==='es'?'Asistente':'Assistant', '#7ec8ff', aiContent);
+
+    // ═══════════════════════════════════════
+    // SECTION: Calendario y Visualización
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('📅', currentLang==='es'?'Calendario y Visualización':'Calendar & Display');
 
     // ── Google Calendar ──
     var gcalContent = '';
@@ -29826,6 +29853,11 @@ function openPreferencesModal() {
         '</div>'
     );
 
+    // ═══════════════════════════════════════
+    // SECTION: Datos y Seguridad
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('💾', currentLang==='es'?'Datos y Seguridad':'Data & Security');
+
     // ── Backup / Restore ──
     sectionsHtml += _s('💾', currentLang==='es'?'Copia de Seguridad':'Backup & Restore', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.') + '</div>' +
@@ -29863,6 +29895,11 @@ function openPreferencesModal() {
         '</select>' +
         '<div id="dialectSaved" style="font-size:0.7em;color:#66bb6a;margin-top:6px;text-align:center;opacity:0;transition:opacity 0.3s;">✅ ' + (currentLang==='es'?'Guardado — se aplicará en la próxima grabación':'Saved — will apply on next recording') + '</div>'
     );
+
+    // ═══════════════════════════════════════
+    // SECTION: Aprendizaje
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('🎓', currentLang==='es'?'Aprendizaje':'Learning');
 
     // ── Quiz Diario / Daily Quiz ──
     var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
@@ -29936,6 +29973,11 @@ function openPreferencesModal() {
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Curso profesional con 18 módulos, 130 temas, tests adaptativos y chat AI por tema.':'Professional course with 18 modules, 130 topics, adaptive tests and AI chat per topic.') + '</div>' +
         '<button onclick="document.getElementById(\'preferencesModal\')&&document.getElementById(\'preferencesModal\').classList.remove(\'show\');switchToPersonalMode();setTimeout(function(){switchNatalTab(\'mapa\',document.querySelector(\'[onclick*=mapa]\'))},300)" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(255,215,0,0.05));border:1px solid rgba(255,215,0,0.45);border-radius:8px;color:#ffd700;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Abrir Curso Pro':'Open Course Pro') + ' (' + _courseProOverall.pct + '%)</button>'
     );
+
+    // ═══════════════════════════════════════
+    // SECTION: Sistema
+    // ═══════════════════════════════════════
+    sectionsHtml += _sectionHeader('🔧', currentLang==='es'?'Sistema':'System');
 
     // ── Actualización / Update ──
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
