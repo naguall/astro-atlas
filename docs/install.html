@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instalar AstroField</title>
+<title>Install FieldWeaver</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon-32x32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -92,43 +92,43 @@ h1 {
 </head>
 <body>
 <div class="container">
-  <img src="icons/icon-512x512.png" alt="AstroField" class="icon">
-  <h1>AstroField</h1>
-  <p class="subtitle">Calendario Lunar & Astrologia</p>
+  <img src="icons/icon-512x512.png" alt="FieldWeaver" class="icon">
+  <h1>FieldWeaver</h1>
+  <p class="subtitle">Lunar Calendar & Astrology</p>
 
   <div class="features">
-    <div class="feature"><div class="emoji">🌙</div><div class="label">Fases Lunares</div></div>
-    <div class="feature"><div class="emoji">🪐</div><div class="label">Planetas</div></div>
-    <div class="feature"><div class="emoji">🌊</div><div class="label">Mareas</div></div>
-    <div class="feature"><div class="emoji">⭐</div><div class="label">Carta Natal</div></div>
+    <div class="feature"><div class="emoji">🌙</div><div class="label">Lunar Phases</div></div>
+    <div class="feature"><div class="emoji">🪐</div><div class="label">Planets</div></div>
+    <div class="feature"><div class="emoji">🌊</div><div class="label">Tides</div></div>
+    <div class="feature"><div class="emoji">⭐</div><div class="label">Natal Chart</div></div>
   </div>
 
-  <button class="btn-install" id="installBtn" onclick="installApp()">Instalar App</button>
+  <button class="btn-install" id="installBtn" onclick="installApp()">Install App</button>
 
   <div id="iosInstructions" class="instructions hidden">
-    <h3>Para instalar en iPhone/iPad:</h3>
+    <h3>To install on iPhone/iPad:</h3>
     <ol>
-      <li>Toca el boton <span class="icon-text">⬆️</span> Compartir (abajo)</li>
-      <li>Busca <strong>"Agregar a pantalla de inicio"</strong></li>
-      <li>Toca <strong>"Agregar"</strong></li>
+      <li>Tap the <span class="icon-text">⬆️</span> Share button (bottom)</li>
+      <li>Find <strong>"Add to Home Screen"</strong></li>
+      <li>Tap <strong>"Add"</strong></li>
     </ol>
-    <p style="color:#7ec8ff; margin-top:12px;">La app se instala como icono en tu pantalla.</p>
+    <p style="color:#7ec8ff; margin-top:12px;">The app installs as an icon on your screen.</p>
   </div>
 
   <div id="androidInstructions" class="instructions hidden">
-    <h3>Para instalar en Android:</h3>
+    <h3>To install on Android:</h3>
     <ol>
-      <li>Toca el menu <strong>⋮</strong> (tres puntos arriba)</li>
-      <li>Selecciona <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong></li>
-      <li>Confirma <strong>"Instalar"</strong></li>
+      <li>Tap the menu <strong>⋮</strong> (three dots top-right)</li>
+      <li>Select <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong></li>
+      <li>Confirm <strong>"Install"</strong></li>
     </ol>
   </div>
 
   <div id="installed" class="hidden" style="margin-top:20px;">
-    <p style="color:#4ecdc4; font-size:1.2em;">✅ App instalada!</p>
+    <p style="color:#4ecdc4; font-size:1.2em;">✅ App installed!</p>
   </div>
 
-  <a href="index.html" class="open-app">Abrir AstroField →</a>
+  <a href="index.html" class="open-app">Open FieldWeaver →</a>
 </div>
 
 <script>
@@ -171,7 +171,7 @@ function installApp() {
 
 // Auto-show instructions on iOS (no beforeinstallprompt)
 if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.navigator.standalone) {
-  document.getElementById('installBtn').textContent = 'Como Instalar';
+  document.getElementById('installBtn').textContent = 'How to Install';
 }
 
 // Register SW for PWA support
