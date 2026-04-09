@@ -29989,7 +29989,7 @@ function openPreferencesModal() {
         {v:'es-ES', l:'Spanish Spain'},
         {v:'es-MX', l:'Spanish Mexico'}
     ];
-    sectionsHtml += _s('🎤', currentLang==='es'?'Dictado por Voz':'Voice Dictation', '#ff6b6b',
+    sectionsHtml += _s('🎤', currentLang==='es'?'Dictado por Voz':'Voice Dictation', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona el dialecto de voz para mejorar la precisión del dictado. Usa el dialecto más cercano a tu acento.':'Select voice dialect to improve dictation accuracy. Use the dialect closest to your accent.') + '</div>' +
         '<select id="voiceDialectSelect" onchange="localStorage.setItem(\'astroCurrents_voiceDialect\',this.value);var st=document.getElementById(\'dialectSaved\');if(st){st.style.opacity=1;setTimeout(function(){st.style.opacity=0},2000);}" style="width:100%;padding:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.35);border-radius:8px;color:#fff;font-size:0.85em;cursor:pointer;appearance:auto;">' +
         _dialectOptions.map(function(d) { return '<option value="' + d.v + '"' + (d.v === _curDialect ? ' selected' : '') + ' style="background:#1a1a2e;color:#fff;">' + d.l + '</option>'; }).join('') +
@@ -30008,7 +30008,7 @@ function openPreferencesModal() {
     for (var _dqi = 0; _dqi < (_dqPrefs.hours||['09:00']).length; _dqi++) {
         _dqTimesHtml += '<input type="time" value="' + (_dqPrefs.hours[_dqi]||'09:00') + '" onchange="updateDailyQuizTime(' + _dqi + ',this.value)" style="padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.82em;" />';
     }
-    sectionsHtml += _s('🧠', currentLang==='es'?'Quiz Diario de Repaso':'Daily Review Quiz', '#ffd700',
+    sectionsHtml += _s('🧠', currentLang==='es'?'Quiz Diario de Repaso':'Daily Review Quiz', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:10px;">' + (currentLang==='es'?'Recibe quizzes diarios para repasar lo que ya estudiaste con el tutor o el curso.':'Receive daily quizzes to review what you\'ve already studied with the tutor or course.') + '</div>' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
             '<span style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + (currentLang==='es'?'Activar Quiz Diario':'Enable Daily Quiz') + '</span>' +
@@ -30063,7 +30063,7 @@ function openPreferencesModal() {
     );
 
     // ── Tutorial de AstroField ──
-    sectionsHtml += _s('🎓', currentLang==='es'?'Tutorial de AstroField':'AstroField Tutorial', '#c9a840',
+    sectionsHtml += _s('🎓', currentLang==='es'?'Tutorial de AstroField':'AstroField Tutorial', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Vuelve a ver la presentación de bienvenida y el tour interactivo de la app.':'Replay the welcome presentation and interactive app tour.') + '</div>' +
         '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial de AstroField':'View AstroField Tutorial') + '</button>'
     );
@@ -34154,7 +34154,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v602';
+var APP_VERSION = 'v603';
 var _pendingSW = null;
 
 // What's New removed per user request
