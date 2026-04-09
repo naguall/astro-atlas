@@ -27222,8 +27222,8 @@ function goToCurrentCycle() {
                     buttons: [
                         { icon: '🏠', label: L ? 'Inicio' : 'Home', desc: L ? 'Feed de publicaciones, likes y comentarios' : 'Post feed, likes and comments' },
                         { icon: '🔔', label: L ? 'Actividad' : 'Activity', desc: L ? 'Notificaciones de likes, comentarios y seguidores' : 'Likes, comments and follower notifications' },
-                        { icon: '🔍', label: L ? 'Descubrir' : 'Discover', desc: L ? 'Busca usuarios por planeta y signo' : 'Search users by planet and sign' },
-                        { icon: '🪐', label: L ? 'Cósmicos' : 'Cosmic', desc: L ? 'Grupos automáticos por compatibilidad (65%+)' : 'Auto groups by compatibility (65%+)' },
+                        { icon: '🔍', label: L ? 'Buscar' : 'Search', desc: L ? 'Busca usuarios por planeta y signo' : 'Search users by planet and sign' },
+                        { icon: '🪐', label: L ? 'Astral' : 'Astral', desc: L ? 'Grupos automáticos por compatibilidad (65%+)' : 'Auto groups by compatibility (65%+)' },
                         { icon: '👥', label: L ? 'Grupos' : 'Groups', desc: L ? 'Comunidades astrológicas temáticas' : 'Themed astrological communities' },
                         { icon: '💬', label: 'Chat', desc: L ? 'Mensajes privados con otros usuarios' : 'Private messages with other users' },
                         { icon: '⚙️', label: L ? 'Perfil' : 'Profile', desc: L ? 'Tu perfil, privacidad y datos públicos' : 'Your profile, privacy and public data' }
@@ -27446,9 +27446,9 @@ function goToCurrentCycle() {
                 ],
                 'social': [
                     { sel: '[onclick*="_switchSocialTab"][onclick*="home"]', icon: '🏠', title: L ? 'Inicio / Feed' : 'Home / Feed', desc: L ? 'Publicaciones de la comunidad, likes y comentarios' : 'Community posts, likes and comments' },
-                    { sel: '[onclick*="_switchSocialTab"][onclick*="notifications"]', icon: '🔔', title: L ? 'Actividad' : 'Activity', desc: L ? 'Notificaciones de likes, comentarios y nuevas conexiones' : 'Notifications of likes, comments and new connections' },
-                    { sel: '[onclick*="_switchSocialTab"][onclick*="discover"]', icon: '🔍', title: L ? 'Descubrir' : 'Discover', desc: L ? 'Busca conexiones por planeta dominante y signo zodiacal' : 'Search connections by dominant planet and zodiac sign' },
-                    { sel: '[onclick*="_switchSocialTab"][onclick*="cosmic"]', icon: '🪐', title: L ? 'Gemelos Cósmicos' : 'Cosmic Twins', desc: L ? 'Encuentra personas con 65%+ de similaridad astrológica' : 'Find people with 65%+ astrological similarity' },
+                    { sel: '[onclick*="_switchSocialTab"][onclick*="activity"]', icon: '🔔', title: L ? 'Actividad' : 'Activity', desc: L ? 'Notificaciones de likes, comentarios y nuevas conexiones' : 'Notifications of likes, comments and new connections' },
+                    { sel: '[onclick*="_switchSocialTab"][onclick*="discover"]', icon: '🔍', title: L ? 'Buscar' : 'Search', desc: L ? 'Busca conexiones por planeta dominante y signo zodiacal' : 'Search connections by dominant planet and zodiac sign' },
+                    { sel: '[onclick*="_switchSocialTab"][onclick*="cosmic"]', icon: '🪐', title: L ? 'Grupos Astrológicos' : 'Astral Groups', desc: L ? 'Encuentra personas con 65%+ de similaridad astrológica' : 'Find people with 65%+ astrological similarity' },
                     { sel: '[onclick*="_switchSocialTab"][onclick*="communities"]', icon: '👥', title: L ? 'Comunidades' : 'Communities', desc: L ? 'Grupos temáticos de astrología para compartir y aprender' : 'Themed astrology groups to share and learn' },
                     { sel: '[onclick*="_switchSocialTab"][onclick*="messages"]', icon: '💬', title: 'Chat', desc: L ? 'Mensajes privados con otros usuarios de la red' : 'Private messages with other users on the network' },
                     { sel: '[onclick*="_switchSocialTab"][onclick*="profile"]', icon: '⚙️', title: L ? 'Perfil' : 'Profile', desc: L ? 'Tu perfil público, configuración de privacidad y datos' : 'Your public profile, privacy settings and data' }
@@ -32782,23 +32782,23 @@ window._socialLogout = function() { _signOut(); _renderSocial(); };
 // ── Main Social UI ──
 function _renderMainSocial(container, isES) {
     // Navigation bar
-    var navHtml = '<div style="display:flex;gap:4px;margin-bottom:12px;padding:4px;background:rgba(0,0,0,0.2);border-radius:12px;overflow-x:auto;">';
+    var navHtml = '<div style="display:flex;gap:2px;margin-bottom:12px;padding:3px;background:rgba(0,0,0,0.2);border-radius:12px;">';
     var tabs = [
         { id: 'home', icon: '🏠', label: isES ? 'Inicio' : 'Home' },
         { id: 'activity', icon: '🔔', label: isES ? 'Actividad' : 'Activity' },
-        { id: 'discover', icon: '🔍', label: isES ? 'Descubrir' : 'Discover' },
-        { id: 'cosmic', icon: '🪐', label: isES ? 'Cósmicos' : 'Cosmic' },
+        { id: 'discover', icon: '🔍', label: isES ? 'Buscar' : 'Search' },
+        { id: 'cosmic', icon: '🪐', label: isES ? 'Astral' : 'Astral' },
         { id: 'communities', icon: '👥', label: isES ? 'Grupos' : 'Groups' },
-        { id: 'messages', icon: '💬', label: isES ? 'Chat' : 'Chat' },
+        { id: 'messages', icon: '💬', label: 'Chat' },
         { id: 'profile', icon: '⚙️', label: isES ? 'Perfil' : 'Profile' }
     ];
     tabs.forEach(function(tab) {
         var isActive = _socialView === tab.id;
-        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:8px 4px;border:none;border-radius:8px;cursor:pointer;font-size:0.72em;white-space:nowrap;' +
+        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;overflow:hidden;' +
             (isActive ? 'background:rgba(0,188,212,0.2);color:#00bcd4;font-weight:700;' : 'background:transparent;color:rgba(255,255,255,0.4);font-weight:500;') +
             '">' + tab.icon + '<br>' + tab.label +
-            (tab.id === 'messages' && _unreadCount > 0 ? ' <span style="background:#ff4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:0.8em;">' + _unreadCount + '</span>' : '') +
-            (tab.id === 'activity' && _unreadCount > 0 ? ' <span style="background:#ff9800;color:#fff;border-radius:8px;padding:1px 5px;font-size:0.8em;">' + _unreadCount + '</span>' : '') +
+            (tab.id === 'messages' && _unreadCount > 0 ? ' <span style="background:#ff4444;color:#fff;border-radius:8px;padding:1px 4px;font-size:0.75em;">' + _unreadCount + '</span>' : '') +
+            (tab.id === 'activity' && _unreadCount > 0 ? ' <span style="background:#ff9800;color:#fff;border-radius:8px;padding:1px 4px;font-size:0.75em;">' + _unreadCount + '</span>' : '') +
             '</button>';
     });
     navHtml += '</div>';
@@ -33086,8 +33086,8 @@ function _renderActivityList(snap) {
 function _renderActivityItem(notif, isES) {
     var icons = { like: '❤️', comment: '💭', match_found: '🌟', new_message: '💬', community_post: '👥' };
     var labels = isES
-        ? { like: 'le dio me gusta a tu post', comment: 'comentó en tu post', match_found: '¡nuevo gemelo cósmico!', new_message: 'te envió un mensaje', community_post: 'publicó en tu grupo' }
-        : { like: 'liked your post', comment: 'commented on your post', match_found: 'new cosmic twin!', new_message: 'sent you a message', community_post: 'posted in your group' };
+        ? { like: 'le dio me gusta a tu post', comment: 'comentó en tu post', match_found: '¡nuevo grupo astrológico!', new_message: 'te envió un mensaje', community_post: 'publicó en tu grupo' }
+        : { like: 'liked your post', comment: 'commented on your post', match_found: 'new astral group!', new_message: 'sent you a message', community_post: 'posted in your group' };
     var icon = icons[notif.type] || '🔔';
     var label = labels[notif.type] || (isES ? 'nueva actividad' : 'new activity');
     var fromName = notif.fromName || 'User';
@@ -33496,7 +33496,7 @@ function _getMyCosmicGroups(callback) {
 function _renderCosmicGroups(content, isES) {
     var html = '<div style="margin-bottom:14px;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-            '<div style="font-weight:700;color:#e040fb;font-size:1em;">🪐 ' + (isES ? 'Grupos Cósmicos' : 'Cosmic Groups') + '</div>' +
+            '<div style="font-weight:700;color:#e040fb;font-size:1em;">🪐 ' + (isES ? 'Grupos Astrológicos' : 'Astral Groups') + '</div>' +
         '</div>' +
         '<div style="color:rgba(255,255,255,0.4);font-size:0.78em;margin-bottom:14px;line-height:1.5;">' +
             (isES
@@ -33508,12 +33508,12 @@ function _renderCosmicGroups(content, isES) {
     // Scan for matches button
     html += '<div style="text-align:center;margin-bottom:14px;">' +
         '<button id="cosmicScanBtn" onclick="window._scanCosmicMatches()" style="' + _SCbtn + 'background:linear-gradient(135deg,#e040fb,#7c4dff);color:#fff;width:100%;">' +
-            '✨ ' + (isES ? 'Escanear Matches Cósmicos' : 'Scan Cosmic Matches') +
+            '✨ ' + (isES ? 'Escanear Grupos Astrológicos' : 'Scan Astral Groups') +
         '</button>' +
     '</div>';
 
     html += '<div id="cosmicGroupsList" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' +
-        (isES ? 'Cargando tus grupos cósmicos...' : 'Loading your cosmic groups...') +
+        (isES ? 'Cargando tus grupos astrológicos...' : 'Loading your astral groups...') +
     '</div>';
 
     content.innerHTML = html;
@@ -33579,7 +33579,7 @@ window._scanCosmicMatches = function() {
         setTimeout(function() {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '✨ ' + (L() ? 'Escanear Matches Cósmicos' : 'Scan Cosmic Matches');
+                btn.innerHTML = '✨ ' + (L() ? 'Escanear Grupos Astrológicos' : 'Scan Astral Groups');
             }
             // Refresh the groups list
             _getMyCosmicGroups(function(groups) {
@@ -33903,7 +33903,7 @@ function _renderMessages(content, isES) {
         if (!el) return;
         if (chats.length === 0) {
             el.innerHTML = '<div style="padding:20px;color:rgba(255,255,255,0.3);font-size:0.85em;">' +
-                (isES ? 'Sin conversaciones aún. Busca usuarios en Descubrir y envíales un mensaje.' : 'No conversations yet. Find users in Discover and send them a message.') +
+                (isES ? 'Sin conversaciones aún. Busca usuarios en Buscar y envíales un mensaje.' : 'No conversations yet. Find users in Search and send them a message.') +
             '</div>';
             return;
         }
@@ -34154,7 +34154,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v603';
+var APP_VERSION = 'v604';
 var _pendingSW = null;
 
 // What's New removed per user request
