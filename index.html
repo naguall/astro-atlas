@@ -299,9 +299,9 @@
         /* AI Chat */
         #aiChatFab { display: none !important; }
         #aiChatFab:active { transform: scale(0.92); }
-        #aiChatModal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; height: 100dvh; background: rgba(2,2,15,0.95); flex-direction: column; }
+        #aiChatModal { display: none; position: fixed; z-index: 10003; left: 0; top: 0; width: 100%; height: 100%; height: 100dvh; background: rgba(2,2,15,0.95); flex-direction: column; }
         #aiChatModal.show { display: flex; }
-        #hoyInterpModal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.97); flex-direction: column; }
+        #hoyInterpModal { display: none; position: fixed; z-index: 10004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.97); flex-direction: column; }
         #hoyInterpModal.show { display: flex; }
         .cosmic-cycle-card { padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:10px;transition:all 0.2s; }
         .cosmic-cycle-card:hover { background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15); }
@@ -327,7 +327,7 @@
         .ai-typing span { animation: aiDot 1.4s infinite; } .ai-typing span:nth-child(2) { animation-delay: 0.2s; } .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes aiDot { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0; }
+        .modal { display: none; position: fixed; z-index: 10002; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0; }
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
@@ -938,7 +938,7 @@
     </div>
 
     <!-- Modal de Eventos/Agenda -->
-    <div id="eventsModal" class="modal" onclick="if(event.target===this)closeEventsModal()" style="z-index:1200;">
+    <div id="eventsModal" class="modal" onclick="if(event.target===this)closeEventsModal()" style="z-index:10002;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="eventsModalTitle">Eventos y Agenda</h2>
@@ -1032,7 +1032,7 @@
     </div>
 
     <!-- Moon Compass Modal -->
-    <div id="moonCompassModal" class="modal" onclick="if(event.target===this)closeMoonCompass()" style="z-index:1250;">
+    <div id="moonCompassModal" class="modal" onclick="if(event.target===this)closeMoonCompass()" style="z-index:10002;">
         <div class="modal-content" style="max-width:420px;background:radial-gradient(ellipse at center,#0d0d2b 0%,#050515 100%);border:1px solid rgba(155,89,182,0.3);padding:0;overflow:hidden;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(155,89,182,0.15);flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px;">
@@ -1066,7 +1066,7 @@
     </div>
 
     <!-- Modal de Diario -->
-    <div id="diarioModal" class="modal" onclick="if(event.target===this)closeDiarioModal()" style="z-index:1200;">
+    <div id="diarioModal" class="modal" onclick="if(event.target===this)closeDiarioModal()" style="z-index:10002;">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2 id="diarioModalTitle">📓</h2>
@@ -8672,6 +8672,7 @@ function showNatalDetail(type, data) {
 }
 
 function openDiarioModal(date, lunarDay) {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     const dateKey = getDateKey(date); // Use local date to avoid timezone mismatch
     window._currentDiarioDateKey = dateKey;
     var L = currentLang === 'es';
@@ -9886,6 +9887,7 @@ function getConstellationHorizonCoords(constellation, date, lat, lon) {
 }
 
 function openMoonCompass() {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     var L = currentLang === 'es';
     var modal = document.getElementById('moonCompassModal');
     // Populate constellation dropdown
@@ -10825,6 +10827,7 @@ function closeMoonCompass() {
 }
 
 function openEventsModal(date, lunarDay) {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     selectedDate = date;
     const modal = document.getElementById('eventsModal');
     const dayEvents = getAllEventsForDate(date);
@@ -27810,6 +27813,19 @@ function goToCurrentCycle() {
         }
 
         // ── Public API ──
+        // Global cleanup of any leftover spotlight z-indexes
+        window._cleanupSpotlightZIndex = function() {
+            document.querySelectorAll('*').forEach(function(el) {
+                if (el.style.zIndex === '9993' || el.style.zIndex === '9995') {
+                    el.style.zIndex = '';
+                }
+            });
+            var bd = document.getElementById('wkBackdrop');
+            var tt = document.getElementById('wkTooltip');
+            if (bd) bd.remove();
+            if (tt) tt.remove();
+        };
+
         window._startButtonWalkthrough = function(screen) {
             _runWalkthrough(screen);
         };
@@ -28959,6 +28975,7 @@ function handleNotifCategoryToggle(categoryId, enabled) {
 // PERSONAL MESSAGES EDITOR (in-app, localStorage)
 // ══════════════════════════════════════════════════
 function openMyMessagesEditor(tab) {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     var modal = document.getElementById('myMessagesModal');
     var body = document.getElementById('myMessagesBody');
     var titleEl = document.getElementById('myMsgModalTitle');
@@ -29566,6 +29583,7 @@ function openMoonVerMas(timestamp) {
         ${buildBlock(date, true, '')}
         ${next ? buildBlock(next.date, false, currentLang==='es'?'LUNA SIGUIENTE →':'NEXT MOON →') : '<div style="color:rgba(255,255,255,0.22);font-style:italic;font-size:0.78em;margin-top:8px;padding:4px 6px;">Sin luna siguiente en este signo</div>'}
     </div>`;
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     document.getElementById('moonDetailModal').classList.add('show');
 }
 
@@ -29633,6 +29651,7 @@ function _getLunarDayFor(date) {
 // ══════════════════════════════════════════════════
 function openPreferencesModal() {
   try {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     const modal = document.getElementById('preferencesModal');
     const body = document.getElementById('preferencesBody');
     const titleEl = document.getElementById('prefModalTitle');
@@ -30395,6 +30414,7 @@ function handleNotifItemClick(index) {
 window.handleNotifItemClick = handleNotifItemClick;
 
 function openNotifHistoryModal() {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     const modal = document.getElementById('notifHistoryModal');
     const body = document.getElementById('notifHistoryBody');
     const titleEl = document.getElementById('notifHistoryTitle');
@@ -31129,6 +31149,7 @@ let _allCities = [...CITIES_DB];
 })();
 
 function openLocationSelector() {
+    if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     const modal = document.getElementById('locationModal');
     if (!modal) return;
     document.getElementById('locModalTitle').textContent = currentLang==='es'?'Mi Ubicación':'My Location';
@@ -34133,7 +34154,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v601';
+var APP_VERSION = 'v602';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -34761,7 +34782,7 @@ window.submitMapaQuiz = function() {
     </div>
 
     <!-- Modal: Detalle de luna (Diario / Agenda / Aspectos) -->
-    <div id="moonDetailModal" class="modal" style="z-index:1100;" onclick="if(event.target===this)closeMoonModal()">
+    <div id="moonDetailModal" class="modal" style="z-index:10002;" onclick="if(event.target===this)closeMoonModal()">
         <div class="modal-content" style="max-width:720px;">
             <div class="modal-header">
                 <h2 id="moonModalTitle" style="font-size:1.0em;display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></h2>
@@ -34773,7 +34794,7 @@ window.submitMapaQuiz = function() {
 
 
     <!-- Modal: Selector de Ubicación -->
-    <div id="locationModal" class="modal" style="z-index:1300;" onclick="if(event.target===this)closeLocationSelector()">
+    <div id="locationModal" class="modal" style="z-index:10005;" onclick="if(event.target===this)closeLocationSelector()">
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h2>📍 <span id="locModalTitle">Ubicación</span></h2>
@@ -34795,7 +34816,7 @@ window.submitMapaQuiz = function() {
                 <div style="margin-bottom:8px;position:relative;">
                     <input id="citySearch" type="text" placeholder="Buscar cualquier lugar del mundo..." oninput="filterCities(this.value)"
                         style="width:100%;padding:10px 12px;background:rgba(5,8,40,0.9);border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#e8eaf6;font-size:0.88em;box-sizing:border-box;"/>
-                    <div id="googlePlacesResults" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1400;background:rgba(5,8,40,0.98);border:1px solid rgba(74,158,255,0.4);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;"></div>
+                    <div id="googlePlacesResults" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10006;background:rgba(5,8,40,0.98);border:1px solid rgba(74,158,255,0.4);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;"></div>
                 </div>
                 <div id="cityList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
                 <!-- Current -->
@@ -34810,7 +34831,7 @@ window.submitMapaQuiz = function() {
         </div>
     </div>
     <!-- Modal: Preferencias -->
-    <div id="preferencesModal" class="modal" style="z-index:1200;" onclick="if(event.target===this)closePreferencesModal()">
+    <div id="preferencesModal" class="modal" style="z-index:10002;" onclick="if(event.target===this)closePreferencesModal()">
         <div class="modal-content" style="max-width:440px;">
             <div class="modal-header">
                 <h2 id="prefModalTitle">⚙️ Preferencias</h2>
@@ -34821,7 +34842,7 @@ window.submitMapaQuiz = function() {
     </div>
 
     <!-- Modal: Editor de Mensajes Personalizados -->
-    <div id="myMessagesModal" class="modal" style="z-index:1200;" onclick="if(event.target===this)closeMyMessagesEditor()">
+    <div id="myMessagesModal" class="modal" style="z-index:10002;" onclick="if(event.target===this)closeMyMessagesEditor()">
         <div class="modal-content" style="max-width:480px;">
             <div class="modal-header">
                 <h2 id="myMsgModalTitle">Mis Mensajes</h2>
@@ -34832,7 +34853,7 @@ window.submitMapaQuiz = function() {
     </div>
 
     <!-- Modal: Historial de Notificaciones -->
-    <div id="notifHistoryModal" class="modal" style="z-index:1250;" onclick="if(event.target===this)closeNotifHistoryModal()">
+    <div id="notifHistoryModal" class="modal" style="z-index:10002;" onclick="if(event.target===this)closeNotifHistoryModal()">
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h2 id="notifHistoryTitle">🔔 Notificaciones</h2>
