@@ -1,9 +1,9 @@
 {
-  "name": "FieldWeaver - Lunar Calendar",
-  "short_name": "FieldWeaver",
+  "name": "AstroAtlas - Lunar Calendar",
+  "short_name": "AstroAtlas",
   "description": "Lunar Calendar with phases, planetary aspects, tides and more",
-  "start_url": "/astro-currents/",
-  "scope": "/astro-currents/",
+  "start_url": "/astro-atlas/",
+  "scope": "/astro-atlas/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#02020F",
@@ -62,7 +62,7 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "FieldWeaver"
+      "label": "AstroAtlas"
     }
   ]
 }

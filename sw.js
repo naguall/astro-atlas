@@ -1,15 +1,15 @@
-const CACHE_NAME = 'astroatlas-v635';
+const CACHE_NAME = 'astro-atlas-v635';
 const ASSETS = [
-  '/astro-currents/',
-  '/astro-currents/index.html',
-  '/astro-currents/lunar-data.js',
-  '/astro-currents/custom-messages.js',
-  '/astro-currents/manifest.json',
-  '/astro-currents/knowledge-graph.js',
-  '/astro-currents/knowledge-graph-part2.js',
-  '/astro-currents/knowledge-graph-part3.js',
-  '/astro-currents/ai-adapter.js',
-  '/astro-currents/learner-profile.js',
+  '/astro-atlas/',
+  '/astro-atlas/index.html',
+  '/astro-atlas/lunar-data.js',
+  '/astro-atlas/custom-messages.js',
+  '/astro-atlas/manifest.json',
+  '/astro-atlas/knowledge-graph.js',
+  '/astro-atlas/knowledge-graph-part2.js',
+  '/astro-atlas/knowledge-graph-part3.js',
+  '/astro-atlas/ai-adapter.js',
+  '/astro-atlas/learner-profile.js',
   'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js',
   'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Blue_Marble_2002.png/1280px-Blue_Marble_2002.png'
 ];
@@ -52,12 +52,12 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clearEverything().then(() => {
-      var url = '/astro-currents/';
+      var url = '/astro-atlas/';
       if (e.notification.data && e.notification.data.dreamAlarm) {
-        url = '/astro-currents/?dreamAlarm=1';
+        url = '/astro-atlas/?dreamAlarm=1';
       }
       if (e.notification.data && e.notification.data.dailyQuiz) {
-        url = '/astro-currents/?dailyQuiz=1';
+        url = '/astro-atlas/?dailyQuiz=1';
       }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
         if (cls.length > 0) {
@@ -94,8 +94,8 @@ self.addEventListener('message', e => {
     e.waitUntil(
       self.registration.showNotification(e.data.title, {
         body: e.data.body,
-        icon: '/astro-currents/icons/icon-192.png',
-        badge: '/astro-currents/icons/icon-192.png',
+        icon: '/astro-atlas/icons/icon-192.png',
+        badge: '/astro-atlas/icons/icon-192.png',
         tag: 'dream-alarm',
         requireInteraction: true,
         vibrate: [300, 200, 300, 200, 300],

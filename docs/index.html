@@ -8,8 +8,8 @@
     <meta http-equiv="Expires" content="0">
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
-    <!-- v635: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v635';</script>
+    <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
+    <script>window.APP_VERSION = 'v636';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -7524,7 +7524,7 @@ function exportAllDiaryEntries() {
     var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var _now = new Date(); var _dd = String(_now.getDate()).padStart(2,'0'); var _mm = String(_now.getMonth()+1).padStart(2,'0'); var _yy = _now.getFullYear();
-    var a = document.createElement('a'); a.href = url; a.download = 'diario-astro-currents-' + _dd + '-' + _mm + '-' + _yy + '.txt';
+    var a = document.createElement('a'); a.href = url; a.download = 'diario-astro-atlas-' + _dd + '-' + _mm + '-' + _yy + '.txt';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
@@ -7756,7 +7756,7 @@ function exportAllReadings() {
     var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a'); a.href = url;
-    var _rNow = new Date(); a.download = 'astro-currents-readings-' + String(_rNow.getDate()).padStart(2,'0') + '-' + String(_rNow.getMonth()+1).padStart(2,'0') + '-' + _rNow.getFullYear() + '.txt';
+    var _rNow = new Date(); a.download = 'astro-atlas-readings-' + String(_rNow.getDate()).padStart(2,'0') + '-' + String(_rNow.getMonth()+1).padStart(2,'0') + '-' + _rNow.getFullYear() + '.txt';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
@@ -9409,7 +9409,7 @@ function triggerDreamAlarm() {
         } else {
             new Notification(currentLang === 'es' ? '🌙 Ensueño' : '🌙 Dream', {
                 body: currentLang === 'es' ? 'Toca para grabar tu sueño' : 'Tap to record your dream',
-                icon: '/astro-currents/icons/icon-192.png',
+                icon: '/astro-atlas/icons/icon-192.png',
                 tag: 'dream-alarm',
                 requireInteraction: true
             });
@@ -28066,7 +28066,7 @@ if (calendarMode === 'solar') {
 } else if (calendarMode === 'personal') {
     switchToPersonalMode();
 } else if (calendarMode === 'social') {
-    // v635: social mode was not handled on init, leaving lunarWeeks visible but empty
+    // v636: social mode was not handled on init, leaving lunarWeeks visible but empty
     if (typeof switchToSocialMode === 'function') {
         switchToSocialMode();
     } else {
@@ -28079,7 +28079,7 @@ if (calendarMode === 'solar') {
         renderCalendar();
     }
 } else {
-    // v635: Lunar init — force lunarWeeks visible and retry render if it
+    // v636: Lunar init — force lunarWeeks visible and retry render if it
     // comes out empty (can happen if newMoonsLocal wasn't ready yet).
     try {
         var _lw = document.getElementById('lunarWeeks');
@@ -28249,7 +28249,7 @@ const _Notif = window.Notification;
 function sendNotif(title, opts) {
     console.log('🔔 sendNotif called:', title);
     // Add tag so Android can replace instead of stacking notifications
-    if (!opts.tag) { opts.tag = 'astro-currents-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
+    if (!opts.tag) { opts.tag = 'astro-atlas-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
     // On mobile, MUST use ServiceWorker.showNotification - new Notification() silently fails
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function(reg) {
@@ -30387,7 +30387,7 @@ function openPreferencesModal() {
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
         '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
-        '<div onclick="window._creatorTaps=(window._creatorTaps||0)+1;clearTimeout(window._creatorTimer);window._creatorTimer=setTimeout(function(){window._creatorTaps=0;},2000);if(window._creatorTaps>=5){window._creatorTaps=0;if(localStorage.getItem(\'astrofield_creator\')===\'true\'){localStorage.removeItem(\'astrofield_creator\');this.style.borderColor=\'rgba(74,158,255,0.2)\';alert(\'Modo creador desactivado\');}else{var pw=prompt(\'Contraseña de creador:\');if(pw===\'astro2026\'){localStorage.setItem(\'astrofield_creator\',\'true\');this.style.borderColor=\'#4ecdc4\';alert(\'Modo creador activado — reabre Preferencias\');}else if(pw!==null){alert(\'Contraseña incorrecta\');}}}" style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid ' + (localStorage.getItem('astrofield_creator')==='true'?'rgba(78,205,196,0.5)':'rgba(74,158,255,0.2)') + ';border-radius:8px;cursor:pointer;user-select:none;">⚡ AstroAtlas ' + (window.APP_VERSION || 'v635') + '</div>'
+        '<div onclick="window._creatorTaps=(window._creatorTaps||0)+1;clearTimeout(window._creatorTimer);window._creatorTimer=setTimeout(function(){window._creatorTaps=0;},2000);if(window._creatorTaps>=5){window._creatorTaps=0;if(localStorage.getItem(\'astrofield_creator\')===\'true\'){localStorage.removeItem(\'astrofield_creator\');this.style.borderColor=\'rgba(74,158,255,0.2)\';alert(\'Modo creador desactivado\');}else{var pw=prompt(\'Contraseña de creador:\');if(pw===\'astro2026\'){localStorage.setItem(\'astrofield_creator\',\'true\');this.style.borderColor=\'#4ecdc4\';alert(\'Modo creador activado — reabre Preferencias\');}else if(pw!==null){alert(\'Contraseña incorrecta\');}}}" style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid ' + (localStorage.getItem('astrofield_creator')==='true'?'rgba(78,205,196,0.5)':'rgba(74,158,255,0.2)') + ';border-radius:8px;cursor:pointer;user-select:none;">⚡ AstroAtlas ' + (window.APP_VERSION || 'v636') + '</div>'
     );
 
     body.innerHTML = sectionsHtml;
@@ -30815,7 +30815,7 @@ function openNotifHistoryModal() {
                     + (d.title || item.message)
                     + '</div></div>';
             } else if (item.actionType === 'social_notif') {
-                // v635: Social notifications — click navigates to chat/feed
+                // v636: Social notifications — click navigates to chat/feed
                 const meaning = item.detail || '';
                 var onClickHandler = 'window._onSocialNotifClick(\'' + (item.timestamp || '').replace(/'/g, '') + '\')';
                 html += '<div onclick="' + onClickHandler + '" style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid #00bcd4;border-radius:8px;cursor:pointer;">'
@@ -30848,7 +30848,7 @@ function closeNotifHistoryModal() {
     if (modal) modal.classList.remove('show');
 }
 
-// v635: Click handler for social notifications in history modal —
+// v636: Click handler for social notifications in history modal —
 // closes modal, switches to Social mode, navigates to the right tab/chat.
 window._onSocialNotifClick = function(timestamp) {
     try {
@@ -32896,7 +32896,7 @@ function _socialNotifToHeader(snap) {
             var icon = typeIcons[d.type] || '🌐';
             var label = typeLabels[d.type] || 'AstroConnect';
             var from = d.fromName ? (' — ' + d.fromName) : '';
-            // v635: Build real preview text so the notification history shows
+            // v636: Build real preview text so the notification history shows
             // the actual message/comment instead of "new_message"
             var previewText = '';
             if (d.data) {
@@ -34565,7 +34565,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-// v635: APP_VERSION is declared at the top of the file as window.APP_VERSION.
+// v636: APP_VERSION is declared at the top of the file as window.APP_VERSION.
 // This line just makes sure there's a local binding for legacy code that
 // references APP_VERSION directly without the window. prefix.
 var APP_VERSION = window.APP_VERSION;
@@ -34709,7 +34709,7 @@ if ('serviceWorker' in navigator) {
         }
     }
 
-    navigator.serviceWorker.register('/astro-currents/sw.js', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('/astro-atlas/sw.js', { updateViaCache: 'none' })
         .then(handleSWRegistration)
         .catch(function(error) {
             console.log('❌ SW registration failed, trying relative path:', error);
@@ -34735,23 +34735,24 @@ if ('serviceWorker' in navigator) {
         });
     }, 1800000);
 
-    // v635: SW cache is now 'astroatlas-vXXX' (rebranded from fieldweaver).
-    // Delete any caches that aren't the current active one; old fieldweaver-*
-    // and astro-currents-* caches are legacy and always safe to remove.
+    // v636: SW cache is now 'astro-atlas-vXXX' (rebranded from fieldweaver/astro-currents).
+    // Delete any caches that aren't the current active one; old fieldweaver-*,
+    // astroatlas-* and astro-currents-* caches are legacy and always safe to remove.
     if (caches) {
         caches.keys().then(function(keys) {
             keys.forEach(function(key) {
-                if (key.indexOf('astroatlas-') === 0 && key !== 'astroatlas-' + APP_VERSION) {
+                if (key.indexOf('astro-atlas-') === 0 && key !== 'astro-atlas-' + APP_VERSION) {
                     caches.delete(key);
                     console.log('🗑️ Deleted old cache:', key);
                 } else if (key.indexOf('fieldweaver-') === 0) {
-                    // Legacy cache from pre-rebrand versions
                     caches.delete(key);
                     console.log('🗑️ Deleted legacy fieldweaver cache:', key);
-                } else if (key.indexOf('astro-currents-') === 0) {
-                    // Legacy cache from even older versions
+                } else if (key.indexOf('astroatlas-') === 0) {
                     caches.delete(key);
-                    console.log('🗑️ Deleted legacy cache:', key);
+                    console.log('🗑️ Deleted legacy astroatlas cache:', key);
+                } else if (key.indexOf('astro-currents-') === 0) {
+                    caches.delete(key);
+                    console.log('🗑️ Deleted legacy astro-currents cache:', key);
                 }
             });
         });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * FieldWeaver — Build script for GitHub Pages deployment
+ * AstroAtlas — Build script for GitHub Pages deployment
  * Creates docs/ directory with all web assets, adjusted paths for /moon-sync/ base
  */
 
@@ -9,7 +9,7 @@ const path = require('path');
 
 const ROOT = __dirname;
 const DOCS = path.join(ROOT, 'docs');
-const BASE_PATH = '/astro-currents'; // GitHub repo name = URL base
+const BASE_PATH = '/astro-atlas'; // GitHub repo name = URL base
 
 // Files to copy
 const FILES = [
@@ -72,8 +72,8 @@ DIRS.forEach(dir => {
 
 // === Create manifest.json with GitHub Pages paths ===
 const manifest = {
-    name: "FieldWeaver - Lunar Calendar",
-    short_name: "FieldWeaver",
+    name: "AstroAtlas - Lunar Calendar",
+    short_name: "AstroAtlas",
     description: "Lunar Calendar with phases, planetary aspects, tides and more",
     start_url: BASE_PATH + "/",
     scope: BASE_PATH + "/",
@@ -93,7 +93,7 @@ const manifest = {
         { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable any" }
     ],
     screenshots: [
-        { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", form_factor: "narrow", label: "FieldWeaver" }
+        { src: "icons/icon-512x512.png", sizes: "512x512", type: "image/png", form_factor: "narrow", label: "AstroAtlas" }
     ]
 };
 fs.writeFileSync(path.join(DOCS, 'manifest.json'), JSON.stringify(manifest, null, 2));
@@ -111,8 +111,8 @@ let appVersion = versionMatch ? versionMatch[1] : 'v559';
 
 // Read source sw.js and adjust paths
 let swSource = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-// Update CACHE_NAME to match APP_VERSION (rebranded from fieldweaver- → astroatlas-)
-swSource = swSource.replace(/const CACHE_NAME = '[^']+';/, `const CACHE_NAME = 'astroatlas-${appVersion}';`);
+// Update CACHE_NAME to match APP_VERSION (rebranded from fieldweaver- → astro-atlas-)
+swSource = swSource.replace(/const CACHE_NAME = '[^']+';/, `const CACHE_NAME = 'astro-atlas-${appVersion}';`);
 // Fix asset paths: add BASE_PATH prefix to relative paths
 swSource = swSource.replace(
   /const ASSETS = \[[\s\S]*?\];/,
@@ -137,13 +137,13 @@ copied++;
 
 // === Patch index.html SW registration path ===
 let indexContent = fs.readFileSync(path.join(DOCS, 'index.html'), 'utf8');
-// Replace the hardcoded /astro-currents/ SW path with /moon-sync/
+// Replace the hardcoded /astro-atlas/ SW path with /moon-sync/
 indexContent = indexContent.replace(
-    /navigator\.serviceWorker\.register\('\/astro-currents\/sw\.js'/g,
+    /navigator\.serviceWorker\.register\('\/astro-atlas\/sw\.js'/g,
     `navigator.serviceWorker.register('${BASE_PATH}/sw.js'`
 );
-// Also update any /astro-currents/ references in notification URLs
-indexContent = indexContent.replace(/\/astro-currents\//g, BASE_PATH + '/');
+// Also update any /astro-atlas/ references in notification URLs
+indexContent = indexContent.replace(/\/astro-atlas\//g, BASE_PATH + '/');
 fs.writeFileSync(path.join(DOCS, 'index.html'), indexContent);
 console.log('  ✓ index.html (patched paths)');
 
@@ -153,7 +153,7 @@ const installPage = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Install FieldWeaver</title>
+<title>Install AstroAtlas</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon-32x32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -242,8 +242,8 @@ h1 {
 </head>
 <body>
 <div class="container">
-  <img src="icons/icon-512x512.png" alt="FieldWeaver" class="icon">
-  <h1>FieldWeaver</h1>
+  <img src="icons/icon-512x512.png" alt="AstroAtlas" class="icon">
+  <h1>AstroAtlas</h1>
   <p class="subtitle">Lunar Calendar & Astrology</p>
 
   <div class="features">
@@ -278,7 +278,7 @@ h1 {
     <p style="color:#4ecdc4; font-size:1.2em;">✅ App installed!</p>
   </div>
 
-  <a href="index.html" class="open-app">Open FieldWeaver →</a>
+  <a href="index.html" class="open-app">Open AstroAtlas →</a>
 </div>
 
 <script>
@@ -336,5 +336,5 @@ console.log('  ✓ install.html (landing page)');
 copied++;
 
 console.log('\n🚀 GitHub Pages build complete: ' + copied + ' files → docs/\n');
-console.log('URL: https://naguall.github.io/astro-currents/install.html');
-console.log('App: https://naguall.github.io/astro-currents/index.html\n');
+console.log('URL: https://naguall.github.io/astro-atlas/install.html');
+console.log('App: https://naguall.github.io/astro-atlas/index.html\n');
