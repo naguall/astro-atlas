@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-atlas-v635';
+const CACHE_NAME = 'astro-atlas-v637';
 const ASSETS = [
   '/astro-atlas/',
   '/astro-atlas/index.html',
@@ -58,6 +58,10 @@ self.addEventListener('notificationclick', e => {
       }
       if (e.notification.data && e.notification.data.dailyQuiz) {
         url = '/astro-atlas/?dailyQuiz=1';
+      }
+      // v637: Open AI interpretation when clicking astro notifications
+      if (e.notification.data && e.notification.data.interpret) {
+        url = '/astro-atlas/?interpret=' + encodeURIComponent(e.notification.data.interpret);
       }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
         if (cls.length > 0) {

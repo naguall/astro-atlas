@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v636';</script>
+    <script>window.APP_VERSION = 'v637';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -9828,6 +9828,18 @@ if (_dreamAlarmEnabled) {
         setTimeout(function() {
             if (typeof launchDailyQuiz === 'function') launchDailyQuiz();
         }, 1800);
+    }
+    // v637: Auto-open AI interpretation from notification click
+    var interpretText = params.get('interpret');
+    if (interpretText) {
+        var url3 = new URL(window.location);
+        url3.searchParams.delete('interpret');
+        window.history.replaceState({}, '', url3);
+        setTimeout(function() {
+            if (typeof showBannerAspectDetail === 'function') {
+                showBannerAspectDetail(interpretText);
+            }
+        }, 2000);
     }
 })();
 
@@ -28844,7 +28856,8 @@ function checkNotifications() {
                     sendNotif(times[pi].icon + ' ' + phaseName, {
                         body: body12h,
                         tag: 'lunar-phase-12h-' + phaseId,
-                        requireInteraction: false
+                        requireInteraction: false,
+                        data: { interpret: phaseName + ' en ' + enrich.zodiacSign }
                     });
                     localStorage.setItem(key12h, 'true');
                     console.log('🌙 12h before lunar phase:', phaseName);
@@ -28862,7 +28875,8 @@ function checkNotifications() {
                     sendNotif(times[pi].icon + ' ' + phaseName, {
                         body: body5m,
                         tag: 'lunar-phase-5m-' + phaseId,
-                        requireInteraction: true
+                        requireInteraction: true,
+                        data: { interpret: phaseName + ' en ' + enrich2.zodiacSign + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '') }
                     });
                     localStorage.setItem(key5m, 'true');
                     console.log('🌙 5min before lunar phase:', phaseName);
@@ -28881,7 +28895,8 @@ function checkNotifications() {
                         sendNotif(times[pi].icon + ' ' + phaseName + ' (' + (L ? 'hoy' : 'today') + ')', {
                             body: bodyCatch,
                             tag: 'lunar-phase-catchup-' + phaseId,
-                            requireInteraction: true
+                            requireInteraction: true,
+                            data: { interpret: phaseName + ' en ' + enrich3.zodiacSign + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '') }
                         });
                         localStorage.setItem(keyCatchup, 'true');
                         console.log('🌙 Catch-up lunar phase:', phaseName);
@@ -28906,7 +28921,8 @@ function checkNotifications() {
                 sendNotif(L ? 'Eclipse Mañana' : 'Eclipse Tomorrow', {
                     body: (L ? 'Mañana: ' : 'Tomorrow: ') + translateMeaning(eclipseTomorrow.name),
                     tag: 'eclipse-12h-' + todayKey,
-                    requireInteraction: false
+                    requireInteraction: false,
+                    data: { interpret: (eclipseTomorrow.type === 'solar' ? 'Eclipse Solar' : 'Eclipse Lunar') + ': ' + eclipseTomorrow.name }
                 });
                 localStorage.setItem(keyEcl12h, 'true');
                 console.log('☀️ 12h before eclipse:', eclipseTomorrow.name);
@@ -28919,7 +28935,8 @@ function checkNotifications() {
                 sendNotif(L ? 'Eclipse Hoy' : 'Eclipse Today', {
                     body: translateMeaning(eclipse.name),
                     tag: 'eclipse-day-' + todayKey,
-                    requireInteraction: true
+                    requireInteraction: true,
+                    data: { interpret: (eclipse.type === 'solar' ? 'Eclipse Solar' : 'Eclipse Lunar') + ': ' + eclipse.name }
                 });
                 localStorage.setItem(keyEclDay, 'true');
                 console.log('☀️ Eclipse today:', eclipse.name);
@@ -28943,7 +28960,8 @@ function checkNotifications() {
                         sendNotif(L ? r.planet + ' Retrógrado' : r.planet + ' Retrograde', {
                             body: (L ? 'Comienza mañana' : 'Starts tomorrow'),
                             tag: 'retrograde-12h-' + r.planet,
-                            requireInteraction: false
+                            requireInteraction: false,
+                            data: { interpret: r.planet + ' Retrógrado' }
                         });
                         localStorage.setItem(keyRet12h, 'true');
                         console.log('🔄 Retrograde starting tomorrow:', r.planet);
@@ -28957,7 +28975,8 @@ function checkNotifications() {
                     sendNotif(L ? r.planet + ' Retrógrado' : r.planet + ' Retrograde', {
                         body: (L ? 'Hoy comienza' : 'Starts today'),
                         tag: 'retrograde-day-' + r.planet,
-                        requireInteraction: true
+                        requireInteraction: true,
+                        data: { interpret: r.planet + ' Retrógrado' }
                     });
                     localStorage.setItem(keyRetDay, 'true');
                     console.log('🔄 Retrograde started today:', r.planet);
@@ -28982,7 +29001,8 @@ function checkNotifications() {
                         sendNotif(L ? c.planet + ' entra en ' + c.toSign : c.planet + ' enters ' + c.toSign, {
                             body: (L ? 'Mañana' : 'Tomorrow'),
                             tag: 'signchange-12h-' + c.planet,
-                            requireInteraction: false
+                            requireInteraction: false,
+                            data: { interpret: c.planet + ' entra en ' + c.toSign }
                         });
                         localStorage.setItem(keySch12h, 'true');
                         console.log('→ Sign change tomorrow:', c.planet, c.toSign);
@@ -28996,7 +29016,8 @@ function checkNotifications() {
                     sendNotif(L ? c.planet + ' entra en ' + c.toSign : c.planet + ' enters ' + c.toSign, {
                         body: (L ? 'Hoy' : 'Today'),
                         tag: 'signchange-day-' + c.planet,
-                        requireInteraction: true
+                        requireInteraction: true,
+                        data: { interpret: c.planet + ' entra en ' + c.toSign }
                     });
                     localStorage.setItem(keySchDay, 'true');
                     console.log('→ Sign change today:', c.planet, c.toSign);
@@ -29023,7 +29044,8 @@ function checkNotifications() {
                     sendNotif(L ? 'Aspectos Planetarios' : 'Planetary Aspects', {
                         body: (L ? 'Mañana: ' : 'Tomorrow: ') + aspMsg,
                         tag: 'aspects-12h-' + todayKey,
-                        requireInteraction: false
+                        requireInteraction: false,
+                        data: { interpret: aspMsg }
                     });
                     localStorage.setItem(keyAsp12h, 'true');
                     console.log('⚛️ Major aspects tomorrow');
@@ -29037,7 +29059,8 @@ function checkNotifications() {
                     sendNotif(L ? 'Aspectos Planetarios' : 'Planetary Aspects', {
                         body: aspMsg2,
                         tag: 'aspects-day-' + todayKey,
-                        requireInteraction: true
+                        requireInteraction: true,
+                        data: { interpret: aspMsg2 }
                     });
                     localStorage.setItem(keyAspDay, 'true');
                     console.log('⚛️ Major aspects today');
@@ -29056,7 +29079,8 @@ function checkNotifications() {
                 sendNotif(L ? 'Evento Astronómico' : 'Astronomical Event', {
                     body: astroText,
                     tag: 'astro-' + todayKey,
-                    requireInteraction: false
+                    requireInteraction: false,
+                    data: { interpret: astroText }
                 });
                 localStorage.setItem(keyAstro, 'true');
                 console.log('🌍 Astronomical event:', astroText);
