@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v638';</script>
+    <script>window.APP_VERSION = 'v639';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -1860,29 +1860,27 @@ function getPlanetPosition(planet, date) {
     return getPlanetPositionLegacy(planet, date);
 }
 
-// Obtener signo zodiacal desde longitud
+// Obtener signo zodiacal desde longitud (v639: language-aware)
 function getZodiacSignFromLongitude(longitude) {
-    const signs = [
-        'Aries', 'Tauro', 'Géminis', 'Cáncer',
-        'Leo', 'Virgo', 'Libra', 'Escorpio',
-        'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
-    ];
+    const L = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+    const signs = L
+        ? ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis']
+        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signIndex = Math.floor(longitude / 30);
     return signs[signIndex];
 }
 
-// Obtener signo zodiacal con grado
+// Obtener signo zodiacal con grado (v639: language-aware)
 function getZodiacSignWithDegree(longitude) {
-    const signs = [
-        'Aries', 'Tauro', 'Géminis', 'Cáncer',
-        'Leo', 'Virgo', 'Libra', 'Escorpio',
-        'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
-    ];
+    const L = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+    const signs = L
+        ? ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis']
+        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const minutes = Math.floor((degreeInSign % 1) * 60);
     const degrees = Math.floor(degreeInSign);
-    
+
     return {
         sign: signs[signIndex],
         degree: degrees,
@@ -3745,8 +3743,9 @@ let events = {};
 let journals = {};
 let autoSaveTimeout = null;
 
-// Calendar mode: 'lunar' or 'solar'
-let calendarMode = localStorage.getItem('calendarMode') || 'lunar';
+// Calendar mode: always start on lunar (user preference v639)
+let calendarMode = 'lunar';
+localStorage.setItem('calendarMode', 'lunar');
 let currentSignIndex = 0; // For solar calendar navigation
 
 // Language system
@@ -4532,6 +4531,10 @@ function updateUILanguage() {
     // Update Gregorian button label
     const gregorianLabel = document.getElementById('gregorianButtonLabel');
     if (gregorianLabel) gregorianLabel.textContent = t('gregorianButton');
+
+    // v639: Update Personal/Astrology button label
+    const personalLabel = document.getElementById('personalButtonLabel');
+    if (personalLabel) personalLabel.textContent = currentLang === 'es' ? 'Astrológico' : 'Astrology';
 
     // Update cycle navigation
     const cycleNumber = document.getElementById('cycleNumber');
@@ -5868,9 +5871,13 @@ function isSameDay(date1, date2) {
 }
 
 function formatDate(date) {
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
-                  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return `${date.getDate()} ${months[date.getMonth()]}`;
+    const L = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+    const months = L
+        ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return L
+        ? `${date.getDate()} ${months[date.getMonth()]}`
+        : `${months[date.getMonth()]} ${date.getDate()}`;
 }
 
 function formatShortDate(date) {
@@ -32379,6 +32386,10 @@ function _initFirebase() {
         }
         _db = firebase.firestore();
         _auth = firebase.auth();
+        // v639: Ensure auth persists across sessions so social notifications always work
+        _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(e) {
+            console.warn('Auth persistence error:', e);
+        });
         _auth.onAuthStateChanged(function(user) {
             _socialUser = user;
             if (user) {
@@ -34578,6 +34589,29 @@ window._openChat = function(chatId, otherUid, otherName) {
     if (!content) return;
     var isES = L();
     var displayName = otherName || 'Chat';
+
+    // v639: Mark all chat notifications from this user as read and reset badge
+    if (_db && _socialUser && otherUid) {
+        _db.collection('notifications').doc(_socialUser.uid).collection('items')
+            .where('read', '==', false)
+            .get().then(function(snap) {
+                var batch = _db.batch();
+                var marked = 0;
+                snap.forEach(function(doc) {
+                    var d = doc.data();
+                    if (d.fromUid === otherUid || d.chatId === chatId || (d.type && d.type === 'message')) {
+                        batch.update(doc.ref, { read: true });
+                        marked++;
+                    }
+                });
+                if (marked > 0) {
+                    batch.commit().then(function() {
+                        _unreadCount = Math.max(0, _unreadCount - marked);
+                        _updateNotifBadges();
+                    });
+                }
+            }).catch(function(e) { console.warn('Clear chat notifs error:', e); });
+    }
 
     // Render chat UI immediately (name may update async)
     function _renderChatHeader(name) {
