@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-atlas-v636';
+const CACHE_NAME = 'astro-atlas-v638';
 const ASSETS = [
   '/astro-atlas/',
   '/astro-atlas/index.html',
@@ -58,6 +58,10 @@ self.addEventListener('notificationclick', e => {
       }
       if (e.notification.data && e.notification.data.dailyQuiz) {
         url = '/astro-atlas/?dailyQuiz=1';
+      }
+      // v637: Open AI interpretation when clicking astro notifications
+      if (e.notification.data && e.notification.data.interpret) {
+        url = '/astro-atlas/?interpret=' + encodeURIComponent(e.notification.data.interpret);
       }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
         if (cls.length > 0) {
@@ -143,7 +147,19 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // All app files: NETWORK FIRST, fallback to cache
+  // v638: index.html and sw.js — always bypass HTTP cache to get freshest version
+  const isCore = url.includes('index.html') || url.endsWith('/astro-atlas/') || url.endsWith('/astro-atlas');
+  if (isCore) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return resp;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // All other app files: NETWORK FIRST, fallback to cache
   e.respondWith(
     fetch(e.request).then(resp => {
       const clone = resp.clone();
