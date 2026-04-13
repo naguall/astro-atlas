@@ -147,7 +147,19 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // All app files: NETWORK FIRST, fallback to cache
+  // v638: index.html and sw.js — always bypass HTTP cache to get freshest version
+  const isCore = url.includes('index.html') || url.endsWith('/astro-atlas/') || url.endsWith('/astro-atlas');
+  if (isCore) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return resp;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // All other app files: NETWORK FIRST, fallback to cache
   e.respondWith(
     fetch(e.request).then(resp => {
       const clone = resp.clone();

@@ -34916,6 +34916,32 @@ if ('serviceWorker' in navigator) {
         });
     }, 1800000);
 
+    // v638: Aggressive version check — bypass CDN cache by fetching sw.js directly with cache-bust
+    // This catches cases where GitHub Pages CDN serves stale files
+    function _checkServerVersion() {
+        fetch('/astro-atlas/sw.js?_cb=' + Date.now(), { cache: 'no-store' })
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                var m = text.match(/CACHE_NAME\s*=\s*'astro-atlas-(v\d+)'/);
+                if (m && m[1] && m[1] !== APP_VERSION) {
+                    console.log('🔄 Server has ' + m[1] + ', we have ' + APP_VERSION + ' — forcing update');
+                    // Nuke caches and reload
+                    if (window.caches) {
+                        caches.keys().then(function(keys) {
+                            keys.forEach(function(k) { caches.delete(k); });
+                        });
+                    }
+                    navigator.serviceWorker.getRegistration().then(function(reg) {
+                        if (reg) reg.update();
+                    });
+                    setTimeout(function() { window.location.reload(true); }, 1000);
+                }
+            }).catch(function() {}); // Silently fail if offline
+    }
+    // Check on load (after 5 seconds to not block), then every 10 minutes
+    setTimeout(_checkServerVersion, 5000);
+    setInterval(_checkServerVersion, 600000);
+
     // v636: SW cache is now 'astro-atlas-vXXX' (rebranded from fieldweaver/astro-currents).
     // Delete any caches that aren't the current active one; old fieldweaver-*,
     // astroatlas-* and astro-currents-* caches are legacy and always safe to remove.
