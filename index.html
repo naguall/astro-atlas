@@ -30963,6 +30963,19 @@ function openNotifHistoryModal() {
                 } catch(e) {}
             }
 
+            // v638: Build interpretable text for AI click — used by all clickable items
+            function _buildInterpText(item, data) {
+                var parts = [];
+                if (data && data.planet1) parts.push((data.planet1||'') + ' ' + (data.symbol||'') + ' ' + (data.planet2||''));
+                else if (item.message) parts.push(item.message);
+                if (data && data.degrees) parts.push('(' + data.degrees + ')');
+                if (data && data.signs) parts.push(data.signs);
+                if (data && data.meaning) parts.push(data.meaning);
+                else if (item.detail) parts.push(item.detail);
+                return parts.join(' ');
+            }
+            function _escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
             // Render full inline card
             if (item.actionType === 'interAspect' || (item.type === 'aspect' && data && data.planet1)) {
                 const d = data || {};
@@ -30970,7 +30983,8 @@ function openNotifHistoryModal() {
                 const degrees = d.degrees || '';
                 const signs = d.signs || '';
                 const meaning = d.meaning || item.detail || '';
-                html += '<div style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;">'
+                var _interpText = _buildInterpText(item, d);
+                html += '<div onclick="closeNotifHistoryModal();setTimeout(function(){showBannerAspectDetail(\''+_escAttr(_interpText)+'\');},300);" style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;cursor:pointer;">'
                     + '<div style="font-size:0.88em;color:#e8eaf6;font-weight:600;">'
                     + (time ? '<span style="color:#f0e68c;">'+time+'</span> — ' : '')
                     + tp(d.planet1||'') + ' ' + (d.symbol||'') + ' ' + tp(d.planet2||'')
@@ -30978,13 +30992,16 @@ function openNotifHistoryModal() {
                     + (signs ? ' <span style="color:rgba(255,255,255,0.3);font-size:0.8em;">'+signs+'</span>' : '')
                     + '</div>'
                     + (meaning ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);line-height:1.45;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">'+meaning+'</div>' : '')
+                    + '<div style="font-size:0.65em;color:rgba(102,126,234,0.6);margin-top:5px;">✨ '+(currentLang==='es'?'Toca para interpretar':'Tap to interpret')+'</div>'
                     + '</div>';
             } else if (item.actionType === 'signChange' || (item.type === 'aspect' && data && data.toSign)) {
                 const d = data || {};
                 const meaning = d.meaning || item.detail || '';
-                html += '<div style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;">'
+                var _interpText2 = _buildInterpText(item, d);
+                html += '<div onclick="closeNotifHistoryModal();setTimeout(function(){showBannerAspectDetail(\''+_escAttr(_interpText2)+'\');},300);" style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;cursor:pointer;">'
                     + '<div style="font-size:0.88em;color:#e8eaf6;font-weight:600;">'+item.message+'</div>'
                     + (meaning ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);line-height:1.45;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">'+meaning+'</div>' : '')
+                    + '<div style="font-size:0.65em;color:rgba(102,126,234,0.6);margin-top:5px;">✨ '+(currentLang==='es'?'Toca para interpretar':'Tap to interpret')+'</div>'
                     + '</div>';
             } else if (item.actionType === 'userEvent') {
                 const d = data || {};
@@ -31002,12 +31019,19 @@ function openNotifHistoryModal() {
                     + (meaning ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);line-height:1.45;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);white-space:pre-wrap;">'+meaning+'</div>' : '')
                     + '<div style="font-size:0.7em;color:#00bcd4;margin-top:6px;">👉 '+(currentLang==='es'?'Toca para abrir':'Tap to open')+'</div>'
                     + '</div>';
-            } else {
-                // Generic (moon events, retrogrades, system, etc.)
-                const meaning = item.detail || '';
+            } else if (item.type === 'system') {
+                // System messages (non-clickable)
                 html += '<div style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;">'
                     + '<div style="font-size:0.88em;color:#e8eaf6;">'+item.message+'</div>'
+                    + '</div>';
+            } else {
+                // Generic astro (moon events, retrogrades, eclipses, equinoxes, etc.) — clickable for interpretation
+                const meaning = item.detail || '';
+                var _interpText3 = item.message + (meaning ? ' — ' + meaning : '');
+                html += '<div onclick="closeNotifHistoryModal();setTimeout(function(){showBannerAspectDetail(\''+_escAttr(_interpText3)+'\');},300);" style="padding:10px 12px;background:rgba(5,7,30,0.9);border-left:3px solid '+borderColor+';border-radius:8px;cursor:pointer;">'
+                    + '<div style="font-size:0.88em;color:#e8eaf6;">'+item.message+'</div>'
                     + (meaning ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);line-height:1.45;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">'+meaning+'</div>' : '')
+                    + '<div style="font-size:0.65em;color:rgba(102,126,234,0.6);margin-top:5px;">✨ '+(currentLang==='es'?'Toca para interpretar':'Tap to interpret')+'</div>'
                     + '</div>';
             }
         });
@@ -37169,9 +37193,59 @@ function showAIWelcome() {
             qa.style.display = 'flex';
             qa.style.flexDirection = 'column';
             qa.style.gap = '8px';
-            qa.innerHTML = `
-                <button onclick="aiQuickAction(1)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
-                <button onclick="aiQuickAction(3)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Tránsitos de hoy' : 'Today transits'}</button>`;
+            // v638: Rotating astronomy/astrology question suggestions
+            var _allSuggestions = isEs ? [
+                ['🪐', 'Cómo afectan los anillos de Saturno a su campo gravitacional?'],
+                ['☀️', 'Qué pasaría si el Sol fuera un 10% más grande?'],
+                ['🌑', 'Por qué siempre vemos la misma cara de la Luna?'],
+                ['🔭', 'Cuál es la estrella más cercana después del Sol y cómo es?'],
+                ['🌌', 'Qué es la materia oscura y cómo afecta a las galaxias?'],
+                ['💫', 'Qué diferencia hay entre un asteroide, un cometa y un meteorito?'],
+                ['🌍', 'Cómo influye la inclinación de la Tierra en las estaciones?'],
+                ['🔴', 'Se podría terraformar Marte? Qué haría falta?'],
+                ['🌊', 'Cómo genera la Luna las mareas en la Tierra?'],
+                ['⚡', 'Qué son las tormentas solares y cómo nos afectan?'],
+                ['🪐', 'Júpiter protege a la Tierra de asteroides? Cómo?'],
+                ['🌙', 'Qué son las lluvias de estrellas y cuándo se ven?'],
+                ['🛸', 'Hay agua líquida en alguna luna del sistema solar?'],
+                ['🌀', 'Qué es un agujero negro y hay uno en nuestra galaxia?'],
+                ['✨', 'Cómo nacen y mueren las estrellas?'],
+                ['🔮', 'Qué relación tiene la astronomía con la astrología?'],
+                ['🌗', 'Cómo funcionan los eclipses solares y lunares?'],
+                ['🚀', 'Cuánto tardaríamos en llegar a la estrella más cercana?'],
+                ['🧲', 'Qué es la magnetósfera y por qué es vital para la vida?'],
+                ['💎', 'Llueve diamantes en Neptuno y Urano? Cómo es posible?']
+            ] : [
+                ['🪐', 'How do Saturn\'s rings affect its gravitational field?'],
+                ['☀️', 'What would happen if the Sun were 10% larger?'],
+                ['🌑', 'Why do we always see the same face of the Moon?'],
+                ['🔭', 'What is the nearest star after the Sun and what is it like?'],
+                ['🌌', 'What is dark matter and how does it affect galaxies?'],
+                ['💫', 'What\'s the difference between an asteroid, comet and meteorite?'],
+                ['🌍', 'How does Earth\'s tilt create the seasons?'],
+                ['🔴', 'Could we terraform Mars? What would it take?'],
+                ['🌊', 'How does the Moon generate tides on Earth?'],
+                ['⚡', 'What are solar storms and how do they affect us?'],
+                ['🪐', 'Does Jupiter protect Earth from asteroids? How?'],
+                ['🌙', 'What are meteor showers and when can you see them?'],
+                ['🛸', 'Is there liquid water on any moon in the solar system?'],
+                ['🌀', 'What is a black hole and is there one in our galaxy?'],
+                ['✨', 'How are stars born and how do they die?'],
+                ['🔮', 'What\'s the relationship between astronomy and astrology?'],
+                ['🌗', 'How do solar and lunar eclipses work?'],
+                ['🚀', 'How long would it take to reach the nearest star?'],
+                ['🧲', 'What is the magnetosphere and why is it vital for life?'],
+                ['💎', 'Does it rain diamonds on Neptune and Uranus? How?']
+            ];
+            // Pick 3 random non-repeating suggestions
+            var _shuffled = _allSuggestions.sort(function() { return 0.5 - Math.random(); });
+            var _picks = _shuffled.slice(0, 3);
+            var _btnStyle = 'padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.6);font-size:0.8em;cursor:pointer;text-align:left;transition:all 0.2s;';
+            qa.innerHTML = '<div style="font-size:0.7em;color:rgba(255,255,255,0.25);margin-bottom:4px;text-align:center;">' + (isEs ? 'Pregúntame sobre nuestro universo' : 'Ask me about our universe') + '</div>'
+                + _picks.map(function(s) {
+                    var escaped = s[1].replace(/'/g, "\\'");
+                    return '<button onclick="document.getElementById(\'aiChatInput\').value=\''+escaped+'\';sendAIChatMessage();" style="'+_btnStyle+'">'+s[0]+' '+s[1]+'</button>';
+                }).join('');
         }
     }
 }
