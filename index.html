@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v646';</script>
+    <script>window.APP_VERSION = 'v647';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -16275,7 +16275,7 @@ function updateCurrentDayInfoForMode(mode) {
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
                     </div>
                     ${allPlanetaryEvents.length > 0 ? `
-                    <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+                    <div style="display:flex;flex-direction:column;gap:2px;align-items:center;max-height:52px;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
                         ${allPlanetaryEvents.slice(0, 8).map(event => {
                             if (event.type === 'eclipse') {
                                 const ecl = event.data;
@@ -26140,7 +26140,7 @@ function renderCalendar() {
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
                     </div>
                     ${allPlanetaryEvents.length > 0 ? `
-                    <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+                    <div style="display:flex;flex-direction:column;gap:2px;align-items:center;max-height:52px;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
                         ${allPlanetaryEvents.slice(0, 8).map(event => {
                             if (event.type === 'eclipse') {
                                 const ecl = event.data;
