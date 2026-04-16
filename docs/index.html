@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v645';</script>
+    <script>window.APP_VERSION = 'v646';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28991,16 +28991,28 @@ function launchDailyQuiz() {
         modal.id = 'dailyQuizModal';
         modal.className = 'modal';
         modal.style.zIndex = '10003'; // v641: must be above preferencesModal (10002)
-        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
         document.body.appendChild(modal);
     }
+    // v646: Safety — rebuild inner wrapper if somehow missing
+    if (!document.getElementById('dailyQuizModalContent')) {
+        modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
+    }
     document.getElementById('dailyQuizModalContent').innerHTML = html;
+    // v646: Clear any stale onclick before showing (prevents click-through on Android)
+    modal.onclick = null;
     modal.classList.add('show');
+    // v646: Delay backdrop-close handler so Android touch-events can't immediately close the modal
+    // (click-through bug: tapping "Iniciar Quiz" fires a second ghost click on the newly-opened backdrop)
+    setTimeout(function() {
+        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
+    }, 400);
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
 }
+// v646: Expose explicitly so onclick="launchDailyQuiz()" always works from any modal
+window.launchDailyQuiz = launchDailyQuiz;
 
 function selectDailyQuizAnswer(qi, oi, labelEl) {
     if (!window._dailyQuizState) return;
@@ -30020,6 +30032,28 @@ document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
         console.log('🔔 App returned to foreground — checking notifications');
         setTimeout(checkNotifications, 500);
+        // v646: Missed quiz recovery — if quiz was scheduled in the past 2h and not yet launched today, show it now
+        setTimeout(function() {
+            var prefs = _getDailyQuizPrefs();
+            if (!prefs.enabled) return;
+            var now = new Date();
+            var todayKey = now.toDateString();
+            var lastLaunch = localStorage.getItem('dailyQuiz_lastLaunch');
+            var launchedToday = lastLaunch && new Date(lastLaunch).toDateString() === todayKey;
+            if (launchedToday) return; // already shown today
+            var nowMins = now.getHours() * 60 + now.getMinutes();
+            var hours = prefs.hours || ['09:00'];
+            var missed = hours.some(function(hStr) {
+                var parts = hStr.split(':');
+                var targetMins = parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+                // Quiz was scheduled in the past 2 hours
+                return nowMins >= targetMins && (nowMins - targetMins) <= 120;
+            });
+            if (missed) {
+                console.log('v646: Launching missed quiz after returning to foreground');
+                launchDailyQuiz();
+            }
+        }, 1500);
     }
 });
 
