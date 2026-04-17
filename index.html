@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v659';</script>
+    <script>window.APP_VERSION = 'v660';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -14975,6 +14975,8 @@ function _renderMajor2026View(es) {
         });
 
         // Render each type — exclude tSquare and grandTrine (already shown in static categories section above)
+        // v660: Reset global pattern array each render to avoid stale index references
+        window._dynPatterns2026 = [];
         var patOrder = ['grandCross','yod','kite','mysticRect','cradle','grandSextile'];
         var dynCIdx = categories.length;
         patOrder.forEach(function(pType) {
@@ -15000,9 +15002,11 @@ function _renderMajor2026View(es) {
                 var lDate = item.lastDate.toLocaleDateString(es ? 'es' : 'en', { month: 'short', day: 'numeric' });
                 var dateRange = item.count <= 2 ? fDate : fDate + ' — ' + lDate;
                 var itemPast = item.lastDate < now;
-                var clickTxt = (item.name + ': ' + item.planets.join(', ') + '. ' + item.desc).replace(/'/g, "\\'").substring(0, 300);
+                // v660: Store in global array — avoids single-quote/special-char escaping fragility in onclick
+                var _dynIdx = window._dynPatterns2026.length;
+                window._dynPatterns2026.push({ name: item.name, planets: item.planets, desc: item.desc });
 
-                html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + meta.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.55;' : '') + '">';
+                html += '<div onclick="showDynPatternDetail(' + _dynIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + meta.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.55;' : '') + '">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
                 html += '<div style="font-size:0.88em;flex:1;"><strong style="color:' + meta.color + ';">' + item.planets.join(', ') + '</strong>';
                 html += ' <span style="font-size:0.8em;color:rgba(255,255,255,0.4);">' + (item.symbols || '') + '</span>';
@@ -15115,25 +15119,31 @@ function _renderEvents2026View(es) {
 function _renderAsteroids2026View(es) {
     var html = '';
 
+    // v660: Generate SVG data URI for asteroid — avoids Wikimedia CORS issues in Android PWA
+    function _mkAsteroidSVG(sym, light, dark) {
+        var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="rg" cx="35%" cy="30%"><stop offset="0%" stop-color="' + light + '"/><stop offset="100%" stop-color="' + dark + '"/></radialGradient></defs><circle cx="50" cy="50" r="48" fill="url(#rg)" stroke="rgba(255,255,255,0.15)" stroke-width="2"/><text x="50" y="68" text-anchor="middle" font-size="48" fill="rgba(255,255,255,0.85)">' + sym + '</text></svg>';
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+    }
+
     var asteroidDefs = [
         { name: 'Ceres', symbol: '⚳', sweId: 17, color: '#8BC34A', colorBg: 'rgba(139,195,74,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Ceres_-_RC3_-_Haulani_Crater_%2822381131691%29_%28cropped%29.jpg',
+          photo: _mkAsteroidSVG('⚳', '#c5e09a', '#2E7D32'),
           domain: es ? 'Nutrición, maternidad, ciclos de pérdida y retorno' : 'Nurturing, motherhood, cycles of loss and return',
           keywords: es ? 'Cuidado • Fertilidad • Alimentación • Cosechas' : 'Care • Fertility • Nourishment • Harvests' },
         { name: 'Pallas', symbol: '⚴', sweId: 18, color: '#03A9F4', colorBg: 'rgba(3,169,244,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/5/5f/PallasHST2007.jpg',
+          photo: _mkAsteroidSVG('⚴', '#7ecbf0', '#01579B'),
           domain: es ? 'Sabiduría estratégica, patrones, justicia creativa' : 'Strategic wisdom, pattern recognition, creative justice',
           keywords: es ? 'Estrategia • Patrones • Artesanía • Política' : 'Strategy • Patterns • Craftsmanship • Politics' },
         { name: 'Juno', symbol: '⚵', sweId: 19, color: '#E91E63', colorBg: 'rgba(233,30,99,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/3juno_hst.png',
+          photo: _mkAsteroidSVG('⚵', '#f48fb1', '#880E4F'),
           domain: es ? 'Compromiso, igualdad en relaciones, contratos sagrados' : 'Commitment, equality in partnerships, sacred contracts',
           keywords: es ? 'Matrimonio • Lealtad • Igualdad • Contratos' : 'Marriage • Loyalty • Equality • Contracts' },
         { name: 'Vesta', symbol: '⚶', sweId: 20, color: '#FF9800', colorBg: 'rgba(255,152,0,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Vesta_in_Natural_Color.jpg',
+          photo: _mkAsteroidSVG('⚶', '#ffcc80', '#E65100'),
           domain: es ? 'Devoción, fuego sagrado, enfoque interior, pureza' : 'Devotion, sacred flame, inner focus, purity',
           keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' },
         { name: 'Chiron', symbol: '⚷', sweId: 15, color: '#9C27B0', colorBg: 'rgba(156,39,176,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Chiron_in_2015_%28cropped%29.jpg',
+          photo: _mkAsteroidSVG('⚷', '#ce93d8', '#4A148C'),
           domain: es ? 'Herida primordial, sanación, puente entre lo terrenal y espiritual' : 'Core wound, healing, bridge between earthly and spiritual',
           keywords: es ? 'Sanación • Herida • Maestría • Puente' : 'Healing • Wound • Mastery • Bridge' }
     ];
@@ -15372,6 +15382,14 @@ window.toggleAsteroid2026Details = function(idx) {
         el.style.display = isOpen ? 'none' : 'block';
         if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
     }
+};
+
+// v660: Dynamic pattern detail handler — uses indexed array to avoid string escaping fragility
+window.showDynPatternDetail = function(idx) {
+    var p = window._dynPatterns2026 && window._dynPatterns2026[idx];
+    if (!p) return;
+    var txt = (p.name + ': ' + p.planets.join(', ') + '. ' + p.desc).substring(0, 300);
+    if (typeof showBannerAspectDetail === 'function') showBannerAspectDetail(txt);
 };
 
 // Show asteroid event detail modal with inline interpretation
