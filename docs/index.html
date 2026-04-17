@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v649';</script>
+    <script>window.APP_VERSION = 'v650';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28999,13 +28999,17 @@ function launchDailyQuiz() {
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
     }
     document.getElementById('dailyQuizModalContent').innerHTML = html;
-    // v649: Clear any stale onclick, stamp open time (watchdog guard), then show
+    // v650: Clear stale onclick, stamp open time (watchdog guard), then show
     modal.onclick = null;
     modal.dataset.openedAt = String(Date.now());
     modal.classList.add('show');
-    // v649: Register backdrop-close immediately — button delays 350ms before calling this,
-    // so any Android ghost click has already fired and cleared before we get here
-    modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
+    // v650: Delay backdrop-close by 700ms — Samsung ghost click can arrive at 400-500ms
+    // even after our 350ms button delay. Keeping onclick=null means ghost click on backdrop
+    // cannot close the modal during that window. Watchdog also won't close it because
+    // e.target.closest('.modal') returns true for clicks on the modal backdrop itself.
+    setTimeout(function() {
+        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
+    }, 700);
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
