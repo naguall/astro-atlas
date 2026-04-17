@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v650';</script>
+    <script>window.APP_VERSION = 'v651';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28999,17 +28999,16 @@ function launchDailyQuiz() {
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
     }
     document.getElementById('dailyQuizModalContent').innerHTML = html;
-    // v650: Clear stale onclick, stamp open time (watchdog guard), then show
+    // v651: Register backdrop-close immediately but guard by openedAt timestamp.
+    // Ghost click (even at 400-500ms on Samsung) can never close it within 700ms.
     modal.onclick = null;
     modal.dataset.openedAt = String(Date.now());
     modal.classList.add('show');
-    // v650: Delay backdrop-close by 700ms — Samsung ghost click can arrive at 400-500ms
-    // even after our 350ms button delay. Keeping onclick=null means ghost click on backdrop
-    // cannot close the modal during that window. Watchdog also won't close it because
-    // e.target.closest('.modal') returns true for clicks on the modal backdrop itself.
-    setTimeout(function() {
-        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
-    }, 700);
+    modal.onclick = function(e) {
+        if (e.target !== modal) return;
+        if (Date.now() - parseInt(modal.dataset.openedAt || '0') < 700) return; // ghost click guard
+        modal.classList.remove('show');
+    };
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
@@ -29156,7 +29155,8 @@ function checkDailyQuizNotification() {
     hours.forEach(function(hStr, idx) {
         var parts = hStr.split(':');
         var h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
-        var quizKey = 'dailyQuiz_sent_' + todayKey + '_' + idx;
+        // v651: key includes actual time (not slot index) so changing the time creates a fresh key
+        var quizKey = 'dailyQuiz_sent_' + todayKey + '_' + hStr.replace(':', '_');
 
         // v641: widened to ±5 min window (was ±1) so 30s polling never misses the slot
         var nowMins = now.getHours() * 60 + now.getMinutes();
