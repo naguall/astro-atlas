@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v656';</script>
+    <script>window.APP_VERSION = 'v657';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -9603,6 +9603,16 @@ function startDreamVoiceRecording() {
     var L = currentLang === 'es';
     _dreamRecording = true;
 
+    // v657: Stop any stale recognition before starting fresh — fixes Android mic-busy on 2nd recording
+    if (_dreamRecognition) {
+        try { _dreamRecognition.stop(); } catch(e) {}
+        _dreamRecognition = null;
+    }
+    if (_dreamSilenceTimer) {
+        clearInterval(_dreamSilenceTimer);
+        _dreamSilenceTimer = null;
+    }
+
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         console.error('Speech recognition not supported');
@@ -9743,6 +9753,22 @@ function startDreamVoiceRecording() {
         _dreamRecognition.start();
     } catch(e) {
         console.error('🌙 Could not start dream recording:', e);
+        // v657: Retry after 600ms — Android may still be releasing mic from previous session
+        setTimeout(function() {
+            if (!_dreamRecording) return;
+            try {
+                _dreamRecognition.start();
+                console.log('🌙 Dream recording started on retry');
+            } catch(e2) {
+                console.error('🌙 Retry failed:', e2);
+                _dreamRecording = false;
+                if (_dreamSilenceTimer) { clearInterval(_dreamSilenceTimer); _dreamSilenceTimer = null; }
+                var btn2 = document.getElementById('voiceDreamBtn');
+                if (btn2) { btn2.style.background = 'rgba(138,43,226,0.2)'; btn2.style.animation = 'none'; btn2.innerHTML = '🎤'; }
+                var st2 = document.getElementById('dreamSaveStatus');
+                if (st2) { st2.innerHTML = L ? '⚠️ No se pudo iniciar grabación' : '⚠️ Could not start recording'; st2.style.color = '#ff6b6b'; }
+            }
+        }, 600);
     }
 }
 
@@ -36000,6 +36026,7 @@ DOMTokenList.prototype.add = function() {
             <button id="aiVoiceBtn" onclick="toggleAIChatVoice()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1em;cursor:pointer;flex-shrink:0;" title="Voice input">🎙️</button>
             <button onclick="readAloudLastMsg('aiChatMessages')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1em;cursor:pointer;flex-shrink:0;line-height:1;" title="Leer en voz alta" data-i18n-title="readAloud">🔊</button>
             <button id="aiTTSToggle" onclick="toggleTTS()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1em;cursor:pointer;flex-shrink:0;" title="Voice responses">🔇</button>
+            <button id="aiConvoBtn" onclick="toggleAIVoiceConvo()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1em;cursor:pointer;flex-shrink:0;" title="Conversación por voz">🗣️</button>
             <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
             <button onclick="saveAIChat()" style="width:36px;height:36px;border-radius:50%;background:rgba(78,205,196,0.08);border:1px solid rgba(78,205,196,0.2);color:#4ecdc4;font-size:0.9em;cursor:pointer;flex-shrink:0;" title="Guardar">💾</button>
             <button onclick="shareAIChat()" style="width:36px;height:36px;border-radius:50%;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.9em;cursor:pointer;flex-shrink:0;" title="Compartir">📤</button>
@@ -36030,6 +36057,7 @@ let _aiAbortCtrl = null; // v643: streaming abort controller
 let aiTTSEnabled = false;
 let aiVoiceRecognition = null;
 let aiVoiceIsListening = false;
+let _aiVoiceConvoMode = false; // v657: full voice conversation mode
 
 // ===== GENERIC VOICE INPUT FOR ANY CHAT =====
 // Reusable voice-to-text for any input/textarea element
@@ -36835,6 +36863,36 @@ function stopAIChatVoice() {
     }
 }
 
+// v657: Full voice conversation mode for AI assistant
+function toggleAIVoiceConvo() {
+    _aiVoiceConvoMode = !_aiVoiceConvoMode;
+    var btn = document.getElementById('aiConvoBtn');
+    var L = currentLang === 'es';
+    if (_aiVoiceConvoMode) {
+        if (btn) {
+            btn.style.background = 'rgba(102,126,234,0.3)';
+            btn.style.borderColor = '#667eea';
+            btn.style.color = '#667eea';
+            btn.title = L ? 'Detener conversación' : 'Stop conversation';
+        }
+        // Enable TTS auto-response if not already on
+        if (!aiTTSEnabled) toggleTTS();
+        // Start listening immediately
+        if (!aiVoiceIsListening) toggleAIChatVoice();
+    } else {
+        if (btn) {
+            btn.style.background = 'rgba(255,255,255,0.08)';
+            btn.style.borderColor = 'rgba(255,255,255,0.15)';
+            btn.style.color = 'rgba(255,255,255,0.7)';
+            btn.title = L ? 'Conversación por voz' : 'Voice conversation';
+        }
+        // Stop mic if active
+        if (aiVoiceIsListening) stopAIChatVoice();
+        // Cancel any pending TTS
+        window.speechSynthesis.cancel();
+    }
+}
+
 // ===== TEXT-TO-SPEECH (Voice Responses) =====
 function toggleTTS() {
     aiTTSEnabled = !aiTTSEnabled;
@@ -36881,6 +36939,18 @@ function speakText(text) {
                      || voices.find(function(v) { return v.lang.startsWith(langCode) && !v.localService; })
                      || voices.find(function(v) { return v.lang.startsWith(langCode); });
         if (preferred) utter.voice = preferred;
+        // v657: after last chunk, restart mic in voice convo mode
+        if (i === chunks.length - 1) {
+            utter.onend = function() {
+                if (_aiVoiceConvoMode && !aiIsTyping && !aiVoiceIsListening) {
+                    setTimeout(function() {
+                        if (_aiVoiceConvoMode && !aiVoiceIsListening) {
+                            toggleAIChatVoice();
+                        }
+                    }, 500);
+                }
+            };
+        }
         window.speechSynthesis.speak(utter);
     });
 }
