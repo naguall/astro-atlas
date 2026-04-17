@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v653';</script>
+    <script>window.APP_VERSION = 'v654';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28923,7 +28923,9 @@ function _gatherNewConcepts(count) {
         if (concepts.length >= count) return;
         var node = G.nodes[nid];
         // Prefer topics not yet mastered
-        var level = LP ? LP.getNodeLevel(nid) : 'no_expuesto';
+        // v653: LP.getNodeLevel doesn't exist — use getNodeMastery().level
+        var mastery = LP ? LP.getNodeMastery(nid) : null;
+        var level = mastery ? mastery.level : 'no_expuesto';
         if (level === 'dominado') return;
         concepts.push({ nodeId: nid, title: node.title, summary: node.explanation || node.title, module: node.moduleId || '' });
     });
