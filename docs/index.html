@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v658';</script>
+    <script>window.APP_VERSION = 'v659';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3528,22 +3528,27 @@ function getRetrogrades(date) {
 function findNearestNewMoon(date) {
     const searchDate = new Date(date);
     searchDate.setHours(0, 0, 0, 0);
-    const searchTime = searchDate.getTime();
-    
+    const searchTime = searchDate.getTime(); // local midnight as timestamp
+
     // Buscar la Luna Nueva ANTERIOR o igual (que inicia el ciclo actual)
+    // v659 FIX: normalize each moon date to LOCAL midnight before comparing.
+    // Without this, a new moon at e.g. 11:52 UTC is greater than local midnight
+    // (06:00 UTC in Costa Rica) → gets excluded → calendar shows the PREVIOUS cycle.
     let closestMoon = newMoonsLocal[0];
-    
+
     for (const moonDate of newMoonsLocal) {
-        const moonTime = new Date(moonDate).getTime();
-        // Si esta Luna Nueva es anterior o igual a la fecha buscada
+        const moonLocal = new Date(moonDate);
+        moonLocal.setHours(0, 0, 0, 0); // normalize to LOCAL day midnight
+        const moonTime = moonLocal.getTime();
+        // If this new moon falls on or before today (by local date)
         if (moonTime <= searchTime) {
             closestMoon = moonDate;
         } else {
-            // Ya pasamos la fecha, la anterior es la correcta
+            // Passed today — previous entry was the correct one
             break;
         }
     }
-    
+
     return new Date(closestMoon);
 }
 
