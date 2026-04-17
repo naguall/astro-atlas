@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v657';</script>
+    <script>window.APP_VERSION = 'v658';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29151,37 +29151,227 @@ function submitDailyQuiz() {
         }
     }
 
-    // Replace submit button with "done"
+    // Replace submit button with "done" + results button
     var btns = content.querySelectorAll('button[onclick*="submitDailyQuiz"]');
-    btns.forEach(function(b) { b.style.display = 'none'; });
+    btns.forEach(function(b) {
+        b.style.display = 'none';
+        // Insert results button after submit
+        var resBtn = document.createElement('button');
+        resBtn.style.cssText = 'width:100%;padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.5);border-radius:10px;color:#667eea;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:8px;';
+        resBtn.innerHTML = '📊 ' + (L ? 'Ver Resultados Completos' : 'See Full Results');
+        resBtn.onclick = function() { _showQuizResultsModal(state, correct, total, pct); };
+        b.parentNode.insertBefore(resBtn, b.nextSibling);
+    });
 
     // Save daily quiz completed
     localStorage.setItem('dailyQuiz_lastCompleted', new Date().toISOString());
 }
 
-function openDailyConceptChat(nodeId, topicTitle) {
+// v658: Show full quiz results in a separate modal (keeps quiz open behind it)
+function _showQuizResultsModal(state, correct, total, pct) {
     var L = currentLang === 'es';
-    // Close quiz modal
-    var qm = document.getElementById('dailyQuizModal');
-    if (qm) qm.classList.remove('show');
+    var emoji = pct >= 80 ? '🎉' : pct >= 60 ? '👍' : '📚';
+    var color = pct >= 80 ? '#4caf50' : pct >= 60 ? '#ff9800' : '#f44336';
 
-    // Navigate to astrology tab > tutor, with context
-    switchToPersonalMode();
-    setTimeout(function() {
-        switchNatalTab('tutor', document.querySelector('[onclick*="tutor"]'));
-        setTimeout(function() {
-            // Pre-fill tutor chat input with question
-            var input = document.getElementById('tutorChatInput') || document.querySelector('#natalTabTutor input, #natalTabTutor textarea');
-            if (input) {
-                input.value = L ? 'Explícame el concepto: ' + topicTitle : 'Explain the concept: ' + topicTitle;
-                input.focus();
-                // Auto-send
-                var sendBtn = document.querySelector('#natalTabTutor button[onclick*="sendTutor"], #natalTabTutor button[onclick*="Send"]');
-                if (sendBtn) sendBtn.click();
-            }
-        }, 500);
-    }, 300);
+    var html = '<div style="padding:16px;">';
+    // Header
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
+    html += '<h3 style="font-family:\'Cinzel\',serif;font-size:1em;color:#ffd700;margin:0;">📊 ' + (L ? 'Resultados del Quiz' : 'Quiz Results') + '</h3>';
+    html += '<button onclick="document.getElementById(\'quizResultsModal\').classList.remove(\'show\')" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;line-height:1;">✕</button>';
+    html += '</div>';
+
+    // Score summary
+    html += '<div style="text-align:center;padding:18px;margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid ' + color.replace(')', ',0.3)').replace('rgb', 'rgba') + ';border-radius:14px;">';
+    html += '<div style="font-size:2.5em;margin-bottom:4px;">' + emoji + '</div>';
+    html += '<div style="font-size:2em;font-weight:700;color:' + color + ';">' + pct + '%</div>';
+    html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.5);margin-top:4px;">' + correct + '/' + total + ' ' + (L ? 'correctas' : 'correct') + '</div>';
+    html += '</div>';
+
+    // Per-question breakdown
+    html += '<div style="font-size:0.7em;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">' + (L ? 'Detalle por pregunta' : 'Question breakdown') + '</div>';
+    state.questions.forEach(function(q, qi) {
+        var userAns = state.answers[qi];
+        var isCorrect = (userAns === q.correct);
+        var qColor = isCorrect ? '#4caf50' : '#f44336';
+        var qIcon = isCorrect ? '✅' : '❌';
+        html += '<div style="padding:10px 12px;margin-bottom:8px;background:rgba(255,255,255,0.03);border:1px solid ' + (isCorrect ? 'rgba(76,175,80,0.2)' : 'rgba(244,67,54,0.2)') + ';border-radius:10px;">';
+        html += '<div style="font-size:0.8em;font-weight:600;color:#ddd;margin-bottom:4px;">' + qIcon + ' ' + (qi + 1) + '. ' + q.q + '</div>';
+        if (!isCorrect) {
+            html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:2px;">';
+            html += (L ? 'Tu resp: ' : 'Your ans: ') + '<span style="color:#f44336;">' + (userAns !== undefined ? q.options[userAns] : (L ? 'Sin respuesta' : 'No answer')) + '</span>';
+            html += ' · ' + (L ? 'Correcta: ' : 'Correct: ') + '<span style="color:#4caf50;">' + q.options[q.correct] + '</span>';
+            html += '</div>';
+        }
+        if (q.explanation) {
+            html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.45);margin-top:4px;">' + q.explanation + '</div>';
+        }
+        // Ask Tutor button
+        html += '<button onclick="openQuizTutor(\'' + (q.nodeId||'') + '\',\'' + q.q.replace(/'/g, "\\'").substring(0,80) + '\',\'' + (isCorrect ? 'correct' : 'incorrect') + '\')" style="margin-top:7px;width:100%;padding:6px;background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.25);border-radius:7px;color:#ffd700;font-size:0.72em;cursor:pointer;">✨ ' + (L ? 'Preguntar al Tutor' : 'Ask Tutor') + '</button>';
+        html += '</div>';
+    });
+    html += '</div>';
+
+    var modal = document.getElementById('quizResultsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'quizResultsModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '10004';
+        modal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
+        document.body.appendChild(modal);
+    }
+    modal.querySelector('.modal-content').innerHTML = html;
+    modal.onclick = null;
+    modal.dataset.openedAt = String(Date.now());
+    modal.classList.add('show');
 }
+
+function openDailyConceptChat(nodeId, topicTitle) {
+    // v658: open standalone quiz tutor instead of navigating away
+    openQuizTutor(nodeId, topicTitle, 'new_concept');
+}
+
+// v658: Standalone Quiz Tutor modal — chat with AI about a specific quiz topic
+var _quizTutorHistory = [];
+function openQuizTutor(nodeId, topicTitle, context) {
+    var L = currentLang === 'es';
+    _quizTutorHistory = [];
+
+    var intro = context === 'incorrect'
+        ? (L ? 'Respondí incorrectamente la pregunta: "' + topicTitle + '". Ayúdame a entender la respuesta correcta y el concepto relacionado.'
+              : 'I answered this question incorrectly: "' + topicTitle + '". Help me understand the correct answer and the related concept.')
+        : (L ? 'Quiero aprender más sobre: ' + topicTitle
+              : 'I want to learn more about: ' + topicTitle);
+
+    var html = '<div style="display:flex;flex-direction:column;height:100%;max-height:85vh;">';
+    // Header
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,215,0,0.15);flex-shrink:0;">';
+    html += '<span style="font-size:1.3em;">✨</span>';
+    html += '<div style="flex:1;min-width:0;"><div style="font-family:\'Cinzel\',serif;font-size:0.9em;color:#ffd700;font-weight:700;">' + (L ? 'Tutor del Quiz' : 'Quiz Tutor') + '</div>';
+    html += '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + topicTitle + '">' + topicTitle.substring(0,50) + '</div></div>';
+    html += '<button onclick="document.getElementById(\'quizTutorModal\').classList.remove(\'show\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.85em;cursor:pointer;flex-shrink:0;">✕</button>';
+    html += '</div>';
+    // Messages
+    html += '<div id="quizTutorMsgs" style="flex:1;overflow-y:auto;padding:12px 14px;"></div>';
+    // Input
+    html += '<div style="padding:10px 14px;border-top:1px solid rgba(255,215,0,0.1);flex-shrink:0;">';
+    html += '<div style="display:flex;gap:6px;align-items:flex-end;">';
+    html += '<textarea id="quizTutorInput" rows="1" placeholder="' + (L?'Pregunta algo...':'Ask something...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:8px 10px;color:#fff;font-size:0.82em;resize:none;min-height:36px;max-height:80px;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendQuizTutorMsg();}"></textarea>';
+    html += '<button onclick="sendQuizTutorMsg()" style="padding:8px 12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,152,0,0.15));border:1px solid rgba(255,215,0,0.35);border-radius:10px;color:#ffd700;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>';
+    html += '</div>';
+    // Bottom buttons
+    html += '<div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">';
+    html += '<button onclick="startGenericVoice(\'quizTutorInput\',\'sendQuizTutorMsg()\',\'quizTutorVoiceBtn\')" id="quizTutorVoiceBtn" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;" title="' + (L?'Voz':'Voice') + '">🎙️</button>';
+    html += '<button onclick="readAloudLastMsg(\'quizTutorMsgs\')" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);color:#ffd700;font-size:0.9em;cursor:pointer;" title="' + (L?'Leer':'Read') + '">🔊</button>';
+    html += '<button onclick="_saveQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.2);color:#4ecdc4;font-size:0.9em;cursor:pointer;" title="' + (L?'Guardar':'Save') + '">💾</button>';
+    html += '<button onclick="_shareQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.9em;cursor:pointer;" title="' + (L?'Compartir':'Share') + '">📤</button>';
+    html += '</div></div></div>';
+
+    var modal = document.getElementById('quizTutorModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'quizTutorModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '10005';
+        modal.innerHTML = '<div class="modal-content" style="max-width:500px;height:85vh;display:flex;flex-direction:column;padding:0;overflow:hidden;"></div>';
+        document.body.appendChild(modal);
+    }
+    modal.querySelector('.modal-content').innerHTML = html;
+    modal.onclick = null;
+    modal.dataset.openedAt = String(Date.now());
+    modal.classList.add('show');
+
+    // Auto-send intro question
+    setTimeout(function() {
+        var msgs = document.getElementById('quizTutorMsgs');
+        if (msgs) {
+            msgs.innerHTML = '<div style="text-align:right;margin-bottom:8px;"><span style="display:inline-block;max-width:85%;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.2);color:#eee;padding:8px 12px;border-radius:12px 12px 2px 12px;font-size:0.8em;line-height:1.5;">' + intro + '</span></div>';
+        }
+        _sendQuizTutorToAI(intro);
+    }, 200);
+}
+
+async function _sendQuizTutorToAI(userText) {
+    var L = currentLang === 'es';
+    var msgs = document.getElementById('quizTutorMsgs');
+    if (!msgs) return;
+
+    // Typing indicator
+    var typingId = 'qtTyping_' + Date.now();
+    msgs.innerHTML += '<div id="' + typingId + '" style="text-align:left;margin-bottom:8px;"><span style="display:inline-block;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.1);color:rgba(255,255,255,0.5);padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;">⏳</span></div>';
+    msgs.scrollTop = msgs.scrollHeight;
+
+    _quizTutorHistory.push({role:'user', parts:[{text: userText}]});
+
+    var systemCtx = L
+        ? 'Eres un tutor de astrología y astronomía experto. El usuario está haciendo un quiz de repaso sobre astrología. Tu rol es explicar los conceptos claramente, corregir errores de comprensión, y guiar al aprendizaje. Sé conciso (máx 150 palabras), amable y pedagógico.'
+        : 'You are an expert astrology and astronomy tutor. The user is doing a review quiz. Your role is to explain concepts clearly, correct misunderstandings, and guide learning. Be concise (max 150 words), friendly and educational.';
+
+    var reqBody = {
+        system_instruction: {parts:[{text: systemCtx}]},
+        contents: _quizTutorHistory,
+        generationConfig: {temperature: 0.7, maxOutputTokens: 512}
+    };
+
+    try {
+        var url = AI_PROXY_URL;
+        var resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reqBody)});
+        var typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+
+        var data = await resp.json();
+        var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || (L ? 'Sin respuesta' : 'No response');
+        var formatted = reply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
+        var msgId = 'qtMsg_' + Date.now();
+        if (msgs) {
+            msgs.innerHTML += '<div style="text-align:left;margin-bottom:8px;"><span id="' + msgId + '" style="display:inline-block;max-width:90%;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.12);color:#ddd;padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;line-height:1.5;">' + formatted + '</span></div>';
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+        _quizTutorHistory.push({role:'model', parts:[{text: reply}]});
+    } catch(e) {
+        var typingEl2 = document.getElementById(typingId);
+        if (typingEl2) typingEl2.remove();
+        if (msgs) msgs.innerHTML += '<div style="text-align:left;margin-bottom:8px;"><span style="color:#ff6b6b;font-size:0.78em;">❌ ' + e.message + '</span></div>';
+    }
+}
+
+function sendQuizTutorMsg() {
+    var input = document.getElementById('quizTutorInput');
+    if (!input || !input.value.trim()) return;
+    var text = input.value.trim();
+    input.value = '';
+    input.style.height = 'auto';
+    var msgs = document.getElementById('quizTutorMsgs');
+    if (msgs) {
+        msgs.innerHTML += '<div style="text-align:right;margin-bottom:8px;"><span style="display:inline-block;max-width:85%;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.2);color:#eee;padding:8px 12px;border-radius:12px 12px 2px 12px;font-size:0.8em;line-height:1.5;">' + text + '</span></div>';
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+    _sendQuizTutorToAI(text);
+}
+
+function _saveQuizTutorChat() {
+    var L = currentLang === 'es';
+    var msgs = document.getElementById('quizTutorMsgs');
+    if (!msgs || !_quizTutorHistory.length) return;
+    var text = _quizTutorHistory.map(function(m) { return (m.role === 'user' ? '👤 ' : '✨ ') + (m.parts[0] ? m.parts[0].text : ''); }).join('\n\n');
+    var readings = JSON.parse(localStorage.getItem('savedReadings') || '[]');
+    readings.unshift({id: Date.now(), title: L ? 'Sesión Tutor Quiz' : 'Quiz Tutor Session', text: text, date: new Date().toISOString()});
+    localStorage.setItem('savedReadings', JSON.stringify(readings.slice(0, 100)));
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(78,205,196,0.9);color:#fff;padding:10px 18px;border-radius:10px;z-index:99999;font-size:0.82em;';
+    toast.textContent = L ? '✅ Guardado en lecturas' : '✅ Saved to readings';
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, 2500);
+}
+
+function _shareQuizTutorChat() {
+    if (!_quizTutorHistory.length) return;
+    var text = _quizTutorHistory.map(function(m) { return (m.role === 'user' ? '👤 ' : '✨ Tutor: ') + (m.parts[0] ? m.parts[0].text : ''); }).join('\n\n');
+    if (navigator.share) { navigator.share({title: 'Quiz Tutor — AstroAtlas', text: text}).catch(function(){}); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function(){}); }
+}
+window.sendQuizTutorMsg = sendQuizTutorMsg;
+window.openQuizTutor = openQuizTutor;
 
 // Check if it's time for a daily quiz notification
 function checkDailyQuizNotification() {
@@ -31071,9 +31261,11 @@ clearOldNotifications();
         setTimeout(_sendClearToSW, 500);
         setTimeout(_sendClearToSW, 1500);
         setTimeout(_sendClearToSW, 3000);
-        // Update the in-app bell badge (shows unseen count)
-        updateNotifBadge();
+        // v658: Do NOT call updateNotifBadge() here — it re-sets the OS badge if there are unseen notifs,
+        // causing clearAllBadges to immediately undo itself. Bell badge is managed separately.
     }
+    // v658: Expose globally so openNotifHistoryModal can close SW notifications too
+    window._sendClearBadgeToSW = _sendClearToSW;
 
     // On page load — clear OS badges but keep in-app bell badge
     clearAllBadges();
@@ -31222,6 +31414,13 @@ function openNotifHistoryModal() {
     const badge = document.getElementById('notifBadge');
     if (badge) badge.style.display = 'none';
     if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
+    if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
+    // v658: Also close actual system notifications (ties to Android launcher badge)
+    if (window._sendClearBadgeToSW) {
+        window._sendClearBadgeToSW();
+        setTimeout(window._sendClearBadgeToSW, 600);
+        setTimeout(window._sendClearBadgeToSW, 1500);
+    }
 
     titleEl.textContent = currentLang==='es'?'🔔 Notificaciones de Hoy':'🔔 Today\'s Notifications';
 
