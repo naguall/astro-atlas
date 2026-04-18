@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v666';</script>
+    <script>window.APP_VERSION = 'v667';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -17,17 +17,14 @@
         var REQUIRED_VER = window.APP_VERSION;
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
-            // New version detected — nuke everything
+            // New version detected — clear caches only (do NOT unregister SW — that causes blank-screen loops on Android)
             if (window.caches) {
                 caches.keys().then(function(keys){
                     keys.forEach(function(k){ caches.delete(k); });
                 });
             }
-            if (navigator.serviceWorker) {
-                navigator.serviceWorker.getRegistrations().then(function(regs){
-                    regs.forEach(function(r){ r.unregister(); });
-                });
-            }
+            // v667: Removed navigator.serviceWorker.unregister() — it was killing the SW on every
+            // version bump, forcing a slow network-only load on the next open → long blank screen
             // Clear stale notification history and natal chart cache (force recalculation)
             localStorage.removeItem('notifHistory');
             localStorage.removeItem('lastNotifLogDay');
@@ -37,7 +34,7 @@
                 if (k.indexOf('natalChart_') === 0) localStorage.removeItem(k);
             }
             localStorage.setItem('app_version', REQUIRED_VER);
-            // If we had an old version, reload to get fresh files
+            // If we had an old version, reload to get fresh files (only once)
             if (lastVer) {
                 window.location.reload(true);
             }
@@ -781,6 +778,12 @@
                     s.textContent = '.navigation, #currentDayInfo, #lunarWeeks, #planetaryAspectsSection, #lunarInfoBanner { display:none !important; } #calendarTitle { visibility:hidden; }';
                     document.head.appendChild(s);
                 }
+                // v667: Safety timeout — force-remove modeFlashFix after 5s in case JS crashes before removing it
+                // This prevents permanent blank screen on slow devices or when a JS error occurs during init
+                setTimeout(function() {
+                    var ff = document.getElementById('modeFlashFix');
+                    if (ff) { ff.remove(); console.warn('[SafetyNet] modeFlashFix removed by safety timeout'); }
+                }, 5000);
             })();
         </script>
 
@@ -35671,24 +35674,33 @@ if ('serviceWorker' in navigator) {
     }, 1800000);
 
     // v638: Aggressive version check — bypass CDN cache by fetching sw.js directly with cache-bust
-    // This catches cases where GitHub Pages CDN serves stale files
+    // v667: Only reload if server has a NEWER version (not just different) — prevents loop when
+    // local dev builds have higher version numbers than what's deployed
+    function _parseVer(v) { var m = (v||'').match(/v(\d+)/); return m ? parseInt(m[1],10) : 0; }
     function _checkServerVersion() {
         fetch('/astro-atlas/sw.js?_cb=' + Date.now(), { cache: 'no-store' })
             .then(function(r) { return r.text(); })
             .then(function(text) {
                 var m = text.match(/CACHE_NAME\s*=\s*'astro-atlas-(v\d+)'/);
-                if (m && m[1] && m[1] !== APP_VERSION) {
-                    console.log('🔄 Server has ' + m[1] + ', we have ' + APP_VERSION + ' — forcing update');
-                    // Nuke caches and reload
-                    if (window.caches) {
-                        caches.keys().then(function(keys) {
-                            keys.forEach(function(k) { caches.delete(k); });
+                if (m && m[1]) {
+                    var serverVer = m[1];
+                    var serverN = _parseVer(serverVer);
+                    var localN  = _parseVer(APP_VERSION);
+                    // Only reload if server is strictly newer
+                    if (serverN > localN) {
+                        console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — updating');
+                        if (window.caches) {
+                            caches.keys().then(function(keys) {
+                                keys.forEach(function(k) { caches.delete(k); });
+                            });
+                        }
+                        navigator.serviceWorker.getRegistration().then(function(reg) {
+                            if (reg) reg.update();
                         });
+                        setTimeout(function() { window.location.reload(true); }, 1000);
+                    } else if (serverN < localN) {
+                        console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
                     }
-                    navigator.serviceWorker.getRegistration().then(function(reg) {
-                        if (reg) reg.update();
-                    });
-                    setTimeout(function() { window.location.reload(true); }, 1000);
                 }
             }).catch(function() {}); // Silently fail if offline
     }
