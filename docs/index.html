@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v675';</script>
+    <script>window.APP_VERSION = 'v676';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -4954,7 +4954,30 @@ function autoRestoreFromIndexedDB() {
 let _autoBackupTimer = null;
 function scheduleAutoBackup() {
     clearTimeout(_autoBackupTimer);
-    _autoBackupTimer = setTimeout(autoBackupToIndexedDB, 3000); // 3 seconds after last change
+    _autoBackupTimer = setTimeout(function() {
+        autoBackupToIndexedDB();
+        // v676: Also backup to Google Drive if connected
+        if (gdriveIsConnected()) {
+            driveBackupData(gdriveAccessToken).catch(function(e) {
+                console.warn('[Drive] Auto-backup failed:', e);
+            });
+        }
+    }, 3000); // 3 seconds after last change
+}
+
+// v676: Daily Drive backup — runs once per day if Drive is connected
+function scheduleDailyDriveBackup() {
+    var lastDay = localStorage.getItem('gdriveLastBackupDay') || '';
+    var today = new Date().toISOString().slice(0,10);
+    if (lastDay === today) return; // already backed up today
+    if (!gdriveIsConnected()) return;
+    console.log('[Drive] Running daily backup...');
+    driveBackupData(gdriveAccessToken).then(function() {
+        localStorage.setItem('gdriveLastBackupDay', today);
+        console.log('[Drive] Daily backup complete');
+    }).catch(function(e) {
+        console.warn('[Drive] Daily backup failed:', e);
+    });
 }
 
 // Run auto-restore on startup, then start periodic backup
@@ -5056,6 +5079,225 @@ function initGoogleCalendar() {
         console.error('❌ Google Calendar init error:', e);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE DRIVE BACKUP (v676)
+// Uses drive.appdata scope — hidden folder, no Drive access needed
+// ═══════════════════════════════════════════════════════════════
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const GDRIVE_BACKUP_FILENAME = 'astroatlas_backup.json';
+let gdriveTokenClient = null;
+let gdriveAccessToken = localStorage.getItem('gdriveAccessToken') || '';
+let gdriveTokenExpiry = parseInt(localStorage.getItem('gdriveTokenExpiry') || '0');
+
+function gdriveIsConnected() {
+    return !!gdriveAccessToken && Date.now() < gdriveTokenExpiry;
+}
+
+function initGoogleDrive() {
+    var clientId = localStorage.getItem('gcalClientId') || GCAL_CLIENT_ID;
+    if (!clientId || typeof google === 'undefined' || !google.accounts) {
+        console.log('☁️ Google Drive: waiting for GIS library');
+        return;
+    }
+    try {
+        gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: GDRIVE_SCOPE,
+            callback: handleGdriveTokenResponse
+        });
+        console.log('✅ Google Drive token client initialized');
+        if (gdriveIsConnected()) {
+            console.log('☁️ Google Drive: token valid, running daily backup check');
+            scheduleDailyDriveBackup();
+        } else if (localStorage.getItem('gdriveAccessToken')) {
+            // Token expired — silent refresh
+            try {
+                gdriveTokenClient.requestAccessToken({prompt: ''});
+            } catch(silentErr) {
+                console.log('☁️ Drive silent refresh failed');
+                localStorage.removeItem('gdriveAccessToken');
+                localStorage.removeItem('gdriveTokenExpiry');
+                gdriveAccessToken = '';
+                gdriveTokenExpiry = 0;
+            }
+        }
+    } catch(e) {
+        console.error('❌ Google Drive init error:', e);
+    }
+}
+
+function handleGdriveTokenResponse(response) {
+    if (response.error) {
+        console.error('❌ Google Drive auth error:', response);
+        showToast(currentLang === 'es' ? '❌ Error conectando Google Drive' : '❌ Error connecting Google Drive');
+        return;
+    }
+    gdriveAccessToken = response.access_token;
+    gdriveTokenExpiry = Date.now() + (response.expires_in * 1000);
+    localStorage.setItem('gdriveAccessToken', gdriveAccessToken);
+    localStorage.setItem('gdriveTokenExpiry', gdriveTokenExpiry.toString());
+    console.log('✅ Google Drive connected');
+    showToast(currentLang === 'es' ? '☁️ Google Drive conectado — guardando backup...' : '☁️ Google Drive connected — saving backup...');
+    driveBackupData(gdriveAccessToken).then(function() {
+        scheduleDailyDriveBackup();
+        var modal = document.getElementById('preferencesModal');
+        if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+    });
+}
+
+function gdriveSignIn() {
+    if (!gdriveTokenClient) {
+        initGoogleDrive();
+        if (!gdriveTokenClient) {
+            showToast(currentLang === 'es' ? '❌ Google no disponible aún' : '❌ Google not available yet');
+            return;
+        }
+    }
+    gdriveTokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+function gdriveSignOut() {
+    if (gdriveAccessToken && typeof google !== 'undefined') {
+        google.accounts.oauth2.revoke(gdriveAccessToken, function() {
+            console.log('☁️ Google Drive token revoked');
+        });
+    }
+    gdriveAccessToken = '';
+    gdriveTokenExpiry = 0;
+    localStorage.removeItem('gdriveAccessToken');
+    localStorage.removeItem('gdriveTokenExpiry');
+    var modal = document.getElementById('preferencesModal');
+    if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+    showToast(currentLang === 'es' ? '☁️ Google Drive desconectado' : '☁️ Google Drive disconnected');
+}
+
+// Save ALL localStorage to Drive appdata as JSON
+function driveBackupData(token) {
+    var backup = {
+        _version: 'moonsync_gdrive_v1',
+        _date: new Date().toISOString(),
+        _count: localStorage.length,
+        allKeys: {}
+    };
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k) backup.allKeys[k] = localStorage.getItem(k);
+    }
+    var meaningfulKeys = Object.keys(backup.allKeys).filter(function(k) {
+        return k !== 'app_version' && k !== 'notifHistory' && k !== 'lastNotifLogDay';
+    });
+    if (meaningfulKeys.length === 0) {
+        console.log('[Drive] Nothing meaningful to backup');
+        return Promise.resolve();
+    }
+    var jsonStr = JSON.stringify(backup);
+    // First: find existing file ID
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) { return r.json(); }).then(function(list) {
+        var fileId = (list.files && list.files.length > 0) ? list.files[0].id : null;
+        var blob = new Blob([jsonStr], {type: 'application/json'});
+        var formData = new FormData();
+        var metadata = { name: GDRIVE_BACKUP_FILENAME, parents: fileId ? undefined : ['appDataFolder'] };
+        if (fileId) { delete metadata.parents; }
+        formData.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+        formData.append('file', blob);
+        var url = fileId
+            ? 'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=multipart'
+            : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+        var method = fileId ? 'PATCH' : 'POST';
+        return fetch(url, {
+            method: method,
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
+    }).then(function(r) {
+        if (!r.ok) { return r.text().then(function(t) { throw new Error('Drive API error: ' + t); }); }
+        return r.json();
+    }).then(function(result) {
+        var now = new Date().toISOString();
+        localStorage.setItem('gdriveLastBackup', now);
+        localStorage.setItem('gdriveLastBackupDay', now.slice(0,10));
+        console.log('✅ Drive backup saved:', result.id);
+        showToast(currentLang === 'es' ? '✅ Backup guardado en Google Drive' : '✅ Backup saved to Google Drive');
+    }).catch(function(e) {
+        console.error('[Drive] Backup error:', e);
+        // Token may have expired
+        if (e.message && e.message.includes('401')) {
+            gdriveAccessToken = '';
+            gdriveTokenExpiry = 0;
+            localStorage.removeItem('gdriveAccessToken');
+            localStorage.removeItem('gdriveTokenExpiry');
+        }
+        throw e;
+    });
+}
+
+// Restore ALL localStorage from Drive appdata backup
+function driveRestoreData(token) {
+    showToast(currentLang === 'es' ? '☁️ Buscando backup en Google Drive...' : '☁️ Searching backup in Google Drive...');
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) { return r.json(); }).then(function(list) {
+        if (!list.files || list.files.length === 0) {
+            showToast(currentLang === 'es' ? '❌ No se encontró backup en Drive' : '❌ No backup found in Drive');
+            return null;
+        }
+        var fileId = list.files[0].id;
+        var modifiedTime = list.files[0].modifiedTime;
+        return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r) { return r.json(); }).then(function(backup) {
+            var restoredCount = 0;
+            if (backup.allKeys && Object.keys(backup.allKeys).length > 0) {
+                Object.keys(backup.allKeys).forEach(function(key) {
+                    if (key !== 'app_version') {
+                        localStorage.setItem(key, backup.allKeys[key]);
+                        restoredCount++;
+                    }
+                });
+            }
+            if (restoredCount > 0) {
+                var dateStr = modifiedTime ? new Date(modifiedTime).toLocaleDateString() : '';
+                showToast((currentLang === 'es'
+                    ? '✅ Restaurados ' + restoredCount + ' elementos desde Drive (' + dateStr + ')'
+                    : '✅ Restored ' + restoredCount + ' items from Drive (' + dateStr + ')'));
+                setTimeout(function() { location.reload(); }, 2500);
+            } else {
+                showToast(currentLang === 'es' ? '❌ El backup de Drive está vacío' : '❌ Drive backup is empty');
+            }
+            return restoredCount;
+        });
+    }).catch(function(e) {
+        console.error('[Drive] Restore error:', e);
+        showToast(currentLang === 'es' ? '❌ Error al restaurar desde Drive' : '❌ Error restoring from Drive');
+        throw e;
+    });
+}
+
+function driveBackupNow() {
+    if (!gdriveIsConnected()) {
+        gdriveSignIn();
+        return;
+    }
+    showToast(currentLang === 'es' ? '☁️ Guardando en Google Drive...' : '☁️ Saving to Google Drive...');
+    driveBackupData(gdriveAccessToken).then(function() {
+        var modal = document.getElementById('preferencesModal');
+        if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+    }).catch(function(e) {
+        showToast(currentLang === 'es' ? '❌ Error al guardar en Drive' : '❌ Error saving to Drive');
+    });
+}
+
+function driveRestoreNow() {
+    if (!gdriveIsConnected()) {
+        gdriveSignIn();
+        return;
+    }
+    driveRestoreData(gdriveAccessToken);
+}
+// ── End Google Drive Backup ──────────────────────────────────────
 
 function handleGcalTokenResponse(response) {
     if (response.error) {
@@ -9321,17 +9563,23 @@ window._setSolfVol = function(hz, val) {
     var label = document.getElementById('solVol' + hz);
     if (label) label.textContent = val + '%';
 };
-window._testSolfeggioSound = function() {
-    try {
+// v676: Test plays indefinitely until user presses Stop
+window._testSolfeggioHold = function() {
+    var btn = document.getElementById('daSolfeggioTest');
+    // If already playing, stop
+    if (window._dreamAlarmAudio && window._dreamAlarmAudio.ctx) {
         stopDreamAlarmSound();
+        if (btn) { btn.textContent = '🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound'); btn.style.background = 'rgba(138,43,226,0.2)'; btn.style.borderColor = 'rgba(138,43,226,0.4)'; btn.style.color = '#ce93d8'; }
+        return;
+    }
+    try {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.18 });
         }
         if (activeFreqs.length === 0) { alert(currentLang==='es'?'Activa al menos una frecuencia':'Enable at least one frequency'); return; }
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var testDur = 5;
         var oscs = [];
         for (var i = 0; i < activeFreqs.length; i++) {
             var o = ctx.createOscillator();
@@ -9340,17 +9588,17 @@ window._testSolfeggioSound = function() {
             o.type = 'sine';
             o.frequency.setValueAtTime(activeFreqs[i].hz, ctx.currentTime);
             g.gain.setValueAtTime(0, ctx.currentTime);
-            g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + 0.5);
-            g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + testDur - 1);
-            g.gain.linearRampToValueAtTime(0, ctx.currentTime + testDur);
+            g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + 1.0);
             o.start(ctx.currentTime);
-            o.stop(ctx.currentTime + testDur);
+            // No o.stop() — plays until stopDreamAlarmSound()
             oscs.push(o);
         }
         window._dreamAlarmAudio = { ctx: ctx, osc: oscs[0] || null, osc2: oscs[1] || null, voiceStream: null, voiceTimeout: null, _allOscs: oscs };
-        setTimeout(function() { stopDreamAlarmSound(); }, (testDur + 1) * 1000);
+        if (btn) { btn.textContent = '⏹ ' + (currentLang==='es'?'Detener':'Stop'); btn.style.background = 'rgba(255,80,80,0.2)'; btn.style.borderColor = 'rgba(255,80,80,0.5)'; btn.style.color = '#ff8a80'; }
     } catch(e) { console.error('Test solfeggio error:', e); }
 };
+// Legacy alias kept for compatibility
+window._testSolfeggioSound = window._testSolfeggioHold;
 
 function toggleDreamAlarm() {
     _dreamAlarmEnabled = !_dreamAlarmEnabled;
@@ -9515,10 +9763,10 @@ function playDreamAlarmSound() {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.18 }); // v676: +4dB
         }
         // Fallback if nothing selected
-        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.05 }, { hz: 417, vol: 0.05 }, { hz: 528, vol: 0.05 }];
+        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.09 }, { hz: 417, vol: 0.09 }, { hz: 528, vol: 0.09 }];
 
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         var duration = 60; // 60 seconds
@@ -28561,13 +28809,14 @@ loadEvents();
 loadJournals();
 loadGcalEvents();
 
-// Initialize Google Calendar when GIS library loads
+// Initialize Google Calendar + Google Drive when GIS library loads
 if (typeof google !== 'undefined' && google.accounts) {
     initGoogleCalendar();
+    initGoogleDrive();
 } else {
     // GIS loads async, wait for it
     window.addEventListener('load', () => {
-        setTimeout(() => initGoogleCalendar(), 1000);
+        setTimeout(() => { initGoogleCalendar(); initGoogleDrive(); }, 1000);
     });
 }
 
@@ -30895,7 +31144,7 @@ function openPreferencesModal() {
 
     // Test sound button
     dreamAlarmContent += '<div style="text-align:center;margin-top:8px;">';
-    dreamAlarmContent += '<button id="daSolfeggioTest" onclick="window._testSolfeggioSound()" style="padding:6px 16px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.75em;cursor:pointer;">🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound') + '</button>';
+    dreamAlarmContent += '<button id="daSolfeggioTest" onclick="window._testSolfeggioHold()" style="padding:6px 16px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.75em;cursor:pointer;">🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound') + '</button>';
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '</div></div>';
 
@@ -31119,12 +31368,74 @@ function openPreferencesModal() {
     sectionsHtml += _sectionHeader('💾', currentLang==='es'?'Datos y Seguridad':'Data & Security');
 
     // ── Backup / Restore ──
+    var _driveConnected = gdriveIsConnected();
+    var _driveLastBackup = localStorage.getItem('gdriveLastBackup');
+    var _driveLastStr = _driveLastBackup ? new Date(_driveLastBackup).toLocaleString() : (currentLang==='es'?'Nunca':'Never');
+    var _idbLastBackup = '';
+    try {
+        var _idbMeta = JSON.parse(localStorage.getItem('_idbBackupMeta') || 'null');
+        if (_idbMeta && _idbMeta._date) _idbLastBackup = new Date(_idbMeta._date).toLocaleString();
+    } catch(e) {}
+
     sectionsHtml += _s('💾', currentLang==='es'?'Copia de Seguridad':'Backup & Restore', '#7ec8ff',
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Exporta tus notas de diario, eventos y perfiles para no perderlos al reinstalar la app.':'Export your diary notes, events, and profiles so you don\'t lose them when reinstalling the app.') + '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-            '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar Backup':'Export Backup') + '</button>' +
-            '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + (currentLang==='es'?'Restaurar Backup':'Restore Backup') + '</button>' +
-        '</div>'
+        // Subtitle
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:10px;">' +
+            (currentLang==='es'
+                ? 'Tu información se guarda automáticamente en este dispositivo cada vez que escribes. También puedes conectar Google Drive para tener una copia en la nube.'
+                : 'Your data is automatically saved on this device every time you write. You can also connect Google Drive to keep a cloud copy.') +
+        '</div>' +
+
+        // Auto-backup status badge
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(102,187,106,0.08);border:1px solid rgba(102,187,106,0.2);border-radius:8px;margin-bottom:10px;">' +
+            '<span style="font-size:1.1em;">✅</span>' +
+            '<div><div style="font-size:0.78em;color:#66bb6a;font-weight:600;">' +
+                (currentLang==='es'?'Auto-backup activo en este dispositivo':'Auto-backup active on this device') +
+            '</div><div style="font-size:0.65em;color:rgba(255,255,255,0.35);">' +
+                (currentLang==='es'?'Se guarda automáticamente al escribir diarios, sueños e interpretaciones':'Saved automatically when writing diaries, dreams and interpretations') +
+            '</div></div>' +
+        '</div>' +
+
+        // Local file export/import
+        '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+            '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar archivo':'Export file') + '</button>' +
+            '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + (currentLang==='es'?'Restaurar archivo':'Restore file') + '</button>' +
+        '</div>' +
+
+        // Google Drive section
+        '<hr style="border-color:rgba(255,255,255,0.07);margin:0 0 12px 0;" />' +
+        '<div style="font-size:0.78em;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:8px;">☁️ ' +
+            (currentLang==='es'?'Backup en Google Drive':'Google Drive Backup') +
+        '</div>' +
+
+        (_driveConnected ? (
+            // Connected state
+            '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(66,133,244,0.1);border:1px solid rgba(66,133,244,0.3);border-radius:8px;margin-bottom:8px;">' +
+                '<span style="font-size:1.1em;">🔗</span>' +
+                '<div style="flex:1;"><div style="font-size:0.78em;color:#7baaf7;font-weight:600;">' +
+                    (currentLang==='es'?'Google Drive conectado':'Google Drive connected') +
+                '</div><div style="font-size:0.65em;color:rgba(255,255,255,0.35);">' +
+                    (currentLang==='es'?'Último backup: ':'Last backup: ') + _driveLastStr +
+                '</div></div>' +
+                '<button onclick="gdriveSignOut();openPreferencesModal();" style="padding:4px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:0.7em;cursor:pointer;">' +
+                    (currentLang==='es'?'Desconectar':'Disconnect') +
+                '</button>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+                '<button onclick="driveBackupNow()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.82em;font-weight:600;cursor:pointer;">☁️ ' + (currentLang==='es'?'Guardar ahora':'Save now') + '</button>' +
+                '<button onclick="driveRestoreNow()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.1),rgba(66,133,244,0.02));border:1px solid rgba(66,133,244,0.25);border-radius:8px;color:rgba(120,170,247,0.7);font-size:0.82em;font-weight:600;cursor:pointer;">⬇️ ' + (currentLang==='es'?'Restaurar de Drive':'Restore from Drive') + '</button>' +
+            '</div>'
+        ) : (
+            // Disconnected state
+            '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' +
+                (currentLang==='es'
+                    ? 'Conecta tu cuenta de Google para guardar backups automáticos en la nube. Solo tú puedes verlos (carpeta privada de la app).'
+                    : 'Connect your Google account to automatically save backups to the cloud. Only you can see them (private app folder).') +
+            '</div>' +
+            '<button onclick="gdriveSignIn()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.85em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>' +
+                (currentLang==='es'?'Conectar con Google Drive':'Connect with Google Drive') +
+            '</button>'
+        ))
     );
 
     // ── Voice / Dictation ──
