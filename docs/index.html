@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v672';</script>
+    <script>window.APP_VERSION = 'v673';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -4932,6 +4932,15 @@ function autoRestoreFromIndexedDB() {
                     return;
                 }
 
+                // v673: Only restore if backup actually contains user data — prevents infinite
+                // reload loop when backup exists but is empty (no events/journals/diary)
+                var backupHasData = backup.events || backup.journals ||
+                    (backup.diaryEntries && Object.keys(backup.diaryEntries).length > 0);
+                if (!backupHasData) {
+                    resolve(false);
+                    return;
+                }
+
                 // localStorage is empty but IndexedDB has backup — auto-restore
                 console.log('[AutoBackup] Restoring from IndexedDB backup dated:', backup._date);
                 if (backup.events) {
@@ -4973,7 +4982,9 @@ function scheduleAutoBackup() {
 // Run auto-restore on startup, then start periodic backup
 (function initAutoBackup() {
     autoRestoreFromIndexedDB().then(function(restored) {
-        if (restored) {
+        if (restored && !sessionStorage.getItem('_idbRestored')) {
+            // v673: guard prevents reload loop — only restore once per session
+            sessionStorage.setItem('_idbRestored', '1');
             console.log('[AutoBackup] Data restored from IndexedDB. Reloading...');
             location.reload();
             return;
