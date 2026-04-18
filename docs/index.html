@@ -9765,6 +9765,25 @@ function stopDreamAlarmSound() {
 }
 
 function playDreamAlarmSound() {
+    // v677: Use native STREAM_ALARM plugin when running inside Capacitor native app
+    if (typeof window.AlarmAudio !== 'undefined' && window.AlarmAudio.isNative) {
+        var prefs = _getSolfeggioPrefs();
+        var nativeFreqs = [];
+        var nativeVol = 0.85;
+        for (var k in prefs) {
+            if (prefs[k].on) { nativeFreqs.push(parseInt(k)); nativeVol = prefs[k].vol / 100; }
+        }
+        if (nativeFreqs.length === 0) nativeFreqs = [396, 417, 528];
+        window.AlarmAudio.playTones(nativeFreqs, Math.max(nativeVol, 0.7)).catch(function(e) {
+            console.warn('[AlarmAudio] Native playback failed, falling back to Web Audio:', e);
+            _playDreamAlarmWebAudio(); // fallback
+        });
+        return;
+    }
+    _playDreamAlarmWebAudio();
+}
+
+function _playDreamAlarmWebAudio() {
     try {
         // Stop any previous alarm
         stopDreamAlarmSound();

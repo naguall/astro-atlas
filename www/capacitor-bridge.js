@@ -461,4 +461,59 @@
         }, 2000);
     }
 
+    // ══════════════════════════════════════════
+    // ALARM AUDIO (STREAM_ALARM — independent of media volume)
+    // ══════════════════════════════════════════
+
+    var AlarmAudioPlugin = null;
+    try {
+        AlarmAudioPlugin = window.Capacitor.Plugins.AlarmAudio;
+    } catch(e) {}
+
+    /**
+     * window.AlarmAudio — native alarm audio via STREAM_ALARM
+     * Falls back to Web Audio API when running as PWA.
+     *
+     * Usage:
+     *   window.AlarmAudio.playTones([396, 417, 528], 0.85)
+     *   window.AlarmAudio.stopTones()
+     *   window.AlarmAudio.getAlarmVolume() → Promise<{volume, maxVolume, ratio}>
+     */
+    window.AlarmAudio = {
+        isNative: !!AlarmAudioPlugin,
+
+        playTones: function(frequencies, volume) {
+            if (AlarmAudioPlugin) {
+                return AlarmAudioPlugin.playTones({
+                    frequencies: frequencies || [528],
+                    volume: volume != null ? volume : 0.85
+                });
+            }
+            // Web Audio API fallback (uses media volume)
+            return Promise.resolve();
+        },
+
+        stopTones: function() {
+            if (AlarmAudioPlugin) {
+                return AlarmAudioPlugin.stopTones();
+            }
+            // Fallback: call the existing JS stop function
+            if (typeof stopDreamAlarmSound === 'function') stopDreamAlarmSound();
+            return Promise.resolve();
+        },
+
+        getAlarmVolume: function() {
+            if (AlarmAudioPlugin) {
+                return AlarmAudioPlugin.getAlarmVolume();
+            }
+            return Promise.resolve({ volume: 1, maxVolume: 1, ratio: 1.0 });
+        }
+    };
+
+    if (AlarmAudioPlugin) {
+        console.log('[MoonSync] AlarmAudio native plugin ready (STREAM_ALARM) ✓');
+    } else {
+        console.log('[MoonSync] AlarmAudio: using Web Audio API fallback');
+    }
+
 })();
