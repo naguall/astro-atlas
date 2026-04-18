@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-atlas-v660';
+const CACHE_NAME = 'astro-atlas-v661';
 const ASSETS = [
   '/astro-atlas/',
   '/astro-atlas/index.html',
@@ -89,7 +89,12 @@ self.addEventListener('notificationclose', e => {
 // Listen for messages from the page
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'CLEAR_BADGES') {
-    e.waitUntil(clearEverything());
+    // v661: Only close system notifications — badge count is managed by page via SET_BADGE
+    e.waitUntil(
+      self.registration.getNotifications().then(function(notifications) {
+        notifications.forEach(function(n) { n.close(); });
+      }).catch(function(){})
+    );
   }
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
