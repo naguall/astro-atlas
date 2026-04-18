@@ -1,6 +1,6 @@
 {
   "appId": "com.astrocurrents.app",
-  "appName": "Astro Currents",
+  "appName": "AstroAtlas",
   "webDir": "www",
   "server": {
     "androidScheme": "https",
@@ -15,6 +15,9 @@
     ]
   },
   "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
     "SplashScreen": {
       "launchShowDuration": 2000,
       "backgroundColor": "#02020F",
