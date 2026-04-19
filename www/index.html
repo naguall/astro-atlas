@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v691';</script>
+    <script>window.APP_VERSION = 'v692';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -31450,7 +31450,7 @@ function openPreferencesModal() {
 
     // ── Ubicación ──
     sectionsHtml += _s('📍', (currentLang==='es'?'Ubicación':'Location') + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
-        '<button onclick="closePreferencesModal();setTimeout(()=>openLocationSelector(),200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
+        '<button onclick="openLocationSelector();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
     );
 
     // ═══════════════════════════════════════
