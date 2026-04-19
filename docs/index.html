@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v686';</script>
+    <script>window.APP_VERSION = 'v687';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -4378,8 +4378,8 @@ async function toggleNotifications() {
     const btn = document.getElementById('notificationBtn');
 
     // v683: In Capacitor (native APK), Web Push API is not supported
-    var _isNativeNotif =
-            'Your browser does not support notifications');
+    if (!('Notification' in window)) {
+        alert('Your browser does not support notifications');
         return;
     }
     
@@ -26444,7 +26444,6 @@ function renderCalendar() {
     
     // Mostrar título "Hoy" siempre (incluso si no se encuentra, mostrar info básica)
     if (currentDayInCycle) {
-      try { // v685: wrap entire currentDayInCycle rendering — errors here must not block calendar
         // Determinar qué información mostrar según el modo de calendario
         let displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
         let displayEmoji = '';
