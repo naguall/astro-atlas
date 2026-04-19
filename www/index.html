@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v688';</script>
+    <script>window.APP_VERSION = 'v690';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -39908,55 +39908,89 @@ async function sendAIMessage() {
         if (sendBtn) sendBtn.innerHTML = '➤';
 
     } else {
-        // ── NON-STREAMING MODE (proxy or no key) ──
-        showTypingIndicator();
+        // ── STREAMING MODE via proxy ──
+        if (sendBtn) sendBtn.innerHTML = '⏹';
+        _aiAbortCtrl = new AbortController();
+        const container = document.getElementById('aiChatMessages');
+
+        const streamWrapper = document.createElement('div');
+        streamWrapper.className = 'ai-msg assistant';
+        const _streamId = 'aiMsg_' + Date.now();
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        container.appendChild(streamWrapper);
+        container.scrollTop = container.scrollHeight;
+
+        let fullText = '';
+        const streamBody = Object.assign({}, requestBody, { _stream: true });
         try {
-            const apiUrl = AI_PROXY_URL;
-            let response;
-            let retries = 0;
-            const maxRetries = 5;
-            while (retries <= maxRetries) {
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(requestBody)
-                });
-                if (response.status === 429 && retries < maxRetries) {
-                    retries++;
-                    var waitSec = Math.min(3 * retries, 15);
-                    removeTypingIndicator();
-                    addAIMessage('system', currentLang === 'es' ? '⏳ Reintentando en ' + waitSec + 's... (' + retries + '/' + maxRetries + ')' : '⏳ Retrying in ' + waitSec + 's... (' + retries + '/' + maxRetries + ')');
-                    await new Promise(function(r) { setTimeout(r, waitSec * 1000); });
-                    showTypingIndicator();
-                    continue;
-                }
-                break;
-            }
-            removeTypingIndicator();
+            const response = await fetch(AI_PROXY_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(streamBody),
+                signal: _aiAbortCtrl.signal
+            });
+
             if (!response.ok) {
                 const err = await response.json().catch(function() { return {}; });
                 const errMsg = (err.error && err.error.message) || ('Error ' + response.status);
+                streamWrapper.remove();
                 if (response.status === 429) {
                     addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
                 } else {
                     addAIMessage('error', '❌ ' + errMsg);
                 }
                 aiChatHistory.pop(); saveAIChatState();
-                aiIsTyping = false;
-                return;
+            } else {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, {stream: true});
+                    const lines = buf.split('\n');
+                    buf = lines.pop() || '';
+                    for (var li = 0; li < lines.length; li++) {
+                        var line = lines[li];
+                        if (!line.startsWith('data: ')) continue;
+                        var j = line.slice(6).trim();
+                        if (!j || j === '[DONE]') continue;
+                        try {
+                            var d = JSON.parse(j);
+                            var chunk = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
+                            if (chunk) {
+                                fullText += chunk;
+                                _updateStreamBubble(_streamId, streamWrapper, fullText, false);
+                            }
+                        } catch(pe) {}
+                    }
+                }
+                var cleanReply = _processAIActionTags(fullText);
+                _updateStreamBubble(_streamId, streamWrapper, cleanReply, true);
+                aiChatHistory.push({role: 'model', parts: [{text: fullText}]});
+                saveAIChatState();
+                speakText(cleanReply);
             }
-            const data = await response.json();
-            let reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
-            var cleanReply = _processAIActionTags(reply);
-            addAIMessage('assistant', cleanReply);
-            aiChatHistory.push({role: 'model', parts: [{text: reply}]});
-            saveAIChatState();
-            speakText(cleanReply);
         } catch(err) {
-            removeTypingIndicator();
-            addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
-            aiChatHistory.pop(); saveAIChatState();
+            if (err.name === 'AbortError') {
+                if (fullText) {
+                    var cleanStopped = _processAIActionTags(fullText);
+                    _updateStreamBubble(_streamId, streamWrapper, cleanStopped + (currentLang === 'es' ? '\n\n[Detenido]' : '\n\n[Stopped]'), true);
+                    aiChatHistory.push({role: 'model', parts: [{text: fullText}]});
+                    saveAIChatState();
+                } else {
+                    streamWrapper.remove();
+                    aiChatHistory.pop(); saveAIChatState();
+                }
+            } else {
+                streamWrapper.remove();
+                addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
+                aiChatHistory.pop(); saveAIChatState();
+            }
         }
+
+        _aiAbortCtrl = null;
+        if (sendBtn) sendBtn.innerHTML = '➤';
     }
 
     aiIsTyping = false;

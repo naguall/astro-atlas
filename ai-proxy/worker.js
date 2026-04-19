@@ -66,6 +66,7 @@ export default {
     }
 
     const jsonHeaders = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin };
+    const streamHeaders = { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': allowedOrigin };
 
     // Only POST allowed
     if (request.method !== 'POST') {
@@ -100,11 +101,17 @@ export default {
         return new Response(JSON.stringify({ error: 'Invalid request format' }), { status: 400, headers: jsonHeaders });
       }
 
+      // Check if client wants streaming
+      const wantsStream = body._stream === true;
+      delete body._stream;
       const bodyStr = JSON.stringify(body);
 
       // Try each model, fallback on 429/503
       for (const model of MODELS) {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const endpoint = wantsStream ? 'streamGenerateContent' : 'generateContent';
+        const altParam = wantsStream ? '&alt=sse' : '';
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${endpoint}?key=${apiKey}${altParam}`;
+
         const geminiResp = await fetch(geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -116,11 +123,19 @@ export default {
           continue;
         }
 
-        const data = await geminiResp.json();
-        return new Response(JSON.stringify(data), {
-          status: geminiResp.status,
-          headers: jsonHeaders
-        });
+        if (wantsStream) {
+          // Pass the SSE stream straight through to the client
+          return new Response(geminiResp.body, {
+            status: geminiResp.status,
+            headers: streamHeaders
+          });
+        } else {
+          const data = await geminiResp.json();
+          return new Response(JSON.stringify(data), {
+            status: geminiResp.status,
+            headers: jsonHeaders
+          });
+        }
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: 'Proxy error: ' + err.message }), { status: 500, headers: jsonHeaders });
