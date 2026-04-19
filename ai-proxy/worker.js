@@ -27,7 +27,7 @@ function cleanupRateLimits() {
 }
 
 function isOriginAllowed(origin) {
-  if (!origin) return false;
+  if (!origin) return true; // CapacitorHttp (native Android) sends no Origin header — allow
   return ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed));
 }
 

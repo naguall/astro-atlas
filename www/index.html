@@ -754,7 +754,7 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astrológico</span></button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astro</span></button>
                 <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Social</button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
@@ -4603,7 +4603,7 @@ function updateUILanguage() {
 
     // v639: Update Personal/Astrology button label
     const personalLabel = document.getElementById('personalButtonLabel');
-    if (personalLabel) personalLabel.textContent = currentLang === 'es' ? 'Astrológico' : 'Astrology';
+    if (personalLabel) personalLabel.textContent = 'Astro';
 
     // Update cycle navigation
     const cycleNumber = document.getElementById('cycleNumber');
@@ -28324,121 +28324,49 @@ function goToCurrentCycle() {
                     var esBtn = document.createElement('button');
                     esBtn.innerHTML = '<span style="font-size:2em;">🇪🇸</span><br><strong>Español</strong>';
                     esBtn.style.cssText = 'flex:1;max-width:140px;padding:20px 16px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;color:#fff;font-size:1em;cursor:pointer;';
-                    esBtn.onclick = function() { localStorage.setItem('language', 'es'); if (typeof currentLang !== 'undefined') currentLang = 'es'; next(); };
+                    esBtn.onclick = function() { if (typeof changeLanguage === 'function') changeLanguage('es'); else localStorage.setItem('language', 'es'); next(); };
                     var enBtn = document.createElement('button');
                     enBtn.innerHTML = '<span style="font-size:2em;">🇺🇸</span><br><strong>English</strong>';
                     enBtn.style.cssText = esBtn.style.cssText;
-                    enBtn.onclick = function() { localStorage.setItem('language', 'en'); if (typeof currentLang !== 'undefined') currentLang = 'en'; next(); };
+                    enBtn.onclick = function() { if (typeof changeLanguage === 'function') changeLanguage('en'); else localStorage.setItem('language', 'en'); next(); };
                     langBtns.appendChild(esBtn);
                     langBtns.appendChild(enBtn);
 
                 } else if (s === 'calendar') {
-                    var calConn = typeof gcalIsConnected === 'function' && gcalIsConnected();
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">📅</div>' +
                         '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#4285f4;margin:0 0 12px;">Google Calendar</h2>' +
-                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
-                        (L ? 'Importa tus eventos y sincroniza tu agenda con los tránsitos planetarios.' : 'Import your events and sync your agenda with planetary transits.') + '</p>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
+                        (L ? 'Importá tus eventos y sincronizá tu agenda con los tránsitos planetarios.' : 'Import your events and sync your agenda with planetary transits.') + '</p>' +
+                        '<p style="font-size:0.8em;color:rgba(150,180,255,0.6);line-height:1.5;margin:0 0 28px;padding:0 8px;">💡 ' +
+                        (L ? 'Podés conectar Google Calendar desde Preferencias (⚙️) en cualquier momento.' : 'You can connect Google Calendar from Preferences (⚙️) at any time.') + '</p>' +
                         '<div id="calBtnArea"></div>';
                     var calArea = overlay.querySelector('#calBtnArea');
-                    if (calConn) {
-                        calArea.innerHTML = '<div style="padding:14px;background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:12px;color:#34c759;font-size:0.9em;margin-bottom:16px;">✓ ' + (L?'Conectado':'Connected') + '</div>';
-                    } else {
-                        var isNativeCal = !!(typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-                        if (isNativeCal) {
-                            var calNativeNote = document.createElement('div');
-                            calNativeNote.style.cssText = 'padding:12px;background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.2);border-radius:10px;color:rgba(150,180,255,0.7);font-size:0.82em;margin-bottom:12px;line-height:1.5;';
-                            calNativeNote.textContent = L ? '💡 Conectá Google Calendar desde Preferencias una vez que abras la app.' : '💡 Connect Google Calendar from Preferences once the app is open.';
-                            calArea.appendChild(calNativeNote);
-                        } else {
-                            var calBtn = document.createElement('button');
-                            calBtn.id = 'sCalBtn';
-                            calBtn.innerHTML = '📅 ' + (L?'Conectar Google Calendar':'Connect Google Calendar');
-                            calBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(66,133,244,0.25),rgba(66,133,244,0.08));border:1.5px solid rgba(66,133,244,0.5);border-radius:12px;color:#4285f4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
-                            calBtn.onclick = function() {
-                                calBtn.textContent = L?'Conectando...':'Connecting...';
-                                calBtn.disabled = true;
-                                if (typeof gcalSignIn === 'function') {
-                                    gcalSignIn();
-                                    var poll = setInterval(function() {
-                                        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) { clearInterval(poll); next(); }
-                                    }, 1500);
-                                    setTimeout(function() { clearInterval(poll); }, 30000);
-                                }
-                            };
-                            calArea.appendChild(calBtn);
-                        }
-                    }
                     var skipBtn = document.createElement('button');
-                    skipBtn.textContent = calConn ? (L?'Continuar →':'Continue →') : (L?'Saltar por ahora':'Skip for now');
-                    skipBtn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                    skipBtn.textContent = L ? 'Siguiente →' : 'Next →';
+                    skipBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;';
                     skipBtn.onclick = next;
                     calArea.appendChild(skipBtn);
 
                 } else if (s === 'social') {
-                    var socConn = (typeof _socialUser !== 'undefined') && _socialUser;
-                    var isNative = !!(typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">🌐</div>' +
                         '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#00bcd4;margin:0 0 12px;">AstroConnect</h2>' +
-                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 20px;padding:0 8px;">' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
                         (L ? 'La red social de AstroAtlas. Conectate con otros usuarios y compartí tus patrones astrológicos.' : 'The AstroAtlas social network. Connect with other users and share your patterns.') + '</p>' +
+                        '<p style="font-size:0.8em;color:rgba(150,180,255,0.6);line-height:1.5;margin:0 0 28px;padding:0 8px;">💡 ' +
+                        (L ? 'Podés unirte a AstroConnect desde la pestaña Social en cualquier momento.' : 'You can join AstroConnect from the Social tab at any time.') + '</p>' +
                         '<div id="socBtnArea"></div>';
                     var socArea = overlay.querySelector('#socBtnArea');
-                    if (socConn) {
-                        var name = (typeof _socialUser !== 'undefined' && _socialUser) ? (_socialUser.displayName || _socialUser.email || '') : '';
-                        socArea.innerHTML = '<div style="padding:14px;background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:12px;color:#34c759;font-size:0.9em;margin-bottom:16px;">✓ ' + (L?'Conectado como ':'Connected as ') + name + '</div>';
-                        var socContBtn = document.createElement('button');
-                        socContBtn.textContent = L ? 'Continuar →' : 'Continue →';
-                        socContBtn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
-                        socContBtn.onclick = next;
-                        socArea.appendChild(socContBtn);
-                    } else if (isNative) {
-                        // Capacitor: use email/password form (no popup support)
-                        socArea.innerHTML =
-                            '<div style="margin-bottom:10px;">' +
-                            '<input id="socEmail" type="email" placeholder="' + (L?'Email':'Email') + '" style="width:100%;padding:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;font-size:0.9em;box-sizing:border-box;margin-bottom:8px;">' +
-                            '<input id="socPass" type="password" placeholder="' + (L?'Contraseña':'Password') + '" style="width:100%;padding:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;font-size:0.9em;box-sizing:border-box;margin-bottom:10px;">' +
-                            '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-                            '<button id="socLoginBtn" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(0,188,212,0.25),rgba(0,188,212,0.08));border:1.5px solid rgba(0,188,212,0.45);border-radius:10px;color:#00bcd4;font-size:0.85em;font-weight:700;cursor:pointer;">' + (L?'Entrar':'Sign In') + '</button>' +
-                            '<button id="socRegBtn" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:rgba(255,255,255,0.5);font-size:0.85em;cursor:pointer;">' + (L?'Registrarme':'Register') + '</button>' +
-                            '</div></div>';
-                        overlay.querySelector('#socLoginBtn').onclick = function() {
-                            var email = overlay.querySelector('#socEmail').value;
-                            var pass = overlay.querySelector('#socPass').value;
-                            if (!email || !pass) return;
-                            if (typeof _signInEmail === 'function') {
-                                _signInEmail(email, pass);
-                                var sPoll = setInterval(function() {
-                                    if ((typeof _socialUser !== 'undefined') && _socialUser) {
-                                        clearInterval(sPoll); next();
-                                    }
-                                }, 1000);
-                                setTimeout(function() { clearInterval(sPoll); }, 15000);
-                            }
-                        };
-                        overlay.querySelector('#socRegBtn').onclick = function() {
-                            var email = overlay.querySelector('#socEmail').value;
-                            var pass = overlay.querySelector('#socPass').value;
-                            if (!email || !pass) return;
-                            if (typeof _signUpEmail === 'function') {
-                                _signUpEmail(email, pass, email.split('@')[0]);
-                                var sPoll2 = setInterval(function() {
-                                    if ((typeof _socialUser !== 'undefined') && _socialUser) {
-                                        clearInterval(sPoll2); next();
-                                    }
-                                }, 1000);
-                                setTimeout(function() { clearInterval(sPoll2); }, 15000);
-                            }
-                        };
-                        var socSkipNative = document.createElement('button');
-                        socSkipNative.textContent = L ? 'Saltar por ahora' : 'Skip for now';
-                        socSkipNative.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:rgba(255,255,255,0.3);font-size:0.8em;cursor:pointer;';
-                        socSkipNative.onclick = next;
-                        socArea.appendChild(socSkipNative);
-                    } else {
-                        // Web: use popup flow
+                    var socSkipNative = document.createElement('button');
+                    socSkipNative.textContent = L ? 'Siguiente →' : 'Next →';
+                    socSkipNative.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;';
+                    socSkipNative.onclick = next;
+                    socArea.appendChild(socSkipNative);
+                    // (social join available from Social tab)
+                    if (false) {
+                        // Web: use popup flow (kept for reference)
                         var socBtn = document.createElement('button');
                         socBtn.innerHTML = '🌐 ' + (L?'Unirme a AstroConnect':'Join AstroConnect');
-                        socBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(0,188,212,0.2),rgba(0,188,212,0.05));border:1.5px solid rgba(0,188,212,0.45);border-radius:12px;color:#00bcd4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
+                        socBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(0,188,212,0.2),rgba(0,188,210,0.05));border:1.5px solid rgba(0,188,212,0.45);border-radius:12px;color:#00bcd4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
                         socBtn.onclick = function() {
                             if (typeof switchToSocialMode === 'function') {
                                 overlay.style.display = 'none';
@@ -28472,96 +28400,19 @@ function goToCurrentCycle() {
                     }
 
                 } else if (s === 'drive') {
-                    var driveConn = typeof gdriveIsConnected === 'function' && gdriveIsConnected();
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">☁️</div>' +
                         '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#667eea;margin:0 0 12px;">Google Drive</h2>' +
-                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
-                        (L ? 'Restaura tus datos desde un backup previo en Drive — diario, configuraciones y todo.' : 'Restore your data from a previous Drive backup — journal, settings and everything.') + '</p>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
+                        (L ? 'Guardá y restaurá todos tus datos — diario, configuraciones y más — con backup automático en Drive.' : 'Save and restore all your data — journal, settings and more — with automatic Drive backup.') + '</p>' +
+                        '<p style="font-size:0.8em;color:rgba(150,180,255,0.6);line-height:1.5;margin:0 0 28px;padding:0 8px;">💡 ' +
+                        (L ? 'Podés conectar Google Drive desde Preferencias (⚙️) en cualquier momento.' : 'You can connect Google Drive from Preferences (⚙️) at any time.') + '</p>' +
                         '<div id="driveBtnArea"></div>';
                     var driveArea = overlay.querySelector('#driveBtnArea');
-                    if (driveConn) {
-                        // Check if backup exists
-                        var checkingDiv = document.createElement('div');
-                        checkingDiv.style.cssText = 'color:rgba(255,255,255,0.45);font-size:0.85em;margin-bottom:12px;';
-                        checkingDiv.textContent = L ? 'Buscando backup...' : 'Checking for backup...';
-                        driveArea.appendChild(checkingDiv);
-                        fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name%3D%27astroatlas_backup.json%27', {
-                            headers: { 'Authorization': 'Bearer ' + (typeof gdriveAccessToken !== 'undefined' ? gdriveAccessToken : '') }
-                        }).then(function(r) { return r.json(); }).then(function(list) {
-                            driveArea.innerHTML = '';
-                            if (list.files && list.files.length > 0) {
-                                var dateStr = list.files[0].modifiedTime ? new Date(list.files[0].modifiedTime).toLocaleDateString() : '';
-                                var infoDiv = document.createElement('div');
-                                infoDiv.style.cssText = 'padding:12px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:12px;color:#a0b4ff;font-size:0.85em;margin-bottom:16px;';
-                                infoDiv.textContent = (L ? '📦 Backup encontrado: ' : '📦 Backup found: ') + dateStr;
-                                driveArea.appendChild(infoDiv);
-                                var restBtn = document.createElement('button');
-                                restBtn.innerHTML = '⬇️ ' + (L ? 'Restaurar mis datos' : 'Restore my data');
-                                restBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(102,126,234,0.08));border:1.5px solid rgba(102,126,234,0.5);border-radius:12px;color:#667eea;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
-                                restBtn.onclick = function() {
-                                    restBtn.textContent = L ? 'Restaurando...' : 'Restoring...';
-                                    restBtn.disabled = true;
-                                    if (typeof driveRestoreNow === 'function') driveRestoreNow();
-                                    // driveRestoreNow reloads the page automatically
-                                };
-                                driveArea.appendChild(restBtn);
-                            } else {
-                                var noBackupDiv = document.createElement('div');
-                                noBackupDiv.style.cssText = 'color:rgba(255,255,255,0.35);font-size:0.82em;margin-bottom:16px;';
-                                noBackupDiv.textContent = L ? 'No se encontró backup en Drive' : 'No backup found in Drive';
-                                driveArea.appendChild(noBackupDiv);
-                            }
-                            var skipDrive = document.createElement('button');
-                            skipDrive.textContent = L ? 'Continuar →' : 'Continue →';
-                            skipDrive.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
-                            skipDrive.onclick = next;
-                            driveArea.appendChild(skipDrive);
-                        }).catch(function() {
-                            driveArea.innerHTML = '';
-                            var errSkip = document.createElement('button');
-                            errSkip.textContent = L ? 'Saltar' : 'Skip';
-                            errSkip.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
-                            errSkip.onclick = next;
-                            driveArea.appendChild(errSkip);
-                        });
-                    } else {
-                        var isNativeDrive = !!(typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-                        if (isNativeDrive) {
-                            var driveNativeNote = document.createElement('div');
-                            driveNativeNote.style.cssText = 'padding:12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:rgba(160,180,255,0.7);font-size:0.82em;margin-bottom:12px;line-height:1.5;';
-                            driveNativeNote.textContent = L ? '💡 Conectá Google Drive desde Preferencias para activar los backups automáticos.' : '💡 Connect Google Drive from Preferences to enable automatic backups.';
-                            driveArea.appendChild(driveNativeNote);
-                        } else {
-                            var driveConnBtn = document.createElement('button');
-                            driveConnBtn.innerHTML = '☁️ ' + (L ? 'Conectar Drive para restaurar' : 'Connect Drive to restore');
-                            driveConnBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
-                            driveConnBtn.onclick = function() {
-                                driveConnBtn.textContent = L ? 'Conectando...' : 'Connecting...';
-                                driveConnBtn.disabled = true;
-                                if (typeof gdriveSignIn === 'function') {
-                                    gdriveSignIn();
-                                    var drivePoll = setInterval(function() {
-                                        if (typeof gdriveIsConnected === 'function' && gdriveIsConnected()) {
-                                            clearInterval(drivePoll);
-                                            overlay.innerHTML = '';
-                                            var wrap2 = document.createElement('div');
-                                            wrap2.style.cssText = 'max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;';
-                                            wrap2.innerHTML = dots();
-                                            overlay.appendChild(wrap2);
-                                            renderStep();
-                                        }
-                                    }, 1500);
-                                    setTimeout(function() { clearInterval(drivePoll); }, 30000);
-                                }
-                            };
-                            driveArea.appendChild(driveConnBtn);
-                        }
-                        var skipDriveConn = document.createElement('button');
-                        skipDriveConn.textContent = L ? 'Saltar por ahora' : 'Skip for now';
-                        skipDriveConn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
-                        skipDriveConn.onclick = next;
-                        driveArea.appendChild(skipDriveConn);
-                    }
+                    var skipDriveConn = document.createElement('button');
+                    skipDriveConn.textContent = L ? 'Siguiente →' : 'Next →';
+                    skipDriveConn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;';
+                    skipDriveConn.onclick = next;
+                    driveArea.appendChild(skipDriveConn);
 
                 } else if (s === 'ready') {
                     wrap.innerHTML += '<div style="font-size:4em;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(201,168,64,0.6));">🌙</div>' +
