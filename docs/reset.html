@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstroAtlas — Actualizar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    color: #fff;
+    font-family: -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    text-align: center;
+  }
+  .moon { font-size: 64px; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin-bottom: 10px; }
+  p { color: #aaa; margin-bottom: 30px; font-size: 15px; line-height: 1.5; }
+  button {
+    background: #7c3aed;
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    max-width: 300px;
+  }
+  #status {
+    margin-top: 20px;
+    color: #7c3aed;
+    font-size: 14px;
+    min-height: 20px;
+  }
+</style>
+</head>
+<body>
+  <div class="moon">🌙</div>
+  <h1>Actualizar AstroAtlas</h1>
+  <p>Si la app está congelada o no carga bien, tocá el botón para limpiar y actualizar.</p>
+  <button onclick="resetApp()">🔄 Limpiar y Actualizar</button>
+  <div id="status"></div>
+
+<script>
+async function resetApp() {
+  var btn = document.querySelector('button');
+  var status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = 'Limpiando...';
+
+  try {
+    // 1. Unregister all service workers
+    status.textContent = 'Desregistrando service workers...';
+    if ('serviceWorker' in navigator) {
+      var regs = await navigator.serviceWorker.getRegistrations();
+      for (var r of regs) { await r.unregister(); }
+    }
+
+    // 2. Clear all caches
+    status.textContent = 'Limpiando caché...';
+    if ('caches' in window) {
+      var keys = await caches.keys();
+      for (var k of keys) { await caches.delete(k); }
+    }
+
+    // 3. Clear localStorage
+    status.textContent = 'Listo ✅';
+    btn.textContent = '✅ Hecho — abriendo app...';
+
+    // 4. Redirect to main app
+    setTimeout(function() {
+      window.location.href = '/astro-atlas/';
+    }, 1200);
+
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '🔄 Intentar de nuevo';
+  }
+}
+</script>
+</body>
+</html>
