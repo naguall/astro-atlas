@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v678';</script>
+    <script>window.APP_VERSION = 'v679';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -337,7 +337,7 @@
         .ai-typing span { animation: aiDot 1.4s infinite; } .ai-typing span:nth-child(2) { animation-delay: 0.2s; } .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes aiDot { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
 
-        .modal { display: none; position: fixed; z-index: 10002; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0; }
+        .modal { display: none; position: fixed; z-index: 10002; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: flex-start; align-items: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0; }
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
@@ -345,7 +345,7 @@
             border: 1px solid var(--gold-border); border-top: 2px solid var(--gold);
             border-radius: 18px; width: 90%; max-width: 700px;
             box-shadow: 0 0 50px var(--gold-glow), 0 24px 60px rgba(0,0,0,0.65);
-            max-height: calc(100vh - 40px); overflow-y: auto;
+            max-height: none; overflow-y: visible;
             box-sizing: border-box; overflow-x: hidden;
         }
         .modal-content::-webkit-scrollbar { width: 5px; }
@@ -595,7 +595,7 @@
                 max-width: 96vw !important;
                 margin: auto !important;
                 padding: 12px !important;
-                max-height: calc(100dvh - 20px) !important;
+                max-height: none !important;
                 box-sizing: border-box !important;
                 overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
@@ -6236,10 +6236,40 @@ function isWeekend(date) {
 // MODAL DE ASPECTOS Y DIARIO
 // ==============================================
 
+// v678: Reset modal scroll to top whenever any .modal becomes visible
+(function() {
+    var _origAdd = DOMTokenList.prototype.add;
+    DOMTokenList.prototype.add = function() {
+        _origAdd.apply(this, arguments);
+        if (Array.prototype.indexOf.call(arguments, 'show') !== -1 && this._elem && this._elem.classList && this._elem.classList.contains('modal')) {
+            this._elem.scrollTop = 0;
+        }
+    };
+    // Attach elem reference
+    var _origClassList = Object.getOwnPropertyDescriptor(Element.prototype, 'classList');
+    // Simpler: use MutationObserver
+    var mo = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+            if (m.type === 'attributes' && m.attributeName === 'class') {
+                var el = m.target;
+                if (el.classList.contains('modal') && el.classList.contains('show')) {
+                    el.scrollTop = 0;
+                }
+            }
+        });
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.modal').forEach(function(m) {
+            mo.observe(m, { attributes: true });
+        });
+    });
+})();
+
 function openAspectsModal(date, lunarDay, dayData) {
     selectedDate = date;
     selectedDayData = dayData;
     const modal = document.getElementById('aspectsModal');
+    modal.scrollTop = 0;
     
     document.getElementById('aspectsModalTitle').textContent = 
         `${t('day')} ${lunarDay} - ${formatLongDate(date)}`;
