@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v696';</script>
+    <script>window.APP_VERSION = 'v697';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -31511,7 +31511,7 @@ function openPreferencesModal() {
 
     // ── Ubicación ──
     sectionsHtml += _s('📍', (currentLang==='es'?'Ubicación':'Location') + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
-        '<button onclick="openLocationSelector();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
+        '<button onclick="closePreferencesModal();window._reopenPrefAfterLoc=true;setTimeout(function(){openLocationSelector();},200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
     );
 
     // ═══════════════════════════════════════
@@ -33122,10 +33122,15 @@ function stopLocTimeBannerClock() {
 function closeLocationSelector() {
     document.getElementById('locationModal').classList.remove('show');
     stopLocTimeBannerClock();
-    // If opened from tide modal and no location was selected, reopen tide modal
+    // If opened from tide modal, reopen tide modal
     if (window._reopenTideAfterLoc) {
         window._reopenTideAfterLoc = false;
         setTimeout(function() { openTideCycleModal(); }, 300);
+    }
+    // v697: If opened from preferences, reopen preferences automatically
+    if (window._reopenPrefAfterLoc) {
+        window._reopenPrefAfterLoc = false;
+        setTimeout(function() { openPreferencesModal(); }, 300);
     }
 }
 
