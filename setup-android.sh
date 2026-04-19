@@ -163,7 +163,13 @@ if ! grep -q "MODIFY_AUDIO_SETTINGS" "$MANIFEST"; then
   sed -i '' 's|<uses-permission android:name="android.permission.VIBRATE" />|<uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
   echo "  ✓ AndroidManifest.xml (MODIFY_AUDIO_SETTINGS added)"
 else
-  echo "  ✓ AndroidManifest.xml (already has permission)"
+  echo "  ✓ AndroidManifest.xml (MODIFY_AUDIO_SETTINGS already present)"
+fi
+if ! grep -q "ACCESS_FINE_LOCATION" "$MANIFEST"; then
+  sed -i '' 's|<uses-permission android:name="android.permission.VIBRATE" />|<uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />|' "$MANIFEST"
+  echo "  ✓ AndroidManifest.xml (location permissions added)"
+else
+  echo "  ✓ AndroidManifest.xml (location permissions already present)"
 fi
 
 # ── 5. App name ─────────────────────────────────────
