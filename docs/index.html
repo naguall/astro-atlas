@@ -28230,6 +28230,7 @@ function goToCurrentCycle() {
             if (!langSet) steps.push('language');
             steps.push('calendar');
             steps.push('social');
+            steps.push('drive');
             steps.push('ready');
 
             var overlay = document.createElement('div');
@@ -28378,6 +28379,92 @@ function goToCurrentCycle() {
                     socSkip.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
                     socSkip.onclick = next;
                     socArea.appendChild(socSkip);
+
+                } else if (s === 'drive') {
+                    var driveConn = typeof gdriveIsConnected === 'function' && gdriveIsConnected();
+                    wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">☁️</div>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#667eea;margin:0 0 12px;">Google Drive</h2>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
+                        (L ? 'Restaura tus datos desde un backup previo en Drive — diario, configuraciones y todo.' : 'Restore your data from a previous Drive backup — journal, settings and everything.') + '</p>' +
+                        '<div id="driveBtnArea"></div>';
+                    var driveArea = overlay.querySelector('#driveBtnArea');
+                    if (driveConn) {
+                        // Check if backup exists
+                        var checkingDiv = document.createElement('div');
+                        checkingDiv.style.cssText = 'color:rgba(255,255,255,0.45);font-size:0.85em;margin-bottom:12px;';
+                        checkingDiv.textContent = L ? 'Buscando backup...' : 'Checking for backup...';
+                        driveArea.appendChild(checkingDiv);
+                        fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name%3D%27astroatlas_backup.json%27', {
+                            headers: { 'Authorization': 'Bearer ' + (typeof gdriveAccessToken !== 'undefined' ? gdriveAccessToken : '') }
+                        }).then(function(r) { return r.json(); }).then(function(list) {
+                            driveArea.innerHTML = '';
+                            if (list.files && list.files.length > 0) {
+                                var dateStr = list.files[0].modifiedTime ? new Date(list.files[0].modifiedTime).toLocaleDateString() : '';
+                                var infoDiv = document.createElement('div');
+                                infoDiv.style.cssText = 'padding:12px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:12px;color:#a0b4ff;font-size:0.85em;margin-bottom:16px;';
+                                infoDiv.textContent = (L ? '📦 Backup encontrado: ' : '📦 Backup found: ') + dateStr;
+                                driveArea.appendChild(infoDiv);
+                                var restBtn = document.createElement('button');
+                                restBtn.innerHTML = '⬇️ ' + (L ? 'Restaurar mis datos' : 'Restore my data');
+                                restBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(102,126,234,0.08));border:1.5px solid rgba(102,126,234,0.5);border-radius:12px;color:#667eea;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
+                                restBtn.onclick = function() {
+                                    restBtn.textContent = L ? 'Restaurando...' : 'Restoring...';
+                                    restBtn.disabled = true;
+                                    if (typeof driveRestoreNow === 'function') driveRestoreNow();
+                                    // driveRestoreNow reloads the page automatically
+                                };
+                                driveArea.appendChild(restBtn);
+                            } else {
+                                var noBackupDiv = document.createElement('div');
+                                noBackupDiv.style.cssText = 'color:rgba(255,255,255,0.35);font-size:0.82em;margin-bottom:16px;';
+                                noBackupDiv.textContent = L ? 'No se encontró backup en Drive' : 'No backup found in Drive';
+                                driveArea.appendChild(noBackupDiv);
+                            }
+                            var skipDrive = document.createElement('button');
+                            skipDrive.textContent = L ? 'Continuar →' : 'Continue →';
+                            skipDrive.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                            skipDrive.onclick = next;
+                            driveArea.appendChild(skipDrive);
+                        }).catch(function() {
+                            driveArea.innerHTML = '';
+                            var errSkip = document.createElement('button');
+                            errSkip.textContent = L ? 'Saltar' : 'Skip';
+                            errSkip.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                            errSkip.onclick = next;
+                            driveArea.appendChild(errSkip);
+                        });
+                    } else {
+                        var driveConnBtn = document.createElement('button');
+                        driveConnBtn.innerHTML = '☁️ ' + (L ? 'Conectar Drive para restaurar' : 'Connect Drive to restore');
+                        driveConnBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
+                        driveConnBtn.onclick = function() {
+                            driveConnBtn.textContent = L ? 'Conectando...' : 'Connecting...';
+                            driveConnBtn.disabled = true;
+                            if (typeof gdriveSignIn === 'function') {
+                                gdriveSignIn();
+                                var drivePoll = setInterval(function() {
+                                    if (typeof gdriveIsConnected === 'function' && gdriveIsConnected()) {
+                                        clearInterval(drivePoll);
+                                        // Re-render this step now with drive connected
+                                        overlay.innerHTML = '';
+                                        var wrap2 = document.createElement('div');
+                                        wrap2.style.cssText = 'max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;';
+                                        wrap2.innerHTML = dots();
+                                        overlay.appendChild(wrap2);
+                                        // Recurse into drive step
+                                        renderStep();
+                                    }
+                                }, 1500);
+                                setTimeout(function() { clearInterval(drivePoll); }, 30000);
+                            }
+                        };
+                        driveArea.appendChild(driveConnBtn);
+                        var skipDriveConn = document.createElement('button');
+                        skipDriveConn.textContent = L ? 'Saltar por ahora' : 'Skip for now';
+                        skipDriveConn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                        skipDriveConn.onclick = next;
+                        driveArea.appendChild(skipDriveConn);
+                    }
 
                 } else if (s === 'ready') {
                     wrap.innerHTML += '<div style="font-size:4em;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(201,168,64,0.6));">🌙</div>' +
