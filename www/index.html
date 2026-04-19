@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v683';</script>
+    <script>window.APP_VERSION = 'v684';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -36294,24 +36294,15 @@ if ('serviceWorker' in navigator) {
     setTimeout(_checkServerVersion, 5000);
     setInterval(_checkServerVersion, 600000);
 
-    // v636: SW cache is now 'astro-atlas-vXXX' (rebranded from fieldweaver/astro-currents).
-    // Delete any caches that aren't the current active one; old fieldweaver-*,
-    // astroatlas-* and astro-currents-* caches are legacy and always safe to remove.
+    // v684: Only delete truly legacy caches (non astro-atlas-*) from page context.
+    // Deleting astro-atlas-* caches from here is dangerous — the active SW still
+    // needs its own cache while transitioning. The SW activate event handles that cleanup.
     if (caches) {
         caches.keys().then(function(keys) {
             keys.forEach(function(key) {
-                if (key.indexOf('astro-atlas-') === 0 && key !== 'astro-atlas-' + APP_VERSION) {
+                if (key.indexOf('fieldweaver-') === 0 || key.indexOf('astroatlas-') === 0 || key.indexOf('astro-currents-') === 0) {
                     caches.delete(key);
-                    console.log('🗑️ Deleted old cache:', key);
-                } else if (key.indexOf('fieldweaver-') === 0) {
-                    caches.delete(key);
-                    console.log('🗑️ Deleted legacy fieldweaver cache:', key);
-                } else if (key.indexOf('astroatlas-') === 0) {
-                    caches.delete(key);
-                    console.log('🗑️ Deleted legacy astroatlas cache:', key);
-                } else if (key.indexOf('astro-currents-') === 0) {
-                    caches.delete(key);
-                    console.log('🗑️ Deleted legacy astro-currents cache:', key);
+                    console.log('🗑️ Deleted legacy cache:', key);
                 }
             });
         });
