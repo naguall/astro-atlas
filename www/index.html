@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v699';</script>
+    <script>window.APP_VERSION = 'v700';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8092,7 +8092,11 @@ window._readingChatSend = function(chatId) {
                 } catch(e) {}
             }
         }
-        if (_rdTarget) _rdTarget.innerHTML = fullReply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
+        if (_rdTarget) {
+            _rdTarget.innerHTML = fullReply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
+            // v700: restore dblclick-to-read after streaming
+            if (!_rdTarget._dblAdded) { _rdTarget._dblAdded = true; _rdTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _rdTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=(sel&&sel.anchorNode)?((sel.anchorNode.textContent||'').trim()):''; if(ct&&ct.length>3)window.readAloud(_rdTarget.id,ct);else window.readAloud(_rdTarget.id); }); }
+        }
         state.history.push({ role: 'model', parts: [{ text: fullReply }] });
         state.html = areaEl.innerHTML;
     }).catch(function(err) {
@@ -30095,7 +30099,11 @@ async function _sendQuizTutorToAI(userText) {
                 } catch(pe) {}
             }
         }
-        if (_qtTarget) _qtTarget.innerHTML = reply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
+        if (_qtTarget) {
+            _qtTarget.innerHTML = reply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
+            // v700: restore dblclick-to-read after streaming
+            if (!_qtTarget._dblAdded) { _qtTarget._dblAdded = true; _qtTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _qtTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=(sel&&sel.anchorNode)?((sel.anchorNode.textContent||'').trim()):''; if(ct&&ct.length>3)window.readAloud(_qtTarget.id,ct);else window.readAloud(_qtTarget.id); }); }
+        }
         _quizTutorHistory.push({role:'model', parts:[{text: reply}]});
     } catch(e) {
         if (typingEl) typingEl.remove();
