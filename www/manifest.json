@@ -1,18 +1,28 @@
 {
-  "name": "FieldWeaver - Lunar Calendar",
-  "short_name": "FieldWeaver",
-  "description": "FieldWeaver - Lunar Calendar with phases, planetary aspects and tides",
-  "start_url": "/astro-currents/",
-  "scope": "/astro-currents/",
+  "name": "AstroAtlas",
+  "short_name": "AstroAtlas",
+  "description": "Lunar Calendar with phases, planetary aspects, tides and more",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#02020F",
   "theme_color": "#c9a840",
   "icons": [
-    { "src": "icons/android_mdpi_48x48.png", "sizes": "48x48", "type": "image/png" },
-    { "src": "icons/android_hdpi_72x72.png", "sizes": "72x72", "type": "image/png" },
-    { "src": "icons/android_xhdpi_96x96.png", "sizes": "96x96", "type": "image/png" },
-    { "src": "icons/android_xxhdpi_144x144.png", "sizes": "144x144", "type": "image/png" },
-    { "src": "icons/pwa_192_192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/android_mdpi_48x48.png", "sizes": "48x48", "type": "image/png", "purpose": "any" },
+    { "src": "icons/android_hdpi_72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "icons/android_xhdpi_96x96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "icons/android_xxhdpi_144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icons/pwa_192_192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
     { "src": "icons/pwa_512_512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/pwa_512_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AstroAtlas"
+    }
   ]
 }

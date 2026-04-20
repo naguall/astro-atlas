@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v698';</script>
+    <script>window.APP_VERSION = 'v699';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -18044,12 +18044,12 @@ window.interpretSynastry = function(name1, name2) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
-    detailModal.style.zIndex = '1400';
+    detailModal.style.zIndex = '10010';
 
     var titleEl = document.getElementById('compPlanetDetailTitle');
     var bodyEl = document.getElementById('compPlanetDetailBody');
@@ -18374,12 +18374,12 @@ window.showCompositePlanetDetail = function(dataStr) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
-    detailModal.style.zIndex = '1400';
+    detailModal.style.zIndex = '10010';
 
     var titleEl = document.getElementById('compPlanetDetailTitle');
     var bodyEl = document.getElementById('compPlanetDetailBody');
@@ -18419,12 +18419,12 @@ window.triggerCompositeInterpretation = function(dataKey) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if(e.target===detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="color:#c9a840;margin-bottom:0;flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
-    detailModal.style.zIndex = '1400';
+    detailModal.style.zIndex = '10010';
 
     var titleEl = document.getElementById('compPlanetDetailTitle');
     var bodyEl = document.getElementById('compPlanetDetailBody');
@@ -23977,7 +23977,7 @@ function interpretCalendarDay(year, month, day) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
@@ -24015,7 +24015,7 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
@@ -24067,7 +24067,7 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '1400';
+        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
         detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
