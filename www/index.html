@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v700';</script>
+    <script>window.APP_VERSION = 'v701';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8095,7 +8095,7 @@ window._readingChatSend = function(chatId) {
         if (_rdTarget) {
             _rdTarget.innerHTML = fullReply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
             // v700: restore dblclick-to-read after streaming
-            if (!_rdTarget._dblAdded) { _rdTarget._dblAdded = true; _rdTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _rdTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=(sel&&sel.anchorNode)?((sel.anchorNode.textContent||'').trim()):''; if(ct&&ct.length>3)window.readAloud(_rdTarget.id,ct);else window.readAloud(_rdTarget.id); }); }
+            if (!_rdTarget._dblAdded) { _rdTarget._dblAdded = true; _rdTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _rdTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=sel?sel.toString().trim():''; if(ct&&ct.length>3)window.readAloud(_rdTarget.id,ct);else window.readAloud(_rdTarget.id); }); }
         }
         state.history.push({ role: 'model', parts: [{ text: fullReply }] });
         state.html = areaEl.innerHTML;
@@ -8346,31 +8346,24 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     console.warn('Could not save interpretation to localStorage:', storageErr);
                 }
             }
-            // Scroll messages to bottom
-            var msgsEl = document.getElementById('interpChatMessages_' + chatId);
-            if (msgsEl) msgsEl.scrollTop = 0;
-            // Scroll parent modal to top so user sees interpretation from beginning
-            var parentModal = div.closest('.modal-content') || div.closest('.modal');
-            if (parentModal) parentModal.scrollTop = 0;
+            // v701: use rAF so scroll reset fires AFTER browser layout (streaming may have scrolled modal)
+            var _msgsEl = document.getElementById('interpChatMessages_' + chatId);
+            var _parentModal = div.closest('.modal-content') || div.closest('.modal');
+            requestAnimationFrame(function() {
+                if (_msgsEl) _msgsEl.scrollTop = 0;
+                if (_parentModal) _parentModal.scrollTop = 0;
+            });
             // Add double-click to read from point on ALL interpretation responses
             var _interpRespEl = document.getElementById('interpResp_' + chatId);
             if (_interpRespEl && !_interpRespEl._dblClickAdded) {
                 _interpRespEl._dblClickAdded = true;
+                _interpRespEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
                 _interpRespEl.addEventListener('dblclick', function(e) {
                     e.stopPropagation();
                     var sel = window.getSelection();
-                    var clickedText = '';
-                    if (sel && sel.anchorNode) {
-                        var node = sel.anchorNode;
-                        while (node && node !== _interpRespEl && node.nodeType !== 1) node = node.parentNode;
-                        if (node && node !== _interpRespEl) clickedText = (node.textContent || '').trim();
-                        else clickedText = (sel.anchorNode.textContent || '').trim();
-                    }
-                    if (clickedText && clickedText.length > 3) {
-                        window.readAloud(_interpRespEl.id, clickedText);
-                    }
+                    var ct = sel ? sel.toString().trim() : '';
+                    if (ct && ct.length > 3) { window.readAloud(_interpRespEl.id, ct); } else { window.readAloud(_interpRespEl.id); }
                 });
-                _interpRespEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
             }
         } else {
             div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'No se pudo generar interpretación.' : 'Could not generate interpretation.') + '</p>';
@@ -8654,21 +8647,13 @@ async function sendInterpChatMessage(chatId, readingKey) {
             var _fuEl = document.getElementById(_respId);
             if (_fuEl && !_fuEl._dblClickAdded) {
                 _fuEl._dblClickAdded = true;
+                _fuEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
                 _fuEl.addEventListener('dblclick', function(e) {
                     e.stopPropagation();
                     var sel = window.getSelection();
-                    var clickedText = '';
-                    if (sel && sel.anchorNode) {
-                        var node = sel.anchorNode;
-                        while (node && node !== _fuEl && node.nodeType !== 1) node = node.parentNode;
-                        if (node && node !== _fuEl) clickedText = (node.textContent || '').trim();
-                        else clickedText = (sel.anchorNode.textContent || '').trim();
-                    }
-                    if (clickedText && clickedText.length > 3) {
-                        window.readAloud(_fuEl.id, clickedText);
-                    }
+                    var ct = sel ? sel.toString().trim() : '';
+                    if (ct && ct.length > 3) { window.readAloud(_fuEl.id, ct); } else { window.readAloud(_fuEl.id); }
                 });
-                _fuEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
             }
         }
 
@@ -9556,25 +9541,14 @@ function interpretDream() {
                 // Add double-click to read from that point
                 if (!interpDiv._dblClickAdded) {
                     interpDiv._dblClickAdded = true;
-                    interpDiv.addEventListener('dblclick', function(e) {
-                        var sel = window.getSelection();
-                        var clickedText = '';
-                        if (sel && sel.anchorNode) {
-                            // Get the text of the paragraph/node where user double-clicked
-                            var node = sel.anchorNode;
-                            while (node && node !== interpDiv && node.nodeType !== 1) node = node.parentNode;
-                            if (node && node !== interpDiv) {
-                                clickedText = (node.textContent || '').trim();
-                            } else {
-                                clickedText = (sel.anchorNode.textContent || '').trim();
-                            }
-                        }
-                        if (clickedText && clickedText.length > 3) {
-                            window.readAloud('dreamAiInterpDiv', clickedText);
-                        }
-                    });
                     interpDiv.style.cursor = 'text';
                     interpDiv.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
+                    interpDiv.addEventListener('dblclick', function(e) {
+                        e.stopPropagation();
+                        var sel = window.getSelection();
+                        var ct = sel ? sel.toString().trim() : '';
+                        if (ct && ct.length > 3) { window.readAloud('dreamAiInterpDiv', ct); } else { window.readAloud('dreamAiInterpDiv'); }
+                    });
                 }
                 _interpObserver.disconnect();
             }
@@ -27437,23 +27411,12 @@ function goToCurrentCycle() {
         if (_tutorArea && !_tutorArea._dblDelegated) {
             _tutorArea._dblDelegated = true;
             _tutorArea.addEventListener('dblclick', function(e) {
-                // Find closest tutor AI bubble
                 var bubble = e.target.closest('.tutor-ai-bubble, [id^="aiMsg_tutor_"]');
                 if (!bubble || !bubble.id) return;
                 e.stopPropagation();
                 var sel = window.getSelection();
-                var clickedText = '';
-                if (sel && sel.anchorNode) {
-                    var node = sel.anchorNode;
-                    while (node && node !== bubble && node.nodeType !== 1) node = node.parentNode;
-                    if (node && node !== bubble) clickedText = (node.textContent || '').trim();
-                    else clickedText = (sel.anchorNode.textContent || '').trim();
-                }
-                if (clickedText && clickedText.length > 3) {
-                    window.readAloud(bubble.id, clickedText);
-                } else {
-                    window.readAloud(bubble.id);
-                }
+                var ct = sel ? sel.toString().trim() : '';
+                if (ct && ct.length > 3) { window.readAloud(bubble.id, ct); } else { window.readAloud(bubble.id); }
             });
         }
     };
@@ -27993,18 +27956,8 @@ function goToCurrentCycle() {
                     if (!bubble || !bubble.id) return;
                     e.stopPropagation();
                     var sel = window.getSelection();
-                    var clickedText = '';
-                    if (sel && sel.anchorNode) {
-                        var node = sel.anchorNode;
-                        while (node && node !== bubble && node.nodeType !== 1) node = node.parentNode;
-                        if (node && node !== bubble) clickedText = (node.textContent || '').trim();
-                        else clickedText = (sel.anchorNode.textContent || '').trim();
-                    }
-                    if (clickedText && clickedText.length > 3) {
-                        window.readAloud(bubble.id, clickedText);
-                    } else {
-                        window.readAloud(bubble.id);
-                    }
+                    var ct = sel ? sel.toString().trim() : '';
+                    if (ct && ct.length > 3) { window.readAloud(bubble.id, ct); } else { window.readAloud(bubble.id); }
                 });
             }
         }, 150);
@@ -30102,7 +30055,7 @@ async function _sendQuizTutorToAI(userText) {
         if (_qtTarget) {
             _qtTarget.innerHTML = reply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
             // v700: restore dblclick-to-read after streaming
-            if (!_qtTarget._dblAdded) { _qtTarget._dblAdded = true; _qtTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _qtTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=(sel&&sel.anchorNode)?((sel.anchorNode.textContent||'').trim()):''; if(ct&&ct.length>3)window.readAloud(_qtTarget.id,ct);else window.readAloud(_qtTarget.id); }); }
+            if (!_qtTarget._dblAdded) { _qtTarget._dblAdded = true; _qtTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _qtTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=sel?sel.toString().trim():''; if(ct&&ct.length>3)window.readAloud(_qtTarget.id,ct);else window.readAloud(_qtTarget.id); }); }
         }
         _quizTutorHistory.push({role:'model', parts:[{text: reply}]});
     } catch(e) {
@@ -39669,21 +39622,13 @@ function addAIMessage(role, text, forceScrollBottom) {
         // Double-click to read from point
         var _aiMsgDiv = div.querySelector('#' + _aiMsgId);
         if (_aiMsgDiv) {
+            _aiMsgDiv.title = currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here';
             _aiMsgDiv.addEventListener('dblclick', function(e) {
                 e.stopPropagation();
                 var sel = window.getSelection();
-                var clickedText = '';
-                if (sel && sel.anchorNode) {
-                    var node = sel.anchorNode;
-                    while (node && node !== _aiMsgDiv && node.nodeType !== 1) node = node.parentNode;
-                    if (node && node !== _aiMsgDiv) clickedText = (node.textContent || '').trim();
-                    else clickedText = (sel.anchorNode.textContent || '').trim();
-                }
-                if (clickedText && clickedText.length > 3) {
-                    window.readAloud(_aiMsgDiv.id, clickedText);
-                }
+                var ct = sel ? sel.toString().trim() : '';
+                if (ct && ct.length > 3) { window.readAloud(_aiMsgDiv.id, ct); } else { window.readAloud(_aiMsgDiv.id); }
             });
-            _aiMsgDiv.title = currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here';
         }
         // Share/copy/save button bar
         const btnBar = document.createElement('div');
@@ -39787,13 +39732,8 @@ function _updateStreamBubble(elemId, wrapperDiv, rawText, isFinal) {
         el.addEventListener('dblclick', function(e) {
             e.stopPropagation();
             var sel = window.getSelection();
-            var clickedText = '';
-            if (sel && sel.anchorNode) {
-                var node = sel.anchorNode;
-                while (node && node !== el && node.nodeType !== 1) node = node.parentNode;
-                clickedText = (sel.anchorNode.textContent || '').trim();
-            }
-            if (clickedText && clickedText.length > 3) window.readAloud(el.id, clickedText);
+            var ct = sel ? sel.toString().trim() : '';
+            if (ct && ct.length > 3) window.readAloud(el.id, ct);
             else window.readAloud(el.id);
         });
         var rawText2 = rawText;
