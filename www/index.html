@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v710';</script>
+    <script>window.APP_VERSION = 'v711';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2730,6 +2730,305 @@ function getEclipsesForYear(year) {
         : [];
 }
 
+// ================================================================
+// ASTROENGINE — Motor de Efemérides JavaScript (v711)
+// Algoritmos de Paul Schlyter (stjarnhimlen.se) | precisión <0.5°
+// Calcula posiciones planetarias para CUALQUIER año dinámicamente
+// Usado como fallback para años 2031+ más allá de datos estáticos
+// ================================================================
+const AstroEngine = (function() {
+    'use strict';
+    const PI = Math.PI;
+    const rad = d => d * PI / 180;
+    const deg = r => r * 180 / PI;
+    const rev = d => d - Math.floor(d / 360) * 360;
+
+    const SIGNS = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo',
+                   'Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+
+    function JD(year, month, day, hour) {
+        hour = hour || 0;
+        if (month <= 2) { year--; month += 12; }
+        const A = Math.floor(year / 100);
+        const B = 2 - A + Math.floor(A / 4);
+        return Math.floor(365.25 * (year + 4716)) + Math.floor(30.6001 * (month + 1)) + day + hour / 24 + B - 1524.5;
+    }
+
+    function JDfromDate(date) {
+        const d = new Date(date);
+        return JD(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours() + d.getUTCMinutes() / 60);
+    }
+
+    function orbitalElements(planet, d) {
+        switch (planet) {
+            case 'Mercury': return [48.3313 + 3.24587e-5*d, 7.0047 + 5.00e-8*d, 29.1241 + 1.01444e-5*d, 0.387098, 0.205635 + 5.59e-10*d, rev(168.6562 + 4.0923344368*d)];
+            case 'Venus':   return [76.6799 + 2.46590e-5*d, 3.3946 + 2.75e-8*d, 54.8910 + 1.38374e-5*d, 0.723330, 0.006773 - 1.302e-9*d, rev(48.0052 + 1.6021302244*d)];
+            case 'Earth':   return [0, 0, rev(102.9404 + 4.70935e-5*d), 1.000000, 0.016709 - 1.151e-9*d, rev(356.0470 + 0.9856002585*d)];
+            case 'Mars':    return [49.5574 + 2.11081e-5*d, 1.8497 - 1.78e-8*d, 286.5016 + 2.92961e-5*d, 1.523688, 0.093405 + 2.516e-9*d, rev(18.6021 + 0.5240207766*d)];
+            case 'Jupiter': return [100.4542 + 2.76854e-5*d, 1.3030 - 1.557e-7*d, 273.8777 + 1.64505e-5*d, 5.20256, 0.048498 + 4.469e-9*d, rev(19.8950 + 0.0830853001*d)];
+            case 'Saturn':  return [113.6634 + 2.38980e-5*d, 2.4886 - 1.081e-7*d, 339.3939 + 2.97661e-5*d, 9.55475, 0.055546 - 9.499e-9*d, rev(316.9670 + 0.0334442282*d)];
+            case 'Uranus':  return [74.0005 + 1.3978e-5*d, 0.7733 + 1.9e-8*d, 96.6612 + 3.0e-5*d, 19.18171, 0.047318 + 7.45e-9*d, rev(142.5905 + 0.011725806*d)];
+            case 'Neptune': return [131.7806 + 3.0173e-6*d, 1.7700 - 2.55e-7*d, 272.8461 - 6.027e-6*d, 30.05826, 0.008606 + 2.15e-9*d, rev(260.2471 + 0.005995147*d)];
+            case 'Pluto':   return [110.30347, 17.14175, 224.06676, 39.48168677, 0.24880766, rev(14.53470 + 0.00397857*d)];
+            default: return null;
+        }
+    }
+
+    function keplerE(M_deg, e) {
+        let E = M_deg;
+        for (let i = 0; i < 50; i++) {
+            const dE = (M_deg - E + deg(e * Math.sin(rad(E)))) / (1 - e * Math.cos(rad(E)));
+            E += dE;
+            if (Math.abs(dE) < 1e-6) break;
+        }
+        return E;
+    }
+
+    function heliocentricXYZ(planet, d) {
+        const el = orbitalElements(planet, d);
+        if (!el) return null;
+        const N = el[0], inc = el[1], w = el[2], a = el[3], e = el[4], M = el[5];
+        const E = keplerE(M, e);
+        const xv = a * (Math.cos(rad(E)) - e);
+        const yv = a * Math.sqrt(1 - e * e) * Math.sin(rad(E));
+        const r  = Math.sqrt(xv * xv + yv * yv);
+        const v  = deg(Math.atan2(yv, xv));
+        const lon = rev(v + w);
+        const x = r * (Math.cos(rad(N)) * Math.cos(rad(lon)) - Math.sin(rad(N)) * Math.sin(rad(lon)) * Math.cos(rad(inc)));
+        const y = r * (Math.sin(rad(N)) * Math.cos(rad(lon)) + Math.cos(rad(N)) * Math.sin(rad(lon)) * Math.cos(rad(inc)));
+        const z = r * Math.sin(rad(lon)) * Math.sin(rad(inc));
+        return { x: x, y: y, z: z, r: r };
+    }
+
+    function geocentricLon(planet, d) {
+        if (planet === 'Sun') {
+            const earth = heliocentricXYZ('Earth', d);
+            return rev(deg(Math.atan2(-earth.y, -earth.x)));
+        }
+        const p = heliocentricXYZ(planet, d);
+        const e = heliocentricXYZ('Earth', d);
+        return rev(deg(Math.atan2(p.y - e.y, p.x - e.x)));
+    }
+
+    function geocentricSpeed(planet, d, step) {
+        step = step || 0.5;
+        const lon1 = geocentricLon(planet, d - step);
+        const lon2 = geocentricLon(planet, d + step);
+        let diff = lon2 - lon1;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        return diff / (step * 2);
+    }
+
+    function getSign(lon) { return SIGNS[Math.floor(rev(lon) / 30)]; }
+    function getDegInSign(lon) { return rev(lon) % 30; }
+
+    function jdToDateStr(jd) {
+        const Z = Math.floor(jd + 0.5);
+        let A = Z;
+        if (Z >= 2299161) {
+            const alpha = Math.floor((Z - 1867216.25) / 36524.25);
+            A = Z + 1 + alpha - Math.floor(alpha / 4);
+        }
+        const B = A + 1524;
+        const C = Math.floor((B - 122.1) / 365.25);
+        const D = Math.floor(365.25 * C);
+        const E = Math.floor((B - D) / 30.6001);
+        const day = Math.floor(B - D - Math.floor(30.6001 * E));
+        const month = E < 14 ? E - 1 : E - 13;
+        const year = month > 2 ? C - 4716 : C - 4715;
+        return year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    }
+
+    function binarySearchStation(planet, jdLo, jdHi, isRetroStart) {
+        for (let i = 0; i < 60; i++) {
+            const jdMid = (jdLo + jdHi) / 2;
+            const speed = geocentricSpeed(planet, jdMid - 2451545.0);
+            if (isRetroStart) { if (speed < 0) jdHi = jdMid; else jdLo = jdMid; }
+            else              { if (speed > 0) jdHi = jdMid; else jdLo = jdMid; }
+            if (jdHi - jdLo < 0.02) break;
+        }
+        return (jdLo + jdHi) / 2;
+    }
+
+    function binarySearchSignChange(planet, jdLo, jdHi, fromSignIdx) {
+        for (let i = 0; i < 60; i++) {
+            const jdMid = (jdLo + jdHi) / 2;
+            const lon = geocentricLon(planet, jdMid - 2451545.0);
+            const signIdx = Math.floor(rev(lon) / 30);
+            if (signIdx === fromSignIdx) jdLo = jdMid; else jdHi = jdMid;
+            if (jdHi - jdLo < 0.02) break;
+        }
+        return (jdLo + jdHi) / 2;
+    }
+
+    function findRetrogrades(planet, yearStart, yearEnd) {
+        const jdStart = JD(yearStart - 1, 10, 1);
+        const jdEnd   = JD(yearEnd + 1, 3, 1);
+        const retrogrades = [];
+        let prevSpeed = null, inRetro = false, retroStartJD = null, retroStartLon = null;
+        for (let jd = jdStart; jd <= jdEnd; jd += 1.0) {
+            const d = jd - 2451545.0;
+            const speed = geocentricSpeed(planet, d);
+            const lon = geocentricLon(planet, d);
+            if (prevSpeed !== null) {
+                if (prevSpeed >= 0 && speed < 0 && !inRetro) {
+                    const exactJD = binarySearchStation(planet, jd - 1, jd + 1, true);
+                    inRetro = true;
+                    retroStartJD = exactJD;
+                    retroStartLon = geocentricLon(planet, exactJD - 2451545.0);
+                } else if (prevSpeed <= 0 && speed > 0 && inRetro) {
+                    const exactJD = binarySearchStation(planet, jd - 1, jd + 1, false);
+                    inRetro = false;
+                    const endLon = geocentricLon(planet, exactJD - 2451545.0);
+                    const startDate = jdToDateStr(retroStartJD);
+                    const endDate = jdToDateStr(exactJD);
+                    const startYear = parseInt(startDate.substring(0, 4));
+                    const endYear = parseInt(endDate.substring(0, 4));
+                    if (endYear >= yearStart && startYear <= yearEnd) {
+                        retrogrades.push({
+                            start: startDate, end: endDate,
+                            startLon: Math.round(retroStartLon * 100) / 100,
+                            endLon: Math.round(endLon * 100) / 100,
+                            startSign: getSign(retroStartLon), endSign: getSign(endLon),
+                            startDeg: Math.round(getDegInSign(retroStartLon) * 10) / 10,
+                            endDeg: Math.round(getDegInSign(endLon) * 10) / 10,
+                        });
+                    }
+                }
+            }
+            prevSpeed = speed;
+        }
+        return retrogrades;
+    }
+
+    function findSignChanges(planet, year) {
+        const jdStart = JD(year, 1, 1) - 5;
+        const jdEnd   = JD(year, 12, 31) + 5;
+        const stepMap = { Sun:2, Mercury:2, Venus:2, Mars:2, Jupiter:5, Saturn:10, Uranus:20, Neptune:20, Pluto:20 };
+        const step = stepMap[planet] || 5;
+        const changes = [];
+        let prevSignIdx = null;
+        for (let jd = jdStart; jd <= jdEnd; jd += step) {
+            const d = jd - 2451545.0;
+            const lon = geocentricLon(planet, d);
+            const signIdx = Math.floor(rev(lon) / 30);
+            if (prevSignIdx !== null && signIdx !== prevSignIdx) {
+                const exactJD = binarySearchSignChange(planet, jd - step, jd, prevSignIdx);
+                const exactDate = jdToDateStr(exactJD);
+                if (exactDate.substring(0, 4) === String(year)) {
+                    const speed = geocentricSpeed(planet, exactJD - 2451545.0);
+                    changes.push({ date: exactDate, toSign: SIGNS[signIdx], fromSign: SIGNS[prevSignIdx], retrograde: speed < 0 });
+                }
+                prevSignIdx = signIdx;
+            } else if (prevSignIdx === null) {
+                prevSignIdx = signIdx;
+            }
+        }
+        return changes;
+    }
+
+    const _cache = {};
+    function computeYear(year) {
+        if (_cache[year]) return _cache[year];
+        const planets = ['Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+        const result = { retrogrades: {}, signChanges: {} };
+        for (let i = 0; i < planets.length; i++) {
+            result.retrogrades[planets[i]] = findRetrogrades(planets[i], year, year);
+            result.signChanges[planets[i]] = findSignChanges(planets[i], year);
+        }
+        _cache[year] = result;
+        return result;
+    }
+
+    function getPlanetPosition(planet, date) {
+        const jd = JDfromDate(date);
+        const d  = jd - 2451545.0;
+        const lon = geocentricLon(planet, d);
+        const speed = geocentricSpeed(planet, d);
+        return { lon: lon, speed: speed, sign: getSign(lon), retrograde: speed < 0 };
+    }
+
+    return { computeYear: computeYear, getPlanetPosition: getPlanetPosition,
+             getSign: getSign, getDegInSign: getDegInSign, JD: JD, JDfromDate: JDfromDate,
+             geocentricLon: geocentricLon, geocentricSpeed: geocentricSpeed,
+             findRetrogrades: findRetrogrades, findSignChanges: findSignChanges, SIGNS: SIGNS };
+})();
+
+// ================================================================
+// ASTROENGINE CONVERTERS — Formato AstroEngine → Formato App
+// Usados para generar datos dinámicos para años 2031+
+// ================================================================
+const _AE_PLANET_MAP = {
+    Mercury: { name: 'Mercurio', symbol: '☿', color: '#f39c12', area: 'comunicativa y mental' },
+    Venus:   { name: 'Venus',    symbol: '♀', color: '#e91e63', area: 'relacional y afectiva' },
+    Mars:    { name: 'Marte',    symbol: '♂', color: '#ff6b6b', area: 'de la acción y voluntad' },
+    Jupiter: { name: 'Júpiter',  symbol: '♃', color: '#8e44ad', area: 'de la expansión y la fe' },
+    Saturn:  { name: 'Saturno',  symbol: '♄', color: '#3498db', area: 'de la disciplina y el karma' },
+    Uranus:  { name: 'Urano',    symbol: '⛢', color: '#1abc9c', area: 'del cambio e innovación' },
+    Neptune: { name: 'Neptuno',  symbol: '♆', color: '#2980b9', area: 'de lo espiritual e intuitivo' },
+    Pluto:   { name: 'Plutón',   symbol: '♇', color: '#7f8c8d', area: 'de la transformación profunda' },
+};
+
+function _buildRetrogradesFromEngine(year) {
+    try {
+        const yearData = AstroEngine.computeYear(year);
+        const retros = [];
+        const planets = Object.keys(yearData.retrogrades);
+        for (let pi = 0; pi < planets.length; pi++) {
+            const planet = planets[pi];
+            const periods = yearData.retrogrades[planet];
+            const pInfo = _AE_PLANET_MAP[planet];
+            if (!pInfo || !periods || !periods.length) continue;
+            for (let ri = 0; ri < periods.length; ri++) {
+                const r = periods[ri];
+                retros.push({
+                    planet: pInfo.name, symbol: pInfo.symbol,
+                    start: crDate(r.start), end: crDate(r.end),
+                    sign: r.startSign,
+                    meaning: pInfo.name + ' retrógrado en ' + r.startSign + '. Período de revisión e introspección en el área ' + pInfo.area + '. Tiempo propicio para completar y revisar en lugar de iniciar.',
+                    color: pInfo.color,
+                });
+            }
+        }
+        retros.sort(function(a, b) { return new Date(a.start) - new Date(b.start); });
+        return retros;
+    } catch (e) {
+        console.warn('[AstroEngine] Error building retrogrades for year ' + year, e);
+        return [];
+    }
+}
+
+function _buildSignChangesFromEngine(year) {
+    try {
+        const yearData = AstroEngine.computeYear(year);
+        const changes = [];
+        const planets = Object.keys(yearData.signChanges);
+        for (let pi = 0; pi < planets.length; pi++) {
+            const planet = planets[pi];
+            const list = yearData.signChanges[planet];
+            const pInfo = _AE_PLANET_MAP[planet];
+            if (!pInfo || !list || !list.length) continue;
+            for (let ci = 0; ci < list.length; ci++) {
+                const sc = list[ci];
+                const rxNote = sc.retrograde ? ' (retrógrado — revisión de temas de ' + sc.toSign + ')' : '';
+                changes.push({
+                    planet: pInfo.name, symbol: pInfo.symbol,
+                    date: crDate(sc.date), toSign: sc.toSign,
+                    meaning: pInfo.name + ' ingresa a ' + sc.toSign + rxNote + '. Nueva energía ' + sc.toSign.toLowerCase() + ' activa el plano ' + pInfo.area + '.',
+                    color: pInfo.color,
+                    isRetroEntry: !!sc.retrograde,
+                });
+            }
+        }
+        changes.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+        return changes;
+    } catch (e) {
+        console.warn('[AstroEngine] Error building sign changes for year ' + year, e);
+        return [];
+    }
+}
+
 // Retrogradaciones 2026 (FECHAS VERIFICADAS - ChatGPT/Astrología)
 // Ajustadas a zona horaria Costa Rica (UTC-6)
 const retrogrades2026 = [
@@ -3476,8 +3775,8 @@ function _getRetrogradesByYear(year) {
     if (year === 2028) return retrogrades2028;
     if (year === 2029) return retrogrades2029;
     if (year === 2030) return retrogrades2030;
-    // For years beyond 2030, use the closest available data
-    if (year > 2030) return retrogrades2030;
+    // v711: AstroEngine calcula dinámicamente para cualquier año > 2030
+    if (year > 2030) return _buildRetrogradesFromEngine(year);
     return retrogrades2026;
 }
 
@@ -3488,7 +3787,8 @@ function _getSignChangesByYear(year) {
     if (year === 2028) return signChanges2028;
     if (year === 2029) return signChanges2029;
     if (year === 2030) return signChanges2030;
-    if (year > 2030) return signChanges2030;
+    // v711: AstroEngine calcula dinámicamente para cualquier año > 2030
+    if (year > 2030) return _buildSignChangesFromEngine(year);
     return signChanges2026;
 }
 
