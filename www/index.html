@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v706';</script>
+    <script>window.APP_VERSION = 'v707';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3289,7 +3289,7 @@ function detectAspectPatterns(date) {
      // v704: Definición profesional — mínimo 3 planetas personales/sociales
      // (Sol, Luna, Mercurio, Venus, Marte, Júpiter, Saturno).
      // Urano, Neptuno, Plutón se listan pero NO cuentan para el mínimo de 3.
-     var _personalPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn'];
+     var _personalPlanets = ['sun','mercury','venus','mars','jupiter','saturn']; // v707: Moon excluded — changes sign every 2-3 days causing false daily stelliums
      var signGroups = {};
      planets.forEach(function(p) {
          if (positions[p] === undefined) return;
@@ -6635,7 +6635,10 @@ function handleDayClick(element) {
             }
         }
         const aspectsCount = dayData.aspects ? dayData.aspects.length : 0;
-        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0);
+        // v707: Also count dynamic aspect patterns (T-Square, Grand Trine etc.) shown in cells
+        const _dayPatternsForCount = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+        const _majorAspectForCount = (typeof getMajorAspect === 'function') ? getMajorAspect(date) : null;
+        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0) + _dayPatternsForCount.length + (_majorAspectForCount ? 1 : 0);
 
         // Translate and update modal
         const modal = document.getElementById('dayOptionsModal');
@@ -26829,21 +26832,13 @@ function renderCalendar() {
         }
 
         weekDiv.innerHTML = `
-            <div class="week-header" style="display:grid;grid-template-columns:repeat(8,1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
+            <div class="week-header" style="display:grid;grid-template-columns:repeat(${week.days.length},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_perfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
                 <div class="moon-icon" style="grid-column:${_perfCol}/${_perfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;">${week.emoji}</div>
-                <div style="grid-column:${_perfCol + 1}/${Math.min(_perfCol + 4, 7)};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
-                <div style="grid-column:7/9;font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
+                <div style="grid-column:${_perfCol + 1}/${week.days.length};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
+                <div style="grid-column:${week.days.length}/${week.days.length + 1};font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
             </div>
-            <div class="days-container" style="grid-template-columns:repeat(8,1fr);">${daysHTML}${(() => {
-                // Fill empty cells at the END to complete 8 columns (lunar week = 8 days)
-                const emptyCellsNeeded = 8 - week.days.length;
-                let emptyCells = '';
-                for (let i = 0; i < emptyCellsNeeded; i++) {
-                    emptyCells += '<div class="day-cell" style="visibility: hidden; pointer-events: none;"></div>';
-                }
-                return emptyCells;
-            })()}</div>
+            <div class="days-container" style="grid-template-columns:repeat(${week.days.length},1fr);">${daysHTML}</div>
         `;
         
         _fragment.appendChild(weekDiv);
