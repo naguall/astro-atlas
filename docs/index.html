@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v702';</script>
+    <script>window.APP_VERSION = 'v703';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3532,8 +3532,10 @@ function detectAspectPatterns(date) {
 }
 
 function getEclipseInfo(date) {
+    // v703: search all years, not just 2026
     const dateStr = date.toDateString();
-    for (const eclipse of eclipses2026) {
+    const yearEclipses = getEclipsesForYear(date.getFullYear());
+    for (const eclipse of yearEclipses) {
         if (eclipse.date.toDateString() === dateStr) {
             return eclipse;
         }
@@ -11940,7 +11942,7 @@ function closeEventsModal() {
 // Modal de Eclipse
 function showEclipseModal(type, name, dateTime) {
     const date = new Date(parseInt(dateTime));
-    const eclipseData = eclipses2026.find(e => e.date.toDateString() === date.toDateString());
+    const eclipseData = getEclipsesForYear(date.getFullYear()).find(e => e.date.toDateString() === date.toDateString());
     
     if (!eclipseData) return;
     
