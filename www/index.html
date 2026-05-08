@@ -38140,6 +38140,8 @@ function saveAIChatState() {
         localStorage.setItem('aiChatHistory', JSON.stringify(aiChatHistory));
         var container = document.getElementById('aiChatMessages');
         if (container) localStorage.setItem('aiChatHTML', container.innerHTML);
+        // v714: Back up to IndexedDB on every save so chat survives localStorage clears
+        if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
     } catch(e) { /* storage full, ignore */ }
 }
 let aiIsTyping = false;
