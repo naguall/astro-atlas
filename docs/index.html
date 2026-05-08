@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v711';</script>
+    <script>window.APP_VERSION = 'v712';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3260,14 +3260,6 @@ const retrogrades2027 = [
         meaning: 'Revisión de acción analítica y precisión. El impulso meticuloso busca corrección de procesos.',
         areas: 'Análisis, trabajo, salud, servicio, perfeccionismo',
     },
-    // Júpiter retrógrado 2026-12-13 → 2027-04-13 (Leo 27° → Leo 17°)
-    {
-        planet: 'Júpiter', symbol: '♃',
-        start: crDate('2026-12-13'), end: crDate('2027-04-13'),
-        sign: 'Leo',
-        meaning: 'Revisión de expresión creativa y generosidad. Liderazgo y autoexpresión en introspección.',
-        areas: 'Creatividad, liderazgo, autoexpresión, generosidad',
-    },
     // Saturno retrógrado 2027-08-09 → 2027-12-24 (Aries 28° → Aries 21°)
     {
         planet: 'Saturno', symbol: '♄',
@@ -3661,14 +3653,6 @@ const retrogrades2030 = [
         meaning: 'Revisión de estructuras mentales. Retrasos en comunicación profesional. Reconsideración de compromisos y responsabilidades.',
         areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
     },
-    // Venus retrógrado 2029-12-16 → 2030-01-26 (Capricornio 24° → Capricornio 9°)
-    {
-        planet: 'Venus', symbol: '♀',
-        start: crDate('2029-12-16'), end: crDate('2030-01-26'),
-        sign: 'Capricornio',
-        meaning: 'Revisión de compromisos relacionales y valores materiales. El amor examina su estructura y duración.',
-        areas: 'Compromisos, relaciones formales, valores prácticos',
-    },
     // Júpiter retrógrado 2030-03-13 → 2030-07-15 (Escorpio 28° → Escorpio 18°)
     {
         planet: 'Júpiter', symbol: '♃',
@@ -3764,6 +3748,435 @@ const signChanges2030 = [
 ];
 
 // ================================================================
+// RETRÓGRADOS 2031 — Swiss Ephemeris (pyswisseph) — v712
+// ================================================================
+const retrogrades2031 = [
+    // Mercurio retrógrado 2031-03-25 → 2031-04-18 (Aries 19.7° → Aries 7.8°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2031-03-25'), end: crDate('2031-04-18'),
+        sign: 'Aries',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Marte retrógrado 2031-03-28 → 2031-06-13 (Escorpio 21.6° → Escorpio 4.4°)
+    {
+        planet: 'Marte', symbol: '♂',
+        start: crDate('2031-03-28'), end: crDate('2031-06-13'),
+        sign: 'Escorpio',
+        meaning: 'Marte retrógrado: la acción se vuelve interna. Energía para revisar estrategias y redireccionar la voluntad.',
+        color: '#ff6b6b',
+    },
+    // Júpiter retrógrado 2031-04-15 → 2031-08-15 (Sagitario 29.0° → Sagitario 19.1°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2031-04-15'), end: crDate('2031-08-15'),
+        sign: 'Sagitario',
+        meaning: 'Júpiter retrógrado: expansión y crecimiento se interiorizan. Filosofía y fe bajo revisión profunda.',
+        color: '#8e44ad',
+    },
+    // Plutón retrógrado 2031-05-14 → 2031-10-24 (Acuario 13.7° → Acuario 11.3°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2031-05-14'), end: crDate('2031-10-24'),
+        sign: 'Acuario',
+        meaning: 'Plutón retrógrado: transformación profunda se vuelve interna. Revisión del poder personal y procesos de muerte-renacimiento.',
+        color: '#7f8c8d',
+    },
+    // Neptuno retrógrado 2031-07-19 → 2031-12-24 (Aries 15.6° → Aries 12.8°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2031-07-19'), end: crDate('2031-12-24'),
+        sign: 'Aries',
+        meaning: 'Neptuno retrógrado: ilusiones se disipan. Mayor claridad espiritual y contacto con la realidad profunda.',
+        color: '#2980b9',
+    },
+    // Venus retrógrado 2031-07-20 → 2031-09-01 (Leo 26.4° → Leo 10.0°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2031-07-20'), end: crDate('2031-09-01'),
+        sign: 'Leo',
+        meaning: 'Venus retrógrado: revisión de relaciones y valores. Momentos para sanar vínculos y redefinir lo que se ama.',
+        color: '#e91e63',
+    },
+    // Mercurio retrógrado 2031-07-29 → 2031-08-21 (Leo 26.4° → Leo 14.3°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2031-07-29'), end: crDate('2031-08-21'),
+        sign: 'Leo',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Saturno retrógrado 2031-10-05 → 2032-02-16 (Géminis 23.0° → Géminis 16.1°)
+    {
+        planet: 'Saturno', symbol: '♄',
+        start: crDate('2031-10-05'), end: crDate('2032-02-16'),
+        sign: 'Géminis',
+        meaning: 'Saturno retrógrado: revisión de estructuras y compromisos. Karma personal bajo examen. Disciplina interior.',
+        color: '#3498db',
+    },
+    // Mercurio retrógrado 2031-11-19 → 2031-12-09 (Sagitario 16.1° → Escorpio 29.8°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2031-11-19'), end: crDate('2031-12-09'),
+        sign: 'Sagitario',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+];
+
+// Cambios de signo 2031 — Swiss Ephemeris (pyswisseph) — v712
+const signChanges2031 = [
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-01-02'), toSign: 'Acuario', meaning: 'Venus ingresa a Acuario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-01-11'), toSign: 'Capricornio', meaning: 'Mercurio ingresa a Capricornio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2031-01-15'), toSign: 'Escorpio', meaning: 'Marte ingresa a Escorpio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-01-26'), toSign: 'Piscis', meaning: 'Venus ingresa a Piscis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-02-01'), toSign: 'Acuario', meaning: 'Mercurio ingresa a Acuario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-02-19'), toSign: 'Piscis', meaning: 'Mercurio ingresa a Piscis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-02-19'), toSign: 'Aries', meaning: 'Venus ingresa a Aries. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-03-07'), toSign: 'Aries', meaning: 'Mercurio ingresa a Aries. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-03-16'), toSign: 'Tauro', meaning: 'Venus ingresa a Tauro. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-04-10'), toSign: 'Géminis', meaning: 'Venus ingresa a Géminis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-05-07'), toSign: 'Cáncer', meaning: 'Venus ingresa a Cáncer. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-05-14'), toSign: 'Tauro', meaning: 'Mercurio ingresa a Tauro. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-05-31'), toSign: 'Géminis', meaning: 'Mercurio ingresa a Géminis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-06-05'), toSign: 'Leo', meaning: 'Venus ingresa a Leo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-06-14'), toSign: 'Cáncer', meaning: 'Mercurio ingresa a Cáncer. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-06-30'), toSign: 'Leo', meaning: 'Mercurio ingresa a Leo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2031-08-25'), toSign: 'Sagitario', meaning: 'Marte ingresa a Sagitario. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-09-07'), toSign: 'Virgo', meaning: 'Mercurio ingresa a Virgo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-09-23'), toSign: 'Libra', meaning: 'Mercurio ingresa a Libra. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-10-09'), toSign: 'Virgo', meaning: 'Venus ingresa a Virgo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2031-10-10'), toSign: 'Capricornio', meaning: 'Marte ingresa a Capricornio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-10-11'), toSign: 'Escorpio', meaning: 'Mercurio ingresa a Escorpio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-10-31'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-11-07'), toSign: 'Libra', meaning: 'Venus ingresa a Libra. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2031-11-15'), toSign: 'Capricornio', meaning: 'Júpiter ingresa a Capricornio. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2031-11-20'), toSign: 'Acuario', meaning: 'Marte ingresa a Acuario. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-12-04'), toSign: 'Escorpio', meaning: 'Venus ingresa a Escorpio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-12-07'), toSign: 'Escorpio', meaning: 'Mercurio retrógrado re-entra en Escorpio. Revisión de temas pendientes relacionados con Escorpio.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2031-12-10'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2031-12-29'), toSign: 'Sagitario', meaning: 'Venus ingresa a Sagitario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2031-12-29'), toSign: 'Piscis', meaning: 'Marte ingresa a Piscis. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+];
+
+// ================================================================
+// RETRÓGRADOS 2032 — Swiss Ephemeris (pyswisseph) — v712
+// ================================================================
+const retrogrades2032 = [
+    // Mercurio retrógrado 2032-03-07 → 2032-03-30 (Aries 2.4° → Piscis 19.0°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2032-03-07'), end: crDate('2032-03-30'),
+        sign: 'Aries',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Plutón retrógrado 2032-05-15 → 2032-10-25 (Acuario 15.2° → Acuario 12.8°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2032-05-15'), end: crDate('2032-10-25'),
+        sign: 'Acuario',
+        meaning: 'Plutón retrógrado: transformación profunda se vuelve interna. Revisión del poder personal y procesos de muerte-renacimiento.',
+        color: '#7f8c8d',
+    },
+    // Júpiter retrógrado 2032-05-19 → 2032-09-17 (Acuario 2.1° → Capricornio 22.3°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2032-05-19'), end: crDate('2032-09-17'),
+        sign: 'Acuario',
+        meaning: 'Júpiter retrógrado: expansión y crecimiento se interiorizan. Filosofía y fe bajo revisión profunda.',
+        color: '#8e44ad',
+    },
+    // Mercurio retrógrado 2032-07-09 → 2032-08-03 (Leo 7.5° → Cáncer 26.8°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2032-07-09'), end: crDate('2032-08-03'),
+        sign: 'Leo',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Neptuno retrógrado 2032-07-20 → 2032-12-25 (Aries 17.9° → Aries 15.1°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2032-07-20'), end: crDate('2032-12-25'),
+        sign: 'Aries',
+        meaning: 'Neptuno retrógrado: ilusiones se disipan. Mayor claridad espiritual y contacto con la realidad profunda.',
+        color: '#2980b9',
+    },
+    // Mercurio retrógrado 2032-11-02 → 2032-11-22 (Sagitario 0.2° → Escorpio 14.1°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2032-11-02'), end: crDate('2032-11-22'),
+        sign: 'Sagitario',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+];
+
+// Cambios de signo 2032 — Swiss Ephemeris (pyswisseph) — v712
+const signChanges2032 = [
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-01-06'), toSign: 'Capricornio', meaning: 'Mercurio ingresa a Capricornio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-01-22'), toSign: 'Capricornio', meaning: 'Venus ingresa a Capricornio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-01-25'), toSign: 'Acuario', meaning: 'Mercurio ingresa a Acuario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-02-06'), toSign: 'Aries', meaning: 'Marte ingresa a Aries. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-02-11'), toSign: 'Piscis', meaning: 'Mercurio ingresa a Piscis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-02-15'), toSign: 'Acuario', meaning: 'Venus ingresa a Acuario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-03-01'), toSign: 'Aries', meaning: 'Mercurio ingresa a Aries. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-03-11'), toSign: 'Piscis', meaning: 'Venus ingresa a Piscis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-03-13'), toSign: 'Piscis', meaning: 'Mercurio retrógrado re-entra en Piscis. Revisión de temas pendientes relacionados con Piscis.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-03-17'), toSign: 'Tauro', meaning: 'Marte ingresa a Tauro. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-04-04'), toSign: 'Aries', meaning: 'Venus ingresa a Aries. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2032-04-11'), toSign: 'Acuario', meaning: 'Júpiter ingresa a Acuario. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-04-16'), toSign: 'Aries', meaning: 'Mercurio ingresa a Aries. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-04-28'), toSign: 'Tauro', meaning: 'Venus ingresa a Tauro. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-04-28'), toSign: 'Géminis', meaning: 'Marte ingresa a Géminis. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-05-06'), toSign: 'Tauro', meaning: 'Mercurio ingresa a Tauro. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-05-21'), toSign: 'Géminis', meaning: 'Mercurio ingresa a Géminis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-05-23'), toSign: 'Géminis', meaning: 'Venus ingresa a Géminis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-06-04'), toSign: 'Cáncer', meaning: 'Mercurio ingresa a Cáncer. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-06-11'), toSign: 'Cáncer', meaning: 'Marte ingresa a Cáncer. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-06-16'), toSign: 'Cáncer', meaning: 'Venus ingresa a Cáncer. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-06-25'), toSign: 'Leo', meaning: 'Mercurio ingresa a Leo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2032-06-26'), toSign: 'Capricornio', meaning: 'Júpiter retrógrado re-entra en Capricornio. Revisión de temas pendientes relacionados con Capricornio.', color: '#8e44ad', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-07-10'), toSign: 'Leo', meaning: 'Venus ingresa a Leo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Saturno', symbol: '♄', date: crDate('2032-07-13'), toSign: 'Cáncer', meaning: 'Saturno ingresa a Cáncer. CICLO MAYOR. Responsabilidad y estructura adoptan cualidad de este signo.', color: '#3498db' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-07-25'), toSign: 'Cáncer', meaning: 'Mercurio retrógrado re-entra en Cáncer. Revisión de temas pendientes relacionados con Cáncer.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-07-27'), toSign: 'Leo', meaning: 'Marte ingresa a Leo. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Urano', symbol: '⛢', date: crDate('2032-08-03'), toSign: 'Cáncer', meaning: 'Urano ingresa a Cáncer. CICLO MAYOR. Cambio e innovación se expresan en este signo por años.', color: '#1abc9c' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-08-04'), toSign: 'Virgo', meaning: 'Venus ingresa a Virgo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-08-10'), toSign: 'Leo', meaning: 'Mercurio ingresa a Leo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-08-28'), toSign: 'Libra', meaning: 'Venus ingresa a Libra. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-08-29'), toSign: 'Virgo', meaning: 'Mercurio ingresa a Virgo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-09-12'), toSign: 'Virgo', meaning: 'Marte ingresa a Virgo. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-09-14'), toSign: 'Libra', meaning: 'Mercurio ingresa a Libra. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-09-22'), toSign: 'Escorpio', meaning: 'Venus ingresa a Escorpio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-10-03'), toSign: 'Escorpio', meaning: 'Mercurio ingresa a Escorpio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-10-17'), toSign: 'Sagitario', meaning: 'Venus ingresa a Sagitario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-10-29'), toSign: 'Libra', meaning: 'Marte ingresa a Libra. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-10-31'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-11-03'), toSign: 'Escorpio', meaning: 'Mercurio retrógrado re-entra en Escorpio. Revisión de temas pendientes relacionados con Escorpio.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-11-11'), toSign: 'Capricornio', meaning: 'Venus ingresa a Capricornio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2032-11-29'), toSign: 'Acuario', meaning: 'Júpiter ingresa a Acuario. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2032-12-06'), toSign: 'Acuario', meaning: 'Venus ingresa a Acuario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-12-09'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Urano', symbol: '⛢', date: crDate('2032-12-12'), toSign: 'Géminis', meaning: 'Urano retrógrado re-entra en Géminis. Revisión de temas pendientes relacionados con Géminis.', color: '#1abc9c', isRetroEntry: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2032-12-17'), toSign: 'Escorpio', meaning: 'Marte ingresa a Escorpio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2032-12-29'), toSign: 'Capricornio', meaning: 'Mercurio ingresa a Capricornio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+];
+
+// ================================================================
+// RETRÓGRADOS 2033 — Swiss Ephemeris (pyswisseph) — v712
+// ================================================================
+const retrogrades2033 = [
+    // Mercurio retrógrado 2033-02-18 → 2033-03-12 (Piscis 15.6° → Piscis 1.0°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2033-02-18'), end: crDate('2033-03-12'),
+        sign: 'Piscis',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Venus retrógrado 2033-02-27 → 2033-04-10 (Aries 8.5° → Piscis 22.4°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2033-02-27'), end: crDate('2033-04-10'),
+        sign: 'Aries',
+        meaning: 'Venus retrógrado: revisión de relaciones y valores. Momentos para sanar vínculos y redefinir lo que se ama.',
+        color: '#e91e63',
+    },
+    // Plutón retrógrado 2033-05-17 → 2033-10-27 (Acuario 16.8° → Acuario 14.4°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2033-05-17'), end: crDate('2033-10-27'),
+        sign: 'Acuario',
+        meaning: 'Plutón retrógrado: transformación profunda se vuelve interna. Revisión del poder personal y procesos de muerte-renacimiento.',
+        color: '#7f8c8d',
+    },
+    // Marte retrógrado 2033-05-26 → 2033-08-01 (Capricornio 12.5° → Sagitario 29.8°)
+    {
+        planet: 'Marte', symbol: '♂',
+        start: crDate('2033-05-26'), end: crDate('2033-08-01'),
+        sign: 'Capricornio',
+        meaning: 'Marte retrógrado: la acción se vuelve interna. Energía para revisar estrategias y redireccionar la voluntad.',
+        color: '#ff6b6b',
+    },
+    // Mercurio retrógrado 2033-06-21 → 2033-07-15 (Cáncer 17.9° → Cáncer 8.5°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2033-06-21'), end: crDate('2033-07-15'),
+        sign: 'Cáncer',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Júpiter retrógrado 2033-06-25 → 2033-10-23 (Piscis 7.3° → Acuario 27.5°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2033-06-25'), end: crDate('2033-10-23'),
+        sign: 'Piscis',
+        meaning: 'Júpiter retrógrado: expansión y crecimiento se interiorizan. Filosofía y fe bajo revisión profunda.',
+        color: '#8e44ad',
+    },
+    // Neptuno retrógrado 2033-07-23 → 2033-12-28 (Aries 20.1° → Aries 17.3°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2033-07-23'), end: crDate('2033-12-28'),
+        sign: 'Aries',
+        meaning: 'Neptuno retrógrado: ilusiones se disipan. Mayor claridad espiritual y contacto con la realidad profunda.',
+        color: '#2980b9',
+    },
+    // Mercurio retrógrado 2033-10-16 → 2033-11-06 (Escorpio 14.3° → Libra 28.4°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2033-10-16'), end: crDate('2033-11-06'),
+        sign: 'Escorpio',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+];
+
+// Cambios de signo 2033 — Swiss Ephemeris (pyswisseph) — v712
+const signChanges2033 = [
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-01-02'), toSign: 'Piscis', meaning: 'Venus ingresa a Piscis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-01-16'), toSign: 'Acuario', meaning: 'Mercurio ingresa a Acuario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-02-03'), toSign: 'Piscis', meaning: 'Mercurio ingresa a Piscis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-02-04'), toSign: 'Aries', meaning: 'Venus ingresa a Aries. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-02-06'), toSign: 'Sagitario', meaning: 'Marte ingresa a Sagitario. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-03-20'), toSign: 'Piscis', meaning: 'Venus retrógrado re-entra en Piscis. Revisión de temas pendientes relacionados con Piscis.', color: '#e91e63', isRetroEntry: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-04-06'), toSign: 'Capricornio', meaning: 'Marte ingresa a Capricornio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-04-12'), toSign: 'Aries', meaning: 'Mercurio ingresa a Aries. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2033-04-14'), toSign: 'Piscis', meaning: 'Júpiter ingresa a Piscis. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-04-29'), toSign: 'Tauro', meaning: 'Mercurio ingresa a Tauro. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-05-01'), toSign: 'Aries', meaning: 'Venus ingresa a Aries. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-05-13'), toSign: 'Géminis', meaning: 'Mercurio ingresa a Géminis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Urano', symbol: '⛢', date: crDate('2033-05-22'), toSign: 'Cáncer', meaning: 'Urano ingresa a Cáncer. CICLO MAYOR. Cambio e innovación se expresan en este signo por años.', color: '#1abc9c' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-05-29'), toSign: 'Cáncer', meaning: 'Mercurio ingresa a Cáncer. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-06-05'), toSign: 'Tauro', meaning: 'Venus ingresa a Tauro. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-07-04'), toSign: 'Géminis', meaning: 'Venus ingresa a Géminis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-07-26'), toSign: 'Sagitario', meaning: 'Marte retrógrado re-entra en Sagitario. Revisión de temas pendientes relacionados con Sagitario.', color: '#ff6b6b', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-07-30'), toSign: 'Cáncer', meaning: 'Venus ingresa a Cáncer. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-08-06'), toSign: 'Leo', meaning: 'Mercurio ingresa a Leo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-08-06'), toSign: 'Capricornio', meaning: 'Marte ingresa a Capricornio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-08-21'), toSign: 'Virgo', meaning: 'Mercurio ingresa a Virgo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-08-24'), toSign: 'Leo', meaning: 'Venus ingresa a Leo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-09-06'), toSign: 'Libra', meaning: 'Mercurio ingresa a Libra. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2033-09-12'), toSign: 'Acuario', meaning: 'Júpiter retrógrado re-entra en Acuario. Revisión de temas pendientes relacionados con Acuario.', color: '#8e44ad', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-09-18'), toSign: 'Virgo', meaning: 'Venus ingresa a Virgo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-09-27'), toSign: 'Escorpio', meaning: 'Mercurio ingresa a Escorpio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-10-13'), toSign: 'Libra', meaning: 'Venus ingresa a Libra. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-10-17'), toSign: 'Acuario', meaning: 'Marte ingresa a Acuario. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-11-02'), toSign: 'Libra', meaning: 'Mercurio retrógrado re-entra en Libra. Revisión de temas pendientes relacionados con Libra.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-11-06'), toSign: 'Escorpio', meaning: 'Venus ingresa a Escorpio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-11-10'), toSign: 'Escorpio', meaning: 'Mercurio ingresa a Escorpio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-11-30'), toSign: 'Sagitario', meaning: 'Venus ingresa a Sagitario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2033-12-01'), toSign: 'Piscis', meaning: 'Marte ingresa a Piscis. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2033-12-01'), toSign: 'Piscis', meaning: 'Júpiter ingresa a Piscis. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-12-02'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2033-12-22'), toSign: 'Capricornio', meaning: 'Mercurio ingresa a Capricornio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2033-12-23'), toSign: 'Capricornio', meaning: 'Venus ingresa a Capricornio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+];
+
+// ================================================================
+// RETRÓGRADOS 2034 — Swiss Ephemeris (pyswisseph) — v712
+// ================================================================
+const retrogrades2034 = [
+    // Mercurio retrógrado 2034-02-02 → 2034-02-23 (Acuario 29.1° → Acuario 13.7°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2034-02-02'), end: crDate('2034-02-23'),
+        sign: 'Acuario',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Plutón retrógrado 2034-05-19 → 2034-10-29 (Acuario 18.3° → Acuario 16.0°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2034-05-19'), end: crDate('2034-10-29'),
+        sign: 'Acuario',
+        meaning: 'Plutón retrógrado: transformación profunda se vuelve interna. Revisión del poder personal y procesos de muerte-renacimiento.',
+        color: '#7f8c8d',
+    },
+    // Mercurio retrógrado 2034-06-01 → 2034-06-25 (Géminis 27.9° → Géminis 19.3°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2034-06-01'), end: crDate('2034-06-25'),
+        sign: 'Géminis',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Neptuno retrógrado 2034-07-25 → 2034-12-30 (Aries 22.4° → Aries 19.6°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2034-07-25'), end: crDate('2034-12-30'),
+        sign: 'Aries',
+        meaning: 'Neptuno retrógrado: ilusiones se disipan. Mayor claridad espiritual y contacto con la realidad profunda.',
+        color: '#2980b9',
+    },
+    // Júpiter retrógrado 2034-08-02 → 2034-11-28 (Aries 14.0° → Aries 4.0°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2034-08-02'), end: crDate('2034-11-28'),
+        sign: 'Aries',
+        meaning: 'Júpiter retrógrado: expansión y crecimiento se interiorizan. Filosofía y fe bajo revisión profunda.',
+        color: '#8e44ad',
+    },
+    // Mercurio retrógrado 2034-09-29 → 2034-10-21 (Libra 28.1° → Libra 12.7°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2034-09-29'), end: crDate('2034-10-21'),
+        sign: 'Libra',
+        meaning: 'Mercurio retrógrado: revisión de contratos, comunicaciones y viajes cortos. Tiempo para repensar y replantear.',
+        color: '#f39c12',
+    },
+    // Venus retrógrado 2034-09-30 → 2034-11-11 (Escorpio 6.1° → Libra 20.5°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2034-09-30'), end: crDate('2034-11-11'),
+        sign: 'Escorpio',
+        meaning: 'Venus retrógrado: revisión de relaciones y valores. Momentos para sanar vínculos y redefinir lo que se ama.',
+        color: '#e91e63',
+    },
+];
+
+// Cambios de signo 2034 — Swiss Ephemeris (pyswisseph) — v712
+const signChanges2034 = [
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-01-09'), toSign: 'Acuario', meaning: 'Mercurio ingresa a Acuario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-01-12'), toSign: 'Aries', meaning: 'Marte ingresa a Aries. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-01-16'), toSign: 'Acuario', meaning: 'Venus ingresa a Acuario. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-02-09'), toSign: 'Piscis', meaning: 'Venus ingresa a Piscis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-02-23'), toSign: 'Tauro', meaning: 'Marte ingresa a Tauro. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-03-05'), toSign: 'Aries', meaning: 'Venus ingresa a Aries. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-03-16'), toSign: 'Piscis', meaning: 'Mercurio ingresa a Piscis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-03-29'), toSign: 'Tauro', meaning: 'Venus ingresa a Tauro. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-04-05'), toSign: 'Aries', meaning: 'Mercurio ingresa a Aries. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-04-08'), toSign: 'Géminis', meaning: 'Marte ingresa a Géminis. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-04-20'), toSign: 'Tauro', meaning: 'Mercurio ingresa a Tauro. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2034-04-21'), toSign: 'Aries', meaning: 'Júpiter ingresa a Aries. La expansión y el crecimiento adoptan las cualidades de este signo.', color: '#8e44ad' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-04-23'), toSign: 'Géminis', meaning: 'Venus ingresa a Géminis. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-05-05'), toSign: 'Géminis', meaning: 'Mercurio ingresa a Géminis. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-05-18'), toSign: 'Cáncer', meaning: 'Venus ingresa a Cáncer. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-05-23'), toSign: 'Cáncer', meaning: 'Marte ingresa a Cáncer. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-06-12'), toSign: 'Leo', meaning: 'Venus ingresa a Leo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-07-08'), toSign: 'Leo', meaning: 'Marte ingresa a Leo. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-07-09'), toSign: 'Virgo', meaning: 'Venus ingresa a Virgo. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-07-12'), toSign: 'Cáncer', meaning: 'Mercurio ingresa a Cáncer. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-07-29'), toSign: 'Leo', meaning: 'Mercurio ingresa a Leo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-08-06'), toSign: 'Libra', meaning: 'Venus ingresa a Libra. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-08-13'), toSign: 'Virgo', meaning: 'Mercurio ingresa a Virgo. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-08-24'), toSign: 'Virgo', meaning: 'Marte ingresa a Virgo. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Saturno', symbol: '♄', date: crDate('2034-08-26'), toSign: 'Leo', meaning: 'Saturno ingresa a Leo. CICLO MAYOR. Responsabilidad y estructura adoptan cualidad de este signo.', color: '#3498db' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-08-31'), toSign: 'Libra', meaning: 'Mercurio ingresa a Libra. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-09-11'), toSign: 'Escorpio', meaning: 'Venus ingresa a Escorpio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-10-10'), toSign: 'Libra', meaning: 'Marte ingresa a Libra. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-10-18'), toSign: 'Libra', meaning: 'Venus retrógrado re-entra en Libra. Revisión de temas pendientes relacionados con Libra.', color: '#e91e63', isRetroEntry: true },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-11-06'), toSign: 'Escorpio', meaning: 'Mercurio ingresa a Escorpio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-11-25'), toSign: 'Sagitario', meaning: 'Mercurio ingresa a Sagitario. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2034-11-26'), toSign: 'Escorpio', meaning: 'Marte ingresa a Escorpio. La acción y la voluntad se canalizan a través de este signo.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2034-12-05'), toSign: 'Escorpio', meaning: 'Venus ingresa a Escorpio. El amor y los valores expresan la energía de este signo.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2034-12-14'), toSign: 'Capricornio', meaning: 'Mercurio ingresa a Capricornio. La mente adopta cualidades de este signo en comunicación y pensamiento.', color: '#f39c12' },
+];
+
+// ================================================================
 // MULTI-YEAR DISPATCH FUNCTIONS
 // ================================================================
 
@@ -3774,8 +4187,12 @@ function _getRetrogradesByYear(year) {
     if (year === 2028) return retrogrades2028;
     if (year === 2029) return retrogrades2029;
     if (year === 2030) return retrogrades2030;
-    // v711: AstroEngine calcula dinámicamente para cualquier año > 2030
-    if (year > 2030) return _buildRetrogradesFromEngine(year);
+    if (year === 2031) return retrogrades2031;
+    if (year === 2032) return retrogrades2032;
+    if (year === 2033) return retrogrades2033;
+    if (year === 2034) return retrogrades2034;
+    // v712: AstroEngine calcula dinámicamente para cualquier año > 2034
+    if (year > 2034) return _buildRetrogradesFromEngine(year);
     return retrogrades2026;
 }
 
@@ -3786,8 +4203,12 @@ function _getSignChangesByYear(year) {
     if (year === 2028) return signChanges2028;
     if (year === 2029) return signChanges2029;
     if (year === 2030) return signChanges2030;
-    // v711: AstroEngine calcula dinámicamente para cualquier año > 2030
-    if (year > 2030) return _buildSignChangesFromEngine(year);
+    if (year === 2031) return signChanges2031;
+    if (year === 2032) return signChanges2032;
+    if (year === 2033) return signChanges2033;
+    if (year === 2034) return signChanges2034;
+    // v712: AstroEngine calcula dinámicamente para cualquier año > 2034
+    if (year > 2034) return _buildSignChangesFromEngine(year);
     return signChanges2026;
 }
 
