@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v704';</script>
+    <script>window.APP_VERSION = 'v705';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29602,44 +29602,64 @@ function _scheduleExactQuizTimer(hStr) {
 }
 
 // Gather questions from Knowledge Graph + Course for review
-function _gatherQuizQuestions(count) {
-    var allQs = [];
-    var LP = (typeof LearnerProfile !== 'undefined') ? LearnerProfile : null;
-    if (LP) try { LP.load(); } catch(e) {}
+ function _gatherQuizQuestions(count) {
+     var allQs = [];
+     var LP = (typeof LearnerProfile !== 'undefined') ? LearnerProfile : null;
+     if (LP) try { LP.load(); } catch(e) {}
 
-    // 1. From Knowledge Graph — all topics (v640: removed no_expuesto filter so new users can also take the quiz)
-    if (typeof ASTRO_KNOWLEDGE_GRAPH !== 'undefined') {
-        var G = ASTRO_KNOWLEDGE_GRAPH;
-        var nodeIds = Object.keys(G.nodes);
-        nodeIds.forEach(function(nid) {
-            var node = G.nodes[nid];
-            if (node.questions && node.questions.length > 0) {
-                node.questions.forEach(function(q) {
-                    allQs.push({ q: q.q, options: q.options, correct: q.correct, explanation: q.explanation || '', source: node.title, nodeId: nid, type: 'review' });
-                });
-            }
-        });
-    }
-    // 2. From Course curriculum — all lessons (v640: removed completed-only filter)
-    if (typeof CURRICULUM !== 'undefined') {
-        CURRICULUM.forEach(function(mod) {
-            (mod.lessons || []).forEach(function(lesson) {
-                if (lesson.questions && lesson.questions.length > 0) {
-                    lesson.questions.forEach(function(q) {
-                        var isES = currentLang === 'es';
-                        allQs.push({ q: isES ? q.q_es : q.q_en, options: isES ? q.opts_es : q.opts_en, correct: q.correct, explanation: '', source: isES ? (mod.title_es || mod.id) : (mod.title_en || mod.id), nodeId: lesson.id, type: 'review' });
-                    });
-                }
-            });
-        });
-    }
-    // Shuffle
-    for (var i = allQs.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = allQs[i]; allQs[i] = allQs[j]; allQs[j] = tmp;
-    }
-    return allQs.slice(0, count);
-}
+     // v705: Solo preguntas de temas YA ESTUDIADOS
+     // Para el Knowledge Graph: solo nodos donde el nivel NO es 'no_expuesto'
+     // Para el Curriculum: solo lecciones completadas (guardadas en localStorage)
+     var _courseProgress = {};
+     try { _courseProgress = JSON.parse(localStorage.getItem('astroCurrents_astroCourse') || '{}'); } catch(e) {}
+     var _hasStudied = Object.keys(_courseProgress).length > 0 || (LP && LP.profile && LP.profile.stats && LP.profile.stats.nodesMastered > 0);
+
+     // 1. From Knowledge Graph — solo nodos expuestos/estudiados
+     if (typeof ASTRO_KNOWLEDGE_GRAPH !== 'undefined') {
+         var G = ASTRO_KNOWLEDGE_GRAPH;
+         var nodeIds = Object.keys(G.nodes);
+         nodeIds.forEach(function(nid) {
+             var node = G.nodes[nid];
+             if (node.questions && node.questions.length > 0) {
+                 // Solo incluir si el usuario ha sido expuesto al tema
+                 if (LP) {
+                     var mastery = LP.getNodeMastery(nid);
+                     if (mastery && mastery.level === 'no_expuesto') return;
+                 } else if (_hasStudied) {
+                     return; // LP no disponible pero hay progreso — saltar nodos sin verificar
+                 }
+                 node.questions.forEach(function(q) {
+                     allQs.push({ q: q.q, options: q.options, correct: q.correct, explanation: q.explanation || '', source: node.title, nodeId: nid, type: 'review' });
+                 });
+             }
+         });
+     }
+     // 2. From Course curriculum — solo lecciones completadas
+     if (typeof CURRICULUM !== 'undefined') {
+         CURRICULUM.forEach(function(mod) {
+             (mod.lessons || []).forEach(function(lesson) {
+                 if (lesson.questions && lesson.questions.length > 0) {
+                     // Solo si la lección fue completada
+                     if (_hasStudied && !_courseProgress[lesson.id]) return;
+                     lesson.questions.forEach(function(q) {
+                         var isES = currentLang === 'es';
+                         allQs.push({ q: isES ? q.q_es : q.q_en, options: isES ? q.opts_es : q.opts_en, correct: q.correct, explanation: '', source: isES ? (mod.title_es || mod.id) : (mod.title_en || mod.id), nodeId: lesson.id, type: 'review' });
+                     });
+                 }
+             });
+         });
+     }
+
+     // Fallback: si no hay preguntas de temas estudiados, avisar con array vacío
+     // (el llamador ya maneja el caso de 0 preguntas)
+
+     // Shuffle
+     for (var i = allQs.length - 1; i > 0; i--) {
+         var j = Math.floor(Math.random() * (i + 1));
+         var tmp = allQs[i]; allQs[i] = allQs[j]; allQs[j] = tmp;
+     }
+     return allQs.slice(0, count);
+ }
 
 // Gather new interesting concepts to explore (not quiz — just info)
 function _gatherNewConcepts(count) {
