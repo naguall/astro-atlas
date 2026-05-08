@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v712';</script>
+    <script>window.APP_VERSION = 'v713';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -38614,22 +38614,45 @@ window._ttsUpdatePlayerUI = function() {
         '</div>';
 };
 
-// v702: Global helper — attaches dblclick + touchend double-tap for read-aloud (Android fix)
+// v713: Global helper — attaches dblclick + touchend double-tap for read-aloud
+// Passes tap/click coordinates so readAloud can start from the tapped position
 window._attachReadDbl = function(el, getId, titleTxt) {
     if (!el || el._rdAttached) return;
     el._rdAttached = true;
     el.style.touchAction = 'manipulation';
     if (titleTxt) el.title = titleTxt;
     var lastTouch = 0;
+    var lastTouchX = 0, lastTouchY = 0;
     function fire(e) {
         e.stopPropagation();
         var id = typeof getId === 'function' ? getId() : getId;
         if (!id) return;
+        var cx, cy;
+        if (e.changedTouches && e.changedTouches.length > 0) {
+            cx = e.changedTouches[0].clientX;
+            cy = e.changedTouches[0].clientY;
+        } else if (e.clientX !== undefined) {
+            cx = e.clientX;
+            cy = e.clientY;
+        } else {
+            cx = lastTouchX;
+            cy = lastTouchY;
+        }
         var sel = window.getSelection();
         var ct = sel ? sel.toString().trim() : '';
-        if (ct && ct.length > 3) window.readAloud(id, ct); else window.readAloud(id);
+        if (ct && ct.length > 3) {
+            window.readAloud(id, ct, cx, cy);
+        } else {
+            window.readAloud(id, null, cx, cy);
+        }
     }
     el.addEventListener('dblclick', fire);
+    el.addEventListener('touchstart', function(e) {
+        if (e.touches && e.touches.length > 0) {
+            lastTouchX = e.touches[0].clientX;
+            lastTouchY = e.touches[0].clientY;
+        }
+    }, { passive: true });
     el.addEventListener('touchend', function(e) {
         var now = Date.now(); var dt = now - lastTouch; lastTouch = now;
         if (dt > 60 && dt < 400) fire(e);
@@ -38667,9 +38690,10 @@ window.readAloudLastMsg = function(containerId) {
     window.readAloud(lastMsg.id);
 };
 
-// readAloud: plays TTS with karaoke highlighting. If startFromText is provided,
-// starts reading from the chunk that contains that text (and continues to the end).
-window.readAloud = function(elementId, startFromText) {
+// v713: readAloud — plays TTS with karaoke highlighting.
+// startFromText: selected text to find starting chunk (desktop)
+// clickX/clickY: tap coordinates used to find starting chunk via elementFromPoint (Android)
+window.readAloud = function(elementId, startFromText, clickX, clickY) {
     if (!window.speechSynthesis) {
         alert(currentLang === 'es' ? 'Tu navegador no soporta síntesis de voz.' : 'Your browser does not support speech synthesis.');
         return;
@@ -38722,29 +38746,38 @@ window.readAloud = function(elementId, startFromText) {
     // Setup player state with karaoke info
     window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false, originalHTML: origHTML, spanIds: spanIds };
 
-    // Determine start index: if startFromText provided, find the chunk that contains it
+    // Determine start index from tap/click coordinates (primary method — works on Android)
     var startIdx = 0;
-    if (startFromText) {
-        var selClean = startFromText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
-        // Find the first few words of the selection
-        var selWords = selClean.split(/\s+/).slice(0, 5).join(' ').toLowerCase();
-        for (var ci = 0; ci < chunks.length; ci++) {
-            if (chunks[ci].toLowerCase().indexOf(selWords) !== -1) {
-                startIdx = ci;
-                break;
+    if (clickX !== undefined && clickY !== undefined) {
+        var elAtPoint = document.elementFromPoint(clickX, clickY);
+        if (elAtPoint) {
+            var checkEl = elAtPoint;
+            for (var pi = 0; pi < 4 && checkEl; pi++) {
+                if (checkEl.id && checkEl.id.indexOf('ttsS_') === 0) {
+                    var parts = checkEl.id.split('_');
+                    var foundIdx = parseInt(parts[parts.length - 1]);
+                    if (!isNaN(foundIdx) && foundIdx > 0) { startIdx = foundIdx; break; }
+                }
+                checkEl = checkEl.parentElement;
             }
         }
-        // If exact match failed, try first 3 words
+    }
+    // Fallback: use selected text if coordinate method found nothing and text is available
+    if (startIdx === 0 && startFromText) {
+        var selClean = startFromText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
+        var selWords = selClean.split(/\s+/).slice(0, 5).join(' ').toLowerCase();
+        for (var ci = 0; ci < chunks.length; ci++) {
+            if (chunks[ci].toLowerCase().indexOf(selWords) !== -1) { startIdx = ci; break; }
+        }
         if (startIdx === 0 && selWords.length > 0) {
             var sel3 = selClean.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
             for (var ci2 = 0; ci2 < chunks.length; ci2++) {
-                if (chunks[ci2].toLowerCase().indexOf(sel3) !== -1) {
-                    startIdx = ci2;
-                    break;
-                }
+                if (chunks[ci2].toLowerCase().indexOf(sel3) !== -1) { startIdx = ci2; break; }
             }
         }
-        // Mark previous chunks as done
+    }
+    // Mark previous chunks as visually done
+    if (startIdx > 0) {
         for (var di = 0; di < startIdx; di++) {
             var doneSpan = document.getElementById(spanIds[di]);
             if (doneSpan) doneSpan.classList.add('tts-done');
