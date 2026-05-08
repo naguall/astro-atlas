@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v713';</script>
+    <script>window.APP_VERSION = 'v714';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10937,6 +10937,7 @@ window._setSolfVol = function(hz, val) {
 };
 // v676: Test plays indefinitely until user presses Stop
 // v677: Uses DynamicsCompressor to maximize loudness at any phone volume
+// v714: Volume matches alarm (0.85), tremolo added to preview only
 window._testSolfeggioHold = function() {
     var btn = document.getElementById('daSolfeggioTest');
     // If already playing, stop
@@ -10949,7 +10950,7 @@ window._testSolfeggioHold = function() {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.85 });
         }
         if (activeFreqs.length === 0) { alert(currentLang==='es'?'Activa al menos una frecuencia':'Enable at least one frequency'); return; }
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -10961,7 +10962,7 @@ window._testSolfeggioHold = function() {
         compressor.attack.setValueAtTime(0.003, ctx.currentTime);
         compressor.release.setValueAtTime(0.15, ctx.currentTime);
         compressor.connect(ctx.destination);
-        var oscs = [];
+        var oscs = [], gainNodes = [];
         for (var i = 0; i < activeFreqs.length; i++) {
             var o = ctx.createOscillator();
             var g = ctx.createGain();
@@ -10971,10 +10972,25 @@ window._testSolfeggioHold = function() {
             g.gain.setValueAtTime(0, ctx.currentTime);
             g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + 1.0);
             o.start(ctx.currentTime);
-            // No o.stop() — plays until stopDreamAlarmSound()
             oscs.push(o);
+            gainNodes.push({ node: g, targetVol: activeFreqs[i].vol });
         }
         window._dreamAlarmAudio = { ctx: ctx, osc: oscs[0] || null, osc2: oscs[1] || null, voiceStream: null, voiceTimeout: null, _allOscs: oscs };
+        // v714: Tremolo in test preview (sounds nice) — 100% ↔ 55% every 800ms
+        var pulsePhase = false;
+        var pulseTimer = setInterval(function() {
+            if (!window._dreamAlarmAudio || !window._dreamAlarmAudio.ctx) { clearInterval(pulseTimer); return; }
+            try {
+                gainNodes.forEach(function(gn) {
+                    var now = gn.node.context.currentTime;
+                    gn.node.gain.cancelScheduledValues(now);
+                    gn.node.gain.setValueAtTime(gn.node.gain.value, now);
+                    gn.node.gain.linearRampToValueAtTime(pulsePhase ? gn.targetVol : gn.targetVol * 0.55, now + 0.55);
+                });
+            } catch(e2) {}
+            pulsePhase = !pulsePhase;
+        }, 800);
+        window._dreamAlarmAudio._pulseTimer = pulseTimer;
         if (btn) { btn.textContent = '⏹ ' + (currentLang==='es'?'Detener':'Stop'); btn.style.background = 'rgba(255,80,80,0.2)'; btn.style.borderColor = 'rgba(255,80,80,0.5)'; btn.style.color = '#ff8a80'; }
     } catch(e) { console.error('Test solfeggio error:', e); }
 };
@@ -11123,6 +11139,7 @@ window._dreamAlarmAudio = null;
 function stopDreamAlarmSound() {
     var a = window._dreamAlarmAudio;
     if (!a) return;
+    try { if (a._pulseTimer) clearInterval(a._pulseTimer); } catch(e) {} // v714: stop tremolo interval
     try {
         // Stop all oscillators (dynamic solfeggio array)
         if (a._allOscs) { a._allOscs.forEach(function(o) { try { o.stop(); } catch(e) {} }); }
@@ -11163,16 +11180,17 @@ function _playDreamAlarmWebAudio() {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
+            // v714: use same volume as test (0.85 base) so preferences = actual alarm volume
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.85 });
         }
         // Fallback if nothing selected
-        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.05 }, { hz: 417, vol: 0.05 }, { hz: 528, vol: 0.05 }];
+        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.42 }, { hz: 417, vol: 0.42 }, { hz: 528, vol: 0.42 }];
 
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var duration = 60; // 60 seconds
         var allOscs = [];
+        var gainNodes = []; // store {node, targetVol} for pulse control
 
-        // v677: DynamicsCompressor maximizes loudness at any phone volume level
+        // DynamicsCompressor maximizes loudness at any phone volume level
         var masterComp = ctx.createDynamicsCompressor();
         masterComp.threshold.setValueAtTime(-12, ctx.currentTime);
         masterComp.knee.setValueAtTime(6, ctx.currentTime);
@@ -11189,29 +11207,17 @@ function _playDreamAlarmWebAudio() {
             g.connect(masterComp);
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq.hz, ctx.currentTime);
-
-            // Fast fade in
+            // Fade in — same as test (1.5s ramp to full volume)
             g.gain.setValueAtTime(0, ctx.currentTime);
             g.gain.linearRampToValueAtTime(freq.vol, ctx.currentTime + 1.5);
-
-            // Tremolo pulses
-            for (var t = 1.5; t < duration - 2; t += 1.2) {
-                g.gain.linearRampToValueAtTime(freq.vol, ctx.currentTime + t);
-                g.gain.linearRampToValueAtTime(freq.vol * 0.18, ctx.currentTime + t + 0.6);
-            }
-            // Fade out
-            g.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-
+            // NO osc.stop() — plays indefinitely until stopDreamAlarmSound()
             osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + duration);
             allOscs.push(osc);
+            gainNodes.push({ node: g, targetVol: freq.vol });
         }
 
-        // Store reference for stopping
-        window._dreamAlarmAudio = { ctx: ctx, osc: allOscs[0] || null, osc2: allOscs[1] || null, _allOscs: allOscs, voiceStream: null, voiceTimeout: null };
-
-        // Auto-cleanup after duration
-        var autoClean = setTimeout(function() { stopDreamAlarmSound(); }, (duration + 1) * 1000);
+        // Store reference for stopping — v714: no tremolo on alarm, full volume until voice detected
+        window._dreamAlarmAudio = { ctx: ctx, osc: allOscs[0] || null, osc2: allOscs[1] || null, _allOscs: allOscs, voiceStream: null, voiceTimeout: null, _pulseTimer: null };
 
         // Voice detection — stop alarm when user speaks
         startAlarmVoiceDetection();
@@ -28725,17 +28731,22 @@ function goToCurrentCycle() {
         var _tutorArea = document.getElementById('tutorAIChatArea');
         if (_tutorArea && !_tutorArea._dblDelegated) {
             _tutorArea._dblDelegated = true;
-            // v702: use _attachReadDbl for Android touch support (event delegation on container)
-            var lastTutorTouch = 0;
+            // v713: capture coordinates for Android position-based TTS start
+            var lastTutorTouch = 0, lastTutorX = 0, lastTutorY = 0;
             function _tutorDblFire(e) {
                 var bubble = e.target.closest('.tutor-ai-bubble, [id^="aiMsg_tutor_"]');
                 if (!bubble || !bubble.id) return;
                 e.stopPropagation();
+                var cx, cy;
+                if (e.changedTouches && e.changedTouches.length > 0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
+                else if (e.clientX !== undefined) { cx = e.clientX; cy = e.clientY; }
+                else { cx = lastTutorX; cy = lastTutorY; }
                 var sel = window.getSelection(); var ct = sel ? sel.toString().trim() : '';
-                if (ct && ct.length > 3) window.readAloud(bubble.id, ct); else window.readAloud(bubble.id);
+                if (ct && ct.length > 3) window.readAloud(bubble.id, ct, cx, cy); else window.readAloud(bubble.id, null, cx, cy);
             }
             _tutorArea.style.touchAction = 'manipulation';
             _tutorArea.addEventListener('dblclick', _tutorDblFire);
+            _tutorArea.addEventListener('touchstart', function(e) { if (e.touches&&e.touches.length>0){lastTutorX=e.touches[0].clientX;lastTutorY=e.touches[0].clientY;} }, { passive: true });
             _tutorArea.addEventListener('touchend', function(e) { var now=Date.now(); var dt=now-lastTutorTouch; lastTutorTouch=now; if(dt>60&&dt<400)_tutorDblFire(e); });
         }
     };
@@ -29265,22 +29276,26 @@ function goToCurrentCycle() {
 
         target.innerHTML = html;
 
-        // v666: Karaoke double-click on CursoPro AI chat bubbles (like Tutor tab)
+        // v713: Karaoke double-click on CursoPro AI chat bubbles — with coordinate-based start
         setTimeout(function() {
             var courseChat = document.getElementById('courseAIChatMsgs');
             if (courseChat && !courseChat._dblDelegated) {
                 courseChat._dblDelegated = true;
-                // v702: touchend double-tap for Android
-                var lastCourseTouch = 0;
+                var lastCourseTouch = 0, lastCourseX = 0, lastCourseY = 0;
                 function _courseDblFire(e) {
                     var bubble = e.target.closest('.course-ai-bubble, [id^="courseResp_"]');
                     if (!bubble || !bubble.id) return;
                     e.stopPropagation();
+                    var cx, cy;
+                    if (e.changedTouches && e.changedTouches.length > 0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
+                    else if (e.clientX !== undefined) { cx = e.clientX; cy = e.clientY; }
+                    else { cx = lastCourseX; cy = lastCourseY; }
                     var sel = window.getSelection(); var ct = sel ? sel.toString().trim() : '';
-                    if (ct && ct.length > 3) window.readAloud(bubble.id, ct); else window.readAloud(bubble.id);
+                    if (ct && ct.length > 3) window.readAloud(bubble.id, ct, cx, cy); else window.readAloud(bubble.id, null, cx, cy);
                 }
                 courseChat.style.touchAction = 'manipulation';
                 courseChat.addEventListener('dblclick', _courseDblFire);
+                courseChat.addEventListener('touchstart', function(e) { if (e.touches&&e.touches.length>0){lastCourseX=e.touches[0].clientX;lastCourseY=e.touches[0].clientY;} }, { passive: true });
                 courseChat.addEventListener('touchend', function(e) { var now=Date.now(); var dt=now-lastCourseTouch; lastCourseTouch=now; if(dt>60&&dt<400)_courseDblFire(e); });
             }
         }, 150);
