@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v703';</script>
+    <script>window.APP_VERSION = 'v704';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3259,29 +3259,33 @@ function detectAspectPatterns(date) {
         return result;
     }
 
-    // ── 1. STELLIUM (3+ planets in same sign, within 30°) ──
-    var signGroups = {};
-    planets.forEach(function(p) {
-        if (positions[p] === undefined) return;
-        var s = getSign(positions[p]);
-        if (!signGroups[s]) signGroups[s] = [];
-        signGroups[s].push(p);
-    });
-    Object.keys(signGroups).forEach(function(sign) {
-        if (signGroups[sign].length >= 3) {
-            var pList = signGroups[sign];
-            // Exclude if all are fast personal planets only (too common)
-            var hasSlow = pList.some(function(p) { return ['jupiter','saturn','uranus','neptune','pluto'].indexOf(p) >= 0; });
-            if (hasSlow || pList.length >= 4) {
-                patterns.push({
-                    type: 'stellium', icon: '★', color: '#FFD700',
-                    name: L ? 'Stellium en ' + sign : 'Stellium in ' + sign,
-                    planets: pList.map(function(p) { return pNames[p]; }),
-                    symbols: pList.map(function(p) { return pSymbols[p]; }).join(''),
-                    sign: sign, element: getElement(sign),
-                    desc: L ? pList.length + ' planetas concentrados en ' + sign + ' (' + getElement(sign) + '). Energía masiva enfocada en los temas de este signo.'
-                         : pList.length + ' planets concentrated in ' + sign + ' (' + getElement(sign) + '). Massive focused energy on this sign\'s themes.'
-                });
+     // ── 1. STELLIUM (3+ planetas personales/sociales en mismo signo) ──
+     // v704: Definición profesional — mínimo 3 planetas personales/sociales
+     // (Sol, Luna, Mercurio, Venus, Marte, Júpiter, Saturno).
+     // Urano, Neptuno, Plutón se listan pero NO cuentan para el mínimo de 3.
+     var _personalPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn'];
+     var signGroups = {};
+     planets.forEach(function(p) {
+         if (positions[p] === undefined) return;
+         var s = getSign(positions[p]);
+         if (!signGroups[s]) signGroups[s] = [];
+         signGroups[s].push(p);
+     });
+     Object.keys(signGroups).forEach(function(sign) {
+         var pList = signGroups[sign];
+         var personalCount = pList.filter(function(p) { return _personalPlanets.indexOf(p) >= 0; }).length;
+         if (personalCount >= 3) {
+             patterns.push({
+                 type: 'stellium', icon: '★', color: '#FFD700',
+                 name: L ? 'Stellium en ' + sign : 'Stellium in ' + sign,
+                 planets: pList.map(function(p) { return pNames[p]; }),
+                 symbols: pList.map(function(p) { return pSymbols[p]; }).join(''),
+                 sign: sign, element: getElement(sign),
+                 desc: L ? personalCount + ' planetas concentrados en ' + sign + ' (' + getElement(sign) + '). Energía masiva enfocada en los temas de este signo.'
+                      : personalCount + ' planets concentrated in ' + sign + ' (' + getElement(sign) + '). Massive focused energy on this sign\'s themes.'
+             });
+         }
+     });
             }
         }
     });
