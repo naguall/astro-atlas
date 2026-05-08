@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v708';</script>
+    <script>window.APP_VERSION = 'v709';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2733,64 +2733,54 @@ function getEclipsesForYear(year) {
 // Retrogradaciones 2026 (FECHAS VERIFICADAS - ChatGPT/Astrología)
 // Ajustadas a zona horaria Costa Rica (UTC-6)
 const retrogrades2026 = [
-    // Mercurio - Ciclo 1
+    // Mercurio - Ciclo 1 (Feb-Mar en Piscis) — v709: corregido, antes era Jan erróneo
     {
         planet: 'Mercurio', symbol: '☿',
-        start: crDate('2026-01-01'), end: crDate('2026-01-18'),
-        sign: 'Capricornio',
-        meaning: 'Revisión de estructuras mentales. Retrasos funcionales en comunicación. Reconsideración de compromisos.',
-        areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
-        lastTime: 'Ago-Sep 2025 en Virgo/Leo'
+        start: crDate('2026-02-26'), end: crDate('2026-03-20'),
+        sign: 'Piscis',
+        meaning: 'Revisión de intuición y comunicación emocional. Pensamientos se vuelven difusos o creativos. Necesidad de escucha profunda sobre discurso lógico. Mercurio retrógrado 22°→8° Piscis.',
+        areas: 'Sueños, intuición, compasión, comunicación espiritual',
+        lastTime: 'Feb 2025 en Piscis'
     },
-    // Mercurio - Ciclo 2
+    // Mercurio - Ciclo 2 (Jun-Jul en Cáncer) — v709: corregido, antes era Mayo erróneo
     {
         planet: 'Mercurio', symbol: '☿',
-        start: crDate('2026-05-10'), end: crDate('2026-06-01'),
-        sign: 'Géminis → Tauro',
-        meaning: 'Pensamiento entre versatilidad y concreción. Necesidad de aterrizar ideas. Comunicación requiere revisión.',
-        areas: 'Intercambios, valores materiales, posesiones, aprendizaje',
-        lastTime: 'Ene 2026 en Capricornio'
+        start: crDate('2026-06-29'), end: crDate('2026-07-23'),
+        sign: 'Cáncer',
+        meaning: 'Revisión de comunicación emocional y familiar. La mente se vuelve nostálgica e introspectiva. Reexamen de vínculos afectivos y del pasado. Mercurio retrógrado 26°→16° Cáncer.',
+        areas: 'Familia, hogar, emociones, memoria, raíces',
+        lastTime: 'Jun 2024 en Cáncer'
     },
-    // Mercurio - Ciclo 3
+    // Mercurio - Ciclo 3 (Oct-Nov en Escorpio) — v709: corregido, antes era Sep erróneo
     {
         planet: 'Mercurio', symbol: '☿',
-        start: crDate('2026-09-04'), end: crDate('2026-09-26'),
-        sign: 'Libra → Virgo',
-        meaning: 'Análisis relacional. Perfeccionismo vs diplomacia. Reexamen de acuerdos y procesos.',
-        areas: 'Vínculos, salud, trabajo detallado, crítica constructiva',
-        lastTime: 'May-Jun 2026 en Géminis/Tauro'
+        start: crDate('2026-10-24'), end: crDate('2026-11-13'),
+        sign: 'Escorpio',
+        meaning: 'Revisión de comunicación profunda y psicológica. La mente investiga lo oculto. Reexamen de poder, transformación y recursos compartidos. Mercurio retrógrado 20°→5° Escorpio.',
+        areas: 'Investigación, transformación, secretos, finanzas compartidas',
+        lastTime: 'Oct 2025 en Escorpio'
     },
 
-    // Venus (MUY IMPORTANTE - cruza signo)
+    // Venus (Oct-Nov en Escorpio → Libra) — v709: ÚNICO retrógrado Venus en 2026; el de Mar-Abr era 2025
     {
         planet: 'Venus', symbol: '♀',
-        start: crDate('2026-03-09'), end: crDate('2026-04-20'),
-        sign: 'Aries → Piscis',
-        meaning: 'Revisión de vínculos y valores. Tensión entre afirmación relacional y disolución empática. Reconsideración de deseos.',
-        areas: 'Relaciones, autoestima, finanzas, receptividad, límites',
-        lastTime: 'Jul-Sep 2023 en Leo'
+        start: crDate('2026-10-03'), end: crDate('2026-11-13'),
+        sign: 'Escorpio → Libra',
+        meaning: 'Revisión profunda de vínculos íntimos y valores personales. Escorpio invita a confrontar lo que se desea de verdad vs. lo que se teme perder. Período de introspección romántica y financiera.',
+        areas: 'Relaciones íntimas, valores, dinero compartido, pasión, transformación afectiva',
+        lastTime: 'Mar-Abr 2025 en Aries/Piscis'
     },
 
-    // Marte (Leo ↔ Cáncer)
-    {
-        planet: 'Marte', symbol: '♂',
-        start: crDate('2026-10-13'), end: crDate('2026-11-28'),
-        sign: 'Leo → Cáncer',
-        meaning: 'Energía entre expresión dramática y protección emocional. Acción requiere reconsideración. Voluntad vs necesidades afectivas.',
-        areas: 'Iniciativa, hogar, familia, creatividad, seguridad',
-        lastTime: 'Dic 2024-Feb 2025 en Leo/Cáncer'
-    },
-
-    // Júpiter (RETRO desde Nov 2025, Directo Mar 2026, nuevo Retro Dic 2026)
+    // Júpiter (RETRO desde Nov 2025, Directo 10 Mar 2026)
     {
         planet: 'Júpiter', symbol: '♃',
-        start: crDate('2025-11-11'), end: crDate('2026-03-11'),
+        start: crDate('2025-11-11'), end: crDate('2026-03-10'),
         sign: 'Cáncer',
         meaning: 'Expansión emocional interna. Revisión de creencias sobre hogar, familia y seguridad. Crecimiento requiere pausa reflexiva antes de avanzar.',
         areas: 'Familia, hogar, seguridad emocional, fe, abundancia interna',
         lastTime: 'Jul-Nov 2025 en Géminis/Cáncer'
     },
-    // Júpiter Retro 2 (nuevo período)
+    // Júpiter Retro 2 (Dic 2026 - Abr 2027 en Leo)
     {
         planet: 'Júpiter', symbol: '♃',
         start: crDate('2026-12-13'), end: crDate('2027-04-13'),
@@ -2800,38 +2790,37 @@ const retrogrades2026 = [
         lastTime: 'Nov 2025-Mar 2026 en Cáncer'
     },
 
-    // Saturno (TEMA FUERTE: estructura del yo ↔ disolución del ego)
+    // Saturno (Jul-Dic en Aries) — v709: corregido Jul 26 inicio (era Jul 3) y Dic 10 fin (era Nov 28)
     {
         planet: 'Saturno', symbol: '♄',
-        start: crDate('2026-07-03'), end: crDate('2026-11-28'),
-        sign: 'Aries → Piscis',
-        meaning: 'Límites del yo requieren revisión. Tensión entre estructuración de identidad y disolución de fronteras. Responsabilidad vs rendición.',
-        areas: 'Identidad, límites personales, espiritualidad, sacrificio',
+        start: crDate('2026-07-26'), end: crDate('2026-12-10'),
+        sign: 'Aries',
+        meaning: 'Límites del yo requieren revisión. Tensión entre estructuración de identidad y necesidad de autonomía. Responsabilidad sobre la propia iniciativa. Saturno retrógrado 14°→7° Aries.',
+        areas: 'Identidad, límites personales, iniciativa, disciplina personal',
         lastTime: 'Jun-Nov 2025 en Piscis'
     },
 
-    // Urano (cruza año)
+    // Urano (Sep 2026 - Feb 2027 en Géminis) — v709: corregido Sep 10 inicio (era Ago 8) y Feb 8 fin (era Ene 7)
     {
         planet: 'Urano', symbol: '♅',
-        start: crDate('2026-08-08'), end: crDate('2027-01-07'),
-        sign: 'Géminis → Tauro',
-        meaning: 'Innovación comunicacional revisada. Tensión entre cambio mental y estabilidad material. Revolución introspectiva.',
-        areas: 'Tecnología, pensamiento, valores, recursos, seguridad',
-        lastTime: 'Sep 2025-Ene 2026 en Tauro'
+        start: crDate('2026-09-10'), end: crDate('2027-02-08'),
+        sign: 'Géminis',
+        meaning: 'Innovación comunicacional revisada. Revolución introspectiva en pensamiento e intercambios. El cambio mental requiere dirección renovada. Urano retrógrado 5°→1° Géminis.',
+        areas: 'Tecnología, pensamiento, comunicación, redes, información',
+        lastTime: 'Sep 2025-Feb 2026 en Tauro/Géminis'
     },
 
-    // Neptuno (acción consciente vs entrega espiritual)
+    // Neptuno (Jul-Dic en Aries) — v709: corregido Jul 7 inicio (era Jun 23) y Dic 12 fin (era Dic 29)
     {
         planet: 'Neptuno', symbol: '♆',
-        start: crDate('2026-06-23'), end: crDate('2026-12-29'),
-        sign: 'Aries → Piscis',
-        meaning: 'Idealismo entre afirmación y rendición. Confusión sobre dónde dirigir inspiración. Espiritualidad requiere reconsideración.',
-        areas: 'Inspiración, compasión, acción consciente, entrega',
-        lastTime: 'Jul-Dic 2025 en Piscis'
+        start: crDate('2026-07-07'), end: crDate('2026-12-12'),
+        sign: 'Aries',
+        meaning: 'Idealismo entre afirmación y rendición. Confusión sobre dónde dirigir inspiración. Espiritualidad requiere reconsideración de la acción. Neptuno retrógrado 4°→1° Aries.',
+        areas: 'Inspiración, compasión, acción consciente, entrega, identidad espiritual',
+        lastTime: 'Jul-Dic 2025 en Piscis/Aries'
     },
 
-    // Plutón (MUY SIMBÓLICO: futuro colectivo ↔ poder antiguo)
-    // v708: Corregido con Cafe Astrology — inicio 6 May (no 14), directo 15 Oct (no 22)
+    // Plutón (May-Oct en Acuario) — v708: Corregido con Cafe Astrology
     {
         planet: 'Plutón', symbol: '♇',
         start: crDate('2026-05-06'), end: crDate('2026-10-15'),
@@ -2839,15 +2828,6 @@ const retrogrades2026 = [
         meaning: 'Transformación entre futurismo colectivo y estructuras de poder establecidas. Revisión profunda de sistemas de control. Plutón a 5°30\'Acuario.',
         areas: 'Poder institucional, revolución, estructuras sociales',
         lastTime: 'May-Oct 2025 en Acuario/Capricornio'
-    },
-    // v662: Venus retrógrado (faltaba en datos)
-    {
-        planet: 'Venus', symbol: '♀',
-        start: crDate('2026-10-03'), end: crDate('2026-11-13'),
-        sign: 'Escorpio → Libra',
-        meaning: 'Revisión profunda de vínculos íntimos y valores personales. Escorpio invita a confrontar lo que se desea de verdad vs. lo que se teme perder. Período de introspección romántica y financiera.',
-        areas: 'Relaciones íntimas, valores, dinero compartido, pasión, transformación afectiva',
-        lastTime: 'Mar-Abr 2025 en Aries/Piscis'
     }
 ];
 
@@ -2882,43 +2862,47 @@ const signChanges2026 = [
     
     // MERCURIO — mayo-diciembre 2026 (v662: datos faltantes añadidos)
     // Mercurio retrógrado: 11 May-4 Jun 2026 (Tauro→Aries) y 3-25 Sep 2026 (Libra→Virgo) y ~20 Dic
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-05-04'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-06-11'), toSign: 'Tauro', meaning: 'Mercurio re-entra en Tauro tras su retrógrado. Consolidación de ideas aplazadas.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-06-26'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-07-11'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-07-27'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-11'), toSign: 'Virgo', meaning: 'Mercurio en domicilio: análisis preciso, pensamiento metódico, enfoque en detalles.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-30'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada. Mente orientada al diálogo justo.', color: '#f39c12' },
-    // Mercurio retrógrado 3-25 Sep 2026 en Libra→Virgo
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-10-10'), toSign: 'Libra', meaning: 'Mercurio re-entra en Libra tras retrógrado. Relanzamiento de negociaciones y decisiones.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-10-29'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda, psicológica, estratégica. Secretos, análisis de motivaciones.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-11-17'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Comunicación entusiasta con visión global. Pensamiento que busca el gran significado.', color: '#f39c12' },
-    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-12-07'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados tangibles.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-05-02'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    // v709: Mercurio sign changes corregidos (retrógrados Feb-Mar Piscis, Jun-Jul Cáncer, Oct-Nov Escorpio)
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-05-17'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa. La mente busca múltiples conexiones.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-06-01'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento y la memoria.', color: '#f39c12' },
+    // Mercurio retrógrado 29 Jun - 23 Jul 2026 en Cáncer (permanece en Cáncer)
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-09'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar y ser reconocida.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-25'), toSign: 'Virgo', meaning: 'Mercurio en domicilio: análisis preciso, pensamiento metódico, enfoque en detalles útiles.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-09-10'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada. Mente orientada al diálogo justo y la armonía.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-09-30'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda, psicológica, estratégica. Secretos y análisis de motivaciones.', color: '#f39c12' },
+    // Mercurio retrógrado 24 Oct - 13 Nov 2026 en Escorpio (permanece en Escorpio)
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-12-06'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Comunicación entusiasta con visión global. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-12-25'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados tangibles.', color: '#f39c12' },
 
     // VENUS — mayo-diciembre 2026 (v662: datos faltantes añadidos)
     // Venus retrógrado: 3 Oct-13 Nov 2026 en Escorpio→Libra
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-05-06'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. La energía venusina busca variedad e intercambio intelectual. Placer en conexiones ligeras y comunicativas.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-06-03'), toSign: 'Cáncer', meaning: 'El amor se nutre y protege. La energía venusina busca seguridad emocional y conexión íntima con lo familiar.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-07-01'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración, reconocimiento y drama romántico.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-07-27'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio, el orden y la mejora continua.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-08-20'), toSign: 'Libra', meaning: 'Venus en domicilio: armonía, equilibrio y reciprocidad en los vínculos. Energía relacional en su máxima expresión natural.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-09-14'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. La energía venusina se sumerge en lo profundo: pasión, deseo y regeneración emocional.', color: '#e91e63' },
+    // v709: Venus sign changes corregidos (fuente: Cafe Astrology)
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-04-24'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. La energía venusina busca variedad e intercambio intelectual. Placer en conexiones ligeras y comunicativas.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-05-18'), toSign: 'Cáncer', meaning: 'El amor se nutre y protege. La energía venusina busca seguridad emocional y conexión íntima con lo familiar.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-06-13'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración, reconocimiento y drama romántico.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-07-09'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio, el orden y la mejora continua.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-08-06'), toSign: 'Libra', meaning: 'Venus en domicilio: armonía, equilibrio y reciprocidad en los vínculos. Energía relacional en su máxima expresión natural.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-09-10'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. La energía venusina se sumerge en lo profundo: pasión, deseo y regeneración emocional.', color: '#e91e63' },
     // Venus retrógrado 3 Oct-13 Nov 2026 en Escorpio→Libra (Venus retrograda de regreso a Libra)
     { planet: 'Venus', symbol: '♀', date: crDate('2026-11-14'), toSign: 'Escorpio', meaning: 'Venus re-entra en Escorpio tras retrógrado. Relanzamiento de vínculos profundos; lo que fue interrumpido puede reanudarse con mayor claridad.', color: '#e91e63' },
     { planet: 'Venus', symbol: '♀', date: crDate('2026-12-08'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento espiritual y expansión en los vínculos.', color: '#e91e63' },
 
     // MARTE — v641: corrected sign change dates (were all wrong, showing Leo/Virgo/Libra/Scorpio/Sag)
     // Verified against interPlanetaryAspects2026: Mars in Aquarius Jan 27, Pisces Mar 21, Aries Apr 12-20, Taurus May 25, Gemini Jul 3, Cancer Sep 1, Leo Oct 3, Virgo Dec 4
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-03-03'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
+    // v709: Marte → Acuario Ene 23 (FALTABA en datos anteriores)
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-01-23'), toSign: 'Acuario', meaning: 'La acción adopta cualidad colectiva e innovadora. El impulso marcial busca el cambio sistémico y la reforma. Energía para causas grupales y pensamiento vanguardista.', color: '#ff6b6b' },
+    // v709: Mar 2 (corregido de Mar 3)
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-03-02'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-04-09'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo. Energía de guerrero disponible para empezar lo nuevo. Cuidado con impulsividad.', color: '#ff6b6b', isImportant: true },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-17'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad material. Persistencia y resistencia marcial. El impulso se enfoca en lo concreto y tangible. Ritmo más lento pero más sostenido y productivo.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-18'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad material. Persistencia y resistencia marcial. El impulso se enfoca en lo concreto y tangible. Ritmo más lento pero más sostenido y productivo.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-06-30'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa. Velocidad y versatilidad marciales. Tensión entre multitarea e impacto concentrado.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-08-11'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción y la protección. El impulso marcial defiende el hogar y lo íntimo. Energía protectora intensa. Posible reactividad emocional y defensividad.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-28'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario. Energía generosa y dramática disponible. La voluntad de brillar se activa.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-11-27'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. El impulso marcial encuentra el detalle y la mejora. Energía para trabajo meticuloso y corrección continua. Posible hipercriticismo.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-27'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario. Energía generosa y dramática disponible. La voluntad de brillar se activa.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-11-25'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. El impulso marcial encuentra el detalle y la mejora. Energía para trabajo meticuloso y corrección continua. Posible hipercriticismo.', color: '#ff6b6b' },
     
     // JÚPITER (MUY IMPORTANTE)
-    { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-29'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.', lastTime: 'Júpiter en Leo: Ago 2014-Ago 2015' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-30'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.', lastTime: 'Júpiter en Leo: Ago 2014-Ago 2015' },
 
     // SATURNO (CRÍTICO)
     { planet: 'Saturno', symbol: '♄', date: crDate('2026-02-13'), toSign: 'Aries', meaning: 'CICLO MAYOR. Encuentro tenso entre estructura y autonomía. El límite se aplica a la identidad y el impulso. Disponibilidad para aprender sobre autoridad personal. Fricción natural entre disciplina y espontaneidad. (hasta 2028-2029)', color: '#3498db', isCritical: true, lastTime: 'Saturno en Aries: 1996-1999' },
@@ -2926,7 +2910,7 @@ const signChanges2026 = [
     // URANO (GENERACIONAL) — v641: corrected from 2026-07-07 (was the 2025 first-ingress date copy-pasted wrong).
     // Uranus entered Gemini first on Jul 7, 2025, retrograded to Taurus Nov 2025, permanent re-ingress Apr 26, 2026.
     // Confirmed by internal data: Mars-Uranus conjunction already at 3°52 Gemini on Jul 3, 2026 (aspect line ~2892).
-    { planet: 'Urano', symbol: '♅', date: crDate('2026-04-26'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Ingreso permanente en Géminis. Revolución en comunicación, información e intercambios. Aceleración en tecnología y redes sociales. El cambio opera a nivel mental y colectivo.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Primera entrada Jul 7 2025, reingreso permanente Abr 26 2026. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
+    { planet: 'Urano', symbol: '♅', date: crDate('2026-04-25'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Ingreso permanente en Géminis. Revolución en comunicación, información e intercambios. Aceleración en tecnología y redes sociales. El cambio opera a nivel mental y colectivo.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Primera entrada Jul 7 2025, reingreso permanente Abr 26 2026. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
 
     // NEPTUNO (MEGA IMPORTANTE)
     { planet: 'Neptuno', symbol: '♆', date: crDate('2026-01-26'), toSign: 'Aries', meaning: 'CAMBIO GENERACIONAL. Lo místico se encuentra con la acción. Idealismo aplicado a la identidad y el impulso. Disponibilidad para confusión sobre quién soy. El guerrero espiritual como arquetipo disponible. (hasta 2039)', color: '#5dade2', isGenerational: true, badgeInfo: 'Neptuno cambia de signo cada ~14 años. Última vez en Aries: 1861-1875.', lastTime: 'Neptuno en Aries: 1861-1875' },
