@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v709';</script>
+    <script>window.APP_VERSION = 'v710';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2885,8 +2885,8 @@ const signChanges2026 = [
     { planet: 'Venus', symbol: '♀', date: crDate('2026-08-06'), toSign: 'Libra', meaning: 'Venus en domicilio: armonía, equilibrio y reciprocidad en los vínculos. Energía relacional en su máxima expresión natural.', color: '#e91e63' },
     { planet: 'Venus', symbol: '♀', date: crDate('2026-09-10'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. La energía venusina se sumerge en lo profundo: pasión, deseo y regeneración emocional.', color: '#e91e63' },
     // Venus retrógrado 3 Oct-13 Nov 2026 en Escorpio→Libra (Venus retrograda de regreso a Libra)
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-11-14'), toSign: 'Escorpio', meaning: 'Venus re-entra en Escorpio tras retrógrado. Relanzamiento de vínculos profundos; lo que fue interrumpido puede reanudarse con mayor claridad.', color: '#e91e63' },
-    { planet: 'Venus', symbol: '♀', date: crDate('2026-12-08'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento espiritual y expansión en los vínculos.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-12-04'), toSign: 'Escorpio', meaning: 'Venus re-entra en Escorpio tras retrógrado. Relanzamiento de vínculos profundos; lo que fue interrumpido puede reanudarse con mayor claridad.', color: '#e91e63' },
+    // v710: Venus Dec 8 → Sagitario ELIMINADO — Swiss Ephemeris confirma que Venus permanece en Escorpio hasta 2027
 
     // MARTE — v641: corrected sign change dates (were all wrong, showing Leo/Virgo/Libra/Scorpio/Sag)
     // Verified against interPlanetaryAspects2026: Mars in Aquarius Jan 27, Pisces Mar 21, Aries Apr 12-20, Taurus May 25, Gemini Jul 3, Cancer Sep 1, Leo Oct 3, Virgo Dec 4
@@ -2896,7 +2896,7 @@ const signChanges2026 = [
     { planet: 'Marte', symbol: '♂', date: crDate('2026-03-02'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-04-09'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo. Energía de guerrero disponible para empezar lo nuevo. Cuidado con impulsividad.', color: '#ff6b6b', isImportant: true },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-05-18'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad material. Persistencia y resistencia marcial. El impulso se enfoca en lo concreto y tangible. Ritmo más lento pero más sostenido y productivo.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-06-30'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa. Velocidad y versatilidad marciales. Tensión entre multitarea e impacto concentrado.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-06-28'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa. Velocidad y versatilidad marciales. Tensión entre multitarea e impacto concentrado.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-08-11'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción y la protección. El impulso marcial defiende el hogar y lo íntimo. Energía protectora intensa. Posible reactividad emocional y defensividad.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-09-27'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario. Energía generosa y dramática disponible. La voluntad de brillar se activa.', color: '#ff6b6b' },
     { planet: 'Marte', symbol: '♂', date: crDate('2026-11-25'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. El impulso marcial encuentra el detalle y la mejora. Energía para trabajo meticuloso y corrección continua. Posible hipercriticismo.', color: '#ff6b6b' },
@@ -2917,6 +2917,581 @@ const signChanges2026 = [
 ];
 
 // Stelliums detectados 2026 (SOLO VERIFICADOS REALES)
+
+
+// ================================================================
+// ASTRO ATLAS — MULTI-YEAR EPHEMERIS DATA (2027-2030)
+// Generated automatically with Swiss Ephemeris (pyswisseph)
+// Source: Swiss Ephemeris — same engine as astro.com
+// Generation date: 2026-05-08
+// ================================================================
+
+// =======================================================
+// AÑO 2027 — Generado con Swiss Ephemeris (pyswisseph 2027)
+// =======================================================
+const retrogrades2027 = [
+    // Mercurio retrógrado 2027-02-09 → 2027-03-03 (Piscis 6° → Acuario 21°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2027-02-09'), end: crDate('2027-03-03'),
+        sign: 'Piscis → Acuario',
+        meaning: 'Revisión de intuición y comunicación emocional. Pensamientos difusos o creativos. Necesidad de escucha profunda.',
+        areas: 'Sueños, intuición, compasión, comunicación espiritual',
+    },
+    // Mercurio retrógrado 2027-06-10 → 2027-07-04 (Cáncer 6° → Géminis 28°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2027-06-10'), end: crDate('2027-07-04'),
+        sign: 'Cáncer → Géminis',
+        meaning: 'Revisión de comunicación emocional y familiar. La mente se vuelve nostálgica e introspectiva. Reexamen de vínculos afectivos.',
+        areas: 'Familia, hogar, emociones, memoria, raíces',
+    },
+    // Mercurio retrógrado 2027-10-07 → 2027-10-28 (Escorpio 5° → Libra 19°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2027-10-07'), end: crDate('2027-10-28'),
+        sign: 'Escorpio → Libra',
+        meaning: 'Revisión de comunicación profunda y psicológica. La mente investiga lo oculto. Reexamen de poder y transformación.',
+        areas: 'Investigación, transformación, secretos, finanzas compartidas',
+    },
+    // Marte retrógrado 2027-01-10 → 2027-04-01 (Virgo 10° → Leo 21°)
+    {
+        planet: 'Marte', symbol: '♂',
+        start: crDate('2027-01-10'), end: crDate('2027-04-01'),
+        sign: 'Virgo → Leo',
+        meaning: 'Revisión de acción analítica y precisión. El impulso meticuloso busca corrección de procesos.',
+        areas: 'Análisis, trabajo, salud, servicio, perfeccionismo',
+    },
+    // Júpiter retrógrado 2026-12-13 → 2027-04-13 (Leo 27° → Leo 17°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2026-12-13'), end: crDate('2027-04-13'),
+        sign: 'Leo',
+        meaning: 'Revisión de expresión creativa y generosidad. Liderazgo y autoexpresión en introspección.',
+        areas: 'Creatividad, liderazgo, autoexpresión, generosidad',
+    },
+    // Saturno retrógrado 2027-08-09 → 2027-12-24 (Aries 28° → Aries 21°)
+    {
+        planet: 'Saturno', symbol: '♄',
+        start: crDate('2027-08-09'), end: crDate('2027-12-24'),
+        sign: 'Aries',
+        meaning: 'Límites del yo revisados. Tensión entre estructuración de identidad y necesidad de autonomía.',
+        areas: 'Identidad, límites personales, iniciativa, disciplina',
+    },
+    // Urano retrógrado 2027-09-15 → 2028-02-12 (Géminis 10° → Géminis 6°)
+    {
+        planet: 'Urano', symbol: '♅',
+        start: crDate('2027-09-15'), end: crDate('2028-02-12'),
+        sign: 'Géminis',
+        meaning: 'Revolución introspectiva en curso. El cambio disruptivo se reconecta con su dirección.',
+        areas: 'Innovación, cambio, revolución, tecnología, libertad',
+    },
+    // Neptuno retrógrado 2027-07-09 → 2027-12-15 (Aries 7° → Aries 4°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2027-07-09'), end: crDate('2027-12-15'),
+        sign: 'Aries',
+        meaning: 'Idealismo activo en revisión. La acción espiritual examina su autenticidad.',
+        areas: 'Espiritualidad activa, idealismo, identidad espiritual',
+    },
+    // Plutón retrógrado 2027-05-08 → 2027-10-18 (Acuario 7° → Acuario 5°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2027-05-08'), end: crDate('2027-10-18'),
+        sign: 'Acuario',
+        meaning: 'Transformación profunda en revisión. El poder regenerativo examina sus procesos de cambio.',
+        areas: 'Poder, transformación, regeneración, muerte y renacimiento',
+    },
+];
+
+const signChanges2027 = [
+    // ENERO
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-01-07'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-01-13'), toSign: 'Acuario', meaning: 'Ideas innovadoras, pensamiento colectivo e independiente.', color: '#f39c12' },
+    // FEBRERO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-02-01'), toSign: 'Piscis', meaning: 'Intuición, comunicación emocional y creativa.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-02-03'), toSign: 'Capricornio', meaning: 'Amor serio y comprometido. La energía venusina busca durabilidad y estructura.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-02-18'), toSign: 'Acuario', meaning: 'Mercurio retrógrado re-entra en Acuario. Revisión de temas pendientes relacionados con Acuario.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-02-21'), toSign: 'Leo', meaning: 'Marte retrógrado re-entra en Leo. Revisión de temas pendientes relacionados con Leo.', color: '#ff6b6b', isRetroEntry: true },
+    // MARZO
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-03-01'), toSign: 'Acuario', meaning: 'Amor no convencional y colectivo. La energía venusina busca libertad e igualdad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-03-18'), toSign: 'Piscis', meaning: 'Intuición, comunicación emocional y creativa.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-03-26'), toSign: 'Piscis', meaning: 'Venus en exaltación: amor incondicional, disolución de límites y compasión.', color: '#e91e63' },
+    // ABRIL
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-04-08'), toSign: 'Aries', meaning: 'Comunicación directa, decisiones rápidas e instintivas.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-04-20'), toSign: 'Aries', meaning: 'Amor expresivo y directo. La energía relacional busca iniciativa y espontaneidad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-04-24'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    // MAYO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-05-09'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-05-14'), toSign: 'Tauro', meaning: 'Venus en su domicilio: placer sensorial, estabilidad y tangibilidad en el amor.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-05-14'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. Impulso marcial encuentra el detalle y la mejora.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-05-28'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    // JUNIO
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-06-08'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. Placer en conexiones intelectuales y ligeras.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-06-26'), toSign: 'Géminis', meaning: 'Mercurio retrógrado re-entra en Géminis. Revisión de temas pendientes relacionados con Géminis.', color: '#f39c12', isRetroEntry: true },
+    // JULIO
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-07-03'), toSign: 'Cáncer', meaning: 'Amor que nutre y protege. La energía venusina busca seguridad emocional.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-07-12'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-07-15'), toSign: 'Libra', meaning: 'La acción busca equilibrio y colaboración. Impulso marcial en su detrimento, requiere decisión.', color: '#ff6b6b' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2027-07-26'), toSign: 'Virgo', meaning: 'Expansión hacia un nuevo ciclo de crecimiento y significado.', color: '#9b59b6' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-07-27'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración y reconocimiento.', color: '#e91e63' },
+    // AGOSTO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-08-02'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-08-17'), toSign: 'Virgo', meaning: 'Análisis preciso, pensamiento metódico, enfoque en detalles útiles.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-08-20'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio.', color: '#e91e63' },
+    // SEPTIEMBRE
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-09-02'), toSign: 'Escorpio', meaning: 'MARTE EN DOMICILIO TRADICIONAL: acción profunda, poder concentrado, transformación radical.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-09-03'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada y orientada al diálogo.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-09-14'), toSign: 'Libra', meaning: 'Venus en su domicilio: armonía, equilibrio y reciprocidad en los vínculos.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-09-27'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda y estratégica.', color: '#f39c12' },
+    // OCTUBRE
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-10-08'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. Pasión y regeneración emocional.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-10-15'), toSign: 'Sagitario', meaning: 'La acción busca expansión y aventura. Impulso marcial hacia lo desconocido y la visión.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-10-16'), toSign: 'Libra', meaning: 'Mercurio retrógrado re-entra en Libra. Revisión de temas pendientes relacionados con Libra.', color: '#f39c12', isRetroEntry: true },
+    // NOVIEMBRE
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-11-01'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-11-10'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda y estratégica.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-11-25'), toSign: 'Capricornio', meaning: 'Amor serio y comprometido. La energía venusina busca durabilidad y estructura.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2027-11-25'), toSign: 'Capricornio', meaning: 'MARTE EN EXALTACIÓN: disciplina y ambición perfectas. La acción encuentra su forma más productiva.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-11-29'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    // DICIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2027-12-18'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2027-12-19'), toSign: 'Acuario', meaning: 'Amor no convencional y colectivo. La energía venusina busca libertad e igualdad.', color: '#e91e63' },
+];
+// =======================================================
+// AÑO 2028 — Generado con Swiss Ephemeris (pyswisseph 2028)
+// =======================================================
+const retrogrades2028 = [
+    // Mercurio retrógrado 2028-01-24 → 2028-02-14 (Acuario 20° → Acuario 4°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2028-01-24'), end: crDate('2028-02-14'),
+        sign: 'Acuario',
+        meaning: 'Revisión de ideas innovadoras y colectivas. La mente reformista busca nuevas perspectivas. Reexamen de objetivos grupales.',
+        areas: 'Innovación, colectivo, reforma, amistad, tecnología',
+    },
+    // Mercurio retrógrado 2028-05-21 → 2028-06-14 (Géminis 16° → Géminis 8°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2028-05-21'), end: crDate('2028-06-14'),
+        sign: 'Géminis',
+        meaning: 'La mente en su domicilio se vuelve sobre sí misma. Revisión de intercambios, escrituras y conversaciones pendientes.',
+        areas: 'Comunicación, escritura, intercambios, curiosidad',
+    },
+    // Mercurio retrógrado 2028-09-19 → 2028-10-11 (Libra 19° → Libra 4°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2028-09-19'), end: crDate('2028-10-11'),
+        sign: 'Libra',
+        meaning: 'Revisión de relaciones y acuerdos. La mente diplomática busca equilibrio. Reexamen de asociaciones y decisiones compartidas.',
+        areas: 'Relaciones, acuerdos, justicia, equilibrio',
+    },
+    // Venus retrógrado 2028-05-10 → 2028-06-22 (Géminis 20° → Géminis 3°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2028-05-10'), end: crDate('2028-06-22'),
+        sign: 'Géminis',
+        meaning: 'Revisión de vínculos duales y valores intelectuales. La energía venusina examina múltiples conexiones.',
+        areas: 'Comunicación en relaciones, dualidad, valores mentales',
+    },
+    // Júpiter retrógrado 2028-01-12 → 2028-05-13 (Virgo 28° → Virgo 18°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2028-01-12'), end: crDate('2028-05-13'),
+        sign: 'Virgo',
+        meaning: 'Revisión de expansión a través del servicio y el análisis. Crecimiento que requiere corrección y ajuste.',
+        areas: 'Servicio, análisis, salud, trabajo meticuloso',
+    },
+    // Saturno retrógrado 2028-08-22 → 2029-01-05 (Tauro 11° → Tauro 4°)
+    {
+        planet: 'Saturno', symbol: '♄',
+        start: crDate('2028-08-22'), end: crDate('2029-01-05'),
+        sign: 'Tauro',
+        meaning: 'Revisión de estructuras y responsabilidades. Período de reconsolidación de límites y compromisos.',
+        areas: 'Estructura, disciplina, responsabilidad, límites',
+    },
+    // Urano retrógrado 2028-09-19 → 2029-02-16 (Géminis 14° → Géminis 10°)
+    {
+        planet: 'Urano', symbol: '♅',
+        start: crDate('2028-09-19'), end: crDate('2029-02-16'),
+        sign: 'Géminis',
+        meaning: 'Revolución introspectiva en curso. El cambio disruptivo se reconecta con su dirección.',
+        areas: 'Innovación, cambio, revolución, tecnología, libertad',
+    },
+    // Neptuno retrógrado 2028-07-11 → 2028-12-16 (Aries 9° → Aries 6°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2028-07-11'), end: crDate('2028-12-16'),
+        sign: 'Aries',
+        meaning: 'Idealismo activo en revisión. La acción espiritual examina su autenticidad.',
+        areas: 'Espiritualidad activa, idealismo, identidad espiritual',
+    },
+    // Plutón retrógrado 2028-05-09 → 2028-10-19 (Acuario 9° → Acuario 6°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2028-05-09'), end: crDate('2028-10-19'),
+        sign: 'Acuario',
+        meaning: 'Transformación profunda en revisión. El poder regenerativo examina sus procesos de cambio.',
+        areas: 'Poder, transformación, regeneración, muerte y renacimiento',
+    },
+];
+
+const signChanges2028 = [
+    // ENERO
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-01-03'), toSign: 'Acuario', meaning: 'La acción adopta cualidad colectiva e innovadora. Impulso hacia la reforma y el cambio sistémico.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-01-06'), toSign: 'Acuario', meaning: 'Ideas innovadoras, pensamiento colectivo e independiente.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-01-13'), toSign: 'Piscis', meaning: 'Venus en exaltación: amor incondicional, disolución de límites y compasión.', color: '#e91e63' },
+    // FEBRERO
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-02-07'), toSign: 'Aries', meaning: 'Amor expresivo y directo. La energía relacional busca iniciativa y espontaneidad.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-02-10'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. Energía disponible para arte, espiritualidad y compasión.', color: '#ff6b6b' },
+    // MARZO
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-03-04'), toSign: 'Tauro', meaning: 'Venus en su domicilio: placer sensorial, estabilidad y tangibilidad en el amor.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-03-13'), toSign: 'Piscis', meaning: 'Intuición, comunicación emocional y creativa.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-03-19'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-03-31'), toSign: 'Aries', meaning: 'Comunicación directa, decisiones rápidas e instintivas.', color: '#f39c12' },
+    // ABRIL
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-04-03'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. Placer en conexiones intelectuales y ligeras.', color: '#e91e63' },
+    { planet: 'Saturno', symbol: '♄', date: crDate('2028-04-13'), toSign: 'Tauro', meaning: 'CICLO MAYOR. El límite y la responsabilidad adoptan nueva cualidad en este signo.', color: '#3498db' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-04-15'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-04-27'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad. Persistencia marcial. Impulso concreto y sostenido.', color: '#ff6b6b' },
+    // MAYO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-05-01'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
+    // JUNIO
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-06-07'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa.', color: '#ff6b6b' },
+    // JULIO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-07-09'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-07-20'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción. Impulso marcial defiende el hogar y lo íntimo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-07-24'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
+    // AGOSTO
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-08-07'), toSign: 'Cáncer', meaning: 'Amor que nutre y protege. La energía venusina busca seguridad emocional.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-08-08'), toSign: 'Virgo', meaning: 'Análisis preciso, pensamiento metódico, enfoque en detalles útiles.', color: '#f39c12' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2028-08-24'), toSign: 'Libra', meaning: 'Expansión hacia un nuevo ciclo de crecimiento y significado.', color: '#9b59b6' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-08-27'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada y orientada al diálogo.', color: '#f39c12' },
+    // SEPTIEMBRE
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-09-04'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-09-05'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración y reconocimiento.', color: '#e91e63' },
+    // OCTUBRE
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-10-02'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-10-24'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. Impulso marcial encuentra el detalle y la mejora.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-10-27'), toSign: 'Libra', meaning: 'Venus en su domicilio: armonía, equilibrio y reciprocidad en los vínculos.', color: '#e91e63' },
+    // NOVIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-11-02'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda y estratégica.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-11-21'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-11-21'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. Pasión y regeneración emocional.', color: '#e91e63' },
+    // DICIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-12-10'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2028-12-15'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2028-12-21'), toSign: 'Libra', meaning: 'La acción busca equilibrio y colaboración. Impulso marcial en su detrimento, requiere decisión.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2028-12-31'), toSign: 'Acuario', meaning: 'Ideas innovadoras, pensamiento colectivo e independiente.', color: '#f39c12' },
+];
+// =======================================================
+// AÑO 2029 — Generado con Swiss Ephemeris (pyswisseph 2029)
+// =======================================================
+const retrogrades2029 = [
+    // Mercurio retrógrado 2029-01-07 → 2029-01-27 (Acuario 4° → Capricornio 18°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2029-01-07'), end: crDate('2029-01-27'),
+        sign: 'Acuario → Capricornio',
+        meaning: 'Revisión de ideas innovadoras y colectivas. La mente reformista busca nuevas perspectivas. Reexamen de objetivos grupales.',
+        areas: 'Innovación, colectivo, reforma, amistad, tecnología',
+    },
+    // Mercurio retrógrado 2029-05-01 → 2029-05-25 (Tauro 27° → Tauro 18°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2029-05-01'), end: crDate('2029-05-25'),
+        sign: 'Tauro',
+        meaning: 'Revisión de ideas sobre valores y recursos. La mente práctica busca estabilidad. Reexamen de posesiones y finanzas.',
+        areas: 'Valores, dinero, recursos materiales, estabilidad',
+    },
+    // Mercurio retrógrado 2029-09-02 → 2029-09-25 (Libra 2° → Virgo 17°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2029-09-02'), end: crDate('2029-09-25'),
+        sign: 'Libra → Virgo',
+        meaning: 'Revisión de relaciones y acuerdos. La mente diplomática busca equilibrio. Reexamen de asociaciones y decisiones compartidas.',
+        areas: 'Relaciones, acuerdos, justicia, equilibrio',
+    },
+    // Mercurio retrógrado 2029-12-22 → 2030-01-11 (Capricornio 18° → Capricornio 1°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2029-12-22'), end: crDate('2030-01-11'),
+        sign: 'Capricornio',
+        meaning: 'Revisión de estructuras mentales. Retrasos en comunicación profesional. Reconsideración de compromisos y responsabilidades.',
+        areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
+    },
+    // Venus retrógrado 2029-12-16 → 2030-01-26 (Capricornio 24° → Capricornio 9°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2029-12-16'), end: crDate('2030-01-26'),
+        sign: 'Capricornio',
+        meaning: 'Revisión de compromisos relacionales y valores materiales. El amor examina su estructura y duración.',
+        areas: 'Compromisos, relaciones formales, valores prácticos',
+    },
+    // Marte retrógrado 2029-02-14 → 2029-05-05 (Libra 14° → Virgo 25°)
+    {
+        planet: 'Marte', symbol: '♂',
+        start: crDate('2029-02-14'), end: crDate('2029-05-05'),
+        sign: 'Libra → Virgo',
+        meaning: 'Revisión de acción colaborativa y justa. El impulso diplomático examina sus decisiones.',
+        areas: 'Relaciones, justicia, colaboración, diplomacia',
+    },
+    // Júpiter retrógrado 2029-02-10 → 2029-06-13 (Libra 27° → Libra 18°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2029-02-10'), end: crDate('2029-06-13'),
+        sign: 'Libra',
+        meaning: 'Revisión de expansión a través de relaciones y justicia. El crecimiento examina sus asociaciones.',
+        areas: 'Relaciones, justicia, acuerdos, colaboraciones',
+    },
+    // Saturno retrógrado 2029-09-06 → 2030-01-19 (Tauro 25° → Tauro 18°)
+    {
+        planet: 'Saturno', symbol: '♄',
+        start: crDate('2029-09-06'), end: crDate('2030-01-19'),
+        sign: 'Tauro',
+        meaning: 'Revisión de estructuras y responsabilidades. Período de reconsolidación de límites y compromisos.',
+        areas: 'Estructura, disciplina, responsabilidad, límites',
+    },
+    // Urano retrógrado 2029-09-23 → 2030-02-20 (Géminis 19° → Géminis 14°)
+    {
+        planet: 'Urano', symbol: '♅',
+        start: crDate('2029-09-23'), end: crDate('2030-02-20'),
+        sign: 'Géminis',
+        meaning: 'Revolución introspectiva en curso. El cambio disruptivo se reconecta con su dirección.',
+        areas: 'Innovación, cambio, revolución, tecnología, libertad',
+    },
+    // Neptuno retrógrado 2029-07-14 → 2029-12-19 (Aries 11° → Aries 8°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2029-07-14'), end: crDate('2029-12-19'),
+        sign: 'Aries',
+        meaning: 'Idealismo activo en revisión. La acción espiritual examina su autenticidad.',
+        areas: 'Espiritualidad activa, idealismo, identidad espiritual',
+    },
+    // Plutón retrógrado 2029-05-11 → 2029-10-21 (Acuario 10° → Acuario 8°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2029-05-11'), end: crDate('2029-10-21'),
+        sign: 'Acuario',
+        meaning: 'Transformación profunda en revisión. El poder regenerativo examina sus procesos de cambio.',
+        areas: 'Poder, transformación, regeneración, muerte y renacimiento',
+    },
+];
+
+const signChanges2029 = [
+    // ENERO
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-01-08'), toSign: 'Capricornio', meaning: 'Amor serio y comprometido. La energía venusina busca durabilidad y estructura.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-01-13'), toSign: 'Capricornio', meaning: 'Mercurio retrógrado re-entra en Capricornio. Revisión de temas pendientes relacionados con Capricornio.', color: '#f39c12', isRetroEntry: true },
+    // FEBRERO
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-02-01'), toSign: 'Acuario', meaning: 'Amor no convencional y colectivo. La energía venusina busca libertad e igualdad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-02-13'), toSign: 'Acuario', meaning: 'Ideas innovadoras, pensamiento colectivo e independiente.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-02-25'), toSign: 'Piscis', meaning: 'Venus en exaltación: amor incondicional, disolución de límites y compasión.', color: '#e91e63' },
+    // MARZO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-03-06'), toSign: 'Piscis', meaning: 'Intuición, comunicación emocional y creativa.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-03-21'), toSign: 'Aries', meaning: 'Amor expresivo y directo. La energía relacional busca iniciativa y espontaneidad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-03-23'), toSign: 'Aries', meaning: 'Comunicación directa, decisiones rápidas e instintivas.', color: '#f39c12' },
+    // ABRIL
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-04-07'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-04-07'), toSign: 'Virgo', meaning: 'Marte retrógrado re-entra en Virgo. Revisión de temas pendientes relacionados con Virgo.', color: '#ff6b6b', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-04-14'), toSign: 'Tauro', meaning: 'Venus en su domicilio: placer sensorial, estabilidad y tangibilidad en el amor.', color: '#e91e63' },
+    // MAYO
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-05-08'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. Placer en conexiones intelectuales y ligeras.', color: '#e91e63' },
+    // JUNIO
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-06-02'), toSign: 'Cáncer', meaning: 'Amor que nutre y protege. La energía venusina busca seguridad emocional.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-06-05'), toSign: 'Libra', meaning: 'La acción busca equilibrio y colaboración. Impulso marcial en su detrimento, requiere decisión.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-06-13'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-06-26'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración y reconocimiento.', color: '#e91e63' },
+    // JULIO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-07-01'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-07-15'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-07-21'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-07-31'), toSign: 'Virgo', meaning: 'Análisis preciso, pensamiento metódico, enfoque en detalles útiles.', color: '#f39c12' },
+    // AGOSTO
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-08-07'), toSign: 'Escorpio', meaning: 'MARTE EN DOMICILIO TRADICIONAL: acción profunda, poder concentrado, transformación radical.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-08-15'), toSign: 'Libra', meaning: 'Venus en su domicilio: armonía, equilibrio y reciprocidad en los vínculos.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-08-27'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada y orientada al diálogo.', color: '#f39c12' },
+    // SEPTIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-09-08'), toSign: 'Virgo', meaning: 'Mercurio retrógrado re-entra en Virgo. Revisión de temas pendientes relacionados con Virgo.', color: '#f39c12', isRetroEntry: true },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-09-10'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. Pasión y regeneración emocional.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-09-23'), toSign: 'Sagitario', meaning: 'La acción busca expansión y aventura. Impulso marcial hacia lo desconocido y la visión.', color: '#ff6b6b' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2029-09-24'), toSign: 'Escorpio', meaning: 'Expansión hacia un nuevo ciclo de crecimiento y significado.', color: '#9b59b6' },
+    // OCTUBRE
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-10-07'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-10-08'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada y orientada al diálogo.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-10-26'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda y estratégica.', color: '#f39c12' },
+    // NOVIEMBRE
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-11-04'), toSign: 'Capricornio', meaning: 'MARTE EN EXALTACIÓN: disciplina y ambición perfectas. La acción encuentra su forma más productiva.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2029-11-05'), toSign: 'Capricornio', meaning: 'Amor serio y comprometido. La energía venusina busca durabilidad y estructura.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-11-13'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    // DICIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2029-12-03'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2029-12-13'), toSign: 'Acuario', meaning: 'La acción adopta cualidad colectiva e innovadora. Impulso hacia la reforma y el cambio sistémico.', color: '#ff6b6b' },
+];
+// =======================================================
+// AÑO 2030 — Generado con Swiss Ephemeris (pyswisseph 2030)
+// =======================================================
+const retrogrades2030 = [
+    // Mercurio retrógrado 2029-12-22 → 2030-01-11 (Capricornio 18° → Capricornio 1°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2029-12-22'), end: crDate('2030-01-11'),
+        sign: 'Capricornio',
+        meaning: 'Revisión de estructuras mentales. Retrasos en comunicación profesional. Reconsideración de compromisos y responsabilidades.',
+        areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
+    },
+    // Mercurio retrógrado 2030-04-13 → 2030-05-06 (Tauro 8° → Aries 27°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2030-04-13'), end: crDate('2030-05-06'),
+        sign: 'Tauro → Aries',
+        meaning: 'Revisión de ideas sobre valores y recursos. La mente práctica busca estabilidad. Reexamen de posesiones y finanzas.',
+        areas: 'Valores, dinero, recursos materiales, estabilidad',
+    },
+    // Mercurio retrógrado 2030-08-16 → 2030-09-08 (Virgo 14° → Virgo 1°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2030-08-16'), end: crDate('2030-09-08'),
+        sign: 'Virgo',
+        meaning: 'Revisión de análisis y procesos. La mente meticulosa busca perfección. Reexamen de rutinas, salud y trabajo.',
+        areas: 'Salud, trabajo, análisis, rutinas, servicio',
+    },
+    // Mercurio retrógrado 2030-12-06 → 2030-12-25 (Capricornio 2° → Sagitario 16°)
+    {
+        planet: 'Mercurio', symbol: '☿',
+        start: crDate('2030-12-06'), end: crDate('2030-12-25'),
+        sign: 'Capricornio → Sagitario',
+        meaning: 'Revisión de estructuras mentales. Retrasos en comunicación profesional. Reconsideración de compromisos y responsabilidades.',
+        areas: 'Planes profesionales, autoridad, responsabilidad pragmática',
+    },
+    // Venus retrógrado 2029-12-16 → 2030-01-26 (Capricornio 24° → Capricornio 9°)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2029-12-16'), end: crDate('2030-01-26'),
+        sign: 'Capricornio',
+        meaning: 'Revisión de compromisos relacionales y valores materiales. El amor examina su estructura y duración.',
+        areas: 'Compromisos, relaciones formales, valores prácticos',
+    },
+    // Júpiter retrógrado 2030-03-13 → 2030-07-15 (Escorpio 28° → Escorpio 18°)
+    {
+        planet: 'Júpiter', symbol: '♃',
+        start: crDate('2030-03-13'), end: crDate('2030-07-15'),
+        sign: 'Escorpio',
+        meaning: 'Revisión de creencias, expansión y crecimiento. Período de reflexión sobre dónde se busca el significado.',
+        areas: 'Crecimiento, fe, expansión, filosofía, abundancia',
+    },
+    // Saturno retrógrado 2030-09-20 → 2031-02-02 (Géminis 9° → Géminis 2°)
+    {
+        planet: 'Saturno', symbol: '♄',
+        start: crDate('2030-09-20'), end: crDate('2031-02-02'),
+        sign: 'Géminis',
+        meaning: 'Revisión de estructuras y responsabilidades. Período de reconsolidación de límites y compromisos.',
+        areas: 'Estructura, disciplina, responsabilidad, límites',
+    },
+    // Urano retrógrado 2030-09-28 → 2031-02-25 (Géminis 23° → Géminis 19°)
+    {
+        planet: 'Urano', symbol: '♅',
+        start: crDate('2030-09-28'), end: crDate('2031-02-25'),
+        sign: 'Géminis',
+        meaning: 'Revolución introspectiva en curso. El cambio disruptivo se reconecta con su dirección.',
+        areas: 'Innovación, cambio, revolución, tecnología, libertad',
+    },
+    // Neptuno retrógrado 2030-07-16 → 2030-12-21 (Aries 13° → Aries 11°)
+    {
+        planet: 'Neptuno', symbol: '♆',
+        start: crDate('2030-07-16'), end: crDate('2030-12-21'),
+        sign: 'Aries',
+        meaning: 'Idealismo activo en revisión. La acción espiritual examina su autenticidad.',
+        areas: 'Espiritualidad activa, idealismo, identidad espiritual',
+    },
+    // Plutón retrógrado 2030-05-12 → 2030-10-23 (Acuario 12° → Acuario 10°)
+    {
+        planet: 'Plutón', symbol: '♇',
+        start: crDate('2030-05-12'), end: crDate('2030-10-23'),
+        sign: 'Acuario',
+        meaning: 'Transformación profunda en revisión. El poder regenerativo examina sus procesos de cambio.',
+        areas: 'Poder, transformación, regeneración, muerte y renacimiento',
+    },
+];
+
+const signChanges2030 = [
+    // ENERO
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-01-20'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. Energía disponible para arte, espiritualidad y compasión.', color: '#ff6b6b' },
+    // FEBRERO
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-02-08'), toSign: 'Acuario', meaning: 'Ideas innovadoras, pensamiento colectivo e independiente.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-02-27'), toSign: 'Piscis', meaning: 'Intuición, comunicación emocional y creativa.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-02-27'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo.', color: '#ff6b6b' },
+    // MARZO
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-03-06'), toSign: 'Acuario', meaning: 'Amor no convencional y colectivo. La energía venusina busca libertad e igualdad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-03-15'), toSign: 'Aries', meaning: 'Comunicación directa, decisiones rápidas e instintivas.', color: '#f39c12' },
+    // ABRIL
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-04-01'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-04-05'), toSign: 'Piscis', meaning: 'Venus en exaltación: amor incondicional, disolución de límites y compasión.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-04-08'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad. Persistencia marcial. Impulso concreto y sostenido.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-04-28'), toSign: 'Aries', meaning: 'Mercurio retrógrado re-entra en Aries. Revisión de temas pendientes relacionados con Aries.', color: '#f39c12', isRetroEntry: true },
+    // MAYO
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-05-02'), toSign: 'Aries', meaning: 'Amor expresivo y directo. La energía relacional busca iniciativa y espontaneidad.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-05-15'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-05-19'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa.', color: '#ff6b6b' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-05-28'), toSign: 'Tauro', meaning: 'Venus en su domicilio: placer sensorial, estabilidad y tangibilidad en el amor.', color: '#e91e63' },
+    // JUNIO
+    { planet: 'Saturno', symbol: '♄', date: crDate('2030-06-01'), toSign: 'Géminis', meaning: 'CICLO MAYOR. El límite y la responsabilidad adoptan nueva cualidad en este signo.', color: '#3498db' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-06-08'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-06-22'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-06-22'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. Placer en conexiones intelectuales y ligeras.', color: '#e91e63' },
+    // JULIO
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-07-01'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción. Impulso marcial defiende el hogar y lo íntimo.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-07-07'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-07-17'), toSign: 'Cáncer', meaning: 'Amor que nutre y protege. La energía venusina busca seguridad emocional.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-07-26'), toSign: 'Virgo', meaning: 'Análisis preciso, pensamiento metódico, enfoque en detalles útiles.', color: '#f39c12' },
+    // AGOSTO
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-08-11'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración y reconocimiento.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-08-15'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario.', color: '#ff6b6b' },
+    // SEPTIEMBRE
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-09-04'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-09-28'), toSign: 'Libra', meaning: 'Venus en su domicilio: armonía, equilibrio y reciprocidad en los vínculos.', color: '#e91e63' },
+    // OCTUBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-10-01'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada y orientada al diálogo.', color: '#f39c12' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-10-02'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. Impulso marcial encuentra el detalle y la mejora.', color: '#ff6b6b' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-10-18'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda y estratégica.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-10-22'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. Pasión y regeneración emocional.', color: '#e91e63' },
+    { planet: 'Júpiter', symbol: '♃', date: crDate('2030-10-22'), toSign: 'Sagitario', meaning: 'Expansión hacia un nuevo ciclo de crecimiento y significado.', color: '#9b59b6' },
+    // NOVIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-11-07'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-11-15'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento.', color: '#e91e63' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2030-11-21'), toSign: 'Libra', meaning: 'La acción busca equilibrio y colaboración. Impulso marcial en su detrimento, requiere decisión.', color: '#ff6b6b' },
+    // DICIEMBRE
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-12-01'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados.', color: '#f39c12' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2030-12-09'), toSign: 'Capricornio', meaning: 'Amor serio y comprometido. La energía venusina busca durabilidad y estructura.', color: '#e91e63' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2030-12-10'), toSign: 'Sagitario', meaning: 'Mercurio retrógrado re-entra en Sagitario. Revisión de temas pendientes relacionados con Sagitario.', color: '#f39c12', isRetroEntry: true },
+];
+
+// ================================================================
+// MULTI-YEAR DISPATCH FUNCTIONS
+// ================================================================
+
+// Get the retrogrades array for a given year
+function _getRetrogradesByYear(year) {
+    if (year === 2026) return retrogrades2026;
+    if (year === 2027) return retrogrades2027;
+    if (year === 2028) return retrogrades2028;
+    if (year === 2029) return retrogrades2029;
+    if (year === 2030) return retrogrades2030;
+    // For years beyond 2030, use the closest available data
+    if (year > 2030) return retrogrades2030;
+    return retrogrades2026;
+}
+
+// Get the signChanges array for a given year
+function _getSignChangesByYear(year) {
+    if (year === 2026) return signChanges2026;
+    if (year === 2027) return signChanges2027;
+    if (year === 2028) return signChanges2028;
+    if (year === 2029) return signChanges2029;
+    if (year === 2030) return signChanges2030;
+    if (year > 2030) return signChanges2030;
+    return signChanges2026;
+}
+
 const stelliums2026 = [
     { date: crDate('2026-01-04'), sign: 'Capricornio', planets: ['Venus', 'Sol', 'Marte'], count: 3 },
     { date: crDate('2026-01-21'), sign: 'Acuario', planets: ['Sol', 'Mercurio', 'Plutón', 'Venus', 'Marte'], count: 5 }
@@ -3054,6 +3629,7 @@ function getMajorAspect(date) {
 function getSignChanges(date) {
     const changes = [];
     const dateStr = new Date(date).setHours(0, 0, 0, 0);
+    const signChanges2026 = _getSignChangesByYear(new Date(date).getFullYear()); // multi-year dispatch
 
     for (const change of signChanges2026) {
         const changeDate = new Date(change.date);
@@ -3567,7 +4143,8 @@ function getRetrogrades(date) {
     dateClean.setHours(0, 0, 0, 0);
     const dateStr = dateClean.toDateString();
     
-    for (const retro of retrogrades2026) {
+    const _retroData = _getRetrogradesByYear(new Date(date).getFullYear()); // v710: multi-year
+    for (const retro of _retroData) {
         const startClean = new Date(retro.start);
         startClean.setHours(0, 0, 0, 0);
         const endClean = new Date(retro.end);
