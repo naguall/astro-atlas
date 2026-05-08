@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v701';</script>
+    <script>window.APP_VERSION = 'v702';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8095,7 +8095,7 @@ window._readingChatSend = function(chatId) {
         if (_rdTarget) {
             _rdTarget.innerHTML = fullReply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
             // v700: restore dblclick-to-read after streaming
-            if (!_rdTarget._dblAdded) { _rdTarget._dblAdded = true; _rdTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _rdTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=sel?sel.toString().trim():''; if(ct&&ct.length>3)window.readAloud(_rdTarget.id,ct);else window.readAloud(_rdTarget.id); }); }
+            window._attachReadDbl(_rdTarget, function(){ return _rdTarget.id; }, L?'Doble click para leer desde aquí':'Double click to read from here');
         }
         state.history.push({ role: 'model', parts: [{ text: fullReply }] });
         state.html = areaEl.innerHTML;
@@ -8355,16 +8355,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             });
             // Add double-click to read from point on ALL interpretation responses
             var _interpRespEl = document.getElementById('interpResp_' + chatId);
-            if (_interpRespEl && !_interpRespEl._dblClickAdded) {
-                _interpRespEl._dblClickAdded = true;
-                _interpRespEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
-                _interpRespEl.addEventListener('dblclick', function(e) {
-                    e.stopPropagation();
-                    var sel = window.getSelection();
-                    var ct = sel ? sel.toString().trim() : '';
-                    if (ct && ct.length > 3) { window.readAloud(_interpRespEl.id, ct); } else { window.readAloud(_interpRespEl.id); }
-                });
-            }
+            window._attachReadDbl(_interpRespEl, function(){ return _interpRespEl ? _interpRespEl.id : null; }, L ? 'Doble click para leer desde aquí' : 'Double click to read from here');
         } else {
             div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'No se pudo generar interpretación.' : 'Could not generate interpretation.') + '</p>';
         }
@@ -8645,16 +8636,7 @@ async function sendInterpChatMessage(chatId, readingKey) {
             window._voiceConvoAfterAIResponse(_respId, chatId, readingKey);
             // Add double-click to read from point on follow-up responses
             var _fuEl = document.getElementById(_respId);
-            if (_fuEl && !_fuEl._dblClickAdded) {
-                _fuEl._dblClickAdded = true;
-                _fuEl.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
-                _fuEl.addEventListener('dblclick', function(e) {
-                    e.stopPropagation();
-                    var sel = window.getSelection();
-                    var ct = sel ? sel.toString().trim() : '';
-                    if (ct && ct.length > 3) { window.readAloud(_fuEl.id, ct); } else { window.readAloud(_fuEl.id); }
-                });
-            }
+            window._attachReadDbl(_fuEl, function(){ return _fuEl ? _fuEl.id : null; }, L ? 'Doble click para leer desde aquí' : 'Double click to read from here');
         }
 
         msgsDiv.scrollTop = msgsDiv.scrollHeight;
@@ -9539,16 +9521,8 @@ function interpretDream() {
                     interpDiv.parentNode.insertBefore(saveBtn, interpDiv.nextSibling);
                 }
                 // Add double-click to read from that point
-                if (!interpDiv._dblClickAdded) {
-                    interpDiv._dblClickAdded = true;
-                    interpDiv.style.cursor = 'text';
-                    interpDiv.title = L ? 'Doble click para leer desde aquí' : 'Double click to read from here';
-                    interpDiv.addEventListener('dblclick', function(e) {
-                        e.stopPropagation();
-                        var sel = window.getSelection();
-                        var ct = sel ? sel.toString().trim() : '';
-                        if (ct && ct.length > 3) { window.readAloud('dreamAiInterpDiv', ct); } else { window.readAloud('dreamAiInterpDiv'); }
-                    });
+                interpDiv.style.cursor = 'text';
+                window._attachReadDbl(interpDiv, 'dreamAiInterpDiv', L ? 'Doble click para leer desde aquí' : 'Double click to read from here'); if(false) {
                 }
                 _interpObserver.disconnect();
             }
@@ -27410,14 +27384,17 @@ function goToCurrentCycle() {
         var _tutorArea = document.getElementById('tutorAIChatArea');
         if (_tutorArea && !_tutorArea._dblDelegated) {
             _tutorArea._dblDelegated = true;
-            _tutorArea.addEventListener('dblclick', function(e) {
+            var lastTutorTouch = 0;
+            function _tutorDblFire(e) {
                 var bubble = e.target.closest('.tutor-ai-bubble, [id^="aiMsg_tutor_"]');
                 if (!bubble || !bubble.id) return;
                 e.stopPropagation();
-                var sel = window.getSelection();
-                var ct = sel ? sel.toString().trim() : '';
-                if (ct && ct.length > 3) { window.readAloud(bubble.id, ct); } else { window.readAloud(bubble.id); }
-            });
+                var sel = window.getSelection(); var ct = sel ? sel.toString().trim() : '';
+                if (ct && ct.length > 3) window.readAloud(bubble.id, ct); else window.readAloud(bubble.id);
+            }
+            _tutorArea.style.touchAction = 'manipulation';
+            _tutorArea.addEventListener('dblclick', _tutorDblFire);
+            _tutorArea.addEventListener('touchend', function(e) { var now=Date.now(); var dt=now-lastTutorTouch; lastTutorTouch=now; if(dt>60&&dt<400)_tutorDblFire(e); });
         }
     };
 
@@ -27951,14 +27928,17 @@ function goToCurrentCycle() {
             var courseChat = document.getElementById('courseAIChatMsgs');
             if (courseChat && !courseChat._dblDelegated) {
                 courseChat._dblDelegated = true;
-                courseChat.addEventListener('dblclick', function(e) {
+                var lastCourseTouch = 0;
+                function _courseDblFire(e) {
                     var bubble = e.target.closest('.course-ai-bubble, [id^="courseResp_"]');
                     if (!bubble || !bubble.id) return;
                     e.stopPropagation();
-                    var sel = window.getSelection();
-                    var ct = sel ? sel.toString().trim() : '';
-                    if (ct && ct.length > 3) { window.readAloud(bubble.id, ct); } else { window.readAloud(bubble.id); }
-                });
+                    var sel = window.getSelection(); var ct = sel ? sel.toString().trim() : '';
+                    if (ct && ct.length > 3) window.readAloud(bubble.id, ct); else window.readAloud(bubble.id);
+                }
+                courseChat.style.touchAction = 'manipulation';
+                courseChat.addEventListener('dblclick', _courseDblFire);
+                courseChat.addEventListener('touchend', function(e) { var now=Date.now(); var dt=now-lastCourseTouch; lastCourseTouch=now; if(dt>60&&dt<400)_courseDblFire(e); });
             }
         }, 150);
     };
@@ -30055,7 +30035,7 @@ async function _sendQuizTutorToAI(userText) {
         if (_qtTarget) {
             _qtTarget.innerHTML = reply.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>').replace(/\n/g,'<br>');
             // v700: restore dblclick-to-read after streaming
-            if (!_qtTarget._dblAdded) { _qtTarget._dblAdded = true; _qtTarget.title = L?'Doble click para leer desde aquí':'Double click to read from here'; _qtTarget.addEventListener('dblclick', function(e){ e.stopPropagation(); var sel=window.getSelection(); var ct=sel?sel.toString().trim():''; if(ct&&ct.length>3)window.readAloud(_qtTarget.id,ct);else window.readAloud(_qtTarget.id); }); }
+            window._attachReadDbl(_qtTarget, function(){ return _qtTarget ? _qtTarget.id : null; }, L?'Doble click para leer desde aquí':'Double click to read from here');
         }
         _quizTutorHistory.push({role:'model', parts:[{text: reply}]});
     } catch(e) {
@@ -37529,6 +37509,28 @@ window._ttsUpdatePlayerUI = function() {
         '</div>';
 };
 
+// v702: Global helper — attaches dblclick + touchend double-tap for read-aloud (Android fix)
+window._attachReadDbl = function(el, getId, titleTxt) {
+    if (!el || el._rdAttached) return;
+    el._rdAttached = true;
+    el.style.touchAction = 'manipulation';
+    if (titleTxt) el.title = titleTxt;
+    var lastTouch = 0;
+    function fire(e) {
+        e.stopPropagation();
+        var id = typeof getId === 'function' ? getId() : getId;
+        if (!id) return;
+        var sel = window.getSelection();
+        var ct = sel ? sel.toString().trim() : '';
+        if (ct && ct.length > 3) window.readAloud(id, ct); else window.readAloud(id);
+    }
+    el.addEventListener('dblclick', fire);
+    el.addEventListener('touchend', function(e) {
+        var now = Date.now(); var dt = now - lastTouch; lastTouch = now;
+        if (dt > 60 && dt < 400) fire(e);
+    });
+};
+
 // Read aloud the last AI message in a chat container
 window.readAloudLastMsg = function(containerId) {
     if (!window.speechSynthesis) {
@@ -39621,15 +39623,7 @@ function addAIMessage(role, text, forceScrollBottom) {
         div.innerHTML = '<div id="' + _aiMsgId + '"><p>' + html + '</p></div>';
         // Double-click to read from point
         var _aiMsgDiv = div.querySelector('#' + _aiMsgId);
-        if (_aiMsgDiv) {
-            _aiMsgDiv.title = currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here';
-            _aiMsgDiv.addEventListener('dblclick', function(e) {
-                e.stopPropagation();
-                var sel = window.getSelection();
-                var ct = sel ? sel.toString().trim() : '';
-                if (ct && ct.length > 3) { window.readAloud(_aiMsgDiv.id, ct); } else { window.readAloud(_aiMsgDiv.id); }
-            });
-        }
+        window._attachReadDbl(_aiMsgDiv, function(){ return _aiMsgDiv ? _aiMsgDiv.id : null; }, currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here');
         // Share/copy/save button bar
         const btnBar = document.createElement('div');
         btnBar.style.cssText = 'display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap;';
@@ -39729,13 +39723,7 @@ function _updateStreamBubble(elemId, wrapperDiv, rawText, isFinal) {
         // Add copy/share bar + button bar
         el.title = currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here';
         el.style.cursor = 'pointer';
-        el.addEventListener('dblclick', function(e) {
-            e.stopPropagation();
-            var sel = window.getSelection();
-            var ct = sel ? sel.toString().trim() : '';
-            if (ct && ct.length > 3) window.readAloud(el.id, ct);
-            else window.readAloud(el.id);
-        });
+        window._attachReadDbl(el, function(){ return el ? el.id : null; }, currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here');
         var rawText2 = rawText;
         var btnBar = document.createElement('div');
         btnBar.style.cssText = 'display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap;';
