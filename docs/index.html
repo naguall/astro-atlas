@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v722';</script>
+    <script>window.APP_VERSION = 'v723';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -34489,7 +34489,7 @@ function openPreferencesModal() {
     var gcalContent = '';
     if (gcalIsConnected()) {
         gcalContent = '<div style="font-size:0.75em;color:#4ecdc4;margin-bottom:6px;">✓ ' + t('gcalConnected') + '</div>' +
-            (localStorage.getItem('gcalLastSync') ? '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' + t('gcalLastSync') + ': ' + new Date(localStorage.getItem('gcalLastSync')).toLocaleString'es' + '</div>' : '') +
+            (localStorage.getItem('gcalLastSync') ? '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' + t('gcalLastSync') + ': ' + new Date(localStorage.getItem('gcalLastSync')).toLocaleString(currentLang==='es'?'es':'en') + '</div>' : '') +
             '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
                 '<button onclick="gcalFetchEvents();this.textContent=\'✓\';" style="flex:1;padding:8px 12px;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.35);border-radius:8px;color:#4285f4;font-size:0.82em;font-weight:600;cursor:pointer;">🔄 ' + t('gcalSyncNow') + '</button>' +
                 '<button onclick="gcalSignOut();openPreferencesModal();" style="padding:8px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.82em;cursor:pointer;">' + t('gcalDisconnect') + '</button>' +
