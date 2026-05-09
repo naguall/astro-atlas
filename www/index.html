@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v725';</script>
+    <script>window.APP_VERSION = 'v726';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2002,7 +2002,8 @@ function getMoonSVG(elongation, size) {
     const cx = size / 2, cy = size / 2;
     const phase = ((elongation % 360) + 360) % 360;
     const lit  = '#ccd9e8';
-    const dark = '#080c1a';
+    // v726: use visibly distinct dark instead of near-black so dark half is seen against page bg
+    const dark = '#2a3050';
     const glow = (phase < 22.5 || phase >= 337.5) ? 'rgba(60,60,150,0.25)'
                : phase < 202.5 ? 'rgba(126,200,255,0.40)' : 'rgba(126,200,255,0.30)';
 
@@ -40291,24 +40292,27 @@ window._attachReadDbl = function(el, getId, titleTxt) {
     if (!el || el._rdAttached) return;
     el._rdAttached = true;
     el.style.touchAction = 'manipulation';
+    el.style.userSelect = 'text'; // v726: allow text selection
     if (titleTxt) el.title = titleTxt;
     var lastTouch = 0;
     var lastTouchX = 0, lastTouchY = 0;
     function fire(e) {
-        e.stopPropagation();
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (e && e.preventDefault) e.preventDefault();
         var id = typeof getId === 'function' ? getId() : getId;
-        if (!id) return;
+        if (!id) { console.warn('[TTS] _attachReadDbl: no element id'); return; }
         var cx, cy;
-        if (e.changedTouches && e.changedTouches.length > 0) {
+        if (e && e.changedTouches && e.changedTouches.length > 0) {
             cx = e.changedTouches[0].clientX;
             cy = e.changedTouches[0].clientY;
-        } else if (e.clientX !== undefined) {
+        } else if (e && e.clientX !== undefined) {
             cx = e.clientX;
             cy = e.clientY;
         } else {
             cx = lastTouchX;
             cy = lastTouchY;
         }
+        console.log('[TTS dblclick] id=' + id + ' coords=(' + cx + ',' + cy + ')');
         var sel = window.getSelection();
         var ct = sel ? sel.toString().trim() : '';
         if (ct && ct.length > 3) {
@@ -40326,7 +40330,8 @@ window._attachReadDbl = function(el, getId, titleTxt) {
     }, { passive: true });
     el.addEventListener('touchend', function(e) {
         var now = Date.now(); var dt = now - lastTouch; lastTouch = now;
-        if (dt > 60 && dt < 400) fire(e);
+        // v726: widen the double-tap window (was 60-400, now 50-500ms)
+        if (dt > 50 && dt < 500) fire(e);
     });
 };
 
