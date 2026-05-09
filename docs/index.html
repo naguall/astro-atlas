@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v729';</script>
+    <script>window.APP_VERSION = 'v730';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -473,8 +473,16 @@
         .profile-action-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(155,89,182,0.2); background: rgba(155,89,182,0.08); color: rgba(255,255,255,0.6); font-size: 0.9em; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; }
         .profile-action-btn:hover { background: rgba(155,89,182,0.2); color: #c39bd3; border-color: rgba(155,89,182,0.4); }
         /* Natal Sub-Tabs */
-        .natal-group-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
-        .natal-group-tab { flex: 1; padding: 9px 12px; border: 1px solid rgba(155,89,182,0.25); background: rgba(15,5,30,0.6); color: rgba(255,255,255,0.45); font-size: 0.82em; font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; border-radius: 10px; white-space: nowrap; }
+        .natal-group-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: nowrap; }
+        .natal-group-tab { flex: 1 1 0; min-width: 0; padding: 9px 12px; border: 1px solid rgba(155,89,182,0.25); background: rgba(15,5,30,0.6); color: rgba(255,255,255,0.45); font-size: 0.82em; font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* v730: narrow phones (vertical) — shrink padding+font so all 4 tabs fit */
+        @media (max-width: 500px) {
+            .natal-group-tabs { gap: 4px; }
+            .natal-group-tab { padding: 8px 4px; font-size: 0.7em; }
+        }
+        @media (max-width: 380px) {
+            .natal-group-tab { padding: 7px 2px; font-size: 0.62em; }
+        }
         .natal-group-tab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.12); }
         .natal-group-tab.active { color: #c39bd3; background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(102,126,234,0.15)); border-color: rgba(155,89,182,0.5); }
         .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; border: none; flex-wrap: wrap; }
