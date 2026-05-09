@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v715';</script>
+    <script>window.APP_VERSION = 'v716';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -21677,6 +21677,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div class="natal-group-tabs">
             <button class="natal-group-tab active" onclick="switchNatalGroup('detalles',this)">📋 ${L?'Detalles':'Details'}</button>
             <button class="natal-group-tab" onclick="switchNatalGroup('avanzado',this)">🔮 ${L?'Avanzado':'Advanced'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('relaciones',this)">💞 ${L?'Relaciones':'Relationships'}</button>
             <button class="natal-group-tab" onclick="switchNatalGroup('curso',this)">🎓 ${L?'Curso':'Course'}</button>
         </div>
         <div id="natalGroupDetalles" class="natal-subtabs">
@@ -21685,10 +21686,10 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
-        </div>
-        <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;">
             <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
+        </div>
+        <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;"></div>
+        <div id="natalGroupRelaciones" class="natal-subtabs" style="display:none;">
             <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${L?'Sinastría':'Synastry'}</span><span class="subtab-full">${L?'Sinastría':'Synastry'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${L?'Compuesta':'Composite'}</span><span class="subtab-full">${L?'Carta Compuesta':'Composite Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
@@ -21800,18 +21801,38 @@ function switchNatalTab(tabName, btn) {
     }
 }
 
-// v623/v638: Switch between Detalles / Avanzado / Curso group tabs
+// v716: Switch between Detalles / Avanzado / Relaciones / Curso group tabs
+// Avanzado now has no subtabs — it directly renders the year-aspects panel (selector 2026-2030 + 5 sub-subtabs)
 function switchNatalGroup(group, btn) {
     document.querySelectorAll('.natal-group-tab').forEach(function(el) { el.classList.remove('active'); });
     if (btn) btn.classList.add('active');
     var detallesDiv = document.getElementById('natalGroupDetalles');
     var avanzadoDiv = document.getElementById('natalGroupAvanzado');
+    var relacionesDiv = document.getElementById('natalGroupRelaciones');
     var cursoDiv = document.getElementById('natalGroupCurso');
     if (detallesDiv) detallesDiv.style.display = group === 'detalles' ? 'flex' : 'none';
     if (avanzadoDiv) avanzadoDiv.style.display = group === 'avanzado' ? 'flex' : 'none';
+    if (relacionesDiv) relacionesDiv.style.display = group === 'relaciones' ? 'flex' : 'none';
     if (cursoDiv) cursoDiv.style.display = group === 'curso' ? 'flex' : 'none';
-    // Activate first subtab of the selected group
-    var targetGroup = group === 'detalles' ? detallesDiv : (group === 'avanzado' ? avanzadoDiv : cursoDiv);
+
+    // Special case: Avanzado has no subtab buttons — directly show natalTabAspects2026
+    if (group === 'avanzado') {
+        document.querySelectorAll('.natal-tab-content').forEach(function(el) { el.style.display = 'none'; });
+        document.querySelectorAll('.natal-subtab').forEach(function(el) { el.classList.remove('active'); });
+        var a2026Tab = document.getElementById('natalTabAspects2026');
+        if (a2026Tab) a2026Tab.style.display = 'block';
+        var calGrid = document.getElementById('natalCalendarGrid');
+        if (calGrid) calGrid.style.display = 'none';
+        setTimeout(function() { if (typeof renderAspects2026InSubtab === 'function') renderAspects2026InSubtab(); }, 100);
+        var fab = document.getElementById('aiChatFab');
+        if (fab) fab.style.display = 'flex';
+        return;
+    }
+
+    // Other groups: activate first subtab
+    var targetGroup = group === 'detalles' ? detallesDiv
+                    : group === 'relaciones' ? relacionesDiv
+                    : cursoDiv;
     if (targetGroup) {
         var firstBtn = targetGroup.querySelector('.natal-subtab');
         if (firstBtn) firstBtn.click();
@@ -29847,12 +29868,12 @@ function goToCurrentCycle() {
                     { sel: '.natal-subtab[onclick*="tables"]', group: 'detalles', icon: '📊', title: L ? 'Tablas' : 'Tables', desc: L ? 'Posiciones detalladas: planetas, signos, casas, grados. Haz click individualmente en cualquiera de ellos para más información' : 'Detailed positions: planets, signs, houses, degrees. Click individually on any of them for more information' },
                     { sel: '.natal-subtab[onclick*="calendar"]', group: 'detalles', icon: '📅', title: L ? 'Tránsitos' : 'Transits', desc: L ? 'Calendario personal que empieza en tu cumpleaños. Mira tus solsticios y equinoccios personales, cuántos días han pasado desde tu cumpleaños y cuántos faltan para el próximo, con numerología' : 'Personal calendar starting on your birthday. See your personal solstices and equinoxes, days passed since your birthday and days remaining until the next one, with numerology' },
                     { sel: '.natal-subtab[onclick*="hoy"]', group: 'detalles', icon: '🌟', title: L ? 'Hoy' : 'Today', desc: L ? 'Aspectos planetarios que te afectan hoy. Haz click en cualquier aspecto para expandir' : 'Planetary aspects affecting you today. Click on any aspect to expand' },
-                    { sel: '.natal-subtab[onclick*="sinastria"]', group: 'avanzado', icon: '💞', title: L ? 'Sinastría' : 'Synastry', desc: L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts' },
-                    { sel: '.natal-subtab[onclick*="compuesta"]', group: 'avanzado', icon: '💫', title: L ? 'Carta Compuesta' : 'Composite Chart', desc: L ? 'Punto medio entre ambas cartas — la relación como entidad. Energía combinada de la relación' : 'Midpoint between both charts — the relationship as an entity. Combined relationship energy' },
-                    { sel: '.natal-subtab[onclick*="davison"]', group: 'avanzado', icon: '🤝', title: 'Davison', desc: L ? 'Punto medio de dos cartas, punto medio en tiempo y espacio — carta real de la relación' : 'Midpoint of two charts, midpoint in time and space — the real chart of the relationship' },
-                    { sel: '.natal-subtab[onclick*="cartography"]', group: 'avanzado', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence' },
-                    { sel: '.natal-subtab[onclick*="ciclos"]', group: 'avanzado', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions and more' },
-                    { sel: '.natal-subtab[onclick*="aspects2026"]', group: 'avanzado', icon: '📆', title: '2026', desc: L ? 'Eventos importantes de todo el año, agrupados por planeta, signo, figuras de aspecto y aspectos mayores' : 'Important events for the whole year, grouped by planet, sign, aspect patterns, major aspects' },
+                    { sel: '.natal-subtab[onclick*="sinastria"]', group: 'relaciones', icon: '💞', title: L ? 'Sinastría' : 'Synastry', desc: L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts' },
+                    { sel: '.natal-subtab[onclick*="compuesta"]', group: 'relaciones', icon: '💫', title: L ? 'Carta Compuesta' : 'Composite Chart', desc: L ? 'Punto medio entre ambas cartas — la relación como entidad. Energía combinada de la relación' : 'Midpoint between both charts — the relationship as an entity. Combined relationship energy' },
+                    { sel: '.natal-subtab[onclick*="davison"]', group: 'relaciones', icon: '🤝', title: 'Davison', desc: L ? 'Punto medio de dos cartas, punto medio en tiempo y espacio — carta real de la relación' : 'Midpoint of two charts, midpoint in time and space — the real chart of the relationship' },
+                    { sel: '.natal-subtab[onclick*="cartography"]', group: 'detalles', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence' },
+                    { sel: '.natal-subtab[onclick*="ciclos"]', group: 'detalles', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions and more' },
+                    { sel: '.natal-group-tab[onclick*="avanzado"]', group: null, icon: '🔮', title: L ? 'Avanzado' : 'Advanced', desc: L ? 'Eventos importantes año por año (2026-2030), agrupados por planeta, signo, figuras de aspecto y aspectos mayores' : 'Important events year by year (2026-2030), grouped by planet, sign, aspect patterns, major aspects' },
                     { sel: '.natal-subtab[onclick*="tutor"]', group: 'curso', icon: '🤖', title: L ? 'Tutor AI' : 'AI Tutor', desc: L ? 'Chat para aprender astrología. Pregunta y aprende' : 'Chat to learn astrology. Ask and learn' },
                     { sel: '.natal-subtab[onclick*="mapa"]', group: 'curso', icon: '🎓', title: L ? 'Curso Pro' : 'Course Pro', desc: L ? '18 módulos, 130 temas de astrología completa' : '18 modules, 130 complete astrology topics' },
                     { sel: '[onclick*="addNewProfile"]', icon: '＋', title: L ? 'Nuevo Perfil' : 'New Profile', desc: L ? 'Agregar perfiles de nacimiento' : 'Add birth profiles' }
@@ -29883,10 +29904,12 @@ function goToCurrentCycle() {
             var steps = _getWalkthroughSteps(screen);
             if (!steps.length) return;
 
-            // v626/v638: For 'personal' screen, temporarily show avanzado+curso groups so validation sees their subtabs
+            // v716: For 'personal' screen, temporarily show avanzado+relaciones+curso groups so validation sees their subtabs
             if (screen === 'personal') {
                 var _avTmp = document.getElementById('natalGroupAvanzado');
                 if (_avTmp) _avTmp.style.display = 'flex';
+                var _reTmp = document.getElementById('natalGroupRelaciones');
+                if (_reTmp) _reTmp.style.display = 'flex';
                 var _cuTmp = document.getElementById('natalGroupCurso');
                 if (_cuTmp) _cuTmp.style.display = 'flex';
             }
@@ -29916,10 +29939,12 @@ function goToCurrentCycle() {
                 }
             });
 
-            // v626/v638: Restore avanzado+curso groups to hidden after validation
+            // v716: Restore avanzado+relaciones+curso groups to hidden after validation
             if (screen === 'personal') {
                 var _avTmp2 = document.getElementById('natalGroupAvanzado');
                 if (_avTmp2) _avTmp2.style.display = 'none';
+                var _reTmp2 = document.getElementById('natalGroupRelaciones');
+                if (_reTmp2) _reTmp2.style.display = 'none';
                 var _cuTmp2 = document.getElementById('natalGroupCurso');
                 if (_cuTmp2) _cuTmp2.style.display = 'none';
             }
@@ -30163,24 +30188,30 @@ function goToCurrentCycle() {
                     else { _showStep(idx + 1); return; }
                 }
 
-                // v626: Natal subtab activation — switch group and tab for Astrológico
+                // v716: Natal subtab activation — switch group and tab for Astrológico
+                // Group order: detalles[0], avanzado[1], relaciones[2], curso[3]
                 if (step.group && el.classList && el.classList.contains('natal-subtab')) {
                     var _detDiv = document.getElementById('natalGroupDetalles');
                     var _avDiv = document.getElementById('natalGroupAvanzado');
+                    var _reDiv = document.getElementById('natalGroupRelaciones');
                     var _cuDiv = document.getElementById('natalGroupCurso');
                     var _grpBtns = document.querySelectorAll('.natal-group-tab');
                     _grpBtns.forEach(function(b) { b.classList.remove('active'); });
                     // Hide all groups first
                     if (_detDiv) _detDiv.style.display = 'none';
                     if (_avDiv) _avDiv.style.display = 'none';
+                    if (_reDiv) _reDiv.style.display = 'none';
                     if (_cuDiv) _cuDiv.style.display = 'none';
                     // Show the target group
                     if (step.group === 'avanzado') {
                         if (_avDiv) _avDiv.style.display = 'flex';
                         if (_grpBtns[1]) _grpBtns[1].classList.add('active');
+                    } else if (step.group === 'relaciones') {
+                        if (_reDiv) _reDiv.style.display = 'flex';
+                        if (_grpBtns[2]) _grpBtns[2].classList.add('active');
                     } else if (step.group === 'curso') {
                         if (_cuDiv) _cuDiv.style.display = 'flex';
-                        if (_grpBtns[2]) _grpBtns[2].classList.add('active');
+                        if (_grpBtns[3]) _grpBtns[3].classList.add('active');
                     } else {
                         if (_detDiv) _detDiv.style.display = 'flex';
                         if (_grpBtns[0]) _grpBtns[0].classList.add('active');
