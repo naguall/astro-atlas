@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v727';</script>
+    <script>window.APP_VERSION = 'v729';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -22998,7 +22998,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div class="natal-group-tabs">
             <button class="natal-group-tab active" onclick="switchNatalGroup('detalles',this)">📋 ${'Detalles'}</button>
             <button class="natal-group-tab" onclick="switchNatalGroup('avanzado',this)">🔮 ${'Avanzado'}</button>
-            <button class="natal-group-tab" onclick="switchNatalGroup('relaciones',this)">💞 ${'Relaciones'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('relaciones',this)">🤝 ${'Relaciones'}</button>
             <button class="natal-group-tab" onclick="switchNatalGroup('curso',this)">🎓 ${'Curso'}</button>
         </div>
         <div id="natalGroupDetalles" class="natal-subtabs">
@@ -33799,9 +33799,10 @@ window.openAstroModal = openAstroModal;
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
-    const MIN_SWIPE_DIST = 60;
-    const MAX_SWIPE_TIME = 400;
-    const MAX_VERTICAL_RATIO = 1.5; // horizontal must be > vertical * ratio
+    // v729: relaxed thresholds for better Android responsiveness
+    const MIN_SWIPE_DIST = 40;
+    const MAX_SWIPE_TIME = 700;
+    const MAX_VERTICAL_RATIO = 1.2;
 
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length !== 1) return;
@@ -33817,14 +33818,13 @@ window.openAstroModal = openAstroModal;
         const dt = Date.now() - touchStartTime;
         touchStartX = 0;
 
-        // Must be a quick, mostly-horizontal swipe
-        if (dt > MAX_SWIPE_TIME) return;
-        if (Math.abs(dx) < MIN_SWIPE_DIST) return;
-        if (Math.abs(dy) * MAX_VERTICAL_RATIO > Math.abs(dx)) return;
+        if (dt > MAX_SWIPE_TIME) { console.log('[swipe] rejected: too slow', dt, 'ms'); return; }
+        if (Math.abs(dx) < MIN_SWIPE_DIST) { console.log('[swipe] rejected: too short', Math.abs(dx), 'px'); return; }
+        if (Math.abs(dy) * MAX_VERTICAL_RATIO > Math.abs(dx)) { console.log('[swipe] rejected: too vertical dx=' + dx + ' dy=' + dy); return; }
 
-        // Don't swipe inside modals, AI chat, or scrollable tables
         const target = e.target;
-        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabMapa'))) return;
+        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabMapa'))) { console.log('[swipe] rejected: inside excluded container'); return; }
+        console.log('[swipe] firing dx=' + dx + ' calendarMode=' + calendarMode);
 
         if (dx < 0) {
             // Swipe LEFT → next
