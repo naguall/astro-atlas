@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v723';</script>
+    <script>window.APP_VERSION = 'v724';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2007,9 +2007,16 @@ function getMoonSVG(elongation, size) {
 
     let overlay = '';
     let borderStroke = 'rgba(150,180,220,0.28)';
+    let borderWidth = '0.5';
     if (phase < 22.5 || phase >= 337.5) {
         overlay = ''; // new moon — all dark
         borderStroke = 'rgba(255,255,255,0.4)'; // Brighter border for new moon visibility
+    } else if (phase >= 67.5 && phase < 112.5) {
+        // v724: First quarter — make dark half visible with brighter border
+        borderStroke = 'rgba(180,210,240,0.55)'; borderWidth = '0.8';
+    } else if (phase >= 247.5 && phase < 292.5) {
+        // v724: Last quarter — make dark half visible with brighter border
+        borderStroke = 'rgba(180,210,240,0.55)'; borderWidth = '0.8';
     } else if (phase < 180) {
         // WAXING: right side lit
         const litHalf = `<path d="M${cx},${cy-r} A${r},${r} 0 0,1 ${cx},${cy+r} Z" fill="${lit}"/>`;
@@ -2035,7 +2042,7 @@ function getMoonSVG(elongation, size) {
         <circle cx="${cx}" cy="${cy}" r="${r}" fill="${dark}"/>
         <g clip-path="url(#cp${uid})">${overlay}</g>
         <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#hl${uid})"/>
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${borderStroke}" stroke-width="${(phase < 22.5 || phase >= 337.5) ? '1' : '0.5'}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${borderStroke}" stroke-width="${(phase < 22.5 || phase >= 337.5) ? '1' : borderWidth}"/>
     </svg>`;
 }
 function getMoonEmoji(elongation) { return getMoonSVG(elongation, 16); }
@@ -29750,8 +29757,8 @@ function renderCalendar() {
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${week.days.length},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_perfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
                 <div class="moon-icon" style="grid-column:${_perfCol}/${_perfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;">${week.emoji}</div>
-                <div style="grid-column:${_perfCol + 1}/${week.days.length};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
-                <div style="grid-column:${week.days.length}/${week.days.length + 1};font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
+                <div style="grid-column:${_perfCol + 1}/${week.days.length - 1};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
+                <div style="grid-column:${week.days.length - 1}/${week.days.length + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(${week.days.length},1fr);">${daysHTML}</div>
         `;
