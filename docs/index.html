@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v719';</script>
+    <script>window.APP_VERSION = 'v720';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -18385,7 +18385,9 @@ function _renderEvents2026View(es, activeYear) {
 // ASTEROIDS 2026 VIEW — Ceres, Pallas, Juno, Vesta
 // Uses Swiss Ephemeris WASM to calculate positions dynamically
 // ============================================================
-function _renderAsteroids2026View(es) {
+function _renderAsteroids2026View(es, activeYear) {
+    // v720: honor activeYear parameter (was hardcoded to 2026)
+    if (!activeYear) activeYear = window._aspYear || 2026;
     var html = '';
 
     var asteroidDefs = [
@@ -18488,7 +18490,8 @@ function _renderAsteroids2026View(es) {
             signNow = getSignFromLon(lonNow);
             speedNow = posNow[3];
             events2026 = [];
-            var startDate = new Date(2026,0,1), endDate = new Date(2026,11,31);
+            // v720: use activeYear (was hardcoded 2026)
+            var startDate = new Date(activeYear,0,1), endDate = new Date(activeYear,11,31);
             var prevSign=null, prevSpeed=null, retroStart=null;
             for (var d=new Date(startDate); d<=endDate; d.setDate(d.getDate()+2)) {
                 var jd=swe.julday(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(),12);
@@ -18530,7 +18533,7 @@ function _renderAsteroids2026View(es) {
             + '<div style="flex:1;">'
             + '<div style="font-family:\'Cinzel\',serif;color:' + ast.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + ast.symbol + ' ' + ast.name.toUpperCase() + '</div>'
             + '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">'
-            + totalEvents + ' ' + (es ? 'eventos en 2026' : 'events in 2026')
+            + totalEvents + ' ' + (es ? 'eventos en ' + activeYear : 'events in ' + activeYear)
             + (signChangeCount > 0 ? ' • ' + signChangeCount + ' ' + (es ? 'cambios' : 'changes') : '')
             + (retroCount > 0 ? ' • ' + retroCount + ' ' + (es ? 'retrógrados' : 'retrogrades') : '')
             + '</div>'
@@ -18816,7 +18819,9 @@ function renderAspects2026Panel() {
         const nav = document.querySelector('.navigation');
         if (nav) nav.parentNode.insertBefore(panel, nav.nextSibling);
     }
-    panel.style.display = 'block';
+    // v720: If subtab variant exists (we're in Astrology mode), keep standalone hidden
+    var inSubtabMode = !!document.getElementById('aspects2026PanelSubtab') || (typeof calendarMode !== 'undefined' && calendarMode === 'personal');
+    panel.style.display = inSubtabMode ? 'none' : 'block';
 
     // Planet data for photos and colors
     const planetInfo = {
@@ -18898,7 +18903,7 @@ function renderAspects2026Panel() {
 
     // If Asteroids tab, render asteroids view
     if (activeTab === 'asteroids') {
-        html += _renderAsteroids2026View(es);
+        html += _renderAsteroids2026View(es, activeYear);
         html += '</div>';
         panel.innerHTML = html;
         return;
@@ -23387,7 +23392,15 @@ function switchNatalGroup(group, btn) {
         if (a2026Tab) a2026Tab.style.display = 'block';
         var calGrid = document.getElementById('natalCalendarGrid');
         if (calGrid) calGrid.style.display = 'none';
-        setTimeout(function() { if (typeof renderAspects2026InSubtab === 'function') renderAspects2026InSubtab(); }, 100);
+        // v720 fix: aggressively hide standalone aspects2026Panel to prevent duplication
+        var standaloneAsp = document.getElementById('aspects2026Panel');
+        if (standaloneAsp) standaloneAsp.style.display = 'none';
+        setTimeout(function() {
+            if (typeof renderAspects2026InSubtab === 'function') renderAspects2026InSubtab();
+            // After subtab render, force-hide standalone again (renderAspects2026Panel may have shown it briefly)
+            var standalone2 = document.getElementById('aspects2026Panel');
+            if (standalone2) standalone2.style.display = 'none';
+        }, 100);
         var fab = document.getElementById('aiChatFab');
         if (fab) fab.style.display = 'flex';
         return;

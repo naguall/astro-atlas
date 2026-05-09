@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v719';</script>
+    <script>window.APP_VERSION = 'v720';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -18561,7 +18561,9 @@ function renderAspects2026Panel() {
         const nav = document.querySelector('.navigation');
         if (nav) nav.parentNode.insertBefore(panel, nav.nextSibling);
     }
-    panel.style.display = 'block';
+    // v720: If subtab variant exists (we're in Astrology mode), keep standalone hidden
+    var inSubtabMode = !!document.getElementById('aspects2026PanelSubtab') || (typeof calendarMode !== 'undefined' && calendarMode === 'personal');
+    panel.style.display = inSubtabMode ? 'none' : 'block';
 
     // Planet data for photos and colors
     const planetInfo = {
@@ -23132,7 +23134,15 @@ function switchNatalGroup(group, btn) {
         if (a2026Tab) a2026Tab.style.display = 'block';
         var calGrid = document.getElementById('natalCalendarGrid');
         if (calGrid) calGrid.style.display = 'none';
-        setTimeout(function() { if (typeof renderAspects2026InSubtab === 'function') renderAspects2026InSubtab(); }, 100);
+        // v720 fix: aggressively hide standalone aspects2026Panel to prevent duplication
+        var standaloneAsp = document.getElementById('aspects2026Panel');
+        if (standaloneAsp) standaloneAsp.style.display = 'none';
+        setTimeout(function() {
+            if (typeof renderAspects2026InSubtab === 'function') renderAspects2026InSubtab();
+            // After subtab render, force-hide standalone again (renderAspects2026Panel may have shown it briefly)
+            var standalone2 = document.getElementById('aspects2026Panel');
+            if (standalone2) standalone2.style.display = 'none';
+        }, 100);
         var fab = document.getElementById('aiChatFab');
         if (fab) fab.style.display = 'flex';
         return;
