@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v721';</script>
+    <script>window.APP_VERSION = 'v722';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10415,7 +10415,7 @@ function shareDiaryEntry(dateKey) {
     if (navigator.share) {
         navigator.share({ title: 'AstroAtlas — ' + dateKey, text: shareText }).catch(function(){});
     } else {
-        navigator.clipboard.writeText(shareText).then(function() { alert'Copiado al portapapeles'; });
+        navigator.clipboard.writeText(shareText).then(function() { alert(currentLang==='es'?'Copiado al portapapeles':'Copied to clipboard'); });
     }
 }
 function exportAllDiaryEntries() {
@@ -12300,7 +12300,7 @@ window._testSolfeggioHold = function() {
         for (var k in prefs) {
             if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.85 });
         }
-        if (activeFreqs.length === 0) { alert'Activa al menos una frecuencia'; return; }
+        if (activeFreqs.length === 0) { alert(currentLang==='es'?'Activa al menos una frecuencia':'Enable at least one frequency'); return; }
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         // DynamicsCompressor: maximizes loudness at any system volume
         var compressor = ctx.createDynamicsCompressor();
@@ -34843,7 +34843,7 @@ function closePreferencesModal() {
 async function handleNotifToggle(enable) {
     if (enable) {
         if (!('Notification' in window)) {
-            alert'Tu navegador no soporta notificaciones';
+            alert(currentLang==='es'?'Tu navegador no soporta notificaciones':'Your browser does not support notifications');
             openPreferencesModal(); // refresh UI
             return;
         }
@@ -41349,7 +41349,7 @@ function shareHoyInterp() {
         navigator.share({ title: 'AstroAtlas', text: text }).catch(function(){});
     } else {
         navigator.clipboard.writeText(text).then(function() {
-            alert'Copiado al portapapeles';
+            alert(currentLang==='es'?'Copiado al portapapeles':'Copied to clipboard');
         });
     }
 }
@@ -41365,7 +41365,7 @@ function saveHoyInterp() {
     var entry = '✨ ' + 'Interpretación del Día' + ':\n' + text.trim();
     localStorage.setItem('diary_' + dateKey, existing + (existing ? '\n\n' : '') + entry);
     if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
-    alert'Guardado en tu diario de hoy';
+    alert(currentLang==='es'?'Guardado en tu diario de hoy':'Saved to today\'s diary');
 }
 
 window.interpretarHoyCompleto = interpretarHoyCompleto;
