@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v724';</script>
+    <script>window.APP_VERSION = 'v725';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10982,13 +10982,16 @@ async function sendInterpChatMessage(chatId, readingKey) {
     var chat = getInterpChat(chatId);
     var data = window[readingKey];
 
-    // Add user message to UI
+    // Add user message to UI (v725: tag with ID so we can scroll to it later)
     var msgsDiv = document.getElementById('interpChatMessages_' + chatId);
-    msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(201,168,64,0.15);color:#c9a840;">' + text.replace(/</g,'&lt;') + '</div></div>';
+    var _userMsgId = 'interpUserMsg_' + chatId + '_' + Date.now();
+    msgsDiv.innerHTML += '<div id="' + _userMsgId + '" style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(201,168,64,0.15);color:#c9a840;">' + text.replace(/</g,'&lt;') + '</div></div>';
 
     // Add typing indicator
     msgsDiv.innerHTML += '<div id="interpTyping_' + chatId + '" style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;border-radius:12px;font-size:0.8em;color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.03);">✨ ' + (L ? 'Consultando...' : 'Consulting...') + '</div></div>';
-    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+    // v725: scroll user question to top of viewport (not bottom)
+    var _uMsg = document.getElementById(_userMsgId);
+    if (_uMsg) { var _cr = msgsDiv.getBoundingClientRect(); var _ur = _uMsg.getBoundingClientRect(); msgsDiv.scrollTop = Math.max(0, msgsDiv.scrollTop + _ur.top - _cr.top - 8); }
 
     // Save user message
     chat.messages.push({ role: 'user', text: text, timestamp: new Date().toISOString() });
@@ -11037,9 +11040,9 @@ async function sendInterpChatMessage(chatId, readingKey) {
         if (response.body) {
             // Create bubble immediately for streaming
             msgsDiv.innerHTML += '<div id="wrap_' + _respId + '" style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '">▌</div></div></div>';
-            // Scroll so new bubble's top is visible
-            var _iwrap = document.getElementById('wrap_' + _respId);
-            if (_iwrap) { var _icr = msgsDiv.getBoundingClientRect(); var _iwr = _iwrap.getBoundingClientRect(); msgsDiv.scrollTop = Math.max(0, msgsDiv.scrollTop + _iwr.top - _icr.top - 8); }
+            // v725: keep user question pinned at top instead of scrolling to AI bubble
+            var _uMsgStream = document.getElementById(_userMsgId);
+            if (_uMsgStream) { var _crS = msgsDiv.getBoundingClientRect(); var _urS = _uMsgStream.getBoundingClientRect(); msgsDiv.scrollTop = Math.max(0, msgsDiv.scrollTop + _urS.top - _crS.top - 8); }
             var _streamTarget = document.getElementById(_respId);
             var _sReader = response.body.getReader();
             var _sDec = new TextDecoder();
@@ -11088,7 +11091,9 @@ async function sendInterpChatMessage(chatId, readingKey) {
             window._attachReadDbl(_fuEl, function(){ return _fuEl ? _fuEl.id : null; }, L ? 'Doble click para leer desde aquí' : 'Double click to read from here');
         }
 
-        msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        // v725: KEEP the user question at top of viewport (don't scroll to end of AI response)
+        var _uMsg2 = document.getElementById(_userMsgId);
+        if (_uMsg2) { var _cr2 = msgsDiv.getBoundingClientRect(); var _ur2 = _uMsg2.getBoundingClientRect(); msgsDiv.scrollTop = Math.max(0, msgsDiv.scrollTop + _ur2.top - _cr2.top - 8); }
 
     } catch(e) {
         var typingEl2 = document.getElementById('interpTyping_' + chatId);
@@ -40037,8 +40042,10 @@ window._ttsPlayer = { chunks: [], currentIdx: 0, elementId: null, playing: false
     var style = document.createElement('style');
     style.textContent =
         '.tts-sentence { transition: background 0.25s, color 0.25s, box-shadow 0.25s; border-radius: 4px; padding: 1px 2px; }' +
-        '.tts-sentence.tts-active { background: rgba(102,126,234,0.25); color: #fff; box-shadow: 0 0 8px rgba(102,126,234,0.3); }' +
+        '.tts-sentence.tts-active { background: rgba(102,126,234,0.15); color: #fff; box-shadow: 0 0 8px rgba(102,126,234,0.2); }' +
         '.tts-sentence.tts-done { opacity: 0.55; }' +
+        '.tts-word { transition: background 0.15s, color 0.15s; border-radius: 3px; padding: 0 1px; }' +
+        '.tts-word.tts-word-active { background: rgba(255,215,0,0.45); color: #fff; box-shadow: 0 0 6px rgba(255,215,0,0.5); font-weight: 600; }' +
         '#ttsSelBtn { position:fixed; z-index:10000; padding:6px 14px; background:rgba(15,10,35,0.95); border:1px solid rgba(102,126,234,0.5); border-radius:20px; color:#667eea; font-size:0.82em; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.5); backdrop-filter:blur(8px); display:none; align-items:center; gap:4px; }' +
         '#ttsSelBtn:active { transform: scale(0.95); }';
     document.head.appendChild(style);
@@ -40139,7 +40146,6 @@ window._ttsPlayChunk = function(idx) {
         window._ttsUpdatePlayerUI();
         return;
     }
-    // Set navigating flag to prevent onerror/onend from cancelling during chunk switch
     p._navigating = true;
     window.speechSynthesis.cancel();
     p._navigating = false;
@@ -40147,6 +40153,26 @@ window._ttsPlayChunk = function(idx) {
     p.playing = true;
     window._ttsUpdatePlayerUI();
     window._ttsHighlightChunk(idx);
+
+    // v725: WORD-LEVEL KARAOKE — wrap each word of current chunk in its own span
+    var chunkSpan = document.getElementById(p.spanIds[idx]);
+    if (chunkSpan) {
+        var words = p.chunks[idx].split(/(\s+)/);
+        var wordHTML = '';
+        var wordCharOffsets = [];
+        var charPos = 0;
+        words.forEach(function(w, wi) {
+            if (/^\s+$/.test(w)) { wordHTML += w; charPos += w.length; }
+            else {
+                wordCharOffsets.push({ start: charPos, end: charPos + w.length, idx: wi });
+                wordHTML += '<span class="tts-word" id="ttsW_' + idx + '_' + wi + '">' + _escHTML(w) + '</span>';
+                charPos += w.length;
+            }
+        });
+        chunkSpan.innerHTML = wordHTML;
+        p._wordOffsets = wordCharOffsets;
+        p._currentChunkIdx = idx;
+    }
 
     var langCode = currentLang === 'es' ? 'es' : 'en';
     var preferred = window._getTTSVoice(langCode);
@@ -40157,11 +40183,41 @@ window._ttsPlayChunk = function(idx) {
     utter.rate = rate;
     utter.pitch = 1.0;
     if (preferred) utter.voice = preferred;
+
+    // v725: word-by-word highlight using onboundary
+    utter.onboundary = function(e) {
+        if (!e || e.name !== 'word') return;
+        var offs = p._wordOffsets || [];
+        for (var oi = 0; oi < offs.length; oi++) {
+            if (e.charIndex >= offs[oi].start && e.charIndex < offs[oi].end) {
+                document.querySelectorAll('.tts-word.tts-word-active').forEach(function(w) { w.classList.remove('tts-word-active'); });
+                var wEl = document.getElementById('ttsW_' + idx + '_' + offs[oi].idx);
+                if (wEl) {
+                    wEl.classList.add('tts-word-active');
+                    try {
+                        var scrollEl = wEl.parentElement;
+                        while (scrollEl && scrollEl !== document.body) {
+                            var oy = window.getComputedStyle(scrollEl).overflowY;
+                            if ((oy === 'auto' || oy === 'scroll') && scrollEl.scrollHeight > scrollEl.clientHeight + 2) break;
+                            scrollEl = scrollEl.parentElement;
+                        }
+                        if (scrollEl && scrollEl !== document.body) {
+                            var sr = scrollEl.getBoundingClientRect(), wr = wEl.getBoundingClientRect();
+                            if (wr.top < sr.top + 20 || wr.bottom > sr.bottom - 20) {
+                                scrollEl.scrollTop += (wr.top - sr.top) - sr.height / 2 + wr.height / 2;
+                            }
+                        }
+                    } catch(_e){}
+                }
+                break;
+            }
+        }
+    };
+
     utter.onend = function() {
         if (p.playing && !p._navigating) window._ttsPlayChunk(idx + 1);
     };
     utter.onerror = function(e) {
-        // Ignore 'interrupted' errors (caused by navigation between chunks)
         if (e && e.error === 'interrupted') return;
         if (!p._navigating) {
             p.playing = false;
