@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v742';</script>
+    <script>window.APP_VERSION = 'v743';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -23562,8 +23562,9 @@ function renderNatalLunarCal() {
                 + '</div></div>';
         }).join('');
 
-        var _nDays = week.days.length || 7;
-        var _iconCol = Math.min(4, _nDays); // icon above 4th day column
+        // v742: usar 8 cols igual que renderCalendar para que setCellSize no rompa la alineación.
+        var _nDays = 8;
+        var _iconCol = 4;
         weekDiv.innerHTML = '<div class="week-header" style="display:grid;grid-template-columns:repeat(' + _nDays + ',1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;">'
             + '<div style="grid-column:1/' + Math.min(4, _nDays) + ';font-size:0.6em;color:#8899cc;white-space:nowrap;padding-left:4px;overflow:hidden;">' + week.days.length + 'd <span style="opacity:0.5;">•</span> ' + formatDate(week.startDate) + ' - ' + formatDate(week.endDate) + '</div>'
             + '<div style="grid-column:' + _iconCol + '/' + (_iconCol+1) + ';display:flex;align-items:center;justify-content:center;">'
@@ -23572,7 +23573,7 @@ function renderNatalLunarCal() {
             + '<div style="grid-column:' + (_iconCol+1) + '/' + Math.min(_iconCol+3, _nDays) + ';display:flex;align-items:center;justify-content:flex-start;gap:0;">'
             + '<span style="font-weight:bold;white-space:nowrap;color:#e8c84a;font-size:0.65em;">' + week.name + '</span>'
             + '</div>'
-            + '<div style="grid-column:' + Math.max(_iconCol+3, _nDays) + '/' + (_nDays+1) + ';font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;padding-right:4px;overflow:hidden;">' + week.zodiacSign + '</div>'
+            + '<div style="grid-column:' + Math.max(_iconCol+3, _nDays - 1) + '/' + (_nDays+1) + ';font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;padding-right:4px;overflow:hidden;">' + week.zodiacSign + '</div>'
             + '</div>'
             + '<div class="days-container" style="grid-template-columns:repeat(' + _nDays + ',1fr);">' + daysHTML + '</div>';
 
@@ -27809,8 +27810,8 @@ function generateSolarWeeks(sign) {
             </div>
         `;
         
-        // Days container
-        html += `<div class="days-container">`;
+        // Days container — v742: explícito 7 cols (setCellSize ahora fuerza 8 globalmente)
+        html += `<div class="days-container" style="grid-template-columns:repeat(7,1fr);">`;
         
         // Generate days for this decan
         let renderedDays = 0;
@@ -27893,7 +27894,6 @@ function generateSolarWeeks(sign) {
                                 const scTxt = (tp(sc.planet) + ' → ' + ts(sc.toSign) + (sc.time ? ' ' + sc.time : '')).replace(/'/g, "\\'");
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.7em;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
-                            ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
                             ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
@@ -29797,7 +29797,6 @@ function renderCalendar() {
                                 const scTxt = (tp(sc.planet) + ' → ' + ts(sc.toSign) + (sc.time ? ' ' + sc.time : '')).replace(/'/g, "\\'");
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.85em;white-space:nowrap;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
-                            ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
                             ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
@@ -35002,8 +35001,9 @@ function setCellSize(size) {
         cell.style.fontSize = fonts[size] || '0.75em';
         cell.style.padding = paddings[size] || '5px';
     });
-    // Apply grid settings to containers
-    document.querySelectorAll('.days-container').forEach(function(container) {
+    // v742: Apply grid settings ONLY to lunar week containers — solar/gregoriano/personal
+    // calendars manage their own grid (typically 7 cols). Lunar uses 8 cols (up to 8-day weeks).
+    document.querySelectorAll('.lunar-week .days-container').forEach(function(container) {
         container.style.gridTemplateColumns = gridCols[size] || gridCols.medium;
         container.style.gap = gaps[size] || '3px';
     });
