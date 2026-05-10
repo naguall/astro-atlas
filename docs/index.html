@@ -30050,18 +30050,23 @@ function renderCalendar() {
             }
         }
 
-        // v741: SIEMPRE 8 columnas — días llenan de izquierda a derecha; el espacio vacío
-        // queda a la derecha si la semana tiene menos de 8 días. Mantiene simetría
-        // visual entre todas las semanas (todas las columnas alineadas verticalmente).
-        // Icono fijo en perfCol; phase name PEGADO al icono con overflow visible para no cortarse.
+        // v742: SIEMPRE 8 columnas — días llenan de izquierda a derecha; el espacio vacío
+        // queda a la derecha si la semana tiene menos de 8 días.
+        // Emoji de luna centrado SOLO en la celda del día de perfección (no el bloque emoji+texto);
+        // el nombre de la fase ("Nueva", "Creciente"...) flota al costado en absoluto sin desplazar el ícono.
+        // El nombre va a la DERECHA del ícono si la perfección cae en la primera mitad, a la IZQUIERDA si cae en la segunda mitad.
         // Signo zodiacal abarca las últimas 2 columnas del header para que no se corte ("Escorpio", "Acuario").
         var _gridCols = 8;
         var _zodColStart = _gridCols - 1; // zodiac spans last 2 cols (cols 7-8)
-        var _safePerfCol = Math.min(_perfCol, _gridCols - 2); // moon must not collide with zodiac (max col 6)
+        var _safePerfCol = Math.min(Math.max(_perfCol, 1), _gridCols);
+        var _nameSide = _safePerfCol <= (_gridCols / 2) ? 'right' : 'left';
+        var _nameStyle = _nameSide === 'right'
+            ? 'position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:4px;font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;pointer-events:none;'
+            : 'position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:4px;font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;pointer-events:none;';
         weekDiv.innerHTML = `
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${_gridCols},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;position:relative;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_safePerfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
-                <div class="moon-icon" style="grid-column:${_safePerfCol}/${_safePerfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;gap:5px;overflow:visible;position:relative;z-index:2;white-space:nowrap;">${week.emoji}<span style="font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;">${week.name}</span></div>
+                <div class="moon-icon" style="grid-column:${_safePerfCol}/${_safePerfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative;z-index:2;"><span style="display:inline-block;">${week.emoji}</span><span style="${_nameStyle}">${week.name}</span></div>
                 <div style="grid-column:${_zodColStart}/${_gridCols + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;position:relative;z-index:1;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(${_gridCols},1fr);">${daysHTML}</div>
