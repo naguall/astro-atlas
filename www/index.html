@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v740';</script>
+    <script>window.APP_VERSION = 'v741';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -6243,11 +6243,14 @@ function calculateLunarCycle(startDate) {
         _ws.setDate(_ws.getDate() - 3);
         _nextWeekStarts.push(_ws);
     }
-    // The end boundary for the last week: day before next New Moon
+    // The end boundary for the last week: 4 days before next New Moon
+    // v741: Cambiado de -1 a -4 para que los 3 días previos a la nueva luna NO se repitan
+    // entre ciclos (antes aparecían como últimos del Menguante Y como primeros de la Nueva siguiente).
+    // Ahora cada día aparece UNA SOLA VEZ across all cycles.
     var _nextNMDay = new Date(nextNewMoon);
     _nextNMDay.setHours(0, 0, 0, 0);
     var _lastWeekBoundary = new Date(_nextNMDay);
-    _lastWeekBoundary.setDate(_lastWeekBoundary.getDate() - 1);
+    _lastWeekBoundary.setDate(_lastWeekBoundary.getDate() - 4);
 
     for (var i = 0; i < 4; i++) {
         var currentPerfection = perfections[i];
@@ -29680,18 +29683,20 @@ function renderCalendar() {
             }
         }
 
-        // v731: REVERT v727 layout original (Grid). v733: Span 2 cols SOLO en móvil para
-        // semanas pares (centrar visualmente menguante). En desktop mantiene simetría original.
-        var _isMobile = window.innerWidth < 600;
-        var _moonSpan = (_isMobile && week.days.length % 2 === 0) ? 2 : 1;
+        // v741: Si la semana tiene 8 días, usamos grid de 7 columnas — el día 8 cae en una fila aparte
+        // abajo a la izquierda, manteniendo simetría con las semanas de 6/7 días.
+        // Icono fijo en perfCol; phase name PEGADO al icono con overflow visible para no cortarse.
+        var _gridCols = (week.days.length === 8) ? 7 : week.days.length;
+        var _zodCol = _gridCols; // zodiac sign goes in last column of header
+        // Clamp _perfCol to fit in the grid (in 8-day weeks, perfection always lands in cols 1-5 due to centering).
+        var _safePerfCol = Math.min(_perfCol, _gridCols);
         weekDiv.innerHTML = `
-            <div class="week-header" style="display:grid;grid-template-columns:repeat(${week.days.length},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
-                <div style="grid-column:1/${_perfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
-                <div class="moon-icon" style="grid-column:${_perfCol}/${_perfCol + _moonSpan};margin:0;display:flex;align-items:center;justify-content:center;">${week.emoji}</div>
-                <div style="grid-column:${_perfCol + _moonSpan}/${week.days.length - 1};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
-                <div style="grid-column:${week.days.length - 1}/${week.days.length + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
+            <div class="week-header" style="display:grid;grid-template-columns:repeat(${_gridCols},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;position:relative;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
+                <div style="grid-column:1/${_safePerfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
+                <div class="moon-icon" style="grid-column:${_safePerfCol}/${_safePerfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;gap:5px;overflow:visible;position:relative;z-index:2;white-space:nowrap;">${week.emoji}<span style="font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;">${week.name}</span></div>
+                <div style="grid-column:${_zodCol}/${_zodCol + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;position:relative;z-index:1;">${week.zodiacSign}</div>
             </div>
-            <div class="days-container" style="grid-template-columns:repeat(${week.days.length},1fr);">${daysHTML}</div>
+            <div class="days-container" style="grid-template-columns:repeat(${_gridCols},1fr);">${daysHTML}</div>
         `;
         
         _fragment.appendChild(weekDiv);
