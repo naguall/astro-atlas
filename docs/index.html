@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v730';</script>
+    <script>window.APP_VERSION = 'v731';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28894,13 +28894,12 @@ function startSublunaryRefresh() {
 
 // ── Resize handler for globe canvases on orientation change ──
 let _resizeDebounce = null;
-window.addEventListener('resize', function() {
+function _handleOrientationResize() {
     clearTimeout(_resizeDebounce);
     _resizeDebounce = setTimeout(function() {
         // Re-render sublunary globe
         const sublunaryCanvas = document.getElementById('sublunaryGlobe');
         if (sublunaryCanvas && sublunaryCanvas.offsetWidth > 0) {
-            // Match height to 2D map
             const mapC = document.getElementById('sublunaryMapContainer');
             if (mapC && mapC.offsetHeight > 0) {
                 sublunaryCanvas.style.height = mapC.offsetHeight + 'px';
@@ -28919,7 +28918,22 @@ window.addEventListener('resize', function() {
             const now2 = new Date();
             renderSubsolarGlobe(getSunDeclination(now2), getSubsolarLonDeg(now2));
         }
-    }, 150);
+        // v731: Re-render whichever calendar is active so layout adapts to new orientation
+        try {
+            if (typeof calendarMode !== 'undefined') {
+                if (calendarMode === 'lunar' && typeof renderCalendar === 'function') renderCalendar();
+                else if (calendarMode === 'solar' && typeof renderSolarCalendar === 'function') renderSolarCalendar();
+                else if (calendarMode === 'gregorian' && typeof renderGregorianCalendar === 'function') renderGregorianCalendar();
+                else if (calendarMode === 'personal' && typeof renderPersonalCalendar === 'function') renderPersonalCalendar();
+            }
+        } catch(e) { console.warn('[orientation] re-render error:', e); }
+    }, 200);
+}
+window.addEventListener('resize', _handleOrientationResize);
+// v731: Android needs explicit orientationchange (resize alone may not fire)
+window.addEventListener('orientationchange', function() {
+    // Wait for the new dimensions to settle, then re-render
+    setTimeout(_handleOrientationResize, 100);
 });
 
 
@@ -29764,14 +29778,13 @@ function renderCalendar() {
             }
         }
 
+        // v731: REVERT v727 — usuario dice que el layout original estaba bien
         weekDiv.innerHTML = `
-            <div class="week-header" style="display:flex;align-items:center;padding:4px 0;gap:6px;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
-                <div style="flex:0 0 auto;font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;min-width:90px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
-                <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;">
-                    <div class="moon-icon" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;">${week.emoji}</div>
-                    <div style="font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${week.name}</div>
-                </div>
-                <div style="flex:0 0 auto;font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;max-width:90px;">${week.zodiacSign}</div>
+            <div class="week-header" style="display:grid;grid-template-columns:repeat(${week.days.length},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
+                <div style="grid-column:1/${_perfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
+                <div class="moon-icon" style="grid-column:${_perfCol}/${_perfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;">${week.emoji}</div>
+                <div style="grid-column:${_perfCol + 1}/${week.days.length - 1};font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:-8px;">${week.name}</div>
+                <div style="grid-column:${week.days.length - 1}/${week.days.length + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(${week.days.length},1fr);">${daysHTML}</div>
         `;
