@@ -5816,10 +5816,6 @@ function detectAspectPatterns(date) {
                        + 'Active: ' + rangeStr + '. Peak: midpoint of range.'
          });
      });
-            }
-        }
-    });
-
     // ── 2. T-SQUARE (opposition + both square to a third) ──
     var oppositions = aspects.filter(function(a) { return a.type === 'opposition'; });
     oppositions.forEach(function(opp) {
@@ -19044,6 +19040,67 @@ function showBannerAspectDetail(text) {
         ? 'Interpreta este aspecto o evento astrológico de hoy y cómo me afecta según mi carta natal: ' + text
         : 'Interpret this astrological aspect or event today and how it affects me based on my natal chart: ' + text;
 
+    // v741: si el evento es Solsticio/Equinoccio PERSONAL (calculado desde el cumpleaños),
+    // inyectar contexto explícito para que el AI no use el solsticio astronómico estándar (21 dic / 21 jun).
+    var _isPersonalSeason = /Solsticio Personal|Equinoccio Personal|Personal Solstice|Personal Equinox/i.test(text);
+    if (_isPersonalSeason) {
+        try {
+            var _natal = (typeof getNatalData === 'function') ? getNatalData() : null;
+            if (_natal && _natal.date) {
+                var _bParts = _natal.date.split('-').map(Number);
+                var _bMonth = _bParts[1], _bDay = _bParts[2];
+                var _bdayDate = new Date(_bParts[0], _bMonth - 1, _bDay);
+                var _bdStr = _bdayDate.toLocaleDateString(L ? 'es-AR' : 'en-US', {day:'numeric', month:'long'});
+                var _foundSeason = null;
+                var _now = new Date();
+                for (var _yOff = -1; _yOff <= 1 && !_foundSeason; _yOff++) {
+                    var _yr = _now.getFullYear() + _yOff;
+                    var _bD = new Date(_yr, _bMonth - 1, _bDay);
+                    var _nextBd = new Date(_yr + 1, _bMonth - 1, _bDay);
+                    var _yLen = Math.round((_nextBd - _bD) / 86400000);
+                    var _q = _yLen / 4;
+                    var _allS = [
+                        { key:'spring', es:'Equinoccio Personal de Primavera', en:'Personal Spring Equinox', date:_bD, off:0, sense: L?'renacimiento, nuevos comienzos, semilla':'rebirth, new beginnings, seed' },
+                        { key:'summer', es:'Solsticio Personal de Verano',     en:'Personal Summer Solstice', date:new Date(_bD.getTime()+Math.round(_q)*86400000),     off:Math.round(_q),     sense: L?'plenitud, expansión máxima, brillar':'fullness, peak expansion, shine' },
+                        { key:'autumn', es:'Equinoccio Personal de Otoño',     en:'Personal Autumn Equinox',  date:new Date(_bD.getTime()+Math.round(_q*2)*86400000), off:Math.round(_q*2), sense: L?'cosecha, balance, soltar lo que no sirve':'harvest, balance, releasing what no longer serves' },
+                        { key:'winter', es:'Solsticio Personal de Invierno',   en:'Personal Winter Solstice', date:new Date(_bD.getTime()+Math.round(_q*3)*86400000), off:Math.round(_q*3), sense: L?'introspección, descanso, gestación silenciosa antes del nuevo ciclo':'introspection, rest, silent gestation before the new cycle' }
+                    ];
+                    for (var _si = 0; _si < _allS.length; _si++) {
+                        if (text.indexOf(_allS[_si].es) >= 0 || text.indexOf(_allS[_si].en) >= 0) { _foundSeason = _allS[_si]; break; }
+                    }
+                }
+                if (_foundSeason) {
+                    var _seasonDateStr = _foundSeason.date.toLocaleDateString(L ? 'es-AR' : 'en-US', {day:'numeric', month:'long', year:'numeric'});
+                    prompt = L
+                        ? 'CONTEXTO CRÍTICO — leer antes de responder:\n\n' +
+                          'Esto NO es un solsticio o equinoccio astronómico estándar (21 dic, 21 jun, 20 mar, 22 sep). ' +
+                          'Es mi RUEDA PERSONAL DEL AÑO, calculada a partir de mi cumpleaños el ' + _bdStr + '.\n\n' +
+                          'En mi rueda personal:\n' +
+                          '• Mi Equinoccio Personal de Primavera = mi cumpleaños (' + _bdStr + ') = renacimiento, semilla, nuevo año personal.\n' +
+                          '• Mi Solsticio Personal de Verano = ~3 meses después del cumpleaños = plenitud máxima, brillar.\n' +
+                          '• Mi Equinoccio Personal de Otoño = ~6 meses después del cumpleaños = cosecha, soltar.\n' +
+                          '• Mi Solsticio Personal de Invierno = ~9 meses después del cumpleaños = introspección, descanso, gestación silenciosa.\n\n' +
+                          'EVENTO ACTUAL: ' + text + '\n' +
+                          'FECHA EXACTA: ' + _seasonDateStr + ' (es decir, ' + _foundSeason.off + ' días después de mi cumpleaños).\n' +
+                          'ENERGÍA: ' + _foundSeason.sense + '.\n\n' +
+                          'NO me hables del 21 de diciembre ni de hemisferio norte/sur. Habla SOLAMENTE del momento personal mío en el ' + _seasonDateStr + ', qué proceso interior representa, y cómo se relaciona con los tránsitos planetarios actuales y mi carta natal.'
+                        : 'CRITICAL CONTEXT — read before responding:\n\n' +
+                          'This is NOT a standard astronomical solstice/equinox (Dec 21, Jun 21, Mar 20, Sep 22). ' +
+                          'It is my PERSONAL WHEEL OF THE YEAR, computed from my birthday on ' + _bdStr + '.\n\n' +
+                          'In my personal wheel:\n' +
+                          '• My Personal Spring Equinox = my birthday (' + _bdStr + ') = rebirth, seed, new personal year.\n' +
+                          '• My Personal Summer Solstice = ~3 months after birthday = peak fullness, shine.\n' +
+                          '• My Personal Autumn Equinox = ~6 months after birthday = harvest, release.\n' +
+                          '• My Personal Winter Solstice = ~9 months after birthday = introspection, rest, silent gestation.\n\n' +
+                          'CURRENT EVENT: ' + text + '\n' +
+                          'EXACT DATE: ' + _seasonDateStr + ' (i.e., ' + _foundSeason.off + ' days after my birthday).\n' +
+                          'ENERGY: ' + _foundSeason.sense + '.\n\n' +
+                          'Do NOT talk about December 21 or northern/southern hemisphere. Speak ONLY about my personal moment on ' + _seasonDateStr + ', what inner process it represents, and how it relates to the current planetary transits and my natal chart.';
+                }
+            }
+        } catch(_psErr) { console.error('[Personal Season Prompt] error:', _psErr); }
+    }
+
     // Generate deterministic chatId for this aspect
     var chatHash = 0;
     var chatSrc = (getActiveProfileId() || 'default') + '|' + prompt;
@@ -26893,7 +26950,8 @@ function interpretCosmicCycle(cycleType) {
         solarHalf: L ? 'Medio Cielo Solar' : 'Solar Half-Return',
         profection: L ? 'Profecciones Anuales' : 'Annual Profections',
         nodalTransit: L ? 'Nodos Lunares' : 'Lunar Nodes',
-        eclipse: L ? 'Eclipses en Ejes Natales' : 'Eclipses on Natal Axes'
+        eclipse: L ? 'Eclipses en Ejes Natales' : 'Eclipses on Natal Axes',
+        personalSeasons: L ? 'Rueda Personal del Año' : 'Personal Wheel of the Year'
     };
 
     // Build context
@@ -26929,6 +26987,35 @@ function interpretCosmicCycle(cycleType) {
         prompt = L
             ? natalSummary + 'Los eclipses de este año son: ' + eclipseList + '. Interpreta: 1) Cómo afecta cada eclipse a mi carta natal específicamente, 2) Qué ejes de mi carta se activan, 3) Qué cambios o revelaciones esperar, 4) Cómo navegar la energía de eclipses de forma consciente.'
             : natalSummary + 'This year\'s eclipses are: ' + eclipseList + '. Interpret: 1) How each eclipse specifically affects my natal chart, 2) What axes of my chart are activated, 3) What changes or revelations to expect, 4) How to navigate eclipse energy consciously.';
+    } else if (cycleType === 'personalSeasons') {
+        // v741: Compute the 4 personal season dates from the user's birthday
+        var _bD0 = new Date(today.getFullYear(), birthM - 1, birthD);
+        var _nextBd0 = new Date(today.getFullYear() + 1, birthM - 1, birthD);
+        var _yLen0 = Math.round((_nextBd0 - _bD0) / 86400000);
+        var _q0 = _yLen0 / 4;
+        var _seasonDates = {
+            spring: _bD0,
+            summer: new Date(_bD0.getTime() + Math.round(_q0) * 86400000),
+            autumn: new Date(_bD0.getTime() + Math.round(_q0 * 2) * 86400000),
+            winter: new Date(_bD0.getTime() + Math.round(_q0 * 3) * 86400000)
+        };
+        var _fmt = function(d) { return d.toLocaleDateString(L ? 'es-AR' : 'en-US', {day:'numeric', month:'long', year:'numeric'}); };
+        var _bdStr0 = _bD0.toLocaleDateString(L ? 'es-AR' : 'en-US', {day:'numeric', month:'long'});
+        prompt = L
+            ? natalSummary + 'CONTEXTO CRÍTICO: Mi rueda personal del año NO es la astronómica estándar. Se calcula desde mi cumpleaños el ' + _bdStr0 + '. ' +
+              'Mis 4 puntos cardinales personales este año son:\n' +
+              '• Equinoccio Personal de Primavera (mi cumpleaños): ' + _fmt(_seasonDates.spring) + ' — renacimiento, semilla.\n' +
+              '• Solsticio Personal de Verano: ' + _fmt(_seasonDates.summer) + ' — plenitud, brillar.\n' +
+              '• Equinoccio Personal de Otoño: ' + _fmt(_seasonDates.autumn) + ' — cosecha, soltar.\n' +
+              '• Solsticio Personal de Invierno: ' + _fmt(_seasonDates.winter) + ' — introspección, gestación silenciosa.\n\n' +
+              'NO me hables del 21 de diciembre ni del 21 de junio ni de hemisferio norte/sur. Interpretá: 1) Qué energía representa cada uno de mis 4 puntos personales en relación a mi carta natal, 2) En qué momento personal estoy hoy según las fechas, 3) Qué proceso interno tengo que honrar entre ahora y el próximo punto, 4) Cómo conectar esto con los tránsitos planetarios actuales.'
+            : natalSummary + 'CRITICAL CONTEXT: My personal wheel of the year is NOT the standard astronomical one. It is computed from my birthday on ' + _bdStr0 + '. ' +
+              'My 4 personal cardinal points this year are:\n' +
+              '• Personal Spring Equinox (my birthday): ' + _fmt(_seasonDates.spring) + ' — rebirth, seed.\n' +
+              '• Personal Summer Solstice: ' + _fmt(_seasonDates.summer) + ' — fullness, shine.\n' +
+              '• Personal Autumn Equinox: ' + _fmt(_seasonDates.autumn) + ' — harvest, release.\n' +
+              '• Personal Winter Solstice: ' + _fmt(_seasonDates.winter) + ' — introspection, silent gestation.\n\n' +
+              'Do NOT mention December 21 or June 21 or northern/southern hemisphere. Interpret: 1) What energy each of my 4 personal points represents in relation to my natal chart, 2) Which personal moment am I in today based on the dates, 3) What inner process to honor between now and the next point, 4) How this connects to current planetary transits.';
     }
 
     var _title = titles[cycleType] || cycleType;
@@ -29536,14 +29623,9 @@ function renderCalendar() {
                 </div>
             </div>
         `;
-        } catch(_innerCdiErr) {
-            console.error('[MoonSync] currentDayInfo inner render error:', _innerCdiErr);
-            var _cdi2 = document.getElementById('currentDayInfo');
-            if (_cdi2) { _cdi2.style.display = 'none'; }
-        }
       } catch(_cdiErr) {
-            // v685: outer catch — hide currentDayInfo and let calendar render
-            console.error('[MoonSync] currentDayInCycle render error:', _cdiErr);
+            // v685: If currentDayInfo rendering fails, hide it — don't block calendar rendering
+            console.error('[MoonSync] currentDayInfo render error:', _cdiErr);
             var _cdi = document.getElementById('currentDayInfo');
             if (_cdi) { _cdi.style.display = 'none'; }
       }
@@ -40382,31 +40464,46 @@ window._ttsPlayChunk = function(idx) {
     window._ttsUpdatePlayerUI();
     window._ttsHighlightChunk(idx);
 
-    // v725: WORD-LEVEL KARAOKE — wrap each word of current chunk in its own span
-    var chunkSpan = document.getElementById(p.spanIds[idx]);
-    if (chunkSpan) {
-        var words = p.chunks[idx].split(/(\s+)/);
-        var wordHTML = '';
-        var wordCharOffsets = [];
-        var charPos = 0;
-        words.forEach(function(w, wi) {
-            if (/^\s+$/.test(w)) { wordHTML += w; charPos += w.length; }
-            else {
-                wordCharOffsets.push({ start: charPos, end: charPos + w.length, idx: wi });
-                wordHTML += '<span class="tts-word" id="ttsW_' + idx + '_' + wi + '">' + _escHTML(w) + '</span>';
-                charPos += w.length;
+    // v741: Words are pre-wrapped in readAloud, so we just compute char offsets here for onboundary.
+    var words = p.chunks[idx].split(/(\s+)/);
+    var wordCharOffsets = [];
+    var charPos = 0;
+    words.forEach(function(w, wi) {
+        if (/^\s+$/.test(w)) { charPos += w.length; }
+        else {
+            wordCharOffsets.push({ start: charPos, end: charPos + w.length, idx: wi });
+            charPos += w.length;
+        }
+    });
+    p._wordOffsets = wordCharOffsets;
+    p._currentChunkIdx = idx;
+
+    // v741: If user dblclicked on a specific word, start speaking from that word's char offset.
+    var _speakText = p.chunks[idx];
+    var _charOffset = 0;
+    if (p.startWordIdx && p.startWordIdx > 0) {
+        var _startWordOffset = null;
+        for (var _swi = 0; _swi < wordCharOffsets.length; _swi++) {
+            if (wordCharOffsets[_swi].idx === p.startWordIdx) { _startWordOffset = wordCharOffsets[_swi]; break; }
+        }
+        if (_startWordOffset) {
+            _speakText = p.chunks[idx].substring(_startWordOffset.start);
+            _charOffset = _startWordOffset.start;
+            for (var _dwi = 0; _dwi < wordCharOffsets.length; _dwi++) {
+                if (wordCharOffsets[_dwi].idx < p.startWordIdx) {
+                    var _dwEl = document.getElementById('ttsW_' + idx + '_' + wordCharOffsets[_dwi].idx);
+                    if (_dwEl) _dwEl.style.opacity = '0.45';
+                }
             }
-        });
-        chunkSpan.innerHTML = wordHTML;
-        p._wordOffsets = wordCharOffsets;
-        p._currentChunkIdx = idx;
+        }
+        p.startWordIdx = 0;
     }
 
     var langCode = currentLang === 'es' ? 'es' : 'en';
     var preferred = window._getTTSVoice(langCode);
     var rate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
 
-    var utter = new SpeechSynthesisUtterance(p.chunks[idx]);
+    var utter = new SpeechSynthesisUtterance(_speakText);
     utter.lang = currentLang === 'es' ? 'es-MX' : 'en-US';
     utter.rate = rate;
     utter.pitch = 1.0;
@@ -40416,8 +40513,9 @@ window._ttsPlayChunk = function(idx) {
     utter.onboundary = function(e) {
         if (!e || e.name !== 'word') return;
         var offs = p._wordOffsets || [];
+        var _actualIdx = e.charIndex + _charOffset;
         for (var oi = 0; oi < offs.length; oi++) {
-            if (e.charIndex >= offs[oi].start && e.charIndex < offs[oi].end) {
+            if (_actualIdx >= offs[oi].start && _actualIdx < offs[oi].end) {
                 document.querySelectorAll('.tts-word.tts-word-active').forEach(function(w) { w.classList.remove('tts-word-active'); });
                 var wEl = document.getElementById('ttsW_' + idx + '_' + offs[oi].idx);
                 if (wEl) {
@@ -40635,38 +40733,55 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
     // Save original HTML for restoration later
     var origHTML = el.innerHTML;
 
-    // Build karaoke-wrapped HTML
+    // v741: Build karaoke-wrapped HTML — pre-wrap EVERY word in every chunk so dblclick
+    // can resolve to the exact word that was tapped (not just to the sentence chunk).
     var spanIds = [];
     var _uid = Date.now();
     var karaHTML = '';
     chunks.forEach(function(chunk, i) {
         var sid = 'ttsS_' + _uid + '_' + i;
         spanIds.push(sid);
-        karaHTML += '<span id="' + sid + '" class="tts-sentence">' + _escHTML(chunk) + '</span> ';
+        var _wParts = chunk.split(/(\s+)/);
+        var _wHTML = '';
+        _wParts.forEach(function(w, wi) {
+            if (/^\s+$/.test(w)) _wHTML += w;
+            else _wHTML += '<span class="tts-word" id="ttsW_' + i + '_' + wi + '">' + _escHTML(w) + '</span>';
+        });
+        karaHTML += '<span id="' + sid + '" class="tts-sentence">' + _wHTML + '</span> ';
     });
     el.innerHTML = '<div style="line-height:1.8;">' + karaHTML + '</div>';
 
     // Setup player state with karaoke info
-    window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false, originalHTML: origHTML, spanIds: spanIds };
+    window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false, originalHTML: origHTML, spanIds: spanIds, startWordIdx: 0 };
 
-    // Determine start index from tap/click coordinates (primary method — works on Android)
+    // v741: Determine start chunk AND start word from tap/click coordinates.
     var startIdx = 0;
+    var startWordIdx = 0;
     if (clickX !== undefined && clickY !== undefined) {
         var elAtPoint = document.elementFromPoint(clickX, clickY);
         if (elAtPoint) {
             var checkEl = elAtPoint;
-            for (var pi = 0; pi < 4 && checkEl; pi++) {
+            for (var pi = 0; pi < 5 && checkEl; pi++) {
+                if (checkEl.id && checkEl.id.indexOf('ttsW_') === 0) {
+                    var wParts = checkEl.id.split('_');
+                    var fIdx = parseInt(wParts[1]);
+                    var fWord = parseInt(wParts[2]);
+                    if (!isNaN(fIdx)) startIdx = fIdx;
+                    if (!isNaN(fWord)) startWordIdx = fWord;
+                    break;
+                }
                 if (checkEl.id && checkEl.id.indexOf('ttsS_') === 0) {
-                    var parts = checkEl.id.split('_');
-                    var foundIdx = parseInt(parts[parts.length - 1]);
-                    if (!isNaN(foundIdx) && foundIdx > 0) { startIdx = foundIdx; break; }
+                    var sParts = checkEl.id.split('_');
+                    var sIdx = parseInt(sParts[sParts.length - 1]);
+                    if (!isNaN(sIdx)) startIdx = sIdx;
+                    break;
                 }
                 checkEl = checkEl.parentElement;
             }
         }
     }
     // Fallback: use selected text if coordinate method found nothing and text is available
-    if (startIdx === 0 && startFromText) {
+    if (startIdx === 0 && startWordIdx === 0 && startFromText) {
         var selClean = startFromText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
         var selWords = selClean.split(/\s+/).slice(0, 5).join(' ').toLowerCase();
         for (var ci = 0; ci < chunks.length; ci++) {
@@ -40679,6 +40794,7 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
             }
         }
     }
+    window._ttsPlayer.startWordIdx = startWordIdx;
     // Mark previous chunks as visually done
     if (startIdx > 0) {
         for (var di = 0; di < startIdx; di++) {
