@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v741';</script>
+    <script>window.APP_VERSION = 'v742';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -30054,14 +30054,15 @@ function renderCalendar() {
         // queda a la derecha si la semana tiene menos de 8 días. Mantiene simetría
         // visual entre todas las semanas (todas las columnas alineadas verticalmente).
         // Icono fijo en perfCol; phase name PEGADO al icono con overflow visible para no cortarse.
+        // Signo zodiacal abarca las últimas 2 columnas del header para que no se corte ("Escorpio", "Acuario").
         var _gridCols = 8;
-        var _zodCol = _gridCols; // zodiac sign goes in last column of header (col 8)
-        var _safePerfCol = Math.min(_perfCol, _gridCols);
+        var _zodColStart = _gridCols - 1; // zodiac spans last 2 cols (cols 7-8)
+        var _safePerfCol = Math.min(_perfCol, _gridCols - 2); // moon must not collide with zodiac (max col 6)
         weekDiv.innerHTML = `
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${_gridCols},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;position:relative;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_safePerfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
                 <div class="moon-icon" style="grid-column:${_safePerfCol}/${_safePerfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;gap:5px;overflow:visible;position:relative;z-index:2;white-space:nowrap;">${week.emoji}<span style="font-size:0.65em;font-weight:bold;color:#e8c84a;white-space:nowrap;">${week.name}</span></div>
-                <div style="grid-column:${_zodCol}/${_zodCol + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;position:relative;z-index:1;">${week.zodiacSign}</div>
+                <div style="grid-column:${_zodColStart}/${_gridCols + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis;padding-right:4px;position:relative;z-index:1;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(${_gridCols},1fr);">${daysHTML}</div>
         `;
