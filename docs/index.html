@@ -29957,12 +29957,12 @@ function renderCalendar() {
             }
         }
 
-        // v741: Si la semana tiene 8 días, usamos grid de 7 columnas — el día 8 cae en una fila aparte
-        // abajo a la izquierda, manteniendo simetría con las semanas de 6/7 días.
+        // v741: SIEMPRE 8 columnas — días llenan de izquierda a derecha; el espacio vacío
+        // queda a la derecha si la semana tiene menos de 8 días. Mantiene simetría
+        // visual entre todas las semanas (todas las columnas alineadas verticalmente).
         // Icono fijo en perfCol; phase name PEGADO al icono con overflow visible para no cortarse.
-        var _gridCols = (week.days.length === 8) ? 7 : week.days.length;
-        var _zodCol = _gridCols; // zodiac sign goes in last column of header
-        // Clamp _perfCol to fit in the grid (in 8-day weeks, perfection always lands in cols 1-5 due to centering).
+        var _gridCols = 8;
+        var _zodCol = _gridCols; // zodiac sign goes in last column of header (col 8)
         var _safePerfCol = Math.min(_perfCol, _gridCols);
         weekDiv.innerHTML = `
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${_gridCols},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;position:relative;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
