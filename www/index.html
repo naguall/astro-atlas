@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v736';</script>
+    <script>window.APP_VERSION = 'v737';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -5631,6 +5631,39 @@ function getStellium(date) {
 //          Yod, Kite, Mystic Rectangle, Cradle, Grand Sextile
 // ══════════════════════════════════════════════════════════
 var _aspectPatternsCache = {};
+
+// v737: Stellium range cache
+var _stelliumRangeCache = {};
+function _getStelliumRangeCached(sampleDate, planetList, signIdx) {
+    var key = signIdx + '|' + planetList.slice().sort().join(',');
+    if (_stelliumRangeCache[key]) return _stelliumRangeCache[key];
+    var checkDay = function(d) {
+        for (var i = 0; i < planetList.length; i++) {
+            try {
+                var pos = getPlanetPosition(planetList[i], d);
+                if (Math.floor(((pos % 360) + 360) % 360 / 30) !== signIdx) return false;
+            } catch(e) { return false; }
+        }
+        return true;
+    };
+    var start = new Date(sampleDate); start.setHours(0,0,0,0);
+    var end = new Date(start);
+    var safety = 90;
+    while (safety-- > 0) {
+        var prev = new Date(start.getTime() - 86400000);
+        if (checkDay(prev)) start = prev; else break;
+    }
+    safety = 90;
+    while (safety-- > 0) {
+        var next = new Date(end.getTime() + 86400000);
+        if (checkDay(next)) end = next; else break;
+    }
+    var peak = new Date((start.getTime() + end.getTime()) / 2);
+    peak.setHours(0,0,0,0);
+    var result = { start: start, end: end, peak: peak };
+    _stelliumRangeCache[key] = result;
+    return result;
+}
 function detectAspectPatterns(date) {
     var dateKey = date.toDateString();
     if (_aspectPatternsCache[dateKey]) return _aspectPatternsCache[dateKey];
@@ -5707,11 +5740,13 @@ function detectAspectPatterns(date) {
         return result;
     }
 
-     // ── 1. STELLIUM (3+ planetas personales/sociales en mismo signo) ──
-     // v704: Definición profesional — mínimo 3 planetas personales/sociales
-     // (Sol, Luna, Mercurio, Venus, Marte, Júpiter, Saturno).
-     // Urano, Neptuno, Plutón se listan pero NO cuentan para el mínimo de 3.
-     var _personalPlanets = ['sun','mercury','venus','mars','jupiter','saturn']; // v707: Moon excluded — changes sign every 2-3 days causing false daily stelliums
+     // ── 1. STELLIUM ──
+     // v737: Threshold subido — solo se cuenta como stellium si hay:
+     //   (a) 4+ planetas personales/sociales en mismo signo, O
+     //   (b) 3+ planetas incluyendo al menos 1 outer (Urano, Neptuno, Plutón).
+     // Además: solo se MARCA en la fecha pico (día medio del rango), no todos los días.
+     var _personalPlanets = ['sun','mercury','venus','mars','jupiter','saturn'];
+     var _outerPlanets = ['uranus','neptune','pluto'];
      var signGroups = {};
      planets.forEach(function(p) {
          if (positions[p] === undefined) return;
@@ -5722,17 +5757,35 @@ function detectAspectPatterns(date) {
      Object.keys(signGroups).forEach(function(sign) {
          var pList = signGroups[sign];
          var personalCount = pList.filter(function(p) { return _personalPlanets.indexOf(p) >= 0; }).length;
-         if (personalCount >= 3) {
-             patterns.push({
-                 type: 'stellium', icon: '★', color: '#FFD700',
-                 name: L ? 'Stellium en ' + sign : 'Stellium in ' + sign,
-                 planets: pList.map(function(p) { return pNames[p]; }),
-                 symbols: pList.map(function(p) { return pSymbols[p]; }).join(''),
-                 sign: sign, element: getElement(sign),
-                 desc: L ? personalCount + ' planetas concentrados en ' + sign + ' (' + getElement(sign) + '). Energía masiva enfocada en los temas de este signo.'
-                      : personalCount + ' planets concentrated in ' + sign + ' (' + getElement(sign) + '). Massive focused energy on this sign\'s themes.'
-             });
-         }
+         var outerCount = pList.filter(function(p) { return _outerPlanets.indexOf(p) >= 0; }).length;
+         var totalCount = pList.length;
+         var isSignificant = (personalCount >= 4) || (totalCount >= 3 && outerCount >= 1);
+         if (!isSignificant) return;
+
+         var signIdx = signNames.indexOf(sign);
+         var range = _getStelliumRangeCached(date, pList, signIdx);
+         var todayMid = new Date(date); todayMid.setHours(0,0,0,0);
+         var isPeakDay = todayMid.getTime() === range.peak.getTime();
+         if (!isPeakDay) return;
+
+         var monthNames = L ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+                            : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+         var rangeStr = range.start.getDate() + ' ' + monthNames[range.start.getMonth()] +
+                        ' — ' + range.end.getDate() + ' ' + monthNames[range.end.getMonth()];
+
+         patterns.push({
+             type: 'stellium', icon: '★', color: '#FFD700',
+             name: L ? 'Stellium en ' + sign : 'Stellium in ' + sign,
+             planets: pList.map(function(p) { return pNames[p]; }),
+             symbols: pList.map(function(p) { return pSymbols[p]; }).join(''),
+             sign: sign, element: getElement(sign),
+             dateRange: rangeStr,
+             startDate: range.start, endDate: range.end, peakDate: range.peak,
+             desc: L ? totalCount + ' planetas concentrados en ' + sign + ' (' + getElement(sign) + '). '
+                       + 'Activo: ' + rangeStr + '. Pico: día medio del rango.'
+                  : totalCount + ' planets concentrated in ' + sign + ' (' + getElement(sign) + '). '
+                       + 'Active: ' + rangeStr + '. Peak: midpoint of range.'
+         });
      });
             }
         }
