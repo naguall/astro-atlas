@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v737';</script>
+    <script>window.APP_VERSION = 'v738';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8911,6 +8911,10 @@ function getMonthColor(monthIndex) {
     ];
     return colors[monthIndex % 12];
 }
+// v738: Opposite color of gregorian month — used for lunar/solar day number to contrast with greg mini-date
+function getMonthColorOpposite(monthIndex) {
+    return getMonthColor(monthIndex) === '#7ec8ff' ? '#e8c84a' : '#7ec8ff';
+}
 
 function formatLongDate(date) {
     return `${date.getDate()} ${t('months')[date.getMonth()]} ${date.getFullYear()}`;
@@ -9217,32 +9221,32 @@ function openAspectsModal(date, lunarDay, dayData) {
         `}).join('');
     }
     
-    if (htmlContent) {
-        // Add "Day interpretation" button at bottom
-        var allDayTexts = [];
-        if (_lunarPhaseEvent) allDayTexts.push(_lunarPhaseEvent.detail);
-        if (eclipse) allDayTexts.push((eclipse.type === 'solar' ? 'Eclipse Solar' : 'Eclipse Lunar') + (eclipse.sign ? ' en ' + eclipse.sign : ''));
-        signChanges.forEach(function(ch) { allDayTexts.push(tp(ch.planet) + ' → ' + ts(ch.toSign)); });
-        retrogrades.forEach(function(ret) { allDayTexts.push(tp(ret.planet) + (ret.isStart ? ' Retrógrado INICIA' : ' Directo') + (ret.sign ? ' en ' + ret.sign : '')); });
-        interAspects.forEach(function(asp) { allDayTexts.push(tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')); });
-        if (dayData.aspects) dayData.aspects.forEach(function(a) { allDayTexts.push('Luna ' + a.symbol + ' ' + (a.planetName||a.planet)); });
-        // Aspect Patterns section (v590)
-        var _dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
-        if (_dayPatterns.length > 0) {
-            htmlContent += '<div style="margin-top:12px;padding:10px;background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-radius:10px;">';
-            htmlContent += '<div style="font-size:0.82em;font-weight:700;color:#c39bd3;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">' + (currentLang==='es' ? '🔷 Figuras de Aspecto' : '🔷 Aspect Patterns') + '</div>';
-            _dayPatterns.forEach(function(pat) {
-                var patTxt = (pat.name + ': ' + pat.planets.join(', ') + '. ' + pat.desc).replace(/'/g, "\\'");
-                htmlContent += '<div onclick="showBannerAspectDetail(\'' + patTxt + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">';
-                htmlContent += '<span style="font-size:1.3em;min-width:24px;text-align:center;">' + pat.icon + '</span>';
-                htmlContent += '<div><div style="font-weight:700;color:' + pat.color + ';font-size:0.88em;">' + pat.name + '</div>';
-                htmlContent += '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + pat.planets.join(', ') + '</div>';
-                htmlContent += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-top:2px;">' + pat.desc.substring(0, 120) + (pat.desc.length > 120 ? '...' : '') + '</div></div></div>';
-                allDayTexts.push(pat.name + ': ' + pat.planets.join(', '));
-            });
-            htmlContent += '</div>';
-        }
+    // v738: Build aspect patterns section ALWAYS (not only if other content exists)
+    // Bug: days with only T-Square/Stellium (no eclipse/aspects/retros) showed "0 aspectos"
+    var allDayTexts = [];
+    if (_lunarPhaseEvent) allDayTexts.push(_lunarPhaseEvent.detail);
+    if (eclipse) allDayTexts.push((eclipse.type === 'solar' ? 'Eclipse Solar' : 'Eclipse Lunar') + (eclipse.sign ? ' en ' + eclipse.sign : ''));
+    signChanges.forEach(function(ch) { allDayTexts.push(tp(ch.planet) + ' → ' + ts(ch.toSign)); });
+    retrogrades.forEach(function(ret) { allDayTexts.push(tp(ret.planet) + (ret.isStart ? ' Retrógrado INICIA' : ' Directo') + (ret.sign ? ' en ' + ret.sign : '')); });
+    interAspects.forEach(function(asp) { allDayTexts.push(tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')); });
+    if (dayData.aspects) dayData.aspects.forEach(function(a) { allDayTexts.push('Luna ' + a.symbol + ' ' + (a.planetName||a.planet)); });
+    var _dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+    if (_dayPatterns.length > 0) {
+        htmlContent += '<div style="margin-top:12px;padding:10px;background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-radius:10px;">';
+        htmlContent += '<div style="font-size:0.82em;font-weight:700;color:#c39bd3;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">' + (currentLang==='es' ? '🔷 Figuras de Aspecto' : '🔷 Aspect Patterns') + '</div>';
+        _dayPatterns.forEach(function(pat) {
+            var patTxt = (pat.name + ': ' + pat.planets.join(', ') + '. ' + pat.desc).replace(/'/g, "\\'");
+            htmlContent += '<div onclick="showBannerAspectDetail(\'' + patTxt + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">';
+            htmlContent += '<span style="font-size:1.3em;min-width:24px;text-align:center;">' + pat.icon + '</span>';
+            htmlContent += '<div><div style="font-weight:700;color:' + pat.color + ';font-size:0.88em;">' + pat.name + '</div>';
+            htmlContent += '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + pat.planets.join(', ') + '</div>';
+            htmlContent += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-top:2px;">' + pat.desc.substring(0, 120) + (pat.desc.length > 120 ? '...' : '') + '</div></div></div>';
+            allDayTexts.push(pat.name + ': ' + pat.planets.join(', '));
+        });
+        htmlContent += '</div>';
+    }
 
+    if (htmlContent) {
         var safeDayTexts = allDayTexts.join('\\n').replace(/'/g, "\\'");
         var dateLabel = date.toLocaleDateString(currentLang==='es'?'es':'en',{weekday:'long',day:'numeric',month:'long'});
         htmlContent += `<div onclick="closeAspectsModal(); showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}')" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
@@ -22585,6 +22589,20 @@ function switchToPersonalMode() {
         renderPersonalCalendar();
     }
     setTimeout(reapplyCellSize, 300);
+    // v738: Always default to Detalles → Calendario when entering Astrológico
+    setTimeout(function() {
+        try {
+            var detallesBtn = document.querySelector('.natal-group-tab[onclick*="detalles"]');
+            if (detallesBtn && typeof switchNatalGroup === 'function') {
+                switchNatalGroup('detalles', detallesBtn);
+                // Then activate the Calendario subtab specifically
+                setTimeout(function() {
+                    var calBtn = document.querySelector('#natalGroupDetalles .natal-subtab[onclick*="calendar"]');
+                    if (calBtn) calBtn.click();
+                }, 50);
+            }
+        } catch(e) { console.warn('Default tab reset error:', e); }
+    }, 200);
 }
 
 // --- Birth Data Setup Form ---
@@ -23606,7 +23624,7 @@ function renderNatalLunarCal() {
                 + ' data-day-data="' + dayDataStr + '"'
                 + ' onclick="handleDayClick(this)">'
                 + '<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;width:100%;">'
-                + '<div class="day-number">' + day.lunarDay + '</div>'
+                + '<div class="day-number" style="color:' + getMonthColorOpposite(day.date.getMonth()) + ';">' + day.lunarDay + '</div>'
                 + '<div style="font-size:0.7em;color:' + getMonthColor(day.date.getMonth()) + ';font-weight:600;white-space:nowrap;">' + formatShortDate(day.date) + ' <span class="day-weekday-label">' + weekday + '</span></div>'
                 + '</div>'
                 + '<div class="day-content">'
@@ -25615,10 +25633,44 @@ function renderPersonalCalendar() {
     let startDow = signStart.getDay(); // 0=Sun
     startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
 
+    // v738: Today's banner — personal day + season + key transit
+    var _todayBanner = (function() {
+        var _todayPersDay = Math.floor((today - new Date(today.getFullYear(), birthM - 1, birthD)) / 86400000) + 1;
+        if (_todayPersDay <= 0) _todayPersDay += 365;
+        var _todayBirthAnn = new Date(today.getFullYear(), birthM - 1, birthD);
+        var _todayNextBd = new Date(today.getFullYear() + 1, birthM - 1, birthD);
+        var _totalPDays = Math.round((_todayNextBd - _todayBirthAnn) / 86400000);
+        var _remaining = _totalPDays - _todayPersDay;
+        // Personal year = age the user TURNS this year
+        var _personalYear = today.getFullYear() - birthY + (today >= _todayBirthAnn ? 0 : -1) + 1;
+        // Active personal season
+        var _todaySeason = getSeasonForDate(today);
+        var _seasonBadge = _todaySeason ? '<span style="margin-left:8px;padding:2px 8px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.4);border-radius:10px;color:#c9a840;font-size:0.8em;">' + _todaySeason.icon + ' ' + (L ? _todaySeason.es : _todaySeason.en) + '</span>' : '';
+        // Key transit (first major)
+        var _topTransit = majorTransits[0];
+        var _transitStr = _topTransit
+            ? (planetNames[_topTransit.transitPlanet] || _topTransit.transitPlanet) + ' ' + _topTransit.symbol + ' ' + (L?'natal':'natal') + ' ' + (planetNames[_topTransit.natalPlanet] || _topTransit.natalPlanet)
+            : '';
+        var _todayLabel = today.toLocaleDateString(L ? 'es' : 'en', { weekday: 'long', day: 'numeric', month: 'long' });
+        return '<div style="margin-bottom:10px;padding:10px 12px;background:linear-gradient(135deg,rgba(201,168,64,0.08),rgba(155,89,182,0.08));border:1px solid rgba(201,168,64,0.25);border-radius:10px;">' +
+               '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">' +
+                 '<span style="font-size:0.95em;color:#c9a840;font-weight:700;font-family:\'Cinzel\',serif;letter-spacing:0.5px;">🔮 ' + _todayLabel + '</span>' +
+                 _seasonBadge +
+               '</div>' +
+               '<div style="font-size:0.78em;color:rgba(255,255,255,0.7);line-height:1.5;">' +
+                 (L?'Día personal':'Personal day') + ' <b style="color:#e8c84a;">' + _todayPersDay + '/' + _totalPDays + '</b> · ' +
+                 (L?'Año personal':'Personal year') + ' <b style="color:#b39ddb;">' + _personalYear + '</b>' +
+                 (_remaining > 0 ? ' · ' + _remaining + (L?' días al cumple':' days to bday') : '') +
+               '</div>' +
+               (_transitStr ? '<div style="font-size:0.78em;color:rgba(126,200,255,0.85);margin-top:4px;">⚡ ' + _transitStr + '</div>' : '') +
+               '</div>';
+    })();
+
     let calendarHTML = `
         ${buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
         ${natalSubTabsHTML}
         <div id="natalCalendarGrid">
+        ${_todayBanner}
         <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
             <!-- Sign navigation inside calendar -->
@@ -29760,7 +29812,7 @@ function renderCalendar() {
                      ${day.isPerfectionDay && !isToday ? 'style="border: 2px solid rgba(232,200,74,0.6); box-shadow: 0 0 12px rgba(232,200,74,0.2);"' : (day.isPerfectionDay && isToday ? 'style="border-top: 3px solid rgba(232,200,74,0.8) !important;"' : '')}>
 
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                        <div class="day-number">${day.lunarDay}</div>
+                        <div class="day-number" style="color:${getMonthColorOpposite(day.date.getMonth())};">${day.lunarDay}</div>
                         <div style="font-size: 0.7em; color: ${getMonthColor(day.date.getMonth())}; font-weight: 600; white-space:nowrap;">${formatShortDate(day.date)} <span class="day-weekday-label">${weekday}</span></div>
                     </div>
                     
