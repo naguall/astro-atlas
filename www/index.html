@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v732';</script>
+    <script>window.APP_VERSION = 'v735';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29520,9 +29520,10 @@ function renderCalendar() {
             }
         }
 
-        // v731: REVERT v727 layout original (Grid). v732: Para semanas PARES, el ícono lunar
-        // ocupa 2 columnas para que se vea visualmente centrado (en semanas impares queda igual).
-        var _moonSpan = (week.days.length % 2 === 0) ? 2 : 1;
+        // v731: REVERT v727 layout original (Grid). v733: Span 2 cols SOLO en móvil para
+        // semanas pares (centrar visualmente menguante). En desktop mantiene simetría original.
+        var _isMobile = window.innerWidth < 600;
+        var _moonSpan = (_isMobile && week.days.length % 2 === 0) ? 2 : 1;
         weekDiv.innerHTML = `
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${week.days.length},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_perfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
@@ -33221,6 +33222,46 @@ function checkNotifications() {
                 }
             });
         }
+    }
+
+    // 7b. v735: Personal solstices/equinoxes notification (based on user's birthday)
+    if (notifPrefs.personalSeasons !== false) {
+        try {
+            var natalForSeasons = (typeof getNatalData === 'function') ? getNatalData() : null;
+            if (natalForSeasons && natalForSeasons.date) {
+                var [_psY, _psM, _psD] = natalForSeasons.date.split('-').map(Number);
+                var _psYear = now.getFullYear();
+                var _psBdate = new Date(_psYear, _psM - 1, _psD);
+                var _psNextBdate = new Date(_psYear + 1, _psM - 1, _psD);
+                var _psYearLen = Math.round((_psNextBdate - _psBdate) / 86400000);
+                var _psQ = _psYearLen / 4;
+                var _psSeasons = [
+                    { offset: 0,                       key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox' },
+                    { offset: Math.round(_psQ),         key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',     en: 'Personal Summer Solstice' },
+                    { offset: Math.round(_psQ * 2),     key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño',     en: 'Personal Autumn Equinox' },
+                    { offset: Math.round(_psQ * 3),     key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno',  en: 'Personal Winter Solstice' }
+                ];
+                _psSeasons.forEach(function(s) {
+                    var _seasonDate = new Date(_psBdate.getTime() + s.offset * 86400000);
+                    _seasonDate.setHours(0, 0, 0, 0);
+                    var _todayMid = new Date(now); _todayMid.setHours(0,0,0,0);
+                    if (_seasonDate.getTime() === _todayMid.getTime()) {
+                        var _psNotifKey = 'notif-personalSeason-' + s.key + '-' + _psYear;
+                        if (!localStorage.getItem(_psNotifKey)) {
+                            sendNotif(s.icon + ' ' + (L ? s.es : s.en), {
+                                body: L ? 'Hoy comienza tu nueva estación personal — momento clave del ciclo desde tu cumpleaños.'
+                                       : 'Your new personal season begins today — key moment in the cycle from your birthday.',
+                                tag: 'personal-season-' + s.key + '-' + _psYear,
+                                requireInteraction: true,
+                                data: { interpret: (L ? s.es : s.en) }
+                            });
+                            localStorage.setItem(_psNotifKey, 'true');
+                            console.log('🌱☀️🍂❄️ Personal season:', s.key);
+                        }
+                    }
+                });
+            }
+        } catch(e) { console.warn('Personal seasons notification error:', e); }
     }
 
     } catch(e) {

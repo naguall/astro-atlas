@@ -5,7 +5,7 @@
   "start_url": "/astro-atlas/",
   "scope": "/astro-atlas/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#02020F",
   "theme_color": "#c9a840",
   "categories": [
