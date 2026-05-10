@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v735';</script>
+    <script>window.APP_VERSION = 'v736';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -26590,38 +26590,15 @@ function handlePersonalDayClick(year, month, day) {
         const date = new Date(year, month, day);
         const L = currentLang === 'es';
 
-        // Calculate aspects count
-        // v632 Bug #8: For personal calendar, also include transits-to-natal and
-        // aspect patterns (T-Square, Grand Trine, etc.) — previously these were
-        // rendered in the cell but not counted, so days with ONLY a T-Square showed 0.
+        // v736: count must MATCH what openAspectsModal actually shows.
+        // Removed _personalTransitCount and _patternCount because openAspectsModal
+        // doesn't display those — they were in the count but caused "abre 0 aspectos" bug.
         const signChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
         const retrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
         const interAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
         const eclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
         const moonEvent = getMoonEventForDate(date);
-        var _personalTransitCount = 0;
-        try {
-            var _natalForCount = (typeof getNatalData === 'function') ? getNatalData() : null;
-            if (_natalForCount) {
-                var _natalChartForCount = null;
-                try {
-                    var _pc = localStorage.getItem('natalChart_' + _natalForCount.id);
-                    _natalChartForCount = _pc ? JSON.parse(_pc) : JSON.parse(localStorage.getItem('natalChart'));
-                } catch(e) {}
-                if (_natalChartForCount && typeof calculateTransitsToNatal === 'function') {
-                    var _tr = calculateTransitsToNatal(date, _natalChartForCount) || [];
-                    // Exclude fast (Moon/Mercury) from count to match the "major events" feel
-                    _personalTransitCount = _tr.filter(function(t){ return t.tier !== 'fast'; }).length;
-                }
-            }
-        } catch(e) {}
-        var _patternCount = 0;
-        try {
-            if (typeof detectAspectPatterns === 'function') {
-                _patternCount = (detectAspectPatterns(date) || []).length;
-            }
-        } catch(e) {}
-        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + _personalTransitCount + _patternCount;
+        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0);
 
         const modal = document.getElementById('dayOptionsModal');
         const aspectsBtn = document.getElementById('aspectsOptionBtn');
