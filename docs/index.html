@@ -9298,8 +9298,10 @@ function openAspectsModal(date, lunarDay, dayData) {
 
     if (htmlContent) {
         var safeDayTexts = allDayTexts.join('\\n').replace(/'/g, "\\'");
-        var dateLabel = date.toLocaleDateString(currentLang==='es'?'es':'en',{weekday:'long',day:'numeric',month:'long'});
-        htmlContent += `<div onclick="closeAspectsModal(); showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}')" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
+        var dateLabel = date.toLocaleDateString(currentLang==='es'?'es':'en',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+        // v742: pass dateMs so showDayInterpretation can compute transits for the SELECTED day, not today
+        var _dateMs = date.getTime();
+        htmlContent += `<div onclick="closeAspectsModal(); showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}', ${_dateMs})" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
         aspectsDetails.innerHTML = htmlContent;
     } else {
         aspectsDetails.innerHTML = `<div class="no-aspects">${t('noAspects')}</div>`;
@@ -19498,7 +19500,7 @@ function showAllAspectsInterpretation() {
 }
 window.showAllAspectsInterpretation = showAllAspectsInterpretation;
 
-function showDayInterpretation(aspectsText, dateLabel) {
+function showDayInterpretation(aspectsText, dateLabel, dateMs) {
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
@@ -19519,9 +19521,61 @@ function showDayInterpretation(aspectsText, dateLabel) {
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
-    var prompt = L
-        ? 'Interpreta los siguientes aspectos astrológicos de ' + dateLabel + ' EN CONJUNTO, como un panorama energético del día, y cómo me afectan según mi carta natal:\n' + aspectsText
-        : 'Interpret the following astrological aspects of ' + dateLabel + ' AS A WHOLE, as an energetic overview of the day, and how they affect me based on my natal chart:\n' + aspectsText;
+    // v742: Build a self-contained prompt that includes the planetary positions and aspects
+    // for the SELECTED date — not today. The system prompt's transit context is for today,
+    // so we MUST override it explicitly with this day's data, otherwise the AI complains
+    // it doesn't have data for the selected date.
+    var _dayDate = (typeof dateMs === 'number') ? new Date(dateMs) : new Date();
+    var _today = new Date(); _today.setHours(0,0,0,0);
+    var _dayMid = new Date(_dayDate); _dayMid.setHours(0,0,0,0);
+    var _isToday = _dayMid.getTime() === _today.getTime();
+    var _dayContext = '';
+    try {
+        var _planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+        var _signs = L
+            ? ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis']
+            : ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+        var _pNames = L
+            ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón'}
+            : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
+        _dayContext += (L ? 'Posiciones planetarias del ' : 'Planetary positions on ') + dateLabel + ':\n';
+        _planets.forEach(function(p) {
+            try {
+                var lon = getPlanetPosition(p, _dayDate);
+                var signIdx = Math.floor(((lon % 360) + 360) % 360 / 30);
+                var deg = lon - signIdx * 30;
+                _dayContext += '  ' + _pNames[p] + ': ' + deg.toFixed(1) + '° ' + _signs[signIdx] + '\n';
+            } catch(e) {}
+        });
+        // Personal season for that day
+        if (typeof getPersonalSeasonForDate === 'function') {
+            var _ps = getPersonalSeasonForDate(_dayDate);
+            if (_ps) {
+                _dayContext += '\n' + (L ? 'EVENTO PERSONAL ese día: ' : 'PERSONAL EVENT that day: ') + (L ? _ps.es : _ps.en) + ' ' + _ps.icon + '\n';
+            }
+        }
+    } catch(_dcErr) { console.error('[showDayInterpretation] dayContext error:', _dcErr); }
+
+    var prompt;
+    if (_isToday) {
+        prompt = L
+            ? 'Interpreta los siguientes aspectos astrológicos de ' + dateLabel + ' EN CONJUNTO, como un panorama energético del día, y cómo me afectan según mi carta natal:\n' + aspectsText
+            : 'Interpret the following astrological aspects of ' + dateLabel + ' AS A WHOLE, as an energetic overview of the day, and how they affect me based on my natal chart:\n' + aspectsText;
+    } else {
+        prompt = L
+            ? 'CONTEXTO CRÍTICO — IMPORTANTE leer antes de responder:\n\n' +
+              'La fecha que te pido interpretar es ' + dateLabel + ', NO el día de hoy. ' +
+              'Aunque el system prompt te dé información de tránsitos del día actual, IGNORA esos tránsitos para esta consulta y usa los datos específicos del ' + dateLabel + ' que te paso a continuación.\n\n' +
+              _dayContext + '\n' +
+              'EVENTOS Y ASPECTOS DEL ' + dateLabel + ':\n' + aspectsText + '\n\n' +
+              'Interpretá los aspectos astrológicos de ' + dateLabel + ' EN CONJUNTO, como un panorama energético de ESE día específico, y cómo me afectan según mi carta natal. NO interpretés el día de hoy. Si hay un evento personal (solsticio/equinoccio personal del usuario), tenelo en cuenta como un punto cardinal de la rueda personal del año.'
+            : 'CRITICAL CONTEXT — IMPORTANT to read before responding:\n\n' +
+              'The date you are asked to interpret is ' + dateLabel + ', NOT today. ' +
+              'Although the system prompt gives you transit information for the current day, IGNORE those transits for this query and use the specific data for ' + dateLabel + ' provided below.\n\n' +
+              _dayContext + '\n' +
+              'EVENTS AND ASPECTS ON ' + dateLabel + ':\n' + aspectsText + '\n\n' +
+              'Interpret the astrological aspects of ' + dateLabel + ' AS A WHOLE, as an energetic overview of THAT specific day, and how they affect me based on my natal chart. Do NOT interpret today. If there is a personal event (user\'s personal solstice/equinox), consider it as a cardinal point of the personal wheel of the year.';
+    }
     var readingTitle = L ? 'Aspectos — ' + dateLabel : 'Aspects — ' + dateLabel;
     setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }, 100);
 }
@@ -43020,6 +43074,30 @@ function buildSystemPrompt(contextLevel) {
     const fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
     var persona = getActivePersona();
     var base = persona.buildPrompt(isEs, fullCtx);
+
+    // v742: GLOBAL DATE-CONTEXT DIRECTIVE — protects ALL AI prompts (not just showDayInterpretation)
+    // The transits/positions injected via gatherAstroContext are ALWAYS for today.
+    // If the user's message refers to a different date and provides data for that date,
+    // the AI must use the user-provided data, not the today-data above. This prevents the
+    // "I don't have data for May 3" failure mode when interpreting personal solstices,
+    // future events, past events, or any date that isn't today.
+    base += isEs
+        ? '\n\n═══ FECHA DEL TRÁNSITO — CRÍTICO ═══\n'
+          + 'Los tránsitos planetarios y posiciones que aparecen arriba en "DATOS DEL USUARIO Y LA APP" son SIEMPRE para el día de hoy.\n'
+          + 'Si el usuario te pregunta por OTRA fecha (pasada, futura, solsticio personal, equinoccio personal, eclipse específico, etc.), tenés DOS escenarios:\n'
+          + '  (A) El usuario te incluye en el mensaje las posiciones planetarias o aspectos para esa fecha → USÁ ESOS DATOS del mensaje, NO los de hoy.\n'
+          + '  (B) El usuario menciona una fecha pero NO te pasa datos específicos → primero, decí explícitamente "los datos que tengo en mi contexto son del [fecha de hoy]; para una interpretación precisa de [fecha pedida] necesito esos tránsitos específicos". Luego ofrecé una interpretación general del simbolismo de esa fecha (ej: solsticio personal = punto cardinal de la rueda personal del año).\n'
+          + 'NUNCA respondas que "no podés generar información para fechas pasadas" — siempre podés interpretar simbólica/arquetípicamente cualquier fecha que el usuario te dé.\n'
+          + 'NUNCA mezcles los tránsitos de hoy con la interpretación de otra fecha sin aclarar.\n'
+          + 'NUNCA confundas un solsticio/equinoccio PERSONAL (calculado desde el cumpleaños del usuario) con el solsticio/equinoccio astronómico estándar (21 dic, 21 jun, 20 mar, 22 sep) — son dos cosas distintas.'
+        : '\n\n═══ TRANSIT DATE — CRITICAL ═══\n'
+          + 'The planetary transits and positions in "USER AND APP DATA" above are ALWAYS for today.\n'
+          + 'If the user asks about ANOTHER date (past, future, personal solstice, personal equinox, specific eclipse, etc.), there are TWO scenarios:\n'
+          + '  (A) The user includes in the message the planetary positions or aspects for that date → USE THAT DATA from the message, NOT today\'s data.\n'
+          + '  (B) The user mentions a date but does NOT provide specific data → first, explicitly state "the data I have in context is for [today\'s date]; for a precise interpretation of [requested date] I need those specific transits". Then offer a general symbolic interpretation of that date (e.g., personal solstice = cardinal point of the personal wheel of the year).\n'
+          + 'NEVER respond that "you cannot generate information for past dates" — you can always interpret any date symbolically/archetypally.\n'
+          + 'NEVER mix today\'s transits with the interpretation of another date without clarifying.\n'
+          + 'NEVER confuse a PERSONAL solstice/equinox (computed from the user\'s birthday) with the standard astronomical solstice/equinox (Dec 21, Jun 21, Mar 20, Sep 22) — they are two different things.';
 
     // ── Persona identification: always show which personality is speaking ──
     var personaName = isEs ? persona.name_es : persona.name_en;
