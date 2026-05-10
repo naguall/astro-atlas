@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v738';</script>
+    <script>window.APP_VERSION = 'v740';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -5613,17 +5613,46 @@ function getNearbyAspects(date, days) {
 
 function getStellium(date) {
     const dateStr = new Date(date).setHours(0, 0, 0, 0);
-    
+
     for (const stellium of stelliums2026) {
         const stelliumDate = new Date(stellium.date);
         stelliumDate.setHours(0, 0, 0, 0);
-        
+
         if (stelliumDate.getTime() === dateStr) {
             return stellium;
         }
     }
     return null;
 }
+
+// v739: Get personal season for any date
+window.getPersonalSeasonForDate = function(date) {
+    try {
+        var natal = (typeof getNatalData === 'function') ? getNatalData() : null;
+        if (!natal || !natal.date) return null;
+        var parts = natal.date.split('-').map(Number);
+        var bM = parts[1], bD = parts[2];
+        var d = new Date(date); d.setHours(0,0,0,0);
+        var seasonsForYear = function(yr) {
+            var bDate = new Date(yr, bM - 1, bD);
+            var nextBd = new Date(yr + 1, bM - 1, bD);
+            var yLen = Math.round((nextBd - bDate) / 86400000);
+            var q = yLen / 4;
+            return [
+                { date: bDate, key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox', color: '#4caf50' },
+                { date: new Date(bDate.getTime() + Math.round(q) * 86400000),     key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',     en: 'Personal Summer Solstice', color: '#ff9800' },
+                { date: new Date(bDate.getTime() + Math.round(q * 2) * 86400000), key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño',     en: 'Personal Autumn Equinox', color: '#e67e22' },
+                { date: new Date(bDate.getTime() + Math.round(q * 3) * 86400000), key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno',  en: 'Personal Winter Solstice', color: '#42a5f5' }
+            ];
+        };
+        var all = seasonsForYear(d.getFullYear()).concat(seasonsForYear(d.getFullYear() - 1));
+        for (var i = 0; i < all.length; i++) {
+            var sd = new Date(all[i].date); sd.setHours(0,0,0,0);
+            if (sd.getTime() === d.getTime()) return all[i];
+        }
+        return null;
+    } catch(e) { return null; }
+};
 
 // ══════════════════════════════════════════════════════════
 // ── DYNAMIC ASPECT PATTERN DETECTION (v590) ──
@@ -8850,6 +8879,23 @@ function openAspectsModal(date, lunarDay, dayData) {
 
     let htmlContent = '';
 
+    // v739: Personal Season (equinox/solstice)
+    var _personalSeasonForModal = (typeof getPersonalSeasonForDate === 'function') ? getPersonalSeasonForDate(date) : null;
+    if (_personalSeasonForModal) {
+        const _psLabel = currentLang === 'es' ? _personalSeasonForModal.es : _personalSeasonForModal.en;
+        const _psClickText = (_personalSeasonForModal.icon + ' ' + _psLabel).replace(/'/g, "\\'");
+        htmlContent += `
+        <div class="aspect-detail" style="border-left-color: ${_personalSeasonForModal.color}; background: rgba(255,215,0,0.08); cursor:pointer;" onclick="showBannerAspectDetail('${_psClickText}')">
+            <div class="aspect-planets" style="font-size:1.05em;">
+                ${_personalSeasonForModal.icon} <span style="font-weight:700;color:${_personalSeasonForModal.color};">${_psLabel}</span>
+            </div>
+            <div class="aspect-description">
+                ${currentLang==='es' ? 'Marca el inicio de una nueva estación personal — un cuarto del año desde tu cumpleaños.' : 'Marks the start of a new personal season — a quarter of the year from your birthday.'}
+            </div>
+        </div>
+        `;
+    }
+
     // 0. Eclipse (si hay)
     if (eclipse) {
         const eclipseIcon = eclipse.type === 'solar' ? '☀️' : '🌒';
@@ -9114,10 +9160,10 @@ function handleDayClick(element) {
             }
         }
         const aspectsCount = dayData.aspects ? dayData.aspects.length : 0;
-        // v707: Also count dynamic aspect patterns (T-Square, Grand Trine etc.) shown in cells
         const _dayPatternsForCount = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
         const _majorAspectForCount = (typeof getMajorAspect === 'function') ? getMajorAspect(date) : null;
-        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0) + _dayPatternsForCount.length + (_majorAspectForCount ? 1 : 0);
+        const _personalSeasonForCount = (typeof getPersonalSeasonForDate === 'function') ? getPersonalSeasonForDate(date) : null;
+        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0) + _dayPatternsForCount.length + (_majorAspectForCount ? 1 : 0) + (_personalSeasonForCount ? 1 : 0);
 
         // Translate and update modal
         const modal = document.getElementById('dayOptionsModal');
@@ -22911,6 +22957,43 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol opuesto a tu posición natal. Punto medio del año personal para evaluar y ajustar metas.' : 'The Sun opposite your natal position. Personal year midpoint for evaluating and adjusting goals.'}</div>
             </div>
 
+            <!-- v739: Personal Seasons (equinoxes + solstices) -->
+            ${(function() {
+                try {
+                    var [_bY, _bM, _bD] = natal.date.split('-').map(Number);
+                    var _yr = today.getFullYear();
+                    var _bDate = new Date(_yr, _bM - 1, _bD);
+                    var _nextBd = new Date(_yr + 1, _bM - 1, _bD);
+                    var _yLen = Math.round((_nextBd - _bDate) / 86400000);
+                    var _q = _yLen / 4;
+                    var _seasons = [
+                        { offset: 0,                  key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox', color: '#4caf50' },
+                        { offset: Math.round(_q),      key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',      en: 'Personal Summer Solstice', color: '#ff9800' },
+                        { offset: Math.round(_q * 2),  key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño',      en: 'Personal Autumn Equinox', color: '#e67e22' },
+                        { offset: Math.round(_q * 3),  key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno',   en: 'Personal Winter Solstice', color: '#42a5f5' }
+                    ];
+                    var _seasonsHTML = _seasons.map(function(s) {
+                        var _sd = new Date(_bDate.getTime() + s.offset * 86400000);
+                        var _isPast = _sd < today;
+                        var _dStr = _sd.toLocaleDateString(L ? 'es' : 'en', { day: 'numeric', month: 'long' });
+                        return '<div style="padding:4px 0;color:' + (_isPast ? 'rgba(255,255,255,0.3)' : s.color) + ';' + (_isPast ? 'text-decoration:line-through;' : '') + ';font-size:0.78em;">' +
+                               s.icon + ' ' + (L ? s.es : s.en) + ' — ' + _dStr +
+                               '</div>';
+                    }).join('');
+                    return '<div class="cosmic-cycle-card" onclick="interpretCosmicCycle(\'personalSeasons\')" style="cursor:pointer;">' +
+                        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+                            '<span style="font-size:1.8em;">🌀</span>' +
+                            '<div>' +
+                                '<div style="font-weight:700;color:#c39bd3;font-size:1em;">' + (L ? 'Estaciones Personales' : 'Personal Seasons') + '</div>' +
+                                '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);">' + (L ? 'Equinoccios y solsticios desde tu cumpleaños' : 'Equinoxes and solstices from your birthday') + '</div>' +
+                            '</div>' +
+                            '<span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>' +
+                        '</div>' +
+                        '<div style="margin-top:8px;">' + _seasonsHTML + '</div>' +
+                    '</div>';
+                } catch(e) { return ''; }
+            })()}
+
             <!-- Annual Profections -->
             <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('profection')" style="cursor:pointer;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
@@ -25390,9 +25473,9 @@ function renderPersonalCalendar() {
                  _seasonBadge +
                '</div>' +
                '<div style="font-size:0.78em;color:rgba(255,255,255,0.7);line-height:1.5;">' +
-                 (L?'Día personal':'Personal day') + ' <b style="color:#e8c84a;">' + _todayPersDay + '/' + _totalPDays + '</b> · ' +
-                 (L?'Año personal':'Personal year') + ' <b style="color:#b39ddb;">' + _personalYear + '</b>' +
+                 (L?'Día personal':'Personal day') + ' <b style="color:#e8c84a;">' + _todayPersDay + '/' + _totalPDays + '</b>' +
                  (_remaining > 0 ? ' · ' + _remaining + (L?' días al cumple':' days to bday') : '') +
+                 ' · ' + (L?'Año personal':'Personal year') + ' <b style="color:#b39ddb;">' + _personalYear + '</b>' +
                '</div>' +
                (_transitStr ? '<div style="font-size:0.78em;color:rgba(126,200,255,0.85);margin-top:4px;">⚡ ' + _transitStr + '</div>' : '') +
                '</div>';
@@ -25582,8 +25665,8 @@ function renderPersonalCalendar() {
 
         // Moon phases (new/full) — removed from ciclos list (v588)
 
-        // Personal seasons
-        var mSeasons = getPersonalSeasons(year, birthM, birthD);
+        // Personal seasons (v739 fix: incluir también el ciclo del cumpleaños del año anterior)
+        var mSeasons = getPersonalSeasons(year, birthM, birthD).concat(getPersonalSeasons(year - 1, birthM, birthD));
         mSeasons.forEach(function(s) {
             if (s.date.getMonth() === em && s.date.getFullYear() === year) {
                 yearEvents.push({
@@ -26432,15 +26515,15 @@ function handlePersonalDayClick(year, month, day) {
         const date = new Date(year, month, day);
         const L = currentLang === 'es';
 
-        // v736: count must MATCH what openAspectsModal actually shows.
-        // Removed _personalTransitCount and _patternCount because openAspectsModal
-        // doesn't display those — they were in the count but caused "abre 0 aspectos" bug.
+        // v736+v739: count must MATCH modal + personal seasons
         const signChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
         const retrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
         const interAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
         const eclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
         const moonEvent = getMoonEventForDate(date);
-        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0);
+        const _patternsCount = (typeof detectAspectPatterns === 'function') ? (detectAspectPatterns(date) || []).length : 0;
+        const _personalSeason = (typeof getPersonalSeasonForDate === 'function') ? getPersonalSeasonForDate(date) : null;
+        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + _patternsCount + (_personalSeason ? 1 : 0);
 
         const modal = document.getElementById('dayOptionsModal');
         const aspectsBtn = document.getElementById('aspectsOptionBtn');
