@@ -243,7 +243,7 @@
         .perfection-time { color: var(--gold); font-style: italic; white-space: nowrap; }
         .zodiac-sign { color: var(--gold); white-space: nowrap; }
 
-        .days-container { display: grid; grid-template-columns: var(--day-cell-grid-cols, repeat(7, 1fr)); grid-auto-rows: var(--day-cell-min-height, 90px); gap: var(--day-cell-gap, 3px); padding: 2px 0; width: 100%; }
+        .days-container { display: grid; grid-template-columns: var(--day-cell-grid-cols, repeat(8, 1fr)); grid-auto-rows: var(--day-cell-min-height, 90px); gap: var(--day-cell-gap, 3px); padding: 2px 0; width: 100%; }
         /* v631 Bug #1: force fixed row height so first week cells are not taller than others */
         .day-cell { height: var(--day-cell-min-height, 90px); }
 
@@ -647,7 +647,7 @@
             .week-title { font-size: 0.62em; }
             .week-details { display: none; }
             .moon-icon { font-size: 0.7em; display: inline-flex; align-items: center; justify-content: center; line-height: 0; vertical-align: middle; }
-            .days-container { grid-template-columns: var(--day-cell-grid-cols, repeat(7, 1fr)); grid-auto-rows: var(--day-cell-min-height, 90px); gap: var(--day-cell-gap, 2px); }
+            .days-container { grid-template-columns: var(--day-cell-grid-cols, repeat(8, 1fr)); grid-auto-rows: var(--day-cell-min-height, 90px); gap: var(--day-cell-gap, 2px); }
             .lunar-week > div:not(.week-header) { gap: 2px; }
             .day-cell { min-width: 0; height: var(--day-cell-min-height, 90px); font-size: var(--day-cell-font-size, 0.7em); padding: var(--day-cell-padding, 2px); overflow: hidden; word-break: break-word; }
             .day-number { font-size: 1em; }
@@ -34924,11 +34924,11 @@ async function handleNotifToggle(enable) {
 }
 
 function setCellSize(size) {
-    // S = whole week in 1 line (7 cols), M = 2 lines (4 cols), L = 3 lines (3 cols)
-    // v706: Tall portrait cells — 7 fixed cols so cells are taller than wide
+    // v742: 8 cols always (semanas lunares pueden tener hasta 8 días).
+    // Si la semana tiene 6/7 días, las columnas restantes quedan vacías a la derecha.
     const dims = { small: '90px', medium: '120px', large: '155px' };
     const fonts = { small: '0.62em', medium: '0.75em', large: '0.95em' };
-    const gridCols = { small: 'repeat(7, 1fr)', medium: 'repeat(7, 1fr)', large: 'repeat(7, 1fr)' };
+    const gridCols = { small: 'repeat(8, 1fr)', medium: 'repeat(8, 1fr)', large: 'repeat(8, 1fr)' };
     const gaps = { small: '2px', medium: '3px', large: '4px' };
     const paddings = { small: '2px 2px', medium: '4px 3px', large: '7px 5px' };
     localStorage.setItem('dayCellSize', size);
