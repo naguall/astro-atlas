@@ -29899,20 +29899,8 @@ function renderCalendar() {
     container.innerHTML = '';
     container.appendChild(_fragment);
 
-    // v645: Auto-scroll to today's week so user sees the current position, not the start
-    if (currentWeekIndex >= 0) {
-        setTimeout(function() {
-            var todayCell = container.querySelector('.day-cell.today');
-            if (todayCell) {
-                var weekEl = todayCell.closest('.lunar-week');
-                if (weekEl) {
-                    weekEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } else {
-                    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        }, 120);
-    }
+    // v743: Auto-scroll removido — el usuario pidió que al entrar al tab Lunar NO haga scroll
+    // automático hacia la semana de hoy. (Antes v645 lo hacía con scrollIntoView smooth.)
 
     // Sync all week scrolls — when one scrolls, all follow
   } catch(err) {
