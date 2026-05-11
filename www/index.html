@@ -32926,11 +32926,11 @@ function submitDailyQuiz() {
         }
     }
 
-    // Replace submit button with "done" + results button
+    // v743: Reemplazar submit button con botón de "ver resultados" (por si el usuario vuelve atrás)
+    // pero TAMBIÉN abrir el modal de resultados completos automáticamente.
     var btns = content.querySelectorAll('button[onclick*="submitDailyQuiz"]');
     btns.forEach(function(b) {
         b.style.display = 'none';
-        // Insert results button after submit
         var resBtn = document.createElement('button');
         resBtn.style.cssText = 'width:100%;padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.5);border-radius:10px;color:#667eea;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:8px;';
         resBtn.innerHTML = '📊 ' + (L ? 'Ver Resultados Completos' : 'See Full Results');
@@ -32940,6 +32940,9 @@ function submitDailyQuiz() {
 
     // Save daily quiz completed
     localStorage.setItem('dailyQuiz_lastCompleted', new Date().toISOString());
+
+    // v743: Abrir automáticamente el modal de resultados completos.
+    setTimeout(function() { _showQuizResultsModal(state, correct, total, pct); }, 350);
 }
 
 // v658: Show full quiz results in a separate modal (keeps quiz open behind it)
