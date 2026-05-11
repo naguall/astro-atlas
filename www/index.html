@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v743';</script>
+    <script>window.APP_VERSION = 'v744';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -9766,7 +9766,7 @@ function openSavedReadingsModal(tab) {
                 html += '<div style="display:flex;gap:4px;flex-shrink:0;">';
                 html += '<button onclick="toggleStarReading(\'' + r.id + '\');openSavedReadingsModal(\'lecturas\');" style="background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:2px 4px;">' + (r.starred ? '⭐' : '☆') + '</button>';
                 html += '<button onclick="shareReadingById(\'' + r.id + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:2px 4px;">📤</button>';
-                html += '<button onclick="if(confirm(\'' + ('¿Eliminar?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal(\'lecturas\');}" style="background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:2px 4px;">🗑️</button>';
+                html += '<button onclick="if(confirm(\'' + (currentLang==='es'?'¿Eliminar?':'Delete?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal(\'lecturas\');}" style="background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:2px 4px;">🗑️</button>';
                 html += '</div></div>';
                 html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
                 html += '<button onclick="viewFullReading(\'' + r.id + '\')" style="padding:5px 14px;background:rgba(201,168,64,0.12);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer completa' : 'Read full') + '</button>';
@@ -9813,8 +9813,8 @@ function openSavedReadingsModal(tab) {
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
                     html += '<span style="color:#9b59b6;font-weight:700;font-size:0.9em;">📓 ' + formatDateKeyDisplay(entry.date) + '</span>';
                     html += '<div style="display:flex;gap:4px;">';
-                    html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + ('Compartir') + '">📤</button>';
-                    html += '<button onclick="if(confirm(\'' + ('¿Eliminar?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + ('Eliminar') + '">🗑️</button>';
+                    html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (currentLang==='es'?'Compartir':'Share') + '">📤</button>';
+                    html += '<button onclick="if(confirm(\'' + (currentLang==='es'?'¿Eliminar?':'Delete?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (currentLang==='es'?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
                     var pMeta = getDiaryMeta(entry.date, 'personal');
                     if (pMeta) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-bottom:6px;">' + formatDiaryMeta(pMeta) + '</div>';
@@ -9857,8 +9857,8 @@ function openSavedReadingsModal(tab) {
                     if (dreamLabel) html += ' <span style="color:rgba(93,173,226,0.6);font-size:0.75em;font-weight:600;">— ' + dreamLabel + '</span>';
                     html += '</div>';
                     html += '<div style="display:flex;gap:4px;">';
-                    html += '<button onclick="openDreamEditor(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + ('Editar') + '">✏️</button>';
-                    html += '<button onclick="if(confirm(\'' + ('¿Eliminar este sueño?') + '\')){deleteDreamById(\'' + safeDate + '\',\'' + safeDreamId + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + ('Eliminar') + '">🗑️</button>';
+                    html += '<button onclick="openDreamEditor(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (currentLang==='es'?'Editar':'Edit') + '">✏️</button>';
+                    html += '<button onclick="if(confirm(\'' + (currentLang==='es'?'¿Eliminar este sueño?':'Delete this dream?') + '\')){deleteDreamById(\'' + safeDate + '\',\'' + safeDreamId + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (currentLang==='es'?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
                     // Show timestamp
                     if (entry.ts) {
@@ -10158,7 +10158,7 @@ function buildAstroContextHTML(dateKey) {
         var moonPhaseLabel = '';
         if (moonEv) moonPhaseLabel = moonEv.type === 'full' ? ('🌕 Luna Llena') : ('🌑 Luna Nueva');
         html += '<div style="margin-bottom:10px;">';
-        html += '<div style="font-weight:700;color:#b0bec5;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☽ ' + ('Lunar') + '</div>';
+        html += '<div style="font-weight:700;color:#b0bec5;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☽ ' + (currentLang==='es'?'Lunar':'Lunar') + '</div>';
         html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
         html += ('Día lunar: ') + '<b>' + lunarDay + '</b>';
         if (moonPhaseLabel) html += ' · ' + moonPhaseLabel;
@@ -10173,10 +10173,10 @@ function buildAstroContextHTML(dateKey) {
             var signStart = new Date(sign.start); signStart.setHours(0,0,0,0);
             var solarDay = Math.floor((d - signStart) / 86400000) + 1;
             html += '<div style="margin-bottom:10px;">';
-            html += '<div style="font-weight:700;color:#ff9500;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☉ ' + ('Solar') + '</div>';
+            html += '<div style="font-weight:700;color:#ff9500;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">☉ ' + (currentLang==='es'?'Solar':'Solar') + '</div>';
             html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
             html += ('Signo: ') + '<b style="color:' + sign.color + ';">' + (typeof ts === 'function' ? ts(sign.name) : sign.name) + '</b>';
-            html += ' · ' + ('Día ') + solarDay;
+            html += ' · ' + (currentLang==='es'?'Día ':'Day ') + solarDay;
             html += '</div></div>';
         }
     } catch(e) {}
@@ -10186,7 +10186,7 @@ function buildAstroContextHTML(dateKey) {
         var dayNames = L ? ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] : ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         var monthNames = L ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] : ['January','February','March','April','May','June','July','August','September','October','November','December'];
         html += '<div style="margin-bottom:10px;">';
-        html += '<div style="font-weight:700;color:#81c784;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📅 ' + ('Gregoriano') + '</div>';
+        html += '<div style="font-weight:700;color:#81c784;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📅 ' + (currentLang==='es'?'Gregoriano':'Gregorian') + '</div>';
         html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
         html += dayNames[d.getDay()] + ', ' + d.getDate() + ' ' + monthNames[d.getMonth()] + ' ' + d.getFullYear();
         html += '</div></div>';
@@ -10204,7 +10204,7 @@ function buildAstroContextHTML(dateKey) {
                 if (major.length > 0) {
                     var pNms = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','partOfFortune':'Parte de la Fortuna','vertex':'Vértice','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
                     html += '<div style="margin-bottom:10px;">';
-                    html += '<div style="font-weight:700;color:#c39bd3;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🔮 ' + ('Tránsitos Natales') + '</div>';
+                    html += '<div style="font-weight:700;color:#c39bd3;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🔮 ' + (currentLang==='es'?'Tránsitos Natales':'Natal Transits') + '</div>';
                     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
                     major.forEach(function(t) {
                         html += '<div style="margin-bottom:3px;"><span style="color:' + t.color + ';">' + t.symbol + '</span> ' + (pNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.type + ' natal ' + (pNms[t.natalPlanet]||t.natalPlanet) + ' <span style="color:rgba(255,255,255,0.35);">(' + (t.orbFormatted||'') + ')</span></div>';
@@ -10218,7 +10218,7 @@ function buildAstroContextHTML(dateKey) {
                 var personalDay = Math.floor((d - birthAnn) / 86400000) + 1;
                 if (personalDay <= 0) personalDay += 365;
                 html += '<div style="margin-bottom:10px;">';
-                html += '<div style="font-weight:700;color:#e8c84a;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">✨ ' + ('Calendario Personal') + '</div>';
+                html += '<div style="font-weight:700;color:#e8c84a;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">✨ ' + (currentLang==='es'?'Calendario Personal':'Personal Calendar') + '</div>';
                 html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
                 html += ('Día personal: ') + '<b>' + personalDay + '</b>';
                 html += '</div></div>';
@@ -10237,7 +10237,7 @@ function buildAstroContextHTML(dateKey) {
                 var dayCycles = mCycles.filter(function(c) { return c.day === d.getDate(); });
                 if (dayCycles.length > 0) {
                     html += '<div style="margin-bottom:10px;">';
-                    html += '<div style="font-weight:700;color:#e0b0ff;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🌀 ' + ('Ciclos Cósmicos') + '</div>';
+                    html += '<div style="font-weight:700;color:#e0b0ff;font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🌀 ' + (currentLang==='es'?'Ciclos Cósmicos':'Cosmic Cycles') + '</div>';
                     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);padding-left:8px;">';
                     dayCycles.forEach(function(c) {
                         html += '<div style="margin-bottom:3px;"><span style="color:' + c.color + ';">' + c.icon + '</span> <b>' + c.label + '</b></div>';
@@ -10451,7 +10451,7 @@ function _buildAstroContextText(dateKey, L) {
         var moonEv = getMoonEventForDate(d);
         var phaseLabel = '';
         if (moonEv) phaseLabel = moonEv.type === 'full' ? (' (Luna Llena)') : (' (Luna Nueva)');
-        lines.push('  ☽ ' + ('Día lunar: ') + lunarDay + phaseLabel);
+        lines.push('  ☽ ' + (currentLang==='es'?'Día lunar: ':'Lunar day: ') + lunarDay + phaseLabel);
     } catch(e) {}
 
     // Solar info
@@ -10461,7 +10461,7 @@ function _buildAstroContextText(dateKey, L) {
         if (sign) {
             var signStart = new Date(sign.start); signStart.setHours(0,0,0,0);
             var solarDay = Math.floor((d - signStart) / 86400000) + 1;
-            lines.push('  ☉ ' + ('Signo solar: ') + (typeof ts === 'function' ? ts(sign.name) : sign.name) + ' — ' + ('Día ') + solarDay);
+            lines.push('  ☉ ' + (currentLang==='es'?'Signo solar: ':'Solar sign: ') + (typeof ts === 'function' ? ts(sign.name) : sign.name) + ' — ' + (currentLang==='es'?'Día ':'Day ') + solarDay);
         }
     } catch(e) {}
 
@@ -10476,7 +10476,7 @@ function _buildAstroContextText(dateKey, L) {
                 var major = transits.filter(function(t) { return !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
                 var pNms = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
                 if (major.length > 0) {
-                    lines.push('  🔮 ' + ('Tránsitos:'));
+                    lines.push('  🔮 ' + (currentLang==='es'?'Tránsitos:':'Transits:'));
                     major.forEach(function(t) {
                         lines.push('     ' + (pNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.type + ' natal ' + (pNms[t.natalPlanet]||t.natalPlanet) + (t.orbFormatted ? ' (' + t.orbFormatted + ')' : ''));
                     });
@@ -10513,7 +10513,7 @@ function viewFullReading(id) {
     html += '<div id="readingContent_' + r.id + '" style="line-height:1.7;font-size:0.92em;color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;word-wrap:break-word;overflow-wrap:break-word;">' + r.html + '</div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;">';
     html += '<button onclick="shareReadingById(\'' + r.id + '\')" style="padding:8px 20px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.9em;cursor:pointer;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>';
-    html += '<button onclick="if(confirm(\'' + ('¿Eliminar?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal();}" style="padding:8px 20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.9em;cursor:pointer;">🗑️ ' + (L ? 'Eliminar' : 'Delete') + '</button>';
+    html += '<button onclick="if(confirm(\'' + (currentLang==='es'?'¿Eliminar?':'Delete?') + '\')){deleteReading(\'' + r.id + '\');openSavedReadingsModal();}" style="padding:8px 20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.9em;cursor:pointer;">🗑️ ' + (L ? 'Eliminar' : 'Delete') + '</button>';
     html += '</div>';
     // Inline AI chat for this reading
     html += _buildInlineChatHTML('reading_' + r.id, r.title, r.text);
@@ -10553,24 +10553,24 @@ window._buildInlineChatHTML = function(chatId, contextTitle, contextText) {
     html += '<div style="padding:8px;border-top:1px solid rgba(102,126,234,0.08);">';
     html += '<div style="display:flex;gap:4px;align-items:flex-end;">';
     // Input
-    html += '<textarea id="readingInput_' + chatId + '" rows="1" placeholder="' + ('Pregunta...') + '" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(102,126,234,0.15);border-radius:8px;color:white;padding:7px 10px;font-size:0.8em;resize:none;outline:none;font-family:inherit;min-width:0;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,70)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();_readingChatSend(\'' + chatId + '\');}"></textarea>';
+    html += '<textarea id="readingInput_' + chatId + '" rows="1" placeholder="' + (currentLang==='es'?'Pregunta...':'Ask...') + '" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(102,126,234,0.15);border-radius:8px;color:white;padding:7px 10px;font-size:0.8em;resize:none;outline:none;font-family:inherit;min-width:0;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,70)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();_readingChatSend(\'' + chatId + '\');}"></textarea>';
     // Send
     html += '<button onclick="_readingChatSend(\'' + chatId + '\')" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.35);color:#667eea;font-size:0.95em;cursor:pointer;flex-shrink:0;">➤</button>';
     html += '</div>';
     html += '<div style="display:flex;justify-content:center;gap:8px;margin-top:5px;">';
     // Voice
-    html += '<button onclick="startGenericVoice(\'readingInput_' + chatId + '\',\'_readingChatSend(\\x27' + chatId + '\\x27)\',\'readingVoice_' + chatId + '\')" id="readingVoice_' + chatId + '" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + ('Voz') + '">🎙️</button>';
+    html += '<button onclick="startGenericVoice(\'readingInput_' + chatId + '\',\'_readingChatSend(\\x27' + chatId + '\\x27)\',\'readingVoice_' + chatId + '\')" id="readingVoice_' + chatId + '" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + (currentLang==='es'?'Voz':'Voice') + '">🎙️</button>';
     // TTS
-    html += '<button onclick="readAloudLastMsg(\'readingChat_' + chatId + '\')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + ('Leer') + '">🔊</button>';
+    html += '<button onclick="readAloudLastMsg(\'readingChat_' + chatId + '\')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + (currentLang==='es'?'Leer':'Read') + '">🔊</button>';
     // Voice convo
-    html += '<button onclick="_toggleReadingVoiceConvo(\'' + chatId + '\')" id="readingConvo_' + chatId + '" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + ('Conversación por voz') + '">🗣️</button>';
+    html += '<button onclick="_toggleReadingVoiceConvo(\'' + chatId + '\')" id="readingConvo_' + chatId + '" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.95em;cursor:pointer;flex-shrink:0;" title="' + (currentLang==='es'?'Conversación por voz':'Voice conversation') + '">🗣️</button>';
     html += '</div>';
     // Quick buttons
     html += '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">';
     var safeTitle = contextTitle.replace(/'/g, "\\'").substring(0,50);
-    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + ('Resúmeme los puntos clave de esta lectura') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px;color:#667eea;font-size:0.65em;cursor:pointer;">' + ('📋 Resumen') + '</button>';
-    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + ('¿Qué significa esto para mi vida práctica?') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(78,205,196,0.08);border:1px solid rgba(78,205,196,0.2);border-radius:12px;color:#4ecdc4;font-size:0.65em;cursor:pointer;">' + ('💡 Aplicar') + '</button>';
-    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + ('Explícame más detalladamente') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:12px;color:#ffd700;font-size:0.65em;cursor:pointer;">' + ('🔍 Profundizar') + '</button>';
+    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + (currentLang==='es'?'Resúmeme los puntos clave de esta lectura':'Summarize the key points of this reading') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px;color:#667eea;font-size:0.65em;cursor:pointer;">' + (currentLang==='es'?'📋 Resumen':'📋 Summary') + '</button>';
+    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + (currentLang==='es'?'¿Qué significa esto para mi vida práctica?':'What does this mean for my practical life?') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(78,205,196,0.08);border:1px solid rgba(78,205,196,0.2);border-radius:12px;color:#4ecdc4;font-size:0.65em;cursor:pointer;">' + (currentLang==='es'?'💡 Aplicar':'💡 Apply') + '</button>';
+    html += '<button onclick="document.getElementById(\'readingInput_' + chatId + '\').value=\'' + (currentLang==='es'?'Explícame más detalladamente':'Explain in more detail') + '\';_readingChatSend(\'' + chatId + '\')" style="padding:4px 8px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:12px;color:#ffd700;font-size:0.65em;cursor:pointer;">' + (currentLang==='es'?'🔍 Profundizar':'🔍 Deepen') + '</button>';
     html += '</div>';
     html += '</div></div>';
     // Store context for the chat
@@ -10597,7 +10597,7 @@ window._readingChatSend = function(chatId) {
     state.history.push({ role: 'user', parts: [{ text: msg }] });
 
     // Typing
-    areaEl.innerHTML += '<div id="readingTyping_' + chatId + '" style="text-align:left;margin:6px 0;"><span style="display:inline-block;background:rgba(102,126,234,0.06);color:#aaa;padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;">⏳ ' + ('Pensando...') + '</span></div>';
+    areaEl.innerHTML += '<div id="readingTyping_' + chatId + '" style="text-align:left;margin:6px 0;"><span style="display:inline-block;background:rgba(102,126,234,0.06);color:#aaa;padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;">⏳ ' + (currentLang==='es'?'Pensando...':'Thinking...') + '</span></div>';
     areaEl.scrollTop = areaEl.scrollHeight;
 
     var sysPrompt = (L
@@ -10613,7 +10613,7 @@ window._readingChatSend = function(chatId) {
         _readBody._stream = true;
     } else {
         var t = document.getElementById('readingTyping_' + chatId);
-        if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + ('⚠️ Configura tu API key en Preferencias') + '</span>';
+        if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (currentLang==='es'?'⚠️ Configura tu API key en Preferencias':'⚠️ Set up your API key in Preferences') + '</span>';
         return;
     }
 
@@ -11714,12 +11714,12 @@ function openDiarioModal(date, lunarDay) {
         if (ta) ta.value = dream ? dream.text : '';
         var dw = ta && ta.value.trim() ? ta.value.trim().split(/\s+/).filter(function(w){return w.length>0;}).length : 0;
         var wc = document.getElementById('dreamWordCount');
-        if (wc) wc.textContent = dw ? dw + ' ' + ('palabras') : '';
+        if (wc) wc.textContent = dw ? dw + ' ' + (currentLang==='es'?'palabras':'words') : '';
         // Show interpretation if exists
         var interpContainer = document.getElementById('dreamInterpContainer');
         if (interpContainer) {
             if (dream && dream.interpretation && dream.interpretation.trim()) {
-                interpContainer.innerHTML = '<div style="background:rgba(138,43,226,0.08);border:1px solid rgba(138,43,226,0.2);border-radius:10px;padding:12px;margin-top:8px;"><div style="color:#ce93d8;font-weight:700;font-size:0.82em;margin-bottom:6px;">✨ ' + ('Interpretación guardada') + '</div><div style="color:rgba(255,255,255,0.75);font-size:0.85em;line-height:1.6;white-space:pre-wrap;">' + dream.interpretation.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>') + '</div></div>';
+                interpContainer.innerHTML = '<div style="background:rgba(138,43,226,0.08);border:1px solid rgba(138,43,226,0.2);border-radius:10px;padding:12px;margin-top:8px;"><div style="color:#ce93d8;font-weight:700;font-size:0.82em;margin-bottom:6px;">✨ ' + (currentLang==='es'?'Interpretación guardada':'Saved interpretation') + '</div><div style="color:rgba(255,255,255,0.75);font-size:0.85em;line-height:1.6;white-space:pre-wrap;">' + dream.interpretation.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>') + '</div></div>';
             } else {
                 interpContainer.innerHTML = '';
             }
@@ -15539,7 +15539,7 @@ function showHistoricAspectsModal() {
 
     const events = getHistoricEventsData();
 
-    let html = '<div style="font-size:0.82em;color:#a8b2d1;margin-bottom:15px;line-height:1.5;">' + ('Alineaciones poco frecuentes entre planetas lentos que marcan épocas enteras. Incluye contexto histórico de ciclos anteriores.') + '</div>';
+    let html = '<div style="font-size:0.82em;color:#a8b2d1;margin-bottom:15px;line-height:1.5;">' + (currentLang==='es'?'Alineaciones poco frecuentes entre planetas lentos que marcan épocas enteras. Incluye contexto histórico de ciclos anteriores.':'Infrequent alignments between slow planets that mark entire eras. Includes historical context of previous cycles.') + '</div>';
 
     var nowHist = new Date();
     var monthMapHist = {'Ene':0,'Feb':1,'Mar':2,'Abr':3,'May':4,'Jun':5,'Jul':6,'Ago':7,'Sep':8,'Oct':9,'Nov':10,'Dic':11,'Jan':0,'Apr':3,'Aug':7,'Dec':11};
@@ -20702,7 +20702,7 @@ window.openSynastryView = function(profileId) {
     var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
     html += '<div style="text-align:center;margin-bottom:14px;">';
     html += '<div style="font-size:2em;font-weight:700;color:' + scoreColor + ';">' + score + '%</div>';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Compatibilidad') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Compatibilidad':'Compatibility') + '</div>';
     html += '<div style="width:80%;max-width:300px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin:6px auto;">';
     html += '<div style="width:' + score + '%;height:100%;background:' + scoreColor + ';border-radius:3px;"></div></div></div>';
 
@@ -20710,7 +20710,7 @@ window.openSynastryView = function(profileId) {
     html += '<div id="synastryBiwheel" style="margin-bottom:14px;"></div>';
 
     // Major aspects (clickable)
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Aspectos Mayores') + ' (' + majorAsp.length + ')</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Aspectos Mayores':'Major Aspects') + ' (' + majorAsp.length + ')</div>';
     majorAsp.slice(0,15).forEach(function(a) {
         var scoreIcon = a.score > 0 ? '<span style="color:#2ecc71;">+</span>' : a.score < 0 ? '<span style="color:#e74c3c;">-</span>' : '';
         var dataStr = (a.planet1 + '|' + a.planet2 + '|' + a.type + '|' + a.orb + '|' + a.major + '|' + name1 + '|' + name2).replace(/'/g, "\\'");
@@ -20727,7 +20727,7 @@ window.openSynastryView = function(profileId) {
 
     // Minor aspects (clickable)
     if (minorAsp.length > 0) {
-        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + ('Aspectos Menores') + ' (' + minorAsp.length + ')</div>';
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + (currentLang==='es'?'Aspectos Menores':'Minor Aspects') + ' (' + minorAsp.length + ')</div>';
         minorAsp.slice(0,10).forEach(function(a) {
             var dataStr = (a.planet1 + '|' + a.planet2 + '|' + a.type + '|' + a.orb + '|' + a.major + '|' + name1 + '|' + name2).replace(/'/g, "\\'");
             html += '<div onclick="showSynastryAspectDetail(\'' + dataStr + '\')" class="transit-aspect-row ' + (a.type||'') + '" style="font-size:0.78em;opacity:0.7;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.opacity=\'1\';this.style.background=\'rgba(201,168,64,0.08)\'" onmouseout="this.style.opacity=\'0.7\';this.style.background=\'\'">'
@@ -20741,13 +20741,13 @@ window.openSynastryView = function(profileId) {
 
     // House overlay (clickable)
     if (overlay.length > 0) {
-        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">' + ('Planetas de ') + name2 + (' en tus casas') + '</div>';
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">' + (currentLang==='es'?'Planetas de ':'Planets of ') + name2 + (currentLang==='es'?' en tus casas':' in your houses') + '</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
         overlay.forEach(function(o) {
             var dataStr = (o.planet + '|' + o.house + '|' + name1 + '|' + name2).replace(/'/g, "\\'");
             html += '<div onclick="showSynastryHouseDetail(\'' + dataStr + '\')" style="padding:4px 8px;background:rgba(100,181,246,0.08);border:1px solid rgba(100,181,246,0.2);border-radius:6px;font-size:0.78em;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(100,181,246,0.5)\';this.style.background=\'rgba(100,181,246,0.15)\'" onmouseout="this.style.borderColor=\'rgba(100,181,246,0.2)\';this.style.background=\'rgba(100,181,246,0.08)\'">'
                 + '<span style="color:rgba(100,181,246,0.8);">' + o.symbol + '</span> '
-                + (pNms[o.planet]||o.planet) + ' ' + ('casa') + ' ' + o.house
+                + (pNms[o.planet]||o.planet) + ' ' + (currentLang==='es'?'casa':'house') + ' ' + o.house
                 + ' <span style="color:rgba(255,255,255,0.2);">›</span>'
                 + '</div>';
         });
@@ -20757,7 +20757,7 @@ window.openSynastryView = function(profileId) {
     // AI Interpretation button
     html += '<div style="margin-top:14px;">';
     html += '<button onclick="interpretSynastry(\'' + name1.replace(/'/g,"\\'") + '\',\'' + name2.replace(/'/g,"\\'") + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(155,89,182,0.15));border:1px solid rgba(155,89,182,0.4);border-radius:10px;color:#c39bd3;font-size:0.88em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">';
-    html += '✨ ' + ('Interpretar Sinastría');
+    html += '✨ ' + (currentLang==='es'?'Interpretar Sinastría':'Interpret Synastry');
     html += '</button></div>';
 
     html += '</div>';
@@ -20785,8 +20785,8 @@ window.openSynastryPicker = function() {
     }
     // Multiple profiles — show picker
     var html = '<div style="padding:20px;text-align:center;">';
-    html += '<div style="font-size:1em;font-weight:700;color:#64B5F6;margin-bottom:14px;">💞 ' + ('Sinastría — Elegir perfil') + '</div>';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:14px;">' + ('Comparar tu carta natal con:') + '</div>';
+    html += '<div style="font-size:1em;font-weight:700;color:#64B5F6;margin-bottom:14px;">💞 ' + (currentLang==='es'?'Sinastría — Elegir perfil':'Synastry — Choose profile') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:14px;">' + (currentLang==='es'?'Comparar tu carta natal con:':'Compare your natal chart with:') + '</div>';
     others.forEach(function(p) {
         html += '<button onclick="document.getElementById(\'synastryPickerModal\').classList.remove(\'show\');openSynastryView(\'' + p.id + '\');" style="width:100%;padding:12px 16px;margin-bottom:8px;background:rgba(100,181,246,0.08);border:1px solid rgba(100,181,246,0.25);border-radius:10px;color:#e8eaf6;font-size:0.88em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
             '<span style="font-size:1.2em;">🔮</span>' +
@@ -20871,7 +20871,7 @@ window.interpretSynastry = function(name1, name2) {
     var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
     var html = '<div style="text-align:center;margin-bottom:14px;">';
     html += '<div style="font-size:2.2em;font-weight:700;color:' + scoreColor + ';">' + score + '%</div>';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Compatibilidad') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Compatibilidad':'Compatibility') + '</div>';
     html += '<div style="width:80%;max-width:300px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin:6px auto;">';
     html += '<div style="width:' + score + '%;height:100%;background:' + scoreColor + ';border-radius:3px;"></div></div></div>';
 
@@ -20879,8 +20879,8 @@ window.interpretSynastry = function(name1, name2) {
     var majorCount = synAspects.filter(function(a){return a.major;}).length;
     var minorCount = synAspects.filter(function(a){return !a.major;}).length;
     html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:12px;text-align:center;">';
-    html += ('Aspectos mayores: ') + majorCount + ' · ' + ('Menores: ') + minorCount;
-    if (overlay.length > 0) html += ' · ' + ('Casas: ') + overlay.length;
+    html += ('Aspectos mayores: ') + majorCount + ' · ' + (currentLang==='es'?'Menores: ':'Minor: ') + minorCount;
+    if (overlay.length > 0) html += ' · ' + (currentLang==='es'?'Casas: ':'Houses: ') + overlay.length;
     html += '</div>';
 
     html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="synInterpDiv"></div></div>';
@@ -20923,9 +20923,9 @@ window.showSynastryAspectDetail = function(dataStr) {
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid ' + color + ';">';
     html += '<div style="font-size:2.5em;margin-bottom:6px;">' + pSym1 + ' <span style="color:' + color + ';">' + sym + '</span> ' + pSym2 + '</div>';
     html += '<div style="font-size:1.1em;font-weight:700;color:' + color + ';">' + aspName + '</div>';
-    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);margin-top:4px;">' + p1Name + ' ' + ('de') + ' ' + person1 + ' ' + sym + ' ' + p2Name + ' ' + ('de') + ' ' + person2 + '</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);margin-top:4px;">' + p1Name + ' ' + (currentLang==='es'?'de':'of') + ' ' + person1 + ' ' + sym + ' ' + p2Name + ' ' + (currentLang==='es'?'de':'of') + ' ' + person2 + '</div>';
     html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:0.78em;color:rgba(255,255,255,0.4);">';
-    html += '<span>' + ('Orbe') + ': ' + orb + '°</span>';
+    html += '<span>' + (currentLang==='es'?'Orbe':'Orb') + ': ' + orb + '°</span>';
     html += '<span>' + (isMajor ? ('Aspecto Mayor') : ('Aspecto Menor')) + '</span>';
     html += '</div></div>';
 
@@ -20974,12 +20974,12 @@ window.showSynastryHouseDetail = function(dataStr) {
     if (!modal || !titleEl || !bodyEl) return;
     modal.style.zIndex = '1300';
 
-    titleEl.textContent = pName + ' ' + ('en Casa') + ' ' + house;
+    titleEl.textContent = pName + ' ' + (currentLang==='es'?'en Casa':'in House') + ' ' + house;
 
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid #64B5F6;">';
     html += '<div style="font-size:2.5em;margin-bottom:6px;">' + pSym + '</div>';
-    html += '<div style="font-size:1.1em;font-weight:700;color:#64B5F6;">' + pName + ' ' + ('de') + ' ' + person2 + '</div>';
-    html += '<div style="font-size:0.95em;color:rgba(255,255,255,0.6);margin-top:4px;">' + ('en Casa') + ' ' + house + ' ' + ('de') + ' ' + person1 + '</div>';
+    html += '<div style="font-size:1.1em;font-weight:700;color:#64B5F6;">' + pName + ' ' + (currentLang==='es'?'de':'of') + ' ' + person2 + '</div>';
+    html += '<div style="font-size:0.95em;color:rgba(255,255,255,0.6);margin-top:4px;">' + (currentLang==='es'?'en Casa':'in House') + ' ' + house + ' ' + (currentLang==='es'?'de':'of') + ' ' + person1 + '</div>';
     html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-top:6px;">' + (houseThemes[house] || '') + '</div>';
     html += '</div>';
 
@@ -20993,7 +20993,7 @@ window.showSynastryHouseDetail = function(dataStr) {
         : 'In the synastry between ' + person1 + ' and ' + person2 + ', interpret the meaning of ' + pName + ' of ' + person2 + ' falling in House ' + house + ' of ' + person1 + '. House ' + house + ' relates to: ' + (houseThemes[house]||'') + '. Explain how this affects the relationship, what energy ' + person2 + ' brings to this area of ' + person1 + '\'s life.';
 
     setTimeout(function() {
-        fetchAIInterpretation(prompt, 'aiInterpDiv', pName + ' ' + ('Casa') + ' ' + house);
+        fetchAIInterpretation(prompt, 'aiInterpDiv', pName + ' ' + (currentLang==='es'?'Casa':'House') + ' ' + house);
     }, 200);
 };
 
@@ -21010,20 +21010,20 @@ function renderCompararTab() {
     if (others.length === 0) {
         container.innerHTML = '<div class="personal-natal-card" style="text-align:center;padding:30px;">' +
             '<div style="font-size:2em;margin-bottom:12px;">💞</div>' +
-            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + ('Necesitas al menos 2 perfiles para comparar cartas') + '</div>' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Agrega otro perfil en la pestaña Carta') + '</div></div>';
+            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + (currentLang==='es'?'Necesitas al menos 2 perfiles para comparar cartas':'You need at least 2 profiles to compare charts') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Agrega otro perfil en la pestaña Carta':'Add another profile in the Chart tab') + '</div></div>';
         return;
     }
 
     var html = '<div class="personal-natal-card">';
     html += '<div style="text-align:center;margin-bottom:14px;">';
-    html += '<div style="font-size:1.1em;font-weight:700;color:#c39bd3;margin-bottom:4px;">💞 ' + ('Comparación de Cartas') + '</div>';
-    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);">' + ('Selecciona un perfil y el método de comparación') + '</div>';
+    html += '<div style="font-size:1.1em;font-weight:700;color:#c39bd3;margin-bottom:4px;">💞 ' + (currentLang==='es'?'Comparación de Cartas':'Chart Comparison') + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Selecciona un perfil y el método de comparación':'Select a profile and comparison method') + '</div>';
     html += '</div>';
 
     // Profile selector
     html += '<div style="margin-bottom:14px;">';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + ('Comparar con:') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + (currentLang==='es'?'Comparar con:':'Compare with:') + '</div>';
     others.forEach(function(p) {
         var isSelected = (window._compareProfileId === p.id);
         html += '<button onclick="window._compareProfileId=\'' + p.id + '\';renderCompararTab();" style="width:100%;padding:10px 14px;margin-bottom:6px;background:' + (isSelected?'linear-gradient(135deg,rgba(155,89,182,0.2),rgba(155,89,182,0.08))':'rgba(255,255,255,0.03)') + ';border:' + (isSelected?'2px solid rgba(155,89,182,0.6)':'1px solid rgba(255,255,255,0.1)') + ';border-radius:10px;color:' + (isSelected?'#c39bd3':'rgba(255,255,255,0.6)') + ';font-size:0.85em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
@@ -21044,18 +21044,18 @@ function renderCompararTab() {
 
         // Sinastría
         html += '<button onclick="openSynastryView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(155,89,182,0.1));border:1px solid rgba(155,89,182,0.35);border-radius:12px;color:#c39bd3;font-size:0.9em;cursor:pointer;text-align:left;">' +
-            '<div style="font-weight:700;margin-bottom:2px;">☌ ' + ('Sinastría') + '</div>' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Aspectos cruzados entre ambas cartas') + '</div></button>';
+            '<div style="font-weight:700;margin-bottom:2px;">☌ ' + (currentLang==='es'?'Sinastría':'Synastry') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Aspectos cruzados entre ambas cartas':'Aspects crossed between both charts') + '</div></button>';
 
         // Carta Compuesta
         html += '<button onclick="openCompositeView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(46,204,113,0.12),rgba(39,174,96,0.08));border:1px solid rgba(46,204,113,0.3);border-radius:12px;color:#2ecc71;font-size:0.9em;cursor:pointer;text-align:left;">' +
-            '<div style="font-weight:700;margin-bottom:2px;">⊕ ' + ('Carta Compuesta') + '</div>' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Punto medio entre ambas cartas — la relación como entidad') + '</div></button>';
+            '<div style="font-weight:700;margin-bottom:2px;">⊕ ' + (currentLang==='es'?'Carta Compuesta':'Composite Chart') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Punto medio entre ambas cartas — la relación como entidad':'Midpoint between both charts — relationship as an entity') + '</div></button>';
 
         // Carta de Davison
         html += '<button onclick="openDavisonView(\'' + window._compareProfileId + '\')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(241,196,15,0.12),rgba(243,156,18,0.08));border:1px solid rgba(241,196,15,0.3);border-radius:12px;color:#f1c40f;font-size:0.9em;cursor:pointer;text-align:left;">' +
-            '<div style="font-weight:700;margin-bottom:2px;">✦ ' + ('Carta de Davison') + '</div>' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Punto medio en tiempo y espacio — carta real de la relación') + '</div></button>';
+            '<div style="font-weight:700;margin-bottom:2px;">✦ ' + (currentLang==='es'?'Carta de Davison':'Davison Chart') + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Punto medio en tiempo y espacio — carta real de la relación':'Midpoint in time and space — actual relationship chart') + '</div></button>';
 
         html += '</div>';
     }
@@ -21085,8 +21085,8 @@ function renderChartCompareTab(method) {
     if (others.length === 0) {
         container.innerHTML = '<div class="personal-natal-card" style="text-align:center;padding:30px;">' +
             '<div style="font-size:2em;margin-bottom:12px;">' + t.icon + '</div>' +
-            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + ('Necesitas al menos 2 perfiles para ') + t.name + '</div>' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Agrega otro perfil en la pestaña Carta') + '</div></div>';
+            '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);margin-bottom:8px;">' + (currentLang==='es'?'Necesitas al menos 2 perfiles para ':'You need at least 2 profiles to ') + t.name + '</div>' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Agrega otro perfil en la pestaña Carta':'Add another profile in the Chart tab') + '</div></div>';
         return;
     }
 
@@ -21098,7 +21098,7 @@ function renderChartCompareTab(method) {
 
     // Profile selector
     html += '<div style="margin-bottom:14px;">';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + ('Comparar con:') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">' + (currentLang==='es'?'Comparar con:':'Compare with:') + '</div>';
     others.forEach(function(p) {
         var isSelected = (window['_compare_' + method + '_id'] === p.id);
         html += '<button onclick="window[\'_compare_' + method + '_id\']=\'' + p.id + '\';renderChartCompareTab(\'' + method + '\');" style="width:100%;padding:10px 14px;margin-bottom:6px;background:' + (isSelected ? 'linear-gradient(135deg,' + t.bg + '0.2),' + t.bg + '0.08))' : 'rgba(255,255,255,0.03)') + ';border:' + (isSelected ? '2px solid ' + t.bg + '0.6)' : '1px solid rgba(255,255,255,0.1)') + ';border-radius:10px;color:' + (isSelected ? t.color : 'rgba(255,255,255,0.6)') + ';font-size:0.85em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
@@ -21196,18 +21196,18 @@ window.showCompositePlanetDetail = function(dataStr) {
 
     var titleEl = document.getElementById('compPlanetDetailTitle');
     var bodyEl = document.getElementById('compPlanetDetailBody');
-    titleEl.textContent = pName + ' ' + ('en') + ' ' + sign;
+    titleEl.textContent = pName + ' ' + (currentLang==='es'?'en':'in') + ' ' + sign;
 
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid ' + color + ';">';
     html += '<div style="font-size:2.5em;margin-bottom:6px;">' + pSym + '</div>';
-    html += '<div style="font-size:1.1em;font-weight:700;color:' + color + ';">' + pName + ' ' + ('en') + ' ' + sign + '</div>';
+    html += '<div style="font-size:1.1em;font-weight:700;color:' + color + ';">' + pName + ' ' + (currentLang==='es'?'en':'in') + ' ' + sign + '</div>';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);margin-top:4px;">' + chartLabel + ': ' + name1 + ' + ' + name2 + '</div>';
     html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:0.78em;color:rgba(255,255,255,0.4);">';
     html += '<span>' + degree + '°' + (parseInt(minute)<10?'0':'') + minute + "'" + '</span>';
-    html += '<span>' + ('Casa') + ' ' + house + '</span>';
+    html += '<span>' + (currentLang==='es'?'Casa':'House') + ' ' + house + '</span>';
     html += '</div></div>';
 
-    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + ('Interpretación') + '</h4><div id="compPlanetAIDiv"></div></div>';
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (currentLang==='es'?'Interpretación':'Interpretation') + '</h4><div id="compPlanetAIDiv"></div></div>';
 
     bodyEl.innerHTML = html;
     detailModal.classList.add('show');
@@ -21217,7 +21217,7 @@ window.showCompositePlanetDetail = function(dataStr) {
         : 'In the ' + chartLabel + ' between ' + name1 + ' and ' + name2 + ', interpret ' + pName + ' in ' + sign + ' in House ' + house + ' (' + degree + '°' + minute + "'). Explain what this planet in this sign and house means for the relationship as an entity. Be specific about how it affects the relationship dynamic.";
 
     setTimeout(function() {
-        fetchAIInterpretation(prompt, 'compPlanetAIDiv', pName + ' ' + ('en') + ' ' + sign);
+        fetchAIInterpretation(prompt, 'compPlanetAIDiv', pName + ' ' + (currentLang==='es'?'en':'in') + ' ' + sign);
     }, 200);
 };
 
@@ -21310,11 +21310,11 @@ window.openCompositeView = function(profileId) {
 
     var html = '<div style="text-align:center;margin-bottom:14px;">';
     html += '<div style="font-size:1.5em;margin-bottom:4px;">⊕</div>';
-    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + ('Puntos medios entre ambas cartas — representa la relación como entidad') + '</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (currentLang==='es'?'Puntos medios entre ambas cartas — representa la relación como entidad':'Midpoints between both charts — represents the relationship as an entity') + '</div>';
     html += '</div>';
 
     // Planets table — each planet is clickable
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Planetas Compuestos') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Planetas Compuestos':'Composite Planets') + '</div>';
     html += '<div style="margin-bottom:14px;">';
     Object.keys(comp.planets).forEach(function(p) {
         var d = comp.planets[p];
@@ -21325,7 +21325,7 @@ window.openCompositeView = function(profileId) {
         html += '<span style="font-size:1.1em;width:22px;text-align:center;">' + sym + '</span>';
         html += '<span style="color:rgba(255,255,255,0.7);flex:1;">' + (pN[p]||p) + '</span>';
         html += '<span style="color:#2ecc71;">' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + '</span>';
-        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + ('Casa') + ' ' + house + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + (currentLang==='es'?'Casa':'House') + ' ' + house + '</span>';
         html += '<span style="color:rgba(255,255,255,0.2);font-size:0.8em;">›</span>';
         html += '</div>';
     });
@@ -21357,7 +21357,7 @@ window.openCompositeView = function(profileId) {
 
     html += '<div style="margin-top:10px;">';
     html += '<button onclick="triggerCompositeInterpretation(\'' + _compInterpKey + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(46,204,113,0.15),rgba(46,204,113,0.05));border:1px solid rgba(46,204,113,0.3);border-radius:12px;color:#2ecc71;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
-    html += '✦ ' + ('Interpretación Completa');
+    html += '✦ ' + (currentLang==='es'?'Interpretación Completa':'Full Interpretation');
     html += '</button>';
     html += '</div>';
 
@@ -21438,12 +21438,12 @@ window.openDavisonView = function(profileId) {
 
     var html = '<div style="text-align:center;margin-bottom:14px;">';
     html += '<div style="font-size:1.5em;margin-bottom:4px;">✦</div>';
-    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + ('Punto medio en tiempo y espacio') + '</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (currentLang==='es'?'Punto medio en tiempo y espacio':'Midpoint in time and space') + '</div>';
     html += '</div>';
 
     // Davison birth data
     html += '<div style="background:rgba(241,196,15,0.06);border:1px solid rgba(241,196,15,0.2);border-radius:10px;padding:10px;margin-bottom:14px;">';
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Datos de la Relación') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Datos de la Relación':'Relationship Data') + '</div>';
     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1.6;">';
     html += ('Fecha') + ': ' + dav.date.toLocaleDateString('es', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '<br>';
     html += ('Hora') + ': ' + dav.timeStr + '<br>';
@@ -21451,7 +21451,7 @@ window.openDavisonView = function(profileId) {
     html += '</div></div>';
 
     // Planets — each planet is clickable
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Planetas Davison') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Planetas Davison':'Davison Planets') + '</div>';
     html += '<div style="margin-bottom:14px;">';
     Object.keys(comp.planets).forEach(function(p) {
         var d = comp.planets[p];
@@ -21462,7 +21462,7 @@ window.openDavisonView = function(profileId) {
         html += '<span style="font-size:1.1em;width:22px;text-align:center;">' + sym + '</span>';
         html += '<span style="color:rgba(255,255,255,0.7);flex:1;">' + (pN[p]||p) + '</span>';
         html += '<span style="color:#f1c40f;">' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + '</span>';
-        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + ('Casa') + ' ' + house + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + (currentLang==='es'?'Casa':'House') + ' ' + house + '</span>';
         html += '<span style="color:rgba(255,255,255,0.2);font-size:0.8em;">›</span>';
         html += '</div>';
     });
@@ -21496,7 +21496,7 @@ window.openDavisonView = function(profileId) {
 
     html += '<div style="margin-top:10px;">';
     html += '<button onclick="triggerCompositeInterpretation(\'' + _davInterpKey + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(241,196,15,0.15),rgba(241,196,15,0.05));border:1px solid rgba(241,196,15,0.3);border-radius:12px;color:#f1c40f;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
-    html += '✦ ' + ('Interpretación Completa');
+    html += '✦ ' + (currentLang==='es'?'Interpretación Completa':'Full Interpretation');
     html += '</button>';
     html += '</div>';
 
@@ -21617,28 +21617,28 @@ window.openPlanetaryHours = function(dateStr) {
         }
     }
 
-    var html = '<div class="modal-header"><h2>' + ('Horas Planetarias') + '</h2><span class="close" onclick="document.getElementById(\'planetaryHoursModal\').classList.remove(\'show\')">&times;</span></div>';
+    var html = '<div class="modal-header"><h2>' + (currentLang==='es'?'Horas Planetarias':'Planetary Hours') + '</h2><span class="close" onclick="document.getElementById(\'planetaryHoursModal\').classList.remove(\'show\')">&times;</span></div>';
     html += '<div style="padding:10px 0;">';
 
     // Date nav
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
     html += '<button onclick="openPlanetaryHours(\'' + new Date(date.getTime()-86400000).toISOString().split('T')[0] + '\')" style="padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);cursor:pointer;">&#9664;</button>';
     html += '<div style="text-align:center;"><div style="font-weight:700;color:#e8eaf6;">' + date.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'}) + '</div>';
-    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + ('Regente del dia: ') + pSyms[result.dayRuler] + ' ' + (pNms[result.dayRuler]||result.dayRuler) + '</div></div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Regente del dia: ':'Day ruler: ') + pSyms[result.dayRuler] + ' ' + (pNms[result.dayRuler]||result.dayRuler) + '</div></div>';
     html += '<button onclick="openPlanetaryHours(\'' + new Date(date.getTime()+86400000).toISOString().split('T')[0] + '\')" style="padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);cursor:pointer;">&#9654;</button>';
     html += '</div>';
 
     // Sunrise/sunset
     html += '<div style="display:flex;justify-content:center;gap:20px;margin-bottom:12px;font-size:0.8em;color:rgba(255,255,255,0.4);">';
-    html += '<span>' + ('Amanecer') + ' ' + result.sunrise + '</span>';
-    html += '<span>' + ('Atardecer') + ' ' + result.sunset + '</span>';
+    html += '<span>' + (currentLang==='es'?'Amanecer':'Sunrise') + ' ' + result.sunrise + '</span>';
+    html += '<span>' + (currentLang==='es'?'Atardecer':'Sunset') + ' ' + result.sunset + '</span>';
     html += '</div>';
 
     // Hours list
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Horas Diurnas') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Horas Diurnas':'Daytime Hours') + '</div>';
     result.hours.forEach(function(h, idx) {
         if (idx === 12) {
-            html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + ('Horas Nocturnas') + '</div>';
+            html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + (currentLang==='es'?'Horas Nocturnas':'Nighttime Hours') + '</div>';
         }
         var isCurrent = idx === currentHourIdx;
         var bg = isCurrent ? 'rgba(100,181,246,0.12);border:1px solid rgba(100,181,246,0.4)' : 'rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)';
@@ -21646,7 +21646,7 @@ window.openPlanetaryHours = function(dateStr) {
         html += '<div onclick="showPlanetaryHourDetail(\'' + hourDataAttr.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin:3px 0;border-radius:8px;background:' + bg + ';cursor:pointer;transition:all 0.15s;' + (isCurrent?'box-shadow:0 0 10px rgba(100,181,246,0.15);':'') + '" onmouseenter="this.style.opacity=\'0.7\'" onmouseleave="this.style.opacity=\'1\'">';
         html += '<span style="font-size:1.3em;color:' + (pClrs[h.planet]||'#888') + ';">' + (pSyms[h.planet]||'?') + '</span>';
         html += '<div style="flex:1;">';
-        html += '<div style="font-size:0.85em;font-weight:600;color:' + (pClrs[h.planet]||'#aaa') + ';">' + (pNms[h.planet]||h.planet) + (isCurrent ? ' <span style="color:#64B5F6;font-size:0.75em;">' + ('AHORA') + '</span>' : '') + '</div>';
+        html += '<div style="font-size:0.85em;font-weight:600;color:' + (pClrs[h.planet]||'#aaa') + ';">' + (pNms[h.planet]||h.planet) + (isCurrent ? ' <span style="color:#64B5F6;font-size:0.75em;">' + (currentLang==='es'?'AHORA':'NOW') + '</span>' : '') + '</div>';
         html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);">' + (pThemes[h.planet]||'') + '</div>';
         html += '</div>';
         html += '<div style="text-align:right;font-size:0.78em;color:rgba(255,255,255,0.5);">' + h.startTime + '<br><span style="font-size:0.85em;color:rgba(255,255,255,0.25);">' + h.endTime + '</span></div>';
@@ -21704,14 +21704,14 @@ window.showPlanetaryHourDetail = function(dataStr) {
     var html = '<div style="padding:16px;">';
     html += '<div style="text-align:center;margin-bottom:14px;">';
     html += '<span style="font-size:2.5em;color:' + (pClrs[planet]||'#888') + ';">' + (pSyms[planet]||'?') + '</span>';
-    html += '<h3 style="margin:6px 0 2px;color:' + (pClrs[planet]||'#aaa') + ';">' + ('Hora de ') + planetName + '</h3>';
+    html += '<h3 style="margin:6px 0 2px;color:' + (pClrs[planet]||'#aaa') + ';">' + (currentLang==='es'?'Hora de ':'Hour of ') + planetName + '</h3>';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + startTime + ' — ' + endTime + ' • ' + period + ' • #' + hourNum + '</div>';
-    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.3);margin-top:2px;">' + ('Regente del día: ') + (pSyms[dayRuler]||'') + ' ' + (pNames[dayRuler]||dayRuler) + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.3);margin-top:2px;">' + (currentLang==='es'?'Regente del día: ':'Day ruler: ') + (pSyms[dayRuler]||'') + ' ' + (pNames[dayRuler]||dayRuler) + '</div>';
     html += '</div>';
 
     // Themes
     html += '<div style="padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:12px;">';
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Temas y usos') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Temas y usos':'Topics and uses') + '</div>';
     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1.5;">' + (themes[planet]||'') + '</div>';
     html += '</div>';
 
@@ -21723,7 +21723,7 @@ window.showPlanetaryHourDetail = function(dataStr) {
     html += '</div></div>';
 
     // Back button
-    html += '<button onclick="openPlanetaryHours(\'' + dateStr + '\')" style="width:100%;margin-top:10px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.4);font-size:0.8em;cursor:pointer;">' + ('← Volver a horas') + '</button>';
+    html += '<button onclick="openPlanetaryHours(\'' + dateStr + '\')" style="width:100%;margin-top:10px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.4);font-size:0.8em;cursor:pointer;">' + (currentLang==='es'?'← Volver a horas':'← Back to hours') + '</button>';
     html += '</div>';
 
     document.getElementById('planetaryHoursContent').innerHTML = html;
@@ -21801,8 +21801,8 @@ window.openReturnChart = function(type) {
     html += '<div id="returnChartWheel" style="margin-bottom:12px;"></div>';
 
     // Planets table
-    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Posiciones Planetarias') + '</div>';
-    html += '<table class="natal-data-table" style="font-size:0.82em;"><thead><tr><th>' + ('Planeta') + '</th><th>' + ('Signo') + '</th><th>' + ('Grado') + '</th><th>' + ('Casa') + '</th></tr></thead><tbody>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Posiciones Planetarias':'Planetary Positions') + '</div>';
+    html += '<table class="natal-data-table" style="font-size:0.82em;"><thead><tr><th>' + (currentLang==='es'?'Planeta':'Planet') + '</th><th>' + (currentLang==='es'?'Signo':'Sign') + '</th><th>' + (currentLang==='es'?'Grado':'Degree') + '</th><th>' + (currentLang==='es'?'Casa':'House') + '</th></tr></thead><tbody>';
     var _rcPlanetKeys = [];
     Object.keys(returnChart.planets).forEach(function(p) {
         var pl = returnChart.planets[p];
@@ -21820,11 +21820,11 @@ window.openReturnChart = function(type) {
     if (type === 'solar') {
         var srAsc = returnChart.houses ? returnChart.houses.ascFormatted : '?';
         var srMoon = returnChart.planets.moon ? returnChart.planets.moon.formatted : '?';
-        html += '<div style="margin-bottom:4px;"><b style="color:#ffd54f;">ASC:</b> ' + srAsc + ' — ' + ('El tono del año') + '</div>';
-        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">☽:</b> ' + srMoon + ' — ' + ('La necesidad emocional del año') + '</div>';
+        html += '<div style="margin-bottom:4px;"><b style="color:#ffd54f;">ASC:</b> ' + srAsc + ' — ' + (currentLang==='es'?'El tono del año':'The year\'s tone') + '</div>';
+        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">☽:</b> ' + srMoon + ' — ' + (currentLang==='es'?'La necesidad emocional del año':'The year\'s emotional need') + '</div>';
     } else {
         var lrAsc = returnChart.houses ? returnChart.houses.ascFormatted : '?';
-        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">ASC:</b> ' + lrAsc + ' — ' + ('El tono del mes lunar') + '</div>';
+        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">ASC:</b> ' + lrAsc + ' — ' + (currentLang==='es'?'El tono del mes lunar':'The lunar month\'s tone') + '</div>';
     }
     html += '</div>';
 
@@ -21852,7 +21852,7 @@ window.openReturnChart = function(type) {
 
     if (returnAspects.length > 0) {
         html += '<div style="margin-top:14px;">';
-        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + ('Aspectos de la Carta') + ' (' + returnAspects.length + ')</div>';
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Aspectos de la Carta':'Chart Aspects') + ' (' + returnAspects.length + ')</div>';
         returnAspects.forEach(function(a, idx) {
             var p1Name = pNms[a.planet1] || a.planet1;
             var p2Name = pNms[a.planet2] || a.planet2;
@@ -21933,7 +21933,7 @@ window.interpretReturnAspect = function(idx) {
 
     titleEl.textContent = returnLabel + ': ' + p1Name + ' ' + sym + ' ' + p2Name;
 
-    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + ('← Volver al retorno') + '</button>';
+    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + (currentLang==='es'?'← Volver al retorno':'← Back to return') + '</button>';
     html += '<div style="border-bottom: 2px solid ' + clr + '; padding-bottom: 12px; margin-bottom: 15px;">';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta 1:' : 'Planet 1:') + '</strong> ' + p1Name + '</div>';
@@ -21989,7 +21989,7 @@ window.interpretReturnPlanet = function(key) {
 
     titleEl.textContent = returnLabel + ': ' + sym + ' ' + name;
 
-    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + ('← Volver al retorno') + '</button>';
+    var html = '<button onclick="restoreReturnChart()" style="margin-bottom:12px;padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.8em;cursor:pointer;">' + (currentLang==='es'?'← Volver al retorno':'← Back to return') + '</button>';
     html += '<div style="border-bottom: 2px solid #c9a840; padding-bottom: 12px; margin-bottom: 15px;">';
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta:' : 'Planet:') + '</strong> ' + sym + ' ' + name + '</div>';
@@ -22348,7 +22348,7 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
                 var ikKey = kk.slice(interpPrefix.length);
                 var ikDate = ikData.ts ? new Date(ikData.ts).toLocaleDateString('es',{day:'numeric',month:'short'}) : '';
                 var ikLabel = ikKey.length > 40 ? ikKey.substring(0,38)+'…' : ikKey;
-                interpItems += '<div onclick="openSavedInterpretation(\'' + kk.replace(/'/g,"\\'") + '\')" style="padding:5px 8px;margin-bottom:3px;background:rgba(201,168,64,0.05);border:1px solid rgba(201,168,64,0.12);border-radius:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;" title="' + ('Ver interpretación guardada') + '">'
+                interpItems += '<div onclick="openSavedInterpretation(\'' + kk.replace(/'/g,"\\'") + '\')" style="padding:5px 8px;margin-bottom:3px;background:rgba(201,168,64,0.05);border:1px solid rgba(201,168,64,0.12);border-radius:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;" title="' + (currentLang==='es'?'Ver interpretación guardada':'View saved interpretation') + '">'
                     + '<span style="font-size:0.72em;color:rgba(255,255,255,0.65);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✨ ' + ikLabel + '</span>'
                     + (ikDate ? '<span style="font-size:0.62em;color:rgba(255,255,255,0.3);flex-shrink:0;">' + ikDate + '</span>' : '')
                     + '</div>';
@@ -22360,7 +22360,7 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
     var interpPanelHTML = '';
     if (interpCount > 0) {
         interpPanelHTML = '<div style="margin-top:6px;">'
-            + '<button onclick="var p=document.getElementById(\'profileInterpPanel_' + activeId + '\');p.style.display=p.style.display===\'none\'?\'block\':\'none\';" style="width:100%;text-align:left;padding:4px 6px;background:rgba(201,168,64,0.06);border:1px solid rgba(201,168,64,0.15);border-radius:7px;color:rgba(201,168,64,0.7);font-size:0.72em;cursor:pointer;">📚 ' + ('Interpretaciones guardadas') + ' (' + interpCount + ')</button>'
+            + '<button onclick="var p=document.getElementById(\'profileInterpPanel_' + activeId + '\');p.style.display=p.style.display===\'none\'?\'block\':\'none\';" style="width:100%;text-align:left;padding:4px 6px;background:rgba(201,168,64,0.06);border:1px solid rgba(201,168,64,0.15);border-radius:7px;color:rgba(201,168,64,0.7);font-size:0.72em;cursor:pointer;">📚 ' + (currentLang==='es'?'Interpretaciones guardadas':'Saved interpretations') + ' (' + interpCount + ')</button>'
             + '<div id="profileInterpPanel_' + activeId + '" style="display:none;margin-top:4px;max-height:160px;overflow-y:auto;">' + interpItems + '</div>'
             + '</div>';
     }
@@ -22368,9 +22368,9 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
     return `<div class="profile-header-bar">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <select id="profileDropdown" onchange="switchProfile(this.value)" class="profile-dropdown">${options}</select>
-            <button onclick="addNewProfile()" class="profile-action-btn" title="${'Agregar perfil'}">＋</button>
-            <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${'Editar datos'}">✏️</button>
-            <button onclick="shareNatalProfile()" class="profile-action-btn" title="${'Compartir'}">📤</button>
+            <button onclick="addNewProfile()" class="profile-action-btn" title="${currentLang==='es'?'Agregar perfil':'Add profile'}">＋</button>
+            <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${currentLang==='es'?'Editar datos':'Edit data'}">✏️</button>
+            <button onclick="shareNatalProfile()" class="profile-action-btn" title="${currentLang==='es'?'Compartir':'Share'}">📤</button>
         </div>
         ${chartInfo}
         ${personasHTML}
@@ -22665,7 +22665,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <div style="font-size:0.75em;color:rgba(255,255,255,0.35);margin-bottom:6px;">
                 ${natal.date || ''} · ${natal.cityName || ''}<br>
                 Lat: ${parseFloat(localStorage.getItem('natalLat')||0).toFixed(2)} · Lng: ${parseFloat(localStorage.getItem('natalLon')||0).toFixed(2)}<br>
-                Geocentric · Tropical · ${'Casas Iguales'}
+                Geocentric · Tropical · ${currentLang==='es'?'Casas Iguales':'Equal Houses'}
             </div>
             <!-- Wheel view -->
             <div id="natalWheelView">
@@ -22693,10 +22693,10 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">' +
                 '<canvas id="natalElementsChart" width="220" height="220" style="max-width:220px;"></canvas>' +
                 '<div style="font-size:0.85em;">' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Fire||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Fuego') + ': <b>' + (ep.Fire||0) + '%</b> (' + (eq.elements?eq.elements.Fire:0) + ')</div>' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Earth||'#f39c12') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Tierra') + ': <b>' + (ep.Earth||0) + '%</b> (' + (eq.elements?eq.elements.Earth:0) + ')</div>' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Air||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Aire') + ': <b>' + (ep.Air||0) + '%</b> (' + (eq.elements?eq.elements.Air:0) + ')</div>' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Water||'#3498db') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Agua') + ': <b>' + (ep.Water||0) + '%</b> (' + (eq.elements?eq.elements.Water:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Fire||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Fuego':'Fire') + ': <b>' + (ep.Fire||0) + '%</b> (' + (eq.elements?eq.elements.Fire:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Earth||'#f39c12') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Tierra':'Earth') + ': <b>' + (ep.Earth||0) + '%</b> (' + (eq.elements?eq.elements.Earth:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Air||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Aire':'Air') + ': <b>' + (ep.Air||0) + '%</b> (' + (eq.elements?eq.elements.Air:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (ec.Water||'#3498db') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Agua':'Water') + ': <b>' + (ep.Water||0) + '%</b> (' + (eq.elements?eq.elements.Water:0) + ')</div>' +
                 '</div></div></div>' +
                 '<div class="personal-natal-card">' +
                 '<h3>⚡ ' + (L ? 'Cualidades' : 'Qualities') + '</h3>' +
@@ -22704,13 +22704,13 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 '<canvas id="natalQualitiesChart" width="220" height="220" style="max-width:220px;"></canvas>' +
                 '<div style="font-size:0.85em;">' +
                 '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Cardinal||'#f39c12') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Cardinal: <b>' + (qp.Cardinal||0) + '%</b> (' + (eq.qualities?eq.qualities.Cardinal:0) + ')</div>' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Fixed||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Fijo') + ': <b>' + (qp.Fixed||0) + '%</b> (' + (eq.qualities?eq.qualities.Fixed:0) + ')</div>' +
-                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Mutable||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + ('Mutable') + ': <b>' + (qp.Mutable||0) + '%</b> (' + (eq.qualities?eq.qualities.Mutable:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Fixed||'#2ecc71') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Fijo':'Fixed') + ': <b>' + (qp.Fixed||0) + '%</b> (' + (eq.qualities?eq.qualities.Fixed:0) + ')</div>' +
+                '<div style="margin-bottom:6px;"><span style="display:inline-block;width:14px;height:14px;background:' + (qc.Mutable||'#e74c3c') + ';border-radius:3px;vertical-align:middle;margin-right:6px;"></span>' + (currentLang==='es'?'Mutable':'Mutable') + ': <b>' + (qp.Mutable||0) + '%</b> (' + (eq.qualities?eq.qualities.Mutable:0) + ')</div>' +
                 '</div></div></div>' +
                 // Sign Strength table
                 '<div class="personal-natal-card">' +
                 '<h3>♈ ' + (L ? 'Fortaleza por Signo' : 'Sign Strength') + '</h3>' +
-                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + ('Signo') + '</th><th>' + ('Elemento + Cualidad') + '</th><th>' + ('Puntos') + '</th><th>' + ('Porcentaje') + '</th></tr></thead><tbody>' +
+                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + (currentLang==='es'?'Signo':'Sign') + '</th><th>' + (currentLang==='es'?'Elemento + Cualidad':'Element + Quality') + '</th><th>' + (currentLang==='es'?'Puntos':'Points') + '</th><th>' + (currentLang==='es'?'Porcentaje':'Percentage') + '</th></tr></thead><tbody>' +
                 (function() {
                     var signData = [
                         {name:'Aries',el:'Fire',qu:'Cardinal'},{name:'Tauro',el:'Earth',qu:'Fixed'},
@@ -22734,7 +22734,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 // Planet Distribution table
                 '<div class="personal-natal-card">' +
                 '<h3>🪐 ' + (L ? 'Distribución por Planeta' : 'Planet Distribution') + '</h3>' +
-                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + ('Planeta') + '</th><th>' + ('Signo') + '</th><th>' + ('Elemento') + '</th><th>' + ('Cualidad') + '</th></tr></thead><tbody>' +
+                '<div style="overflow-x:auto;"><table class="natal-data-table"><thead><tr><th>' + (currentLang==='es'?'Planeta':'Planet') + '</th><th>' + (currentLang==='es'?'Signo':'Sign') + '</th><th>' + (currentLang==='es'?'Elemento':'Element') + '</th><th>' + (currentLang==='es'?'Cualidad':'Quality') + '</th></tr></thead><tbody>' +
                 (eq.planetList||[]).slice().sort(function(a,b) {
                     var elOrder={Fire:0,Earth:1,Air:2,Water:3};
                     return (elOrder[a.element]||0)-(elOrder[b.element]||0);
@@ -22842,8 +22842,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;" class="table-scroll-container">
                 <table class="natal-data-table">
                     <thead><tr>
-                        <th>${'Planeta'}</th><th>${'Signo'}</th><th>${'Grado'}</th>
-                        <th>${'Casa'}</th><th>${'Velocidad'}</th><th>${'Declinación'}</th>
+                        <th>${currentLang==='es'?'Planeta':'Planet'}</th><th>${currentLang==='es'?'Signo':'Sign'}</th><th>${currentLang==='es'?'Grado':'Degree'}</th>
+                        <th>${currentLang==='es'?'Casa':'House'}</th><th>${currentLang==='es'?'Velocidad':'Speed'}</th><th>${currentLang==='es'?'Declinación':'Declination'}</th>
                     </tr></thead>
                     <tbody>${planetsTableRows}</tbody>
                 </table>
@@ -22857,7 +22857,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <h3>${L ? 'Cúspides de Casas' : 'House Cusps'}</h3>
             <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;" class="table-scroll-container">
                 <table class="natal-data-table">
-                    <thead><tr><th>${'Casa'}</th><th>${'Signo'}</th><th>${'Grado'}</th></tr></thead>
+                    <thead><tr><th>${currentLang==='es'?'Casa':'House'}</th><th>${currentLang==='es'?'Signo':'Sign'}</th><th>${currentLang==='es'?'Grado':'Degree'}</th></tr></thead>
                     <tbody>${housesTableRows}</tbody>
                 </table>
             </div>
@@ -22871,12 +22871,12 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;" class="table-scroll-container">
                 <table class="natal-data-table" id="natalAspectsTable">
                     <thead><tr>
-                        <th class="sortable-th" onclick="sortAspectsTable(0)" style="cursor:pointer;">${'Planeta'} <span id="aspSort0" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(1)" style="cursor:pointer;">${'Signo'} <span id="aspSort1" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(2)" style="cursor:pointer;">${'Aspecto'} <span id="aspSort2" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(3)" style="cursor:pointer;">${'Planeta'} <span id="aspSort3" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(4)" style="cursor:pointer;">${'Signo'} <span id="aspSort4" style="font-size:0.7em;opacity:0.4;">▼</span></th>
-                        <th class="sortable-th" onclick="sortAspectsTable(5)" style="cursor:pointer;">${'Orbe'} <span id="aspSort5" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(0)" style="cursor:pointer;">${currentLang==='es'?'Planeta':'Planet'} <span id="aspSort0" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(1)" style="cursor:pointer;">${currentLang==='es'?'Signo':'Sign'} <span id="aspSort1" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(2)" style="cursor:pointer;">${currentLang==='es'?'Aspecto':'Aspect'} <span id="aspSort2" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(3)" style="cursor:pointer;">${currentLang==='es'?'Planeta':'Planet'} <span id="aspSort3" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(4)" style="cursor:pointer;">${currentLang==='es'?'Signo':'Sign'} <span id="aspSort4" style="font-size:0.7em;opacity:0.4;">▼</span></th>
+                        <th class="sortable-th" onclick="sortAspectsTable(5)" style="cursor:pointer;">${currentLang==='es'?'Orbe':'Orb'} <span id="aspSort5" style="font-size:0.7em;opacity:0.4;">▼</span></th>
                     </tr></thead>
                     <tbody>${aspectsTableRows}</tbody>
                 </table>
@@ -22917,7 +22917,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 <button onclick="changeTransitDate(-1)" style="padding:6px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;">&#9664;</button>
                 <div style="text-align:center;">
                     <h3 style="margin:0;">🌟 ${L ? 'Tránsitos' : 'Transits'}</h3>
-                    <div id="transitDateLabel" style="font-size:0.8em;color:rgba(255,255,255,0.5);"><b>${'Hoy'}</b> — ${today.toLocaleDateString('es', {weekday:'short',day:'numeric',month:'long'})}</div>
+                    <div id="transitDateLabel" style="font-size:0.8em;color:rgba(255,255,255,0.5);"><b>${currentLang==='es'?'Hoy':'Today'}</b> — ${today.toLocaleDateString('es', {weekday:'short',day:'numeric',month:'long'})}</div>
                 </div>
                 <button onclick="changeTransitDate(1)" style="padding:6px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;">&#9654;</button>
             </div>
@@ -22975,7 +22975,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         var label = document.getElementById('transitDateLabel');
         if (label) {
             var isToday = d.toDateString() === new Date().toDateString();
-            label.innerHTML = (isToday ? '<b>' + ('Hoy') + '</b> — ' : '') + d.toLocaleDateString('es', {weekday:'short',day:'numeric',month:'long'});
+            label.innerHTML = (isToday ? '<b>' + (currentLang==='es'?'Hoy':'Today') + '</b> — ' : '') + d.toLocaleDateString('es', {weekday:'short',day:'numeric',month:'long'});
         }
 
         // Helper to render row
@@ -22992,19 +22992,19 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
 
         var html = '';
         if (major.length > 0) {
-            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + ('Aspectos Mayores') + '</div>';
+            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (currentLang==='es'?'Aspectos Mayores':'Major Aspects') + '</div>';
             major.forEach(function(t,i) { html += rr(t,i,false); });
             html += '</div>';
         } else {
-            html += '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + ('Sin aspectos mayores') + '</div>';
+            html += '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (currentLang==='es'?'Sin aspectos mayores':'No major aspects') + '</div>';
         }
         if (minor.length > 0) {
-            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + ('Aspectos Menores') + '</div>';
+            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (currentLang==='es'?'Aspectos Menores':'Minor Aspects') + '</div>';
             minor.forEach(function(t,i) { html += rr(t, major.length+i, false); });
             html += '</div>';
         }
         if (moon.length > 0) {
-            html += '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + ('Luna transitando') + '</div>';
+            html += '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (currentLang==='es'?'Luna transitando':'Moon transiting') + '</div>';
             moon.forEach(function(t,i) { html += rr(t, major.length+minor.length+i, true); });
             html += '</div>';
         }
@@ -23267,28 +23267,28 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
     // ===== COMBINE WITH TABS =====
     return `
         <div class="natal-group-tabs">
-            <button class="natal-group-tab active" onclick="switchNatalGroup('detalles',this)">📋 ${'Detalles'}</button>
-            <button class="natal-group-tab" onclick="switchNatalGroup('avanzado',this)">🔮 ${'Avanzado'}</button>
-            <button class="natal-group-tab" onclick="switchNatalGroup('relaciones',this)">🤝 ${'Relaciones'}</button>
-            <button class="natal-group-tab" onclick="switchNatalGroup('curso',this)">🎓 ${'Curso'}</button>
+            <button class="natal-group-tab active" onclick="switchNatalGroup('detalles',this)">📋 ${currentLang==='es'?'Detalles':'Details'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('avanzado',this)">🔮 ${currentLang==='es'?'Avanzado':'Advanced'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('relaciones',this)">🤝 ${currentLang==='es'?'Relaciones':'Relations'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('curso',this)">🎓 ${currentLang==='es'?'Curso':'Course'}</button>
         </div>
         <div id="natalGroupDetalles" class="natal-subtabs">
-            <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${'Carta'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${'Tablas'}</button>
-            <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${'Calend'}</span><span class="subtab-full">${'Calendario'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${'Hoy'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${'Mapa'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${'Ciclos'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${currentLang==='es'?'Carta':'Chart'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${currentLang==='es'?'Tablas':'Tables'}</button>
+            <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${currentLang==='es'?'Calend':'Calend'}</span><span class="subtab-full">${currentLang==='es'?'Calendario':'Calendar'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${currentLang==='es'?'Hoy':'Today'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${currentLang==='es'?'Mapa':'Map'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${currentLang==='es'?'Ciclos':'Cycles'}</button>
         </div>
         <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;"></div>
         <div id="natalGroupRelaciones" class="natal-subtabs" style="display:none;">
-            <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${'Sinastría'}</span><span class="subtab-full">${'Sinastría'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${'Compuesta'}</span><span class="subtab-full">${'Carta Compuesta'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${'Carta Davison'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${currentLang==='es'?'Sinastría':'Synastry'}</span><span class="subtab-full">${currentLang==='es'?'Sinastría':'Synastry'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${currentLang==='es'?'Compuesta':'Composite'}</span><span class="subtab-full">${currentLang==='es'?'Carta Compuesta':'Composite Chart'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${currentLang==='es'?'Carta Davison':'Davison Chart'}</span></button>
         </div>
         <div id="natalGroupCurso" class="natal-subtabs" style="display:none;">
-            <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 ${'Tutor AI'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('curso',this)" style="color:#ffd700;">🎓 ${'Curso Pro'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 ${currentLang==='es'?'Tutor AI':'AI Tutor'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('curso',this)" style="color:#ffd700;">🎓 ${currentLang==='es'?'Curso Pro':'Course Pro'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
@@ -24253,15 +24253,15 @@ function generateNatalAIAnalysis(nc, type, L) {
     function getSignName(data) { return sn(data.sign); }
 
     if (type === 'general') {
-        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔮 ' + ('LECTURA DE LA CARTA NATAL') + '</h4>';
+        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔮 ' + (currentLang==='es'?'LECTURA DE LA CARTA NATAL':'NATAL CHART READING') + '</h4>';
 
         // Big Three
-        html += '<div style="margin-bottom:6px;font-size:0.82em;font-weight:700;color:#c39bd3;text-transform:uppercase;letter-spacing:1px;">' + ('La Gran Triada — Sol, Luna, Ascendente') + '</div>';
+        html += '<div style="margin-bottom:6px;font-size:0.82em;font-weight:700;color:#c39bd3;text-transform:uppercase;letter-spacing:1px;">' + (currentLang==='es'?'La Gran Triada — Sol, Luna, Ascendente':'The Great Triad — Sun, Moon, Ascendant') + '</div>';
 
         if (planets.sun) {
             var s = getSignName(planets.sun); var h = H(planets.sun);
             html += '<div class="ai-section" style="border-left:3px solid #f0c040;">';
-            html += '<b style="color:#f0c040;">☉ ' + ('Sol en ') + s + ' — ' + ('Casa ') + h + '</b><br>';
+            html += '<b style="color:#f0c040;">☉ ' + (currentLang==='es'?'Sol en ':'Sun in ') + s + ' — ' + (currentLang==='es'?'Casa ':'House ') + h + '</b><br>';
             html += '<div style="color:rgba(255,255,255,0.7);margin:6px 0;line-height:1.6;">' + (sunSign[s] || '') + '</div>';
             html += '<div style="color:rgba(255,255,255,0.45);font-size:0.82em;font-style:italic;border-top:1px solid rgba(255,255,255,0.08);padding-top:6px;margin-top:4px;">' + (houseDeep[h] || '') + '</div>';
             html += '</div>';
@@ -24269,7 +24269,7 @@ function generateNatalAIAnalysis(nc, type, L) {
         if (planets.moon) {
             var s = getSignName(planets.moon); var h = H(planets.moon);
             html += '<div class="ai-section" style="border-left:3px solid #c0c0f0;">';
-            html += '<b style="color:#c0c0f0;">☽ ' + ('Luna en ') + s + ' — ' + ('Casa ') + h + '</b><br>';
+            html += '<b style="color:#c0c0f0;">☽ ' + (currentLang==='es'?'Luna en ':'Moon in ') + s + ' — ' + (currentLang==='es'?'Casa ':'House ') + h + '</b><br>';
             html += '<div style="color:rgba(255,255,255,0.7);margin:6px 0;line-height:1.6;">' + (moonSign[s] || '') + '</div>';
             html += '<div style="color:rgba(255,255,255,0.45);font-size:0.82em;font-style:italic;border-top:1px solid rgba(255,255,255,0.08);padding-top:6px;margin-top:4px;">' + (houseDeep[h] || '') + '</div>';
             html += '</div>';
@@ -24278,7 +24278,7 @@ function generateNatalAIAnalysis(nc, type, L) {
             var ascI = getZodiacSignWithDegree(houses.ascendant);
             var s = sn(ascI.sign);
             html += '<div class="ai-section" style="border-left:3px solid #7ec8ff;">';
-            html += '<b style="color:#7ec8ff;">↑ ASC ' + ('en ') + s + ' (' + ascI.degree + '°' + (ascI.minute<10?'0':'') + ascI.minute + "')</b><br>";
+            html += '<b style="color:#7ec8ff;">↑ ASC ' + (currentLang==='es'?'en ':'in ') + s + ' (' + ascI.degree + '°' + (ascI.minute<10?'0':'') + ascI.minute + "')</b><br>";
             html += '<div style="color:rgba(255,255,255,0.7);margin:6px 0;line-height:1.6;">' + (sunSign[s] ? (L?'Tu máscara social y forma de abordar el mundo lleva la energía de '+s+'. ':'Your social mask and approach to the world carries the energy of '+s+'. ') + sunSign[s].split('.').slice(0,2).join('.')+'.':'') + '</div>';
             html += '</div>';
         }
@@ -24289,7 +24289,7 @@ function generateNatalAIAnalysis(nc, type, L) {
             var elN = L?{Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}:{Fire:'Fire',Earth:'Earth',Air:'Air',Water:'Water'};
             var dom = sorted[0]; var weak = sorted[sorted.length-1];
             html += '<div class="ai-section" style="border-left:3px solid #ff6b6b;">';
-            html += '<b style="color:#ff6b6b;">🔥 ' + ('Balance Elemental') + '</b><br>';
+            html += '<b style="color:#ff6b6b;">🔥 ' + (currentLang==='es'?'Balance Elemental':'Elemental Balance') + '</b><br>';
             html += '<div style="color:rgba(255,255,255,0.7);margin:4px 0;">' + sorted.map(function(e){return '<span style="color:' + ({Fire:'#ff6b6b',Earth:'#f39c12',Air:'#2ecc71',Water:'#3498db'}[e[0]]||'#fff') + ';">' + (elN[e[0]]||e[0]) + ': ' + e[1] + '</span>';}).join(' · ') + '</div>';
             html += '<div style="color:rgba(255,255,255,0.55);font-size:0.85em;line-height:1.5;">';
             if (dom[0]==='Fire') html += 'Dominio del Fuego: personalidad ardiente, activa, inspiradora. Gran energía vital pero necesitas canalizar la impulsividad.';
@@ -24302,7 +24302,7 @@ function generateNatalAIAnalysis(nc, type, L) {
     }
 
     if (type === 'detail') {
-        html += '<h4 style="color:#f0c040;margin-bottom:10px;">📜 ' + ('ANÁLISIS PROFUNDO — TODOS LOS PLANETAS') + '</h4>';
+        html += '<h4 style="color:#f0c040;margin-bottom:10px;">📜 ' + (currentLang==='es'?'ANÁLISIS PROFUNDO — TODOS LOS PLANETAS':'DEEP ANALYSIS — ALL PLANETS') + '</h4>';
 
         var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron'];
         var pColors = {sun:'#f0c040',moon:'#c0c0f0',mercury:'#b0b0b0',venus:'#f5deb3',mars:'#ff6b6b',jupiter:'#f5a623',saturn:'#e8c84a',uranus:'#7ec8ff',neptune:'#4169e1',pluto:'#c9a87c',chiron:'#8fbc8f'};
@@ -24313,7 +24313,7 @@ function generateNatalAIAnalysis(nc, type, L) {
             var s = getSignName(planets[p]); var h = H(planets[p]);
             var col = pColors[p] || '#fff';
             html += '<div class="ai-section" style="border-left:3px solid ' + col + ';">';
-            html += '<b style="color:' + col + ';">' + (pSyms[p]||'') + ' ' + (pN[p]||p) + ' ' + ('en ') + s + ' — ' + ('Casa ') + h;
+            html += '<b style="color:' + col + ';">' + (pSyms[p]||'') + ' ' + (pN[p]||p) + ' ' + (currentLang==='es'?'en ':'in ') + s + ' — ' + (currentLang==='es'?'Casa ':'House ') + h;
             if (planets[p].isRetrograde) html += ' <span style="color:#e74c3c;">℞</span>';
             html += '</b><br>';
 
@@ -24337,7 +24337,7 @@ function generateNatalAIAnalysis(nc, type, L) {
 
             // Retrograde
             if (planets[p].isRetrograde) {
-                html += '<div style="color:#e74c3c;font-size:0.82em;margin-top:4px;">℞ ' + ('Retrógrado: la energía de este planeta se dirige hacia adentro. Revisión kármica, lecciones pasadas, internalización de la fuerza planetaria. Lo que normalmente se expresa externamente, aquí se vive como proceso interior profundo.') + '</div>';
+                html += '<div style="color:#e74c3c;font-size:0.82em;margin-top:4px;">℞ ' + (currentLang==='es'?'Retrógrado: la energía de este planeta se dirige hacia adentro. Revisión kármica, lecciones pasadas, internalización de la fuerza planetaria. Lo que normalmente se expresa externamente, aquí se vive como proceso interior profundo.':'Retrograde: this planet\'s energy turns inward. Karmic review, past lessons, internalization of planetary force. What is normally expressed outwardly is here experienced as a deep inner process.') + '</div>';
             }
 
             // House meaning
@@ -24347,9 +24347,9 @@ function generateNatalAIAnalysis(nc, type, L) {
     }
 
     if (type === 'aspects') {
-        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔗 ' + ('ANÁLISIS PROFUNDO DE ASPECTOS') + '</h4>';
+        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔗 ' + (currentLang==='es'?'ANÁLISIS PROFUNDO DE ASPECTOS':'DEEP ASPECT ANALYSIS') + '</h4>';
         if (aspects.length === 0) {
-            html += '<p>' + ('No se encontraron aspectos natales.') + '</p>';
+            html += '<p>' + (currentLang==='es'?'No se encontraron aspectos natales.':'No natal aspects found.') + '</p>';
         } else {
             // Group by type
             var grouped = {};
@@ -24371,7 +24371,7 @@ function generateNatalAIAnalysis(nc, type, L) {
 
                     html += '<div class="ai-section" style="border-left:3px solid ' + a.aspect.color + ';">';
                     html += '<b>' + p1 + ' <span style="color:' + a.aspect.color + ';font-size:1.2em;">' + a.aspect.symbol + '</span> ' + p2 + '</b>';
-                    html += ' <span style="color:rgba(255,255,255,0.35);font-size:0.8em;">(' + ('orbe') + ': ' + a.orbFormatted + '° — ' + strength + ')</span><br>';
+                    html += ' <span style="color:rgba(255,255,255,0.35);font-size:0.8em;">(' + (currentLang==='es'?'orbe':'orb') + ': ' + a.orbFormatted + '° — ' + strength + ')</span><br>';
 
                     // Generate specific interpretation
                     var interp = '';
@@ -24391,7 +24391,7 @@ function generateNatalAIAnalysis(nc, type, L) {
     }
 
     if (type === 'elements') {
-        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔥 ' + ('ANÁLISIS ELEMENTAL PROFUNDO') + '</h4>';
+        html += '<h4 style="color:#f0c040;margin-bottom:10px;">🔥 ' + (currentLang==='es'?'ANÁLISIS ELEMENTAL PROFUNDO':'DEEP ELEMENTAL ANALYSIS') + '</h4>';
         var elN = L?{Fire:'Fuego',Earth:'Tierra',Air:'Aire',Water:'Agua'}:{Fire:'Fire',Earth:'Earth',Air:'Air',Water:'Water'};
         var elDeep = {
             Fire:'El Fuego representa la voluntad, la inspiración y la acción. Es el impulso creativo primordial, la chispa de la vida. Las personas con fuego dominante son dinámicas, entusiastas y buscan constantemente nuevos desafíos. Su sombra es la impulsividad, la agresividad y el agotamiento.',
@@ -24403,7 +24403,7 @@ function generateNatalAIAnalysis(nc, type, L) {
             Object.entries(eq.elements).sort(function(a,b){return b[1]-a[1];}).forEach(function(e) {
                 var pct = eq.elementPercents ? eq.elementPercents[e[0]] : 0;
                 html += '<div class="ai-section" style="border-left:3px solid ' + ({Fire:'#ff6b6b',Earth:'#f39c12',Air:'#2ecc71',Water:'#3498db'}[e[0]]||'#fff') + ';">';
-                html += '<b style="color:' + ({Fire:'#ff6b6b',Earth:'#f39c12',Air:'#2ecc71',Water:'#3498db'}[e[0]]||'#fff') + ';">' + (elN[e[0]]||e[0]) + ': ' + e[1] + ' ' + ('planetas') + ' (' + pct + '%)</b><br>';
+                html += '<b style="color:' + ({Fire:'#ff6b6b',Earth:'#f39c12',Air:'#2ecc71',Water:'#3498db'}[e[0]]||'#fff') + ';">' + (elN[e[0]]||e[0]) + ': ' + e[1] + ' ' + (currentLang==='es'?'planetas':'planets') + ' (' + pct + '%)</b><br>';
                 html += '<div style="color:rgba(255,255,255,0.6);font-size:0.85em;line-height:1.5;margin-top:4px;">' + (elDeep[e[0]]||'') + '</div>';
                 // List planets in this element
                 if (eq.planetList) {
@@ -24421,16 +24421,16 @@ function generateNatalAIAnalysis(nc, type, L) {
             Fixed:'Energía de estabilización y persistencia. Los signos fijos (Tauro, Leo, Escorpio, Acuario) consolidan y mantienen. Dominancia fija indica determinación inquebrantable, lealtad profunda, pero posible terquedad.',
             Mutable:'Energía de adaptación y transformación. Los signos mutables (Géminis, Virgo, Sagitario, Piscis) conectan y ajustan. Dominancia mutable indica flexibilidad, versatilidad, pero posible dispersión e indecisión.'
         };
-        html += '<div style="margin-top:14px;margin-bottom:6px;font-size:0.82em;font-weight:700;color:#c39bd3;text-transform:uppercase;letter-spacing:1px;">' + ('Cualidades — Modalidades') + '</div>';
+        html += '<div style="margin-top:14px;margin-bottom:6px;font-size:0.82em;font-weight:700;color:#c39bd3;text-transform:uppercase;letter-spacing:1px;">' + (currentLang==='es'?'Cualidades — Modalidades':'Qualities — Modalities') + '</div>';
         if (eq.qualities) {
             Object.entries(eq.qualities).sort(function(a,b){return b[1]-a[1];}).forEach(function(q) {
-                html += '<div class="ai-section"><b>' + (quN[q[0]]||q[0]) + ': ' + q[1] + ' ' + ('planetas') + '</b><br>';
+                html += '<div class="ai-section"><b>' + (quN[q[0]]||q[0]) + ': ' + q[1] + ' ' + (currentLang==='es'?'planetas':'planets') + '</b><br>';
                 html += '<div style="color:rgba(255,255,255,0.55);font-size:0.85em;line-height:1.5;">' + (quDeep[q[0]]||'') + '</div></div>';
             });
         }
     }
 
-    return html || '<p style="color:rgba(255,255,255,0.4);">' + ('Sin datos disponibles') + '</p>';
+    return html || '<p style="color:rgba(255,255,255,0.4);">' + (currentLang==='es'?'Sin datos disponibles':'No data available') + '</p>';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -25781,7 +25781,7 @@ function renderPersonalCalendar() {
                         <div class="personal-day-num" style="font-size:1em;font-weight:800;color:#e8c84a;line-height:1;">${isBirthday ? '🎂' : ''}${personalDay}<span style="font-size:0.55em;color:rgba(232,200,74,0.45);font-weight:600;">/${daysRemaining}</span></div>
                         ${seasonIcon ? `<span style="font-size:0.65em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                     </div>
-                    <div style="font-size:0.75em;font-weight:800;color:#b39ddb;text-align:right;line-height:1;" title="${'Numerología día/faltan'}">${numDay}<span style="font-size:0.7em;color:rgba(179,157,219,0.45);">/${numRemaining}</span></div>
+                    <div style="font-size:0.75em;font-weight:800;color:#b39ddb;text-align:right;line-height:1;" title="${currentLang==='es'?'Numerología día/faltan':'Numerology day/missing'}">${numDay}<span style="font-size:0.7em;color:rgba(179,157,219,0.45);">/${numRemaining}</span></div>
                 </div>
                 <div style="font-size:0.55em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
                 ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
@@ -25797,12 +25797,12 @@ function renderPersonalCalendar() {
 
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
-            <span style="color:#e8c84a;font-weight:600;"># = ${'Día personal'}</span>
-            <span style="color:#7ec8ff;">☿☍♄ = ${'Aspectos'}</span>
-            <span style="color:#ff6b6b;">℞ = ${'Retrógrado'}</span>
-            <span style="color:#4ecdc4;">→ = ${'Cambio signo'}</span>
+            <span style="color:#e8c84a;font-weight:600;"># = ${currentLang==='es'?'Día personal':'Personal day'}</span>
+            <span style="color:#7ec8ff;">☿☍♄ = ${currentLang==='es'?'Aspectos':'Aspects'}</span>
+            <span style="color:#ff6b6b;">℞ = ${currentLang==='es'?'Retrógrado':'Retrograde'}</span>
+            <span style="color:#4ecdc4;">→ = ${currentLang==='es'?'Cambio signo':'Sign change'}</span>
             <span style="color:#FFD700;">★ = Stellium</span>
-            <span style="color:#ef5350;">🌑🌕 = ${'Luna'}</span>
+            <span style="color:#ef5350;">🌑🌕 = ${currentLang==='es'?'Luna':'Moon'}</span>
         </div>
     `;
 
@@ -26246,7 +26246,7 @@ function generateFullInterpretation(natalChart, natal, transitDate) {
     // Sun
     const sunKey = getSignKey(natalChart.planets.sun.longitude);
     const sunHouse = natalChart.houses ? getHouseForLongitude(natalChart.planets.sun.longitude, natalChart.houses.cusps) : null;
-    text += `<div class="interp-section"><h4>☉ ${'Sol en '}${natalChart.planets.sun.formatted}</h4>`;
+    text += `<div class="interp-section"><h4>☉ ${currentLang==='es'?'Sol en ':'Sun in '}${natalChart.planets.sun.formatted}</h4>`;
     text += `<p>${astroInterpretations.sunSign[sunKey]?.[lang] || ''}</p>`;
     if (sunHouse && astroInterpretations.planetHouse.sun?.[sunHouse]) {
         text += `<p>${astroInterpretations.planetHouse.sun[sunHouse][lang]}</p>`;
@@ -26256,7 +26256,7 @@ function generateFullInterpretation(natalChart, natal, transitDate) {
     // Moon
     const moonKey = getSignKey(natalChart.planets.moon.longitude);
     const moonHouse = natalChart.houses ? getHouseForLongitude(natalChart.planets.moon.longitude, natalChart.houses.cusps) : null;
-    text += `<div class="interp-section"><h4>☽ ${'Luna en '}${natalChart.planets.moon.formatted}</h4>`;
+    text += `<div class="interp-section"><h4>☽ ${currentLang==='es'?'Luna en ':'Moon in '}${natalChart.planets.moon.formatted}</h4>`;
     text += `<p>${astroInterpretations.moonSign[moonKey]?.[lang] || ''}</p>`;
     if (moonHouse && astroInterpretations.planetHouse.moon?.[moonHouse]) {
         text += `<p>${astroInterpretations.planetHouse.moon[moonHouse][lang]}</p>`;
@@ -26266,41 +26266,41 @@ function generateFullInterpretation(natalChart, natal, transitDate) {
     // Mercury
     if (natalChart.planets.mercury) {
         const mercKey = getSignKey(natalChart.planets.mercury.longitude);
-        text += `<div class="interp-section"><h4>☿ ${'Mercurio en '}${natalChart.planets.mercury.formatted}</h4>`;
+        text += `<div class="interp-section"><h4>☿ ${currentLang==='es'?'Mercurio en ':'Mercury in '}${natalChart.planets.mercury.formatted}</h4>`;
         text += `<p>${astroInterpretations.mercurySign[mercKey]?.[lang] || ''}</p></div>`;
     }
 
     // Venus
     if (natalChart.planets.venus) {
         const venKey = getSignKey(natalChart.planets.venus.longitude);
-        text += `<div class="interp-section"><h4>♀ ${'Venus en '}${natalChart.planets.venus.formatted}</h4>`;
+        text += `<div class="interp-section"><h4>♀ ${currentLang==='es'?'Venus en ':'Venus in '}${natalChart.planets.venus.formatted}</h4>`;
         text += `<p>${astroInterpretations.venusSign[venKey]?.[lang] || ''}</p></div>`;
     }
 
     // Mars
     if (natalChart.planets.mars) {
         const marsKey = getSignKey(natalChart.planets.mars.longitude);
-        text += `<div class="interp-section"><h4>♂ ${'Marte en '}${natalChart.planets.mars.formatted}</h4>`;
+        text += `<div class="interp-section"><h4>♂ ${currentLang==='es'?'Marte en ':'Mars in '}${natalChart.planets.mars.formatted}</h4>`;
         text += `<p>${astroInterpretations.marsSign[marsKey]?.[lang] || ''}</p></div>`;
     }
 
     // Jupiter
     if (natalChart.planets.jupiter) {
         const jupKey = getSignKey(natalChart.planets.jupiter.longitude);
-        text += `<div class="interp-section"><h4>♃ ${'Júpiter en '}${natalChart.planets.jupiter.formatted}</h4>`;
+        text += `<div class="interp-section"><h4>♃ ${currentLang==='es'?'Júpiter en ':'Jupiter in '}${natalChart.planets.jupiter.formatted}</h4>`;
         text += `<p>${astroInterpretations.jupiterSign[jupKey]?.[lang] || ''}</p></div>`;
     }
 
     // Saturn
     if (natalChart.planets.saturn) {
         const satKey = getSignKey(natalChart.planets.saturn.longitude);
-        text += `<div class="interp-section"><h4>♄ ${'Saturno en '}${natalChart.planets.saturn.formatted}</h4>`;
+        text += `<div class="interp-section"><h4>♄ ${currentLang==='es'?'Saturno en ':'Saturn in '}${natalChart.planets.saturn.formatted}</h4>`;
         text += `<p>${astroInterpretations.saturnSign[satKey]?.[lang] || ''}</p></div>`;
     }
 
     // ASC
     if (natalChart.houses) {
-        text += `<div class="interp-section"><h4>⬆ ${'Ascendente'}: ${natalChart.houses.ascFormatted}</h4>`;
+        text += `<div class="interp-section"><h4>⬆ ${currentLang==='es'?'Ascendente':'Ascendant'}: ${natalChart.houses.ascFormatted}</h4>`;
         const ascKey = getSignKey(natalChart.houses.ascendant);
         const ascSignIdx = signKeys.indexOf(ascKey);
         const ascSignName = ascSignIdx >= 0 ? (L ? signNames.es[ascSignIdx] : signNames.en[ascSignIdx]) : (L ? 'desconocido' : 'unknown');
@@ -26313,7 +26313,7 @@ function generateFullInterpretation(natalChart, natal, transitDate) {
     if (transitDate) {
         const transits = calculateTransitsToNatal(transitDate, natalChart);
         if (transits.length > 0) {
-            text += `<div class="interp-section"><h4>🌟 ${'Tránsitos de Hoy'}</h4>`;
+            text += `<div class="interp-section"><h4>🌟 ${currentLang==='es'?'Tránsitos de Hoy':'Today\'s Transits'}</h4>`;
             transits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).forEach(t => {
                 const tInterp = astroInterpretations.transitAspects[t.transitPlanet]?.[t.type];
                 if (tInterp) {
@@ -26376,7 +26376,7 @@ function answerNatalQuestion(question, natalChart, natal) {
     if (q.includes('ascend') || q.includes('asc') || q.includes('rising')) {
         if (natalChart.houses) {
             const ascKey = getSignKey(natalChart.houses.ascendant);
-            return `<h4>⬆ ${'Ascendente'}: ${natalChart.houses.ascFormatted}</h4>
+            return `<h4>⬆ ${currentLang==='es'?'Ascendente':'Ascendant'}: ${natalChart.houses.ascFormatted}</h4>
             <p>${L ? 'Tu ascendente es la máscara que presentas al mundo, tu primera impresión y tu cuerpo físico.' : 'Your ascendant is the mask you present to the world, your first impression and physical body.'}</p>`;
         }
         return L ? '<p>No se pudo calcular el ascendente. Verifica la hora de nacimiento.</p>' : '<p>Could not calculate ascendant. Verify birth time.</p>';
@@ -26404,12 +26404,12 @@ function answerNatalQuestion(question, natalChart, natal) {
                 11: { es: 'amigos, grupos, ideales, el futuro', en: 'friends, groups, ideals, the future' },
                 12: { es: 'inconsciente, espiritualidad, encierros, karma', en: 'unconscious, spirituality, seclusion, karma' }
             };
-            let answer = `<h4>${'Casa'} ${houseNum}</h4>`;
-            answer += `<p>${'Temas'}: ${houseThemes[houseNum]?.[lang] || ''}</p>`;
+            let answer = `<h4>${currentLang==='es'?'Casa':'House'} ${houseNum}</h4>`;
+            answer += `<p>${currentLang==='es'?'Temas':'Topics'}: ${houseThemes[houseNum]?.[lang] || ''}</p>`;
             if (planetsInHouse.length > 0) {
-                answer += `<p>${'Planetas en esta casa'}: ${planetsInHouse.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+                answer += `<p>${currentLang==='es'?'Planetas en esta casa':'Planets in this house'}: ${planetsInHouse.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
             } else {
-                answer += `<p>${'No hay planetas natales en esta casa. La energía de esta casa se expresa a través del signo de la cúspide.'}</p>`;
+                answer += `<p>${currentLang==='es'?'No hay planetas natales en esta casa. La energía de esta casa se expresa a través del signo de la cúspide.':'No natal planets in this house. This house\'s energy is expressed through the cusp sign.'}</p>`;
             }
             return answer;
         }
@@ -26419,19 +26419,19 @@ function answerNatalQuestion(question, natalChart, natal) {
     if (q.includes('amor') || q.includes('love') || q.includes('pareja') || q.includes('relacion') || q.includes('partner')) {
         const venusData = natalChart.planets.venus;
         const marsData = natalChart.planets.mars;
-        let answer = `<h4>💕 ${'Amor y Relaciones'}</h4>`;
+        let answer = `<h4>💕 ${currentLang==='es'?'Amor y Relaciones':'Love and Relationships'}</h4>`;
         if (venusData) {
             const vKey = getSignKey(venusData.longitude);
             answer += `<p><b>♀ Venus ${venusData.formatted}:</b> ${astroInterpretations.venusSign[vKey]?.[lang] || ''}</p>`;
         }
         if (marsData) {
             const mKey = getSignKey(marsData.longitude);
-            answer += `<p><b>♂ ${'Marte'} ${marsData.formatted}:</b> ${astroInterpretations.marsSign[mKey]?.[lang] || ''}</p>`;
+            answer += `<p><b>♂ ${currentLang==='es'?'Marte':'Mars'} ${marsData.formatted}:</b> ${astroInterpretations.marsSign[mKey]?.[lang] || ''}</p>`;
         }
         if (natalChart.houses) {
             const h7planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 7);
             if (h7planets.length > 0) {
-                answer += `<p>${'Planetas en Casa 7 (pareja)'}: ${h7planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p}`).join(', ')}</p>`;
+                answer += `<p>${currentLang==='es'?'Planetas en Casa 7 (pareja)':'Planets in House 7 (partner)'}: ${h7planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p}`).join(', ')}</p>`;
             }
         }
         return answer;
@@ -26439,24 +26439,24 @@ function answerNatalQuestion(question, natalChart, natal) {
 
     // Career/work questions
     if (q.includes('trabajo') || q.includes('career') || q.includes('profesion') || q.includes('vocacion') || q.includes('work')) {
-        let answer = `<h4>💼 ${'Carrera y Vocación'}</h4>`;
+        let answer = `<h4>💼 ${currentLang==='es'?'Carrera y Vocación':'Career and Vocation'}</h4>`;
         if (natalChart.houses) {
             const mc = natalChart.houses.mc;
             const mcKey = getSignKey(mc);
-            answer += `<p><b>MC (${'Medio Cielo'}):</b> ${natalChart.houses.mcFormatted} — ${'Tu vocación pública se expresa con cualidades de '}${signNames[lang][signKeys.indexOf(mcKey)]}.</p>`;
+            answer += `<p><b>MC (${currentLang==='es'?'Medio Cielo':'Midheaven'}):</b> ${natalChart.houses.mcFormatted} — ${currentLang==='es'?'Tu vocación pública se expresa con cualidades de ':'Your public vocation expresses with qualities of '}${signNames[lang][signKeys.indexOf(mcKey)]}.</p>`;
             const h10planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 10);
             if (h10planets.length > 0) {
-                answer += `<p>${'Planetas en Casa 10'}: ${h10planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+                answer += `<p>${currentLang==='es'?'Planetas en Casa 10':'Planets in House 10'}: ${h10planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
             }
             const h6planets = Object.entries(natalChart.planets).filter(([p,d]) => getHouseForLongitude(d.longitude, natalChart.houses.cusps) === 6);
             if (h6planets.length > 0) {
-                answer += `<p>${'Planetas en Casa 6 (trabajo diario)'}: ${h6planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
+                answer += `<p>${currentLang==='es'?'Planetas en Casa 6 (trabajo diario)':'Planets in House 6 (daily work)'}: ${h6planets.map(([p,d]) => `${planetSymbols[p]||''} ${planetNames[p]||p} (${d.formatted})`).join(', ')}</p>`;
             }
         }
         const satData = natalChart.planets.saturn;
         if (satData) {
             const satKey = getSignKey(satData.longitude);
-            answer += `<p><b>♄ ${'Saturno'} ${satData.formatted}:</b> ${astroInterpretations.saturnSign[satKey]?.[lang] || ''}</p>`;
+            answer += `<p><b>♄ ${currentLang==='es'?'Saturno':'Saturn'} ${satData.formatted}:</b> ${astroInterpretations.saturnSign[satKey]?.[lang] || ''}</p>`;
         }
         return answer;
     }
@@ -26465,7 +26465,7 @@ function answerNatalQuestion(question, natalChart, natal) {
     if (q.includes('transito') || q.includes('transit') || q.includes('hoy') || q.includes('today') || q.includes('energia') || q.includes('energy')) {
         const today = new Date();
         const transits = calculateTransitsToNatal(today, natalChart);
-        let answer = `<h4>🌟 ${'Energía de Hoy'} — ${today.toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'})}</h4>`;
+        let answer = `<h4>🌟 ${currentLang==='es'?'Energía de Hoy':'Today\'s Energy'} — ${today.toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'})}</h4>`;
         const major = transits.filter(t => !['moon','mercury'].includes(t.transitPlanet));
         if (major.length > 0) {
             major.forEach(t => {
@@ -26475,16 +26475,16 @@ function answerNatalQuestion(question, natalChart, natal) {
                 if (tInterp) {
                     answer += `${tInterp[lang].replace('{natal}', natalName)}`;
                 } else {
-                    answer += `${planetNames[t.transitPlanet]||t.transitPlanet} ${t.symbol} ${'natal'} ${natalName}`;
+                    answer += `${planetNames[t.transitPlanet]||t.transitPlanet} ${t.symbol} ${currentLang==='es'?'natal':'natal'} ${natalName}`;
                 }
                 answer += ` <span style="opacity:0.4;">(${t.orb}°)</span></div>`;
             });
         } else {
-            answer += `<p>${'Sin aspectos planetarios mayores hoy. Día tranquilo para integrar energías.'}</p>`;
+            answer += `<p>${currentLang==='es'?'Sin aspectos planetarios mayores hoy. Día tranquilo para integrar energías.':'No major planetary aspects today. A quiet day to integrate energies.'}</p>`;
         }
         const moonT = transits.filter(t => t.transitPlanet === 'moon');
         if (moonT.length > 0) {
-            answer += `<p style="margin-top:8px;font-size:0.85em;color:rgba(255,255,255,0.5);">☽ ${'Luna hoy'}: ${moonT.map(t => `${t.symbol} ${'natal'} ${planetNames[t.natalPlanet]||t.natalPlanet}`).join(', ')}</p>`;
+            answer += `<p style="margin-top:8px;font-size:0.85em;color:rgba(255,255,255,0.5);">☽ ${currentLang==='es'?'Luna hoy':'Moon today'}: ${moonT.map(t => `${t.symbol} ${currentLang==='es'?'natal':'natal'} ${planetNames[t.natalPlanet]||t.natalPlanet}`).join(', ')}</p>`;
         }
         return answer;
     }
@@ -26493,9 +26493,9 @@ function answerNatalQuestion(question, natalChart, natal) {
     if (q.includes('compatib') || q.includes('sinastria') || q.includes('synastry')) {
         const profiles = getNatalProfiles().filter(p => p.date && p.id !== natal.id);
         if (profiles.length === 0) {
-            return `<p>${'Para ver compatibilidad, necesitas agregar otro perfil (pareja, amigo, etc.) con el botón ＋ en la barra de perfiles.'}</p>`;
+            return `<p>${currentLang==='es'?'Para ver compatibilidad, necesitas agregar otro perfil (pareja, amigo, etc.) con el botón ＋ en la barra de perfiles.':'To see compatibility, you need to add another profile (partner, friend, etc.) using the ＋ button in the profile bar.'}</p>`;
         }
-        let answer = `<h4>💑 ${'Compatibilidad'}</h4>`;
+        let answer = `<h4>💑 ${currentLang==='es'?'Compatibilidad':'Compatibility'}</h4>`;
         profiles.forEach(p => {
             const pChart = localStorage.getItem('natalChart_' + p.id);
             if (!pChart) return;
@@ -26520,13 +26520,13 @@ function answerNatalQuestion(question, natalChart, natal) {
                     ((mySunElem==='fire'&&theirSunElem==='air')||(mySunElem==='air'&&theirSunElem==='fire')||(mySunElem==='earth'&&theirSunElem==='water')||(mySunElem==='water'&&theirSunElem==='earth')) ? ('Buena — elementos complementarios') :
                     ('Desafiante — elementos en tensión, pero con potencial de crecimiento');
 
-                answer += `<p>☉ ${'Sol'}: ${signNames[lang][signKeys.indexOf(mySun)]} (${elemNames[mySunElem][lang]}) + ${signNames[lang][signKeys.indexOf(theirSun)]} (${elemNames[theirSunElem][lang]}) → ${compat}</p>`;
-                answer += `<p>☽ ${'Luna'}: ${signNames[lang][signKeys.indexOf(myMoon)]} + ${signNames[lang][signKeys.indexOf(theirMoon)]}</p>`;
+                answer += `<p>☉ ${currentLang==='es'?'Sol':'Sun'}: ${signNames[lang][signKeys.indexOf(mySun)]} (${elemNames[mySunElem][lang]}) + ${signNames[lang][signKeys.indexOf(theirSun)]} (${elemNames[theirSunElem][lang]}) → ${compat}</p>`;
+                answer += `<p>☽ ${currentLang==='es'?'Luna':'Moon'}: ${signNames[lang][signKeys.indexOf(myMoon)]} + ${signNames[lang][signKeys.indexOf(theirMoon)]}</p>`;
                 if (myVenus && theirVenus) {
                     answer += `<p>♀ Venus: ${signNames[lang][signKeys.indexOf(myVenus)]} + ${signNames[lang][signKeys.indexOf(theirVenus)]}</p>`;
                 }
                 // Full synastry link
-                answer += `<div style="margin-top:8px;"><button onclick="openSynastryView('${p.id}')" style="padding:8px 14px;background:linear-gradient(135deg,rgba(100,181,246,0.2),rgba(155,89,182,0.15));border:1px solid rgba(100,181,246,0.4);border-radius:8px;color:#64B5F6;font-size:0.82em;font-weight:600;cursor:pointer;">${'Ver Sinastria Completa'}</button></div>`;
+                answer += `<div style="margin-top:8px;"><button onclick="openSynastryView('${p.id}')" style="padding:8px 14px;background:linear-gradient(135deg,rgba(100,181,246,0.2),rgba(155,89,182,0.15));border:1px solid rgba(100,181,246,0.4);border-radius:8px;color:#64B5F6;font-size:0.82em;font-weight:600;cursor:pointer;">${currentLang==='es'?'Ver Sinastria Completa':'View Full Synastry'}</button></div>`;
                 answer += `</div>`;
             } catch(e) {}
         });
@@ -26541,13 +26541,13 @@ function answerNatalQuestion(question, natalChart, natal) {
     // Default: general overview
     return `<p>${L ? 'Puedes preguntarme sobre:' : 'You can ask me about:'}</p>
     <div class="chat-suggestions">
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Analiza mi carta completa'}')">🔮 ${'Mi carta completa'}</div>
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Cómo es mi energía hoy'}')">🌟 ${'Energía de hoy'}</div>
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Háblame del amor y relaciones'}')">💕 ${'Amor y relaciones'}</div>
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Mi vocación y carrera'}')">💼 ${'Carrera y vocación'}</div>
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Qué dice mi Luna'}')">☽ ${'Mi Luna'}</div>
-        <div class="chat-suggestion" onclick="submitNatalQuestion('${'Mi ascendente'}')">⬆ ${'Ascendente'}</div>
-        ${getNatalProfiles().filter(p=>p.date&&p.id!==natal.id).length > 0 ? `<div class="chat-suggestion" onclick="submitNatalQuestion('${'Compatibilidad con otros perfiles'}')">💑 ${'Compatibilidad'}</div>` : ''}
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Analiza mi carta completa':'Analyze my complete chart'}')">🔮 ${currentLang==='es'?'Mi carta completa':'My complete chart'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Cómo es mi energía hoy':'How is my energy today'}')">🌟 ${currentLang==='es'?'Energía de hoy':'Today\'s energy'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Háblame del amor y relaciones':'Tell me about love and relationships'}')">💕 ${currentLang==='es'?'Amor y relaciones':'Love and relationships'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Mi vocación y carrera':'My vocation and career'}')">💼 ${currentLang==='es'?'Carrera y vocación':'Career and vocation'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Qué dice mi Luna':'What does my Moon say'}')">☽ ${currentLang==='es'?'Mi Luna':'My Moon'}</div>
+        <div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Mi ascendente':'My ascendant'}')">⬆ ${currentLang==='es'?'Ascendente':'Ascendant'}</div>
+        ${getNatalProfiles().filter(p=>p.date&&p.id!==natal.id).length > 0 ? `<div class="chat-suggestion" onclick="submitNatalQuestion('${currentLang==='es'?'Compatibilidad con otros perfiles':'Compatibility with other profiles'}')">💑 ${currentLang==='es'?'Compatibilidad':'Compatibility'}</div>` : ''}
     </div>`;
 }
 
@@ -26590,7 +26590,7 @@ function showNatalInterpretation() {
         </div>
         <div id="natalChatMessages" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
         <div style="padding:10px 14px;border-top:1px solid rgba(155,89,182,0.15);display:flex;gap:8px;">
-            <input type="text" id="natalChatInput" placeholder="${'Pregúntame sobre tu carta...'}"
+            <input type="text" id="natalChatInput" placeholder="${currentLang==='es'?'Pregúntame sobre tu carta...':'Ask me about your chart...'}"
                 style="flex:1;padding:10px 12px;background:rgba(10,3,22,0.8);border:1px solid rgba(155,89,182,0.25);border-radius:8px;color:#e8eaf6;font-size:0.85em;"
                 onkeydown="if(event.key==='Enter')submitNatalQuestion()" />
             <button onclick="submitNatalQuestion()" style="padding:8px 14px;background:linear-gradient(135deg,rgba(155,89,182,0.3),rgba(78,205,196,0.2));border:1px solid rgba(155,89,182,0.4);border-radius:8px;color:#c39bd3;cursor:pointer;font-size:0.9em;">→</button>
@@ -26601,7 +26601,7 @@ function showNatalInterpretation() {
 
     // Show initial suggestions
     const initialAnswer = answerNatalQuestion('', natalChart, natal);
-    addChatMessage('bot', `<p>${'Soy tu astrólogo personal. Puedo analizar tu carta natal, explicar tus planetas, tránsitos de hoy y compatibilidad con otros perfiles.'}</p>${initialAnswer}`);
+    addChatMessage('bot', `<p>${currentLang==='es'?'Soy tu astrólogo personal. Puedo analizar tu carta natal, explicar tus planetas, tránsitos de hoy y compatibilidad con otros perfiles.':'I\'m your personal astrologer. I can analyze your natal chart, explain your planets, today\'s transits and compatibility with other profiles.'}</p>${initialAnswer}`);
 }
 
 function addChatMessage(sender, html) {
@@ -26779,7 +26779,7 @@ function showPersonalDayDetail(year, month, day) {
                 <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>
             </div>
 
-            ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${'¡Feliz Retorno Solar!'}</div>` : ''}
+            ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${currentLang==='es'?'¡Feliz Retorno Solar!':'Happy Solar Return!'}</div>` : ''}
 
             ${daySeason ? `<div style="text-align:center;padding:10px;background:${daySeason.color}15;border:1px solid ${daySeason.color}44;border-radius:8px;margin-bottom:12px;font-size:0.9em;color:${daySeason.color};">
                 ${daySeason.icon} ${L ? daySeason.es : daySeason.en}
@@ -26815,11 +26815,11 @@ function showPersonalDayDetail(year, month, day) {
 
             <!-- Slow Planet Transits (Jupiter+) -->
             ${slowTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="font-size:0.75em;font-weight:700;color:#e74c3c;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔴 ' + (L ? 'Tránsitos Mayores (Lentos)' : 'Major Transits (Slow)') + ' (' + slowTransits.length + ')</div>' + slowTransits.map(function(t) {
-                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + ('natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
+                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
                     var safeDate = dateStr.replace(/'/g, "\\'");
-                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="cursor:pointer;padding:8px 10px;border-left:3px solid ' + t.color + ';' + (t.major ? 'background:rgba(255,255,255,0.03);' : '') + '" title="' + ('Click para interpretar') + '">'
+                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="cursor:pointer;padding:8px 10px;border-left:3px solid ' + t.color + ';' + (t.major ? 'background:rgba(255,255,255,0.03);' : '') + '" title="' + (currentLang==='es'?'Click para interpretar':'Click to interpret') + '">'
                         + '<span style="font-size:1.2em;">' + t.transitSymbol + '</span>'
                         + '<span style="color:' + t.color + ';font-weight:700;font-size:1.1em;">' + t.symbol + '</span>'
                         + '<span style="font-size:1.2em;">' + t.natalSymbol + '</span>'
@@ -26837,11 +26837,11 @@ function showPersonalDayDetail(year, month, day) {
 
             <!-- Personal Planet Transits (Sun, Venus, Mars) -->
             ${personalTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="font-size:0.75em;font-weight:700;color:#f1c40f;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🟡 ' + (L ? 'Tránsitos Personales' : 'Personal Transits') + ' (' + personalTransits.length + ')</div>' + personalTransits.map(function(t) {
-                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + ('natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
+                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
                     var safeDate = dateStr.replace(/'/g, "\\'");
-                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="cursor:pointer;padding:6px 10px;border-left:2px solid ' + t.color + '40;" title="' + ('Click para interpretar') + '">'
+                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="cursor:pointer;padding:6px 10px;border-left:2px solid ' + t.color + '40;" title="' + (currentLang==='es'?'Click para interpretar':'Click to interpret') + '">'
                         + '<span style="font-size:1em;">' + t.transitSymbol + '</span>'
                         + '<span style="color:' + t.color + ';font-weight:600;">' + t.symbol + '</span>'
                         + '<span style="font-size:1em;">' + t.natalSymbol + '</span>'
@@ -26860,7 +26860,7 @@ function showPersonalDayDetail(year, month, day) {
             <!-- Fast Transits (Moon, Mercury) — collapsed -->
             ${fastTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="var c=this.nextElementSibling;c.style.display=c.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.chevron\').textContent=c.style.display===\'none\'?\'▸\':\'▾\'" style="font-size:0.72em;font-weight:700;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:4px;"><span class="chevron">▸</span> ☽☿ ' + (L ? 'Luna y Mercurio' : 'Moon & Mercury') + ' (' + fastTransits.length + ')</div><div style="display:none;">' + fastTransits.map(function(t) {
                     var safeDate = dateStr.replace(/'/g, "\\'");
-                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="opacity:0.6;cursor:pointer;padding:4px 10px;" title="' + ('Click para interpretar') + '">'
+                    return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="opacity:0.6;cursor:pointer;padding:4px 10px;" title="' + (currentLang==='es'?'Click para interpretar':'Click to interpret') + '">'
                         + '<span style="font-size:0.9em;">' + t.transitSymbol + '</span>'
                         + '<span style="color:' + t.color + ';font-size:0.85em;">' + t.symbol + '</span>'
                         + '<span style="font-size:0.9em;">' + t.natalSymbol + '</span>'
@@ -31423,7 +31423,7 @@ function goToCurrentCycle() {
                     if (false) {
                         // Web: use popup flow (kept for reference)
                         var socBtn = document.createElement('button');
-                        socBtn.innerHTML = '🌐 ' + ('Unirme a AstroConnect');
+                        socBtn.innerHTML = '🌐 ' + (currentLang==='es'?'Unirme a AstroConnect':'Join AstroConnect');
                         socBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(0,188,212,0.2),rgba(0,188,210,0.05));border:1.5px solid rgba(0,188,212,0.45);border-radius:12px;color:#00bcd4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;';
                         socBtn.onclick = function() {
                             if (typeof switchToSocialMode === 'function') {
@@ -31474,13 +31474,13 @@ function goToCurrentCycle() {
 
                 } else if (s === 'ready') {
                     wrap.innerHTML += '<div style="font-size:4em;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(201,168,64,0.6));">🌙</div>' +
-                        '<h2 style="font-family:Cinzel,serif;font-size:1.4em;color:#c9a840;margin:0 0 12px;letter-spacing:1px;">' + ('¡Todo listo!') + '</h2>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.4em;color:#c9a840;margin:0 0 12px;letter-spacing:1px;">' + (currentLang==='es'?'¡Todo listo!':'All set!') + '</h2>' +
                         '<p style="font-size:0.87em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 32px;">' +
                         (L ? 'AstroAtlas está configurado y listo para sincronizarte con los movimientos celestes.' : 'AstroAtlas is configured and ready to sync you with the celestial movements.') + '</p>' +
                         '<div id="readyBtnArea"></div>';
                     var readyArea = overlay.querySelector('#readyBtnArea');
                     var readyBtn = document.createElement('button');
-                    readyBtn.innerHTML = '🚀 ' + ('Explorar AstroAtlas');
+                    readyBtn.innerHTML = '🚀 ' + (currentLang==='es'?'Explorar AstroAtlas':'Explore AstroAtlas');
                     readyBtn.style.cssText = 'width:100%;padding:16px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(201,168,64,0.1));border:1.5px solid rgba(201,168,64,0.6);border-radius:14px;color:#c9a840;font-size:1em;font-weight:700;cursor:pointer;letter-spacing:1px;';
                     readyBtn.onclick = complete;
                     readyArea.appendChild(readyBtn);
@@ -32752,14 +32752,14 @@ function _launchDailyQuizInner() {
 
     var html = '<div style="padding:16px;max-height:85vh;overflow-y:auto;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
-    html += '<h3 style="font-family:\'Cinzel\',serif;font-size:1em;color:#ffd700;margin:0;">🧠 ' + ('Quiz de Repaso') + '</h3>';
+    html += '<h3 style="font-family:\'Cinzel\',serif;font-size:1em;color:#ffd700;margin:0;">🧠 ' + (currentLang==='es'?'Quiz de Repaso':'Review Quiz') + '</h3>';
     html += '<button onclick="document.getElementById(\'dailyQuizModal\').classList.remove(\'show\')" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>';
     html += '</div>';
 
     // New concepts section
     if (concepts.length > 0) {
         html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:0.75em;font-weight:700;color:#4ecdc4;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">💡 ' + ('Aprende Algo Nuevo') + '</div>';
+        html += '<div style="font-size:0.75em;font-weight:700;color:#4ecdc4;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">💡 ' + (currentLang==='es'?'Aprende Algo Nuevo':'Learn Something New') + '</div>';
         concepts.forEach(function(c, ci) {
             html += '<div style="background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.2);border-radius:10px;margin-bottom:8px;overflow:hidden;">';
             html += '<div onclick="var body=this.nextElementSibling;var arrow=this.querySelector(\'.caret\');if(body.style.display===\'none\'){body.style.display=\'block\';arrow.textContent=\'▾\';}else{body.style.display=\'none\';arrow.textContent=\'▸\';}" style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;">';
@@ -32769,7 +32769,7 @@ function _launchDailyQuizInner() {
             html += '</div>';
             html += '<div style="display:none;padding:0 12px 12px;">';
             html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.6);margin-bottom:8px;">' + c.summary + '</div>';
-            html += '<button onclick="openDailyConceptChat(\'' + c.nodeId + '\',\'' + c.title.replace(/'/g, "\\'") + '\')" style="width:100%;padding:8px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(78,205,196,0.05));border:1px solid rgba(78,205,196,0.4);border-radius:8px;color:#4ecdc4;font-size:0.8em;font-weight:600;cursor:pointer;">✨ ' + ('Profundizar con Tutor') + '</button>';
+            html += '<button onclick="openDailyConceptChat(\'' + c.nodeId + '\',\'' + c.title.replace(/'/g, "\\'") + '\')" style="width:100%;padding:8px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(78,205,196,0.05));border:1px solid rgba(78,205,196,0.4);border-radius:8px;color:#4ecdc4;font-size:0.8em;font-weight:600;cursor:pointer;">✨ ' + (currentLang==='es'?'Profundizar con Tutor':'Deepen with Tutor') + '</button>';
             html += '</div></div>';
         });
         html += '</div>';
@@ -32777,7 +32777,7 @@ function _launchDailyQuizInner() {
 
     // Questions section
     if (questions.length > 0) {
-        html += '<div style="font-size:0.75em;font-weight:700;color:#ffd700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📝 ' + ('Preguntas de Repaso') + ' (' + questions.length + ')</div>';
+        html += '<div style="font-size:0.75em;font-weight:700;color:#ffd700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📝 ' + (currentLang==='es'?'Preguntas de Repaso':'Review Questions') + ' (' + questions.length + ')</div>';
         questions.forEach(function(q, qi) {
             html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.1);border-radius:10px;padding:12px;margin-bottom:10px;">';
             html += '<div style="font-size:0.82em;font-weight:600;color:#ddd;margin-bottom:3px;">' + (qi + 1) + '. ' + q.q + '</div>';
@@ -32791,12 +32791,12 @@ function _launchDailyQuizInner() {
             // Expand button for explanation (hidden until answered)
             html += '<div id="dqExplain_' + qi + '" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(255,215,0,0.05);border-radius:8px;border:1px solid rgba(255,215,0,0.15);">';
             html += '<div id="dqExplainText_' + qi + '" style="font-size:0.75em;color:rgba(255,255,255,0.5);"></div>';
-            html += '<button onclick="openDailyConceptChat(\'' + (q.nodeId||'') + '\',\'' + q.q.replace(/'/g, "\\'").substring(0, 60) + '\')" style="margin-top:6px;width:100%;padding:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.72em;cursor:pointer;">✨ ' + ('Preguntar al Tutor') + '</button>';
+            html += '<button onclick="openDailyConceptChat(\'' + (q.nodeId||'') + '\',\'' + q.q.replace(/'/g, "\\'").substring(0, 60) + '\')" style="margin-top:6px;width:100%;padding:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.72em;cursor:pointer;">✨ ' + (currentLang==='es'?'Preguntar al Tutor':'Ask Tutor') + '</button>';
             html += '</div>';
             html += '</div>';
         });
 
-        html += '<button onclick="submitDailyQuiz()" style="width:100%;padding:12px;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:6px;">✓ ' + ('Enviar Respuestas') + '</button>';
+        html += '<button onclick="submitDailyQuiz()" style="width:100%;padding:12px;background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:6px;">✓ ' + (currentLang==='es'?'Enviar Respuestas':'Submit Answers') + '</button>';
     }
 
     html += '</div>';
@@ -32902,7 +32902,7 @@ function submitDailyQuiz() {
     var banner = '<div style="text-align:center;padding:14px;margin-bottom:10px;background:' + (pct >= 80 ? 'rgba(76,175,80,0.12)' : pct >= 60 ? 'rgba(255,152,0,0.12)' : 'rgba(244,67,54,0.08)') + ';border:1px solid ' + (pct >= 80 ? 'rgba(76,175,80,0.4)' : pct >= 60 ? 'rgba(255,152,0,0.4)' : 'rgba(244,67,54,0.3)') + ';border-radius:12px;">';
     banner += '<div style="font-size:2em;">' + (pct >= 80 ? '🎉' : pct >= 60 ? '👍' : '📚') + '</div>';
     banner += '<div style="font-size:1.2em;font-weight:700;color:' + (pct >= 80 ? '#4caf50' : pct >= 60 ? '#ff9800' : '#f44336') + ';">' + pct + '%</div>';
-    banner += '<div style="font-size:0.85em;color:rgba(255,255,255,0.5);">' + correct + '/' + total + ' ' + ('correctas') + '</div></div>';
+    banner += '<div style="font-size:0.85em;color:rgba(255,255,255,0.5);">' + correct + '/' + total + ' ' + (currentLang==='es'?'correctas':'correct') + '</div></div>';
 
     var content = document.getElementById('dailyQuizModalContent');
     if (content) {
@@ -33022,15 +33022,15 @@ function openQuizTutor(nodeId, topicTitle, context) {
     // Input
     html += '<div style="padding:10px 14px;border-top:1px solid rgba(255,215,0,0.1);flex-shrink:0;">';
     html += '<div style="display:flex;gap:6px;align-items:flex-end;">';
-    html += '<textarea id="quizTutorInput" rows="1" placeholder="' + ('Pregunta algo...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:8px 10px;color:#fff;font-size:0.82em;resize:none;min-height:36px;max-height:80px;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendQuizTutorMsg();}"></textarea>';
+    html += '<textarea id="quizTutorInput" rows="1" placeholder="' + (currentLang==='es'?'Pregunta algo...':'Ask something...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:8px 10px;color:#fff;font-size:0.82em;resize:none;min-height:36px;max-height:80px;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendQuizTutorMsg();}"></textarea>';
     html += '<button onclick="sendQuizTutorMsg()" style="padding:8px 12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,152,0,0.15));border:1px solid rgba(255,215,0,0.35);border-radius:10px;color:#ffd700;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>';
     html += '</div>';
     // Bottom buttons
     html += '<div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">';
-    html += '<button onclick="startGenericVoice(\'quizTutorInput\',\'sendQuizTutorMsg()\',\'quizTutorVoiceBtn\')" id="quizTutorVoiceBtn" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;" title="' + ('Voz') + '">🎙️</button>';
-    html += '<button onclick="readAloudLastMsg(\'quizTutorMsgs\')" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);color:#ffd700;font-size:0.9em;cursor:pointer;" title="' + ('Leer') + '">🔊</button>';
-    html += '<button onclick="_saveQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.2);color:#4ecdc4;font-size:0.9em;cursor:pointer;" title="' + ('Guardar') + '">💾</button>';
-    html += '<button onclick="_shareQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.9em;cursor:pointer;" title="' + ('Compartir') + '">📤</button>';
+    html += '<button onclick="startGenericVoice(\'quizTutorInput\',\'sendQuizTutorMsg()\',\'quizTutorVoiceBtn\')" id="quizTutorVoiceBtn" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;" title="' + (currentLang==='es'?'Voz':'Voice') + '">🎙️</button>';
+    html += '<button onclick="readAloudLastMsg(\'quizTutorMsgs\')" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);color:#ffd700;font-size:0.9em;cursor:pointer;" title="' + (currentLang==='es'?'Leer':'Read') + '">🔊</button>';
+    html += '<button onclick="_saveQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.2);color:#4ecdc4;font-size:0.9em;cursor:pointer;" title="' + (currentLang==='es'?'Guardar':'Save') + '">💾</button>';
+    html += '<button onclick="_shareQuizTutorChat()" style="width:32px;height:32px;border-radius:50%;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.2);color:#667eea;font-size:0.9em;cursor:pointer;" title="' + (currentLang==='es'?'Compartir':'Share') + '">📤</button>';
     html += '</div></div></div>';
 
     var modal = document.getElementById('quizTutorModal');
@@ -33754,26 +33754,26 @@ function openMyMessagesEditor(tab) {
     var tabActive = 'background:linear-gradient(135deg,rgba(102,204,255,0.2),rgba(102,204,255,0.08));color:#66CCFF;font-weight:700;border:1px solid rgba(102,204,255,0.4);';
     var tabInactive = 'background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);font-weight:500;border:1px solid rgba(255,255,255,0.1);';
     html += '<div style="display:flex;gap:6px;margin-bottom:12px;">';
-    html += '<button onclick="openMyMessagesEditor(\'scheduled\')" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.85em;' + (activeTab==='scheduled'?tabActive:tabInactive) + '">📋 ' + ('Programados') + ' (' + scheduled.length + ')</button>';
-    html += '<button onclick="openMyMessagesEditor(\'sent\')" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.85em;' + (activeTab==='sent'?tabActive:tabInactive) + '">✅ ' + ('Enviados') + ' (' + sent.length + ')</button>';
+    html += '<button onclick="openMyMessagesEditor(\'scheduled\')" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.85em;' + (activeTab==='scheduled'?tabActive:tabInactive) + '">📋 ' + (currentLang==='es'?'Programados':'Scheduled') + ' (' + scheduled.length + ')</button>';
+    html += '<button onclick="openMyMessagesEditor(\'sent\')" style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.85em;' + (activeTab==='sent'?tabActive:tabInactive) + '">✅ ' + (currentLang==='es'?'Enviados':'Sent') + ' (' + sent.length + ')</button>';
     html += '</div>';
 
     if (activeTab === 'scheduled') {
         // ── New message form ──
         html += '<div style="margin-bottom:14px;padding:12px;background:rgba(102,204,255,0.06);border:1px solid rgba(102,204,255,0.2);border-radius:10px;">';
-        html += '<div style="font-size:0.82em;font-weight:700;color:#66CCFF;margin-bottom:10px;">' + ('Nuevo mensaje') + '</div>';
+        html += '<div style="font-size:0.82em;font-weight:700;color:#66CCFF;margin-bottom:10px;">' + (currentLang==='es'?'Nuevo mensaje':'New message') + '</div>';
         html += '<div style="display:flex;gap:8px;margin-bottom:8px;">';
-        html += '<div style="flex:1;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + ('Fecha') + '</label>';
+        html += '<div style="flex:1;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (currentLang==='es'?'Fecha':'Date') + '</label>';
         html += '<input type="date" id="msgDate" value="' + todayStr + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;"></div>';
-        html += '<div><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + ('Hora') + '</label>';
+        html += '<div><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (currentLang==='es'?'Hora':'Time') + '</label>';
         html += buildTimePicker('msgTime','08:00') + '</div>';
         html += '</div>';
-        html += '<div style="margin-bottom:8px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + ('Titulo (opcional)') + '</label>';
+        html += '<div style="margin-bottom:8px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (currentLang==='es'?'Titulo (opcional)':'Title (optional)') + '</label>';
         html += '<input type="text" id="msgTitle" placeholder="AstroAtlas" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;box-sizing:border-box;"></div>';
-        html += '<div style="margin-bottom:10px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + ('Mensaje') + '</label>';
-        html += '<textarea id="msgText" rows="3" placeholder="' + ('Escribe tu mensaje...') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea></div>';
+        html += '<div style="margin-bottom:10px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (currentLang==='es'?'Mensaje':'Message') + '</label>';
+        html += '<textarea id="msgText" rows="3" placeholder="' + (currentLang==='es'?'Escribe tu mensaje...':'Type your message...') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea></div>';
         html += '<button onclick="saveMyMessage()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.2),rgba(102,204,255,0.08));border:1px solid rgba(102,204,255,0.4);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:700;cursor:pointer;">';
-        html += '+ ' + ('Agregar mensaje') + '</button>';
+        html += '+ ' + (currentLang==='es'?'Agregar mensaje':'Add message') + '</button>';
         html += '</div>';
 
         // ── Scheduled messages list ──
@@ -33786,7 +33786,7 @@ function openMyMessagesEditor(tab) {
                 if (s.msg.title && s.msg.title !== 'AstroAtlas') html += '<div style="font-size:0.75em;color:#66CCFF;font-weight:600;">' + s.msg.title + '</div>';
                 html += '<div style="font-size:0.82em;color:#e8eaf6;margin-top:2px;">' + s.msg.message + '</div>';
                 html += '</div>';
-                html += '<button onclick="deleteMyMessage(\'' + s.date + '\',' + s.idx + ')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:1.1em;padding:2px 6px;flex-shrink:0;" title="' + ('Eliminar') + '">✕</button>';
+                html += '<button onclick="deleteMyMessage(\'' + s.date + '\',' + s.idx + ')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:1.1em;padding:2px 6px;flex-shrink:0;" title="' + (currentLang==='es'?'Eliminar':'Delete') + '">✕</button>';
                 html += '</div>';
             }
         } else {
