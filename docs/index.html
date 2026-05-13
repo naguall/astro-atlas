@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v744';</script>
+    <script>window.APP_VERSION = 'v747';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -352,7 +352,8 @@
         .modal-content::-webkit-scrollbar-thumb { background: rgba(201,168,64,0.28); border-radius: 3px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--gold-border); }
         .modal-header h2 { font-family: 'Cinzel', serif; font-size: 1.4em; color: var(--gold-bright); letter-spacing: 1.5px; }
-        .close { color: var(--text-dim); font-size: 26px; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+        .close { color: var(--text-dim); font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s; padding: 6px 14px; touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: rgba(255,255,255,0.2); line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+        .close:active { color: #fff; background: rgba(255,255,255,0.1); border-radius: 8px; }
         .close:hover { color: var(--gold-bright); }
 
         .aspects-section, .journal-section { background: rgba(6,8,38,0.95); padding: 18px; border: 1px solid var(--blue-border); border-radius: 10px; margin-bottom: 18px; }
@@ -783,11 +784,12 @@
             </div>
 
             <!-- Mode buttons: single row, compact to fit screen -->
-            <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:flex-start;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;padding:0 2px 0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+            <!-- v746: touch-action pan-x para que el scroll horizontal funcione en WebView Capacitor -->
+            <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:flex-start;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;padding:0 8px 0 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;">
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astrológico</span></button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astro</span></button>
                 <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Social</button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
@@ -1903,8 +1905,8 @@ function getPlanetPosition(planet, date) {
 function getZodiacSignFromLongitude(longitude) {
     const L = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
     const signs = L
-        ? ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis']
-        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+        ? ['Aries', (currentLang==='es'?'Tauro':'Taurus'), (currentLang==='es'?'Géminis':'Gemini'), (currentLang==='es'?'Cáncer':'Cancer'), 'Leo', (currentLang==='es'?'Virgo':'Virgo'), (currentLang==='es'?'Libra':'Libra'), (currentLang==='es'?'Escorpio':'Scorpio'), (currentLang==='es'?'Sagitario':'Sagittarius'), (currentLang==='es'?'Capricornio':'Capricorn'), (currentLang==='es'?'Acuario':'Aquarius'), 'Piscis']
+        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', (currentLang==='es'?'Virgo':'Virgo'), (currentLang==='es'?'Libra':'Libra'), 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signIndex = Math.floor(longitude / 30);
     return signs[signIndex];
 }
@@ -1913,8 +1915,8 @@ function getZodiacSignFromLongitude(longitude) {
 function getZodiacSignWithDegree(longitude) {
     const L = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
     const signs = L
-        ? ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis']
-        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+        ? ['Aries', (currentLang==='es'?'Tauro':'Taurus'), (currentLang==='es'?'Géminis':'Gemini'), (currentLang==='es'?'Cáncer':'Cancer'), 'Leo', (currentLang==='es'?'Virgo':'Virgo'), (currentLang==='es'?'Libra':'Libra'), (currentLang==='es'?'Escorpio':'Scorpio'), (currentLang==='es'?'Sagitario':'Sagittarius'), (currentLang==='es'?'Capricornio':'Capricorn'), (currentLang==='es'?'Acuario':'Aquarius'), 'Piscis']
+        : ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', (currentLang==='es'?'Virgo':'Virgo'), (currentLang==='es'?'Libra':'Libra'), 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const minutes = Math.floor((degreeInSign % 1) * 60);
@@ -5916,6 +5918,13 @@ function _getStelliumRangeCached(sampleDate, planetList, signIdx) {
     return result;
 }
 function detectAspectPatterns(date) {
+    // v745: Normalizar fecha a midnight local para evitar discrepancias entre
+    // calendarios (lunar pasa Date con hora, gregorian con midnight). Si dos
+    // calendarios pasan dates equivalentes pero distintas horas, podían darse
+    // resultados distintos.
+    var _normDate = new Date(date);
+    _normDate.setHours(0, 0, 0, 0);
+    date = _normDate;
     var dateKey = date.toDateString();
     if (_aspectPatternsCache[dateKey]) return _aspectPatternsCache[dateKey];
 
@@ -6335,9 +6344,8 @@ function findNearestNewMoon(date) {
 
     // Buscar la Luna Nueva ANTERIOR o igual (que inicia el ciclo actual)
     // v659 FIX: normalize each moon date to LOCAL midnight before comparing.
-    // Without this, a new moon at e.g. 11:52 UTC is greater than local midnight
-    // (06:00 UTC in Costa Rica) → gets excluded → calendar shows the PREVIOUS cycle.
     let closestMoon = newMoonsLocal[0];
+    let nextMoonAfter = null;
 
     for (const moonDate of newMoonsLocal) {
         const moonLocal = new Date(moonDate);
@@ -6347,8 +6355,24 @@ function findNearestNewMoon(date) {
         if (moonTime <= searchTime) {
             closestMoon = moonDate;
         } else {
-            // Passed today — previous entry was the correct one
+            // First new moon AFTER today — guardamos para chequear si hoy debería estar
+            // en el ciclo SIGUIENTE (Nueva semana) en lugar del actual (Menguante semana cortada).
+            nextMoonAfter = moonDate;
             break;
+        }
+    }
+
+    // v747 FIX: si HOY está dentro de los 3 días previos a la próxima new moon,
+    // esos días NO se muestran en el ciclo actual (porque v741 corta Menguante 4 días antes
+    // del siguiente new moon para evitar repetir días). Esos 3 días aparecen como la
+    // semana Nueva del SIGUIENTE ciclo. Por lo tanto auto-navegamos al siguiente ciclo
+    // para que el usuario vea HOY en la pantalla.
+    if (nextMoonAfter) {
+        const nextLocal = new Date(nextMoonAfter);
+        nextLocal.setHours(0, 0, 0, 0);
+        const daysUntilNext = Math.round((nextLocal.getTime() - searchTime) / 86400000);
+        if (daysUntilNext >= 0 && daysUntilNext <= 3) {
+            return new Date(nextMoonAfter);
         }
     }
 
@@ -7142,7 +7166,14 @@ async function toggleNotifications() {
 
     // v683: In Capacitor (native APK), Web Push API is not supported
     if (!('Notification' in window)) {
-        alert('Your browser does not support notifications');
+        // v745: si estamos en Capacitor, las notificaciones funcionan vía LocalNotifications nativo (no Web API)
+        var _isCap745 = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (_isCap745) {
+            // Silencioso — las notificaciones nativas se gestionan vía @capacitor/local-notifications
+            console.log('[Notif] APK detected — using native LocalNotifications (silent)');
+            return;
+        }
+        alert(currentLang==='es'?'Tu navegador no soporta notificaciones. Instalá la APK para tener notificaciones nativas.':'Your browser does not support notifications. Install the APK for native notifications.');
         return;
     }
     
@@ -7364,7 +7395,8 @@ function updateUILanguage() {
 
     // v639: Update Personal/Astrology button label
     const personalLabel = document.getElementById('personalButtonLabel');
-    if (personalLabel) personalLabel.textContent = currentLang === 'es' ? 'Astrológico' : 'Astrology';
+    // v746: "Astro" en lugar de "Astrológico" para que entre el tab "Social" sin cortarse en APK
+    if (personalLabel) personalLabel.textContent = currentLang === 'es' ? 'Astro' : 'Astro';
 
     // Update cycle navigation
     const cycleNumber = document.getElementById('cycleNumber');
@@ -8052,6 +8084,17 @@ function handleGcalTokenResponse(response) {
 }
 
 function gcalSignIn() {
+    // v745: en APK Capacitor, Google Identity Services NO carga porque el WebView
+    // tiene origin `https://localhost` que NO está registrado como autorizado en
+    // la consola de Google Cloud. Solución temporal: avisar al usuario y abrir la PWA.
+    var _isCap745 = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (_isCap745) {
+        var msg = currentLang === 'es'
+            ? 'Google Calendar requiere un plugin nativo aún no implementado en esta APK beta.\n\nPor ahora, abrí la PWA en Chrome móvil (https://naguall.github.io/astro-atlas/) para sincronizar con Google Calendar. Los eventos se guardan en tu cuenta Google y aparecen en cualquier dispositivo.'
+            : 'Google Calendar requires a native plugin not yet implemented in this beta APK.\n\nFor now, open the PWA in Chrome mobile (https://naguall.github.io/astro-atlas/) to sync with Google Calendar. Events save to your Google account and appear on any device.';
+        alert(msg);
+        return;
+    }
     if (!GCAL_CLIENT_ID) {
         alert(currentLang === 'es' ?
             'Error: Client ID no configurado' :
@@ -9001,10 +9044,85 @@ function isWeekend(date) {
     });
 })();
 
+// ══════════════════════════════════════════════════════════════════
+// v746: Event delegation para span.close (cerrar modales)
+// Algunos onclick atributos no dispararon confiablemente en WebView Capacitor.
+// Fallback: capturamos touchstart en cualquier elemento con class="close"
+// y ejecutamos su onclick.
+// ══════════════════════════════════════════════════════════════════
+(function() {
+    function _fireCloseHandler(target) {
+        if (!target || !target.classList || !target.classList.contains('close')) return false;
+        var onclickAttr = target.getAttribute('onclick');
+        if (!onclickAttr) return false;
+        try {
+            // Execute the onclick attribute
+            (new Function(onclickAttr)).call(target);
+            return true;
+        } catch(err) {
+            console.warn('[close handler] error:', err);
+        }
+        return false;
+    }
+    document.addEventListener('touchend', function(e) {
+        var t = e.target;
+        // Walk up max 3 levels in case touch hits a child of .close
+        for (var i = 0; i < 3 && t; i++) {
+            if (t.classList && t.classList.contains('close')) {
+                _fireCloseHandler(t);
+                e.stopPropagation();
+                e.preventDefault();
+                break;
+            }
+            t = t.parentElement;
+        }
+    }, {passive: false, capture: true});
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// v745: Widget Android — sincronizar datos cuando la app abre
+// ══════════════════════════════════════════════════════════════════
+function _syncWidgetData() {
+    if (!window.MoonSyncNative || !window.MoonSyncNative.updateWidgetData) return;
+    try {
+        var natal = (typeof getNatalData === 'function') ? getNatalData() : null;
+        var data = {
+            lang: currentLang || 'es',
+            userLat: parseFloat(localStorage.getItem('userLat') || (typeof ASTRO_USER_LAT !== 'undefined' ? ASTRO_USER_LAT : '9.93')),
+            userLon: parseFloat(localStorage.getItem('userLon') || (typeof ASTRO_USER_LON !== 'undefined' ? ASTRO_USER_LON : '-84.08'))
+        };
+        if (natal && natal.date) {
+            var parts = natal.date.split('-').map(Number);
+            var today = new Date();
+            var bDate = new Date(today.getFullYear(), parts[1] - 1, parts[2]);
+            var nextBd = new Date(today.getFullYear() + 1, parts[1] - 1, parts[2]);
+            if (today < bDate) {
+                bDate.setFullYear(bDate.getFullYear() - 1);
+                nextBd.setFullYear(nextBd.getFullYear() - 1);
+            }
+            data.personalDay = Math.floor((today - bDate) / 86400000) + 1;
+            data.personalTotal = Math.round((nextBd - bDate) / 86400000);
+        }
+        window.MoonSyncNative.updateWidgetData(data);
+        console.log('[Widget] Synced data:', data);
+    } catch(e) { console.warn('[Widget] sync error:', e); }
+}
+// Sync after init + each time user changes profile/lang/location
+setTimeout(_syncWidgetData, 3000);
+window._syncWidgetDataPublic = _syncWidgetData;
+
 function openAspectsModal(date, lunarDay, dayData) {
     selectedDate = date;
     selectedDayData = dayData;
     const modal = document.getElementById('aspectsModal');
+    if (!modal) { console.error('[openAspectsModal] modal not found'); return; }
+    // v747: Reset estado completo antes de abrir (fix "solo abre 1 vez en APK").
+    // En WebView Capacitor el modal podía quedar con la clase 'show' colgada
+    // y bloquear la 2da apertura. Hacemos un toggle forzado con reflow.
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    void modal.offsetWidth; // force reflow
+    modal.style.display = ''; // limpiar inline para que CSS de .show gane
     modal.scrollTop = 0;
     
     document.getElementById('aspectsModalTitle').textContent = 
@@ -9301,7 +9419,9 @@ function openAspectsModal(date, lunarDay, dayData) {
         var dateLabel = date.toLocaleDateString(currentLang==='es'?'es':'en',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
         // v742: pass dateMs so showDayInterpretation can compute transits for the SELECTED day, not today
         var _dateMs = date.getTime();
-        htmlContent += `<div onclick="closeAspectsModal(); showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}', ${_dateMs})" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
+        // v745: closeAspectsModal + showDayInterpretation con delay y try/catch para evitar
+        // que en Capacitor APK la modal nueva se quede oculta detrás del calendario.
+        htmlContent += `<div onclick="(function(){closeAspectsModal();setTimeout(function(){try{showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}', ${_dateMs});}catch(e){console.error('[Interpretacion del dia] error:', e); alert(currentLang==='es'?'Error al abrir interpretación: '+e.message:'Error opening interpretation: '+e.message);}},200);})()" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
         aspectsDetails.innerHTML = htmlContent;
     } else {
         aspectsDetails.innerHTML = `<div class="no-aspects">${t('noAspects')}</div>`;
@@ -10540,7 +10660,7 @@ function editDiaryEntry(dateKey) {
 }
 function shareDiaryEntry(dateKey) {
     var text = getDiaryText(dateKey);
-    var shareText = '📝 ' + 'Diario' + ' — ' + dateKey + '\n\n' + text + '\n\n— AstroAtlas 🌙';
+    var shareText = '📝 ' + (currentLang==='es'?'Diario':'Daily') + ' — ' + dateKey + '\n\n' + text + '\n\n— AstroAtlas 🌙';
     if (navigator.share) {
         navigator.share({ title: 'AstroAtlas — ' + dateKey, text: shareText }).catch(function(){});
     } else {
@@ -12519,9 +12639,29 @@ function scheduleDreamAlarm() {
     window._dreamAlarmTargetTime = alarmDate.getTime();
     console.log('🌙 Dream alarm scheduled for', alarmDate.toLocaleString(), '(' + Math.round((alarmDate.getTime() - now.getTime())/60000) + ' min)');
 
+    // v745: En Capacitor APK, usar LocalNotifications.schedule({at: alarmDate}) NATIVO.
+    // Esto hace que Android dispare la notificación incluso con la app cerrada.
+    // Cuando la notif sale y la app se abre (auto o por tap del usuario), JS dispara
+    // AlarmAudio.playTones para el sonido Solfeggio en STREAM_ALARM (vol independiente).
+    var _isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (_isCap && window.MoonSyncNative && window.MoonSyncNative.scheduleNotification) {
+        window.MoonSyncNative.scheduleNotification({
+            id: 88888, // ID fijo para alarma de sueños (se sobrescribe si se reprograma)
+            at: alarmDate,
+            title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
+            body: currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream',
+            tag: 'dream-alarm',
+            data: { dreamAlarm: true }
+        }).then(function() {
+            console.log('[Dream Alarm] Native LocalNotification scheduled for', alarmDate.toLocaleString());
+        }).catch(function(e) {
+            console.warn('[Dream Alarm] LocalNotifications.schedule failed:', e);
+        });
+    }
+
+    // Fallback: setInterval que actúa cuando la app está abierta (cubre PWA y APK foreground)
     // Use setInterval (every 15s) instead of setTimeout — browsers throttle
     // setTimeout in background tabs but setInterval is more reliable.
-    // Also check on each interval if the alarm time has passed.
     _dreamAlarmTimeout = setInterval(function() {
         if (!_dreamAlarmEnabled) return;
         var now2 = Date.now();
@@ -12549,6 +12689,10 @@ function cancelDreamAlarm() {
     if (window._dreamAlarmBackup) {
         clearTimeout(window._dreamAlarmBackup);
         window._dreamAlarmBackup = null;
+    }
+    // v745: También cancelar la LocalNotification nativa programada en Capacitor
+    if (window.MoonSyncNative && window.MoonSyncNative.cancelNotification) {
+        window.MoonSyncNative.cancelNotification(88888).catch(function(){});
     }
 }
 
@@ -17129,7 +17273,7 @@ function switchToEarthMode() {
     // Navigation: empty for Earth mode
     const nav = document.querySelector('.navigation');
     nav.style.display = '';
-    nav.innerHTML = '<div class="cycle-info"><div class="cycle-number" id="cycleNumber">' + 'Datos de la Tierra en Tiempo Real' + '</div><div class="cycle-dates" id="cycleDates">' + ASTRO_USER_NAME + '</div></div>';
+    nav.innerHTML = '<div class="cycle-info"><div class="cycle-number" id="cycleNumber">' + (currentLang==='es'?'Datos de la Tierra en Tiempo Real':'Real-Time Earth Data') + '</div><div class="cycle-dates" id="cycleDates">' + ASTRO_USER_NAME + '</div></div>';
 
     updateModeButtons();
     // Force clear old earth panel so it re-renders fresh with new seismic data
@@ -17261,7 +17405,7 @@ function switchToSolarSystemMode() {
     // Navigation
     const nav = document.querySelector('.navigation');
     nav.style.display = '';
-    nav.innerHTML = '<div class="cycle-info"><div class="cycle-number" id="cycleNumber">' + 'Explorador del Sistema Solar' + '</div><div class="cycle-dates" id="cycleDates">' + ASTRO_USER_NAME + '</div></div>';
+    nav.innerHTML = '<div class="cycle-info"><div class="cycle-number" id="cycleNumber">' + (currentLang==='es'?'Explorador del Sistema Solar':'Solar System Explorer') + '</div><div class="cycle-dates" id="cycleDates">' + ASTRO_USER_NAME + '</div></div>';
 
     updateModeButtons();
     renderSolarSystemPanel();
@@ -18083,7 +18227,9 @@ function switchToAspects2026Mode() {
 }
 
 // ===== SIGNS 2026 VIEW =====
-function _renderSigns2026View(es) {
+// v747: agregar activeYear param (era undefined → ReferenceError al click "Signos" rompía botones años)
+function _renderSigns2026View(es, activeYear) {
+    if (!activeYear) activeYear = window._aspYear || 2026;
     var signs = [
         { name: 'Aries', nameEn: 'Aries', symbol: '♈', color: '#ff6b6b', element: es?'Fuego':'Fire' },
         { name: 'Tauro', nameEn: 'Taurus', symbol: '♉', color: '#51cf66', element: es?'Tierra':'Earth' },
@@ -18181,7 +18327,7 @@ function _renderSigns2026View(es) {
         html += '<div style="width:44px;height:44px;border-radius:50%;background:' + sign.color + '22;border:2px solid ' + sign.color + '66;display:flex;align-items:center;justify-content:center;font-size:1.6em;flex-shrink:0;">' + sign.symbol + '</div>';
         html += '<div style="flex:1;">';
         html += '<div style="font-family:\'Cinzel\',serif;color:' + sign.color + ';font-size:0.95em;font-weight:700;letter-spacing:1px;">' + (es ? sign.name : sign.nameEn).toUpperCase() + '</div>';
-        html += '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">' + sign.element + ' • ' + count + ' ' + (es ? 'aspectos en 2026' : 'aspects in 2026') + '</div>';
+        html += '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">' + sign.element + ' • ' + count + ' ' + (es ? 'aspectos en ' + activeYear : 'aspects in ' + activeYear) + '</div>';
         html += '</div>';
         html += '<div class="s26arrow" style="color:rgba(255,255,255,0.3);font-size:1.2em;">▼</div>';
         html += '</div>';
@@ -20368,7 +20514,7 @@ function calculateElementsQualities(planets, houses) {
     let qualityTotal = 0;
 
     const planetList = [];
-    const signNames = ['Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo', 'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'];
+    const signNames = ['Aries', (currentLang==='es'?'Tauro':'Taurus'), (currentLang==='es'?'Géminis':'Gemini'), (currentLang==='es'?'Cáncer':'Cancer'), 'Leo', (currentLang==='es'?'Virgo':'Virgo'), (currentLang==='es'?'Libra':'Libra'), (currentLang==='es'?'Escorpio':'Scorpio'), (currentLang==='es'?'Sagitario':'Sagittarius'), (currentLang==='es'?'Capricornio':'Capricorn'), (currentLang==='es'?'Acuario':'Aquarius'), 'Piscis'];
     for (const sign of signNames) {
         signStrength[sign] = 0;
     }
@@ -21723,7 +21869,7 @@ window.openDavisonView = function(profileId) {
     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1.6;">';
     html += ('Fecha') + ': ' + dav.date.toLocaleDateString('es', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '<br>';
     html += ('Hora') + ': ' + dav.timeStr + '<br>';
-    html += ('Ubicación') + ': ' + dav.cityName;
+    html += ((currentLang==='es'?'Ubicación':'Location')) + ': ' + dav.cityName;
     html += '</div></div>';
 
     // Planets — each planet is clickable
@@ -27895,23 +28041,23 @@ function renderSolarInfoPanel() {
     const infoHTML = '<div class="astro-info-grid" style="margin-top:8px;">'
         // Box 1: Distancia Tierra-Sol
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">' + 'Distancia' + '</h4>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Distancia':'Distance') + '</h4>'
         + '<div class="astro-value" style="color:#ff9500;">' + earthSunDist.toFixed(3) + ' M km</div>'
         + '<div class="astro-label">' + distLabel + '</div>'
-        + '<div style="font-size:0.78em;color:#ffe066;margin-top:4px;">' + 'Luz a la Tierra' + ': ' + lightTimeStr + '</div>'
+        + '<div style="font-size:0.78em;color:#ffe066;margin-top:4px;">' + (currentLang==='es'?'Luz a la Tierra':'Light to Earth') + ': ' + lightTimeStr + '</div>'
         + '<div class="astro-bar-bg"><div class="astro-bar-fill" style="width:' + distPct + '%;background:linear-gradient(90deg,#ff6b6b,#7E57C2);"></div></div>'
-        + '<div style="display:flex;justify-content:space-between;font-size:0.65em;color:rgba(255,255,255,0.28);margin-top:3px;"><span>' + 'Perihelio' + ' (147.1)</span><span>' + 'Afelio' + ' (152.1)</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:0.65em;color:rgba(255,255,255,0.28);margin-top:3px;"><span>' + (currentLang==='es'?'Perihelio':'Perihelion') + ' (147.1)</span><span>' + (currentLang==='es'?'Afelio':'Aphelion') + ' (152.1)</span></div>'
         + '</div>'
         // Box 2: Declinación Solar
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">' + 'Declinación' + '</h4>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Declinación':'Declination') + '</h4>'
         + '<div class="astro-value" style="color:' + decColor + ';">' + (sunDecl>=0?'+':'') + sunDecl.toFixed(2) + '°</div>'
         + '<div class="astro-label">Subsolar: ' + sunDecl.toFixed(1) + '° ' + (sunDecl>=0?'N':'S') + '</div>'
         + '<div class="astro-label" style="margin-top:4px;">' + Math.abs(sunDecl-uLat).toFixed(1) + '° ' + 'de tu cenit' + ' (' + Math.round(Math.abs(sunDecl-uLat)*111) + ' km)</div>'
         + '</div>'
         // Box 3: Amanecer / Atardecer
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">' + 'Duración del Día' + '</h4>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Duración del Día':'Day Duration') + '</h4>'
         + '<div class="astro-value" style="color:#ffc800;font-size:1.5em;">' + dayDurStr + '</div>'
         + '<div style="display:flex;justify-content:space-around;margin-top:6px;font-size:0.85em;">'
         + '<span style="color:#ff9500;">☀️↑ ' + sunRiseStr + '</span>'
@@ -27920,7 +28066,7 @@ function renderSolarInfoPanel() {
         + '</div>'
         // Box 4: Altitud Solar Máxima
         + '<div class="astro-card" style="margin-bottom:0;border-color:rgba(255,149,0,0.25);border-top-color:rgba(255,149,0,0.5);">'
-        + '<h4 style="font-size:0.75em;color:#ff9500;">' + 'Altitud Máxima' + '</h4>'
+        + '<h4 style="font-size:0.75em;color:#ff9500;">' + (currentLang==='es'?'Altitud Máxima':'Maximum Altitude') + '</h4>'
         + '<div class="astro-value" style="color:#ffe066;">' + maxAlt.toFixed(1) + '°</div>'
         + '<div class="astro-label">' + (maxAlt > 80 ? 'Sol casi cenital' : maxAlt > 60 ? 'Sol alto' : maxAlt > 40 ? 'Sol moderado' : 'Sol bajo') + '</div>'
         + '<div class="astro-bar-bg"><div class="astro-bar-fill" style="width:' + (maxAlt/90*100).toFixed(0) + '%;background:linear-gradient(90deg,#ff6600,#ffe066);"></div></div>'
@@ -28121,10 +28267,10 @@ function generateSolarWeeks(sign) {
     
     // DECANOS: 3 divisiones de ~10 días cada una
     const decanNames = currentLang === 'es' ? 
-        ['Primer Decan', 'Segundo Decan', 'Tercer Decan'] :
+        ['Primer Decan', (currentLang==='es'?'Segundo Decan':'Second Decan'), 'Tercer Decan'] :
         ['First Decan', 'Second Decan', 'Third Decan'];
     const decanSubtitles = currentLang === 'es' ?
-        ['Iniciación', 'Manifestación', 'Culminación'] :
+        ['Iniciación', (currentLang==='es'?'Manifestación':'Manifestation'), 'Culminación'] :
         ['Initiation', 'Manifestation', 'Culmination'];
     
     const decans = [
@@ -29286,7 +29432,27 @@ function startSublunaryRefresh() {
 
 // ── Resize handler for globe canvases on orientation change ──
 let _resizeDebounce = null;
+// v745: Track previous viewport width to differentiate orientation change vs keyboard
+let _lastViewportWidth = (typeof window !== 'undefined') ? window.innerWidth : 0;
 function _handleOrientationResize() {
+    // v745 FIX CRÍTICO: Si solo cambió la ALTURA (no el ancho), es porque apareció/desapareció
+    // el teclado en Capacitor (Keyboard.resize:"native") — NO es orientation change.
+    // Si re-renderizamos el calendar/form acá, destruimos los inputs y el teclado se cierra,
+    // borrando lo que el usuario estaba escribiendo. Por eso skipeamos.
+    var currentWidth = window.innerWidth;
+    var widthChanged = Math.abs(currentWidth - _lastViewportWidth) > 50; // tolerancia
+    if (!widthChanged) {
+        // Solo cambió altura → es keyboard, NO re-renderizar
+        console.log('[Resize] Height-only change (keyboard) — skipping re-render');
+        return;
+    }
+    _lastViewportWidth = currentWidth;
+    // Adicionalmente: si el usuario está editando un input, NO re-renderizar
+    var active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) {
+        console.log('[Resize] Active input detected — skipping re-render');
+        return;
+    }
     clearTimeout(_resizeDebounce);
     _resizeDebounce = setTimeout(function() {
         // Re-render sublunary globe
@@ -29897,13 +30063,18 @@ function renderCalendar() {
         const todayInterAspects = getInterPlanetaryAspects(today);
         const todayEclipse2 = getEclipseInfo(today);
         const todayAstroEvent2 = isAstronomicalEvent(today);
+        // v747: usar AMBOS getStellium (lista hardcoded) Y detectAspectPatterns (dinámico)
+        // para que los stelliums detectados dinámicamente aparezcan en el banner.
+        // Antes el banner de Lunar/Solar perdía stelliums que solo Gregorian sí mostraba.
         const todayStellium2 = getStellium(today);
+        const todayDynamicPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(today) : [];
+        const todayDynamicStellium = todayDynamicPatterns.find(function(p) { return p.type === 'stellium'; });
 
         // Combinar TODOS los eventos planetarios del día — orden: eclipses, equinoccios, stelliums, cambios signo, retrógrados, aspectos
         const allPlanetaryEvents = [
             ...(todayEclipse2 ? [{ type: 'eclipse', data: todayEclipse2 }] : []),
             ...(todayAstroEvent2 ? [{ type: 'astroEvent', data: todayAstroEvent2 }] : []),
-            ...(todayStellium2 ? [{ type: 'stellium', data: todayStellium2 }] : []),
+            ...(todayStellium2 ? [{ type: 'stellium', data: todayStellium2 }] : (todayDynamicStellium ? [{ type: 'stellium', data: { sign: todayDynamicStellium.sign, planets: todayDynamicStellium.planets } }] : [])),
             ...todaySignChanges.map(ch => ({ type: 'signChange', data: ch })),
             ...todayRetrogrades.map(ret => ({ type: 'retrograde', data: ret })),
             ...todayInterAspects.map(asp => ({ type: 'interPlanetaryAspect', data: asp })),
@@ -32358,6 +32529,35 @@ function goToCurrentCycle() {
             if (cb) cb.remove();
             if (tt) tt.remove();
         };
+
+        // v745: Auto-cleanup del wkClickBlocker huérfano.
+        // Bug observado por usuaria: "el botón de preferencias deja de funcionar después de un rato".
+        // Causa: el wkClickBlocker (overlay z-index 9996) queda colgado después de que el
+        // walkthrough/tutorial termina, bloqueando TODOS los clicks del header.
+        // Fix: cada 2 segundos, si encontramos un wkClickBlocker sin su contraparte wkTooltip,
+        // significa que el walkthrough terminó pero olvidó limpiar — lo eliminamos.
+        // También se hace una pasada de cleanup al hacer ANY touchstart en el body.
+        setInterval(function() {
+            try {
+                var cb = document.getElementById('wkClickBlocker');
+                var tt = document.getElementById('wkTooltip');
+                // Si hay clickBlocker pero NO hay tooltip → walkthrough huérfano
+                if (cb && !tt) {
+                    cb.remove();
+                    var bd = document.getElementById('wkBackdrop');
+                    if (bd) bd.remove();
+                    console.log('[Walkthrough] Cleaned up orphan clickBlocker that was blocking clicks');
+                }
+                // Si _wkActive es false pero hay clickBlocker → también huérfano
+                if (cb && typeof _wkActive !== 'undefined' && !_wkActive) {
+                    cb.remove();
+                    if (tt) tt.remove();
+                    var bd2 = document.getElementById('wkBackdrop');
+                    if (bd2) bd2.remove();
+                    console.log('[Walkthrough] Cleaned up inactive walkthrough overlay');
+                }
+            } catch(_e) {}
+        }, 2000);
 
         window._startButtonWalkthrough = function(screen) {
             _runWalkthrough(screen);
@@ -34830,7 +35030,7 @@ function openPreferencesModal() {
     });
     notifContent += '</div>';
     // v631: Botón diagnóstico de notificaciones
-    notifContent += '<button onclick="showNotifDiagnostic()" style="margin-top:10px;width:100%;padding:8px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.3);border-radius:6px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">🔍 ' + 'Diagnóstico de notificaciones' + '</button>';
+    notifContent += '<button onclick="showNotifDiagnostic()" style="margin-top:10px;width:100%;padding:8px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.3);border-radius:6px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">🔍 ' + (currentLang==='es'?'Diagnóstico de notificaciones':'Notifications diagnostic') + '</button>';
     sectionsHtml += _s(notifEnabled?'🔔':'🔕', currentLang==='es'?'Notificaciones':'Notifications', '#7ec8ff', notifContent);
 
     // ── Alarma de Ensueños ──
@@ -34838,7 +35038,7 @@ function openPreferencesModal() {
     var _daTime = localStorage.getItem('dreamAlarmTime') || '03:00';
     var dreamAlarmContent = '';
     // v638: Help button for Dream Alarm spotlight
-    dreamAlarmContent += '<div style="text-align:right;margin-bottom:6px;"><button onclick="event.stopPropagation();runDreamAlarmSpotlight();" style="background:rgba(138,43,226,0.15);border:1px solid rgba(138,43,226,0.35);border-radius:50%;width:28px;height:28px;color:#ce93d8;font-size:0.82em;font-weight:700;cursor:pointer;line-height:28px;padding:0;" title="' + 'Como funciona' + '">?</button></div>';
+    dreamAlarmContent += '<div style="text-align:right;margin-bottom:6px;"><button onclick="event.stopPropagation();runDreamAlarmSpotlight();" style="background:rgba(138,43,226,0.15);border:1px solid rgba(138,43,226,0.35);border-radius:50%;width:28px;height:28px;color:#ce93d8;font-size:0.82em;font-weight:700;cursor:pointer;line-height:28px;padding:0;" title="' + (currentLang==='es'?'Como funciona':'How it works') + '">?</button></div>';
     dreamAlarmContent += '<div id="daToggleRow" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">';
     dreamAlarmContent += '<span style="font-size:1.3em;">🌙</span>';
     dreamAlarmContent += '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;color:' + (_daEnabled?'#ce93d8':'rgba(255,255,255,0.5)') + ';">' + (_daEnabled?'Activada':'Desactivada') + '</div></div>';
@@ -34869,7 +35069,7 @@ function openPreferencesModal() {
     dreamAlarmContent += '<div id="daSolfeggioSection" style="margin-top:10px;">';
     dreamAlarmContent += '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.solf-arrow\').textContent=p.style.display===\'none\'?\'▶\':\'▼\'" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(138,43,226,0.1);border:1px solid rgba(138,43,226,0.25);border-radius:8px;user-select:none;">';
     dreamAlarmContent += '<span class="solf-arrow" style="font-size:0.7em;color:#ce93d8;">▶</span>';
-    dreamAlarmContent += '<span style="font-size:0.8em;color:#ce93d8;font-weight:600;">🎵 ' + 'Frecuencias Solfeggio' + '</span>';
+    dreamAlarmContent += '<span style="font-size:0.8em;color:#ce93d8;font-weight:600;">🎵 ' + (currentLang==='es'?'Frecuencias Solfeggio':'Solfeggio Frequencies') + '</span>';
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div style="display:none;padding:10px 0;">';
 
@@ -34904,14 +35104,14 @@ function openPreferencesModal() {
     var msgCount = (function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count; })();
     sectionsHtml += _s('💬', currentLang==='es'?'Mis Mensajes':'My Messages', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + 'Programa mensajes como notificación para todos los usuarios.' + '</div>' +
-        '<button onclick="closePreferencesModal();setTimeout(()=>openMyMessagesEditor(),200);" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">' + 'Abrir editor de mensajes' + '</button>' +
+        '<button onclick="closePreferencesModal();setTimeout(()=>openMyMessagesEditor(),200);" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">' + (currentLang==='es'?'Abrir editor de mensajes':'Open message editor') + '</button>' +
         '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (msgCount>0?(currentLang==='es'?msgCount+' mensaje'+(msgCount>1?'s':'')+' programado'+(msgCount>1?'s':''):msgCount+' message'+(msgCount>1?'s':'')+' scheduled'):'Sin mensajes programados') + '</div>'
     );
     }
 
     // ── Ubicación ──
-    sectionsHtml += _s('📍', 'Ubicación' + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
-        '<button onclick="closePreferencesModal();window._reopenPrefAfterLoc=true;setTimeout(function(){openLocationSelector();},200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + 'Cambiar ubicación' + '</button>'
+    sectionsHtml += _s('📍', (currentLang==='es'?'Ubicación':'Location') + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
+        '<button onclick="closePreferencesModal();window._reopenPrefAfterLoc=true;setTimeout(function(){openLocationSelector();},200);" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;">📍 ' + (currentLang==='es'?'Cambiar ubicación':'Change location') + '</button>'
     );
 
     // ═══════════════════════════════════════
@@ -34926,12 +35126,12 @@ function openPreferencesModal() {
         personaContent += '<button onclick="setActivePersona(\'' + p.id + '\');openPreferencesModal();" style="width:100%;padding:8px 10px;text-align:left;border-radius:8px;cursor:pointer;background:' + (isActive?'linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.06))':'rgba(255,255,255,0.03)') + ';border:' + (isActive?'2px solid rgba(201,168,64,0.6)':'1px solid rgba(255,255,255,0.1)') + ';color:' + (isActive?'#c9a840':'rgba(255,255,255,0.5)') + ';"><div style="font-size:0.82em;font-weight:700;">' + p.icon + ' ' + (currentLang==='es'?p.name_es:p.name_en) + (isActive?' ✓':'') + '</div><div style="font-size:0.65em;margin-top:1px;opacity:0.7;">' + (currentLang==='es'?p.desc_es:p.desc_en) + '</div></button>';
     });
     personaContent += '</div>';
-    personaContent += '<button onclick="resetAllAIChats();this.textContent=currentLang===\'es\'?\'✓ Chats reiniciados\':\'✓ Chats reset\';this.style.color=\'#4ecdc4\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'🗑 Reiniciar todos los chats\':\'🗑 Reset all chats\';this.style.color=\'#ff6b6b\';},2000);" style="width:100%;padding:8px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.75em;font-weight:600;cursor:pointer;">🗑 ' + 'Reiniciar todos los chats' + '</button>';
+    personaContent += '<button onclick="resetAllAIChats();this.textContent=currentLang===\'es\'?\'✓ Chats reiniciados\':\'✓ Chats reset\';this.style.color=\'#4ecdc4\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'🗑 Reiniciar todos los chats\':\'🗑 Reset all chats\';this.style.color=\'#ff6b6b\';},2000);" style="width:100%;padding:8px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.75em;font-weight:600;cursor:pointer;">🗑 ' + (currentLang==='es'?'Reiniciar todos los chats':'Reset all chats') + '</button>';
     var activeP = getActivePersona();
-    sectionsHtml += _s('🧠', 'Personalidad' + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#7ec8ff', personaContent);
+    sectionsHtml += _s('🧠', (currentLang==='es'?'Personalidad':'Personality') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#7ec8ff', personaContent);
 
     // ── Personalidad Sueños (independent) ──
-    var dreamPersonaContent = '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + 'Selecciona la personalidad que interpreta tus sueños (independiente de la principal):' + '</div>';
+    var dreamPersonaContent = '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona la personalidad que interpreta tus sueños (independiente de la principal):':'Select the personality that interprets your dreams (independent from the main one):') + '</div>';
     dreamPersonaContent += '<div style="display:flex;flex-direction:column;gap:5px;">';
     var dreamPId = getDreamPersonaId();
     _aiPersonas.forEach(function(p) {
@@ -34940,16 +35140,16 @@ function openPreferencesModal() {
     });
     dreamPersonaContent += '</div>';
     var activeDreamP = getDreamPersona();
-    sectionsHtml += _s('🌙', 'Sueños' + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeDreamP?activeDreamP.icon+' '+(currentLang==='es'?activeDreamP.name_es:activeDreamP.name_en):'—') + ')</span>', '#7ec8ff', dreamPersonaContent);
+    sectionsHtml += _s('🌙', (currentLang==='es'?'Sueños':'Dreams') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeDreamP?activeDreamP.icon+' '+(currentLang==='es'?activeDreamP.name_es:activeDreamP.name_en):'—') + ')</span>', '#7ec8ff', dreamPersonaContent);
 
     // ── Asistente / API Key ──
-    var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + 'Asistente AstroAtlas activo' + '</div>' +
+    var aiContent = '<div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ' + (currentLang==='es'?'Asistente AstroAtlas activo':'AstroAtlas Assistant active') + '</div>' +
         '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>' +
-        (localStorage.getItem('geminiApiKey')?'<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + 'Usando tu API key personal' + '</div>':'') +
-        '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">' + 'API key personal (opcional):' + '</div>' +
+        (localStorage.getItem('geminiApiKey')?'<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>':'') +
+        '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-bottom:6px;">' + (currentLang==='es'?'API key personal (opcional):':'Personal API key (optional):') + '</div>' +
         '<div style="display:flex;gap:8px;align-items:center;">' +
             '<input type="password" id="prefGeminiKey" value="' + (localStorage.getItem('geminiApiKey')||'') + '" placeholder="AIza..." style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(179,136,255,0.3);border-radius:8px;color:white;font-size:0.82em;outline:none;" />' +
-            '<button onclick="var k=document.getElementById(\'prefGeminiKey\').value.trim();if(k){localStorage.setItem(\'geminiApiKey\',k);}else{localStorage.removeItem(\'geminiApiKey\');}this.textContent=\'✓\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'Guardar\':\'Save\';},1500);" style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;">' + 'Guardar' + '</button>' +
+            '<button onclick="var k=document.getElementById(\'prefGeminiKey\').value.trim();if(k){localStorage.setItem(\'geminiApiKey\',k);}else{localStorage.removeItem(\'geminiApiKey\');}this.textContent=\'✓\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'Guardar\':\'Save\';},1500);" style="padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:white;font-size:0.8em;font-weight:700;cursor:pointer;">' + (currentLang==='es'?'Guardar':'Save') + '</button>' +
         '</div>';
     sectionsHtml += _s('✨', currentLang==='es'?'Asistente':'Assistant', '#7ec8ff', aiContent);
 
@@ -34969,18 +35169,18 @@ function openPreferencesModal() {
             '</div>' +
             '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
                 '<select id="gcalColorPicker" style="padding:6px;background:rgba(20,10,40,0.8);border:1px solid rgba(155,89,182,0.3);border-radius:6px;color:#c39bd3;font-size:0.78em;">' +
-                    '<option value="2" style="color:#0b8043;">🟢 ' + 'Verde' + '</option>' +
-                    '<option value="1" style="color:#7986cb;">🟣 ' + 'Lavanda' + '</option>' +
-                    '<option value="3" style="color:#8e24aa;">🍇 ' + 'Uva' + '</option>' +
-                    '<option value="5" style="color:#f6bf26;">🟡 ' + 'Plátano' + '</option>' +
-                    '<option value="6" style="color:#f4511e;">🍊 ' + 'Mandarina' + '</option>' +
-                    '<option value="9" style="color:#3f51b5;">🫐 ' + 'Arándano' + '</option>' +
-                    '<option value="11" style="color:#d50000;">🍅 ' + 'Tomate' + '</option>' +
+                    '<option value="2" style="color:#0b8043;">🟢 ' + (currentLang==='es'?'Verde':'Green') + '</option>' +
+                    '<option value="1" style="color:#7986cb;">🟣 ' + (currentLang==='es'?'Lavanda':'Lavender') + '</option>' +
+                    '<option value="3" style="color:#8e24aa;">🍇 ' + (currentLang==='es'?'Uva':'Grape') + '</option>' +
+                    '<option value="5" style="color:#f6bf26;">🟡 ' + (currentLang==='es'?'Plátano':'Banana') + '</option>' +
+                    '<option value="6" style="color:#f4511e;">🍊 ' + (currentLang==='es'?'Mandarina':'Tangerine') + '</option>' +
+                    '<option value="9" style="color:#3f51b5;">🫐 ' + (currentLang==='es'?'Arándano':'Blueberry') + '</option>' +
+                    '<option value="11" style="color:#d50000;">🍅 ' + (currentLang==='es'?'Tomate':'Tomato') + '</option>' +
                 '</select>' +
-                '<button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">🌙⭐ ' + 'Exportar 2026 a Google Calendar' + '</button>' +
+                '<button onclick="gcalExportAstroEvents(this)" style="flex:1;padding:8px 12px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:8px;color:#c9a840;font-size:0.82em;font-weight:600;cursor:pointer;">🌙⭐ ' + (currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar') + '</button>' +
             '</div>' +
-            '<div style="margin-top:6px;"><button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">' + 'Borrar eventos AstroAtlas de GCal' + '</button></div>' +
-            '<div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">' + 'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones' + '</div>';
+            '<div style="margin-top:6px;"><button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">' + (currentLang==='es'?'Borrar eventos AstroAtlas de GCal':'Delete AstroAtlas events from GCal') + '</button></div>' +
+            '<div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">' + (currentLang==='es'?'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones':'Lunar phases, eclipses, aspects — short format, no notifications') + '</div>';
     } else {
         gcalContent = '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + t('gcalDisconnected') + '</div>' +
             '<button onclick="gcalSignIn()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.08));border:1px solid rgba(66,133,244,0.45);border-radius:8px;color:#4285f4;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
@@ -35049,7 +35249,7 @@ function openPreferencesModal() {
     voiceContent += '<div style="margin-bottom:12px;">';
     voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">🇲🇽 ' + 'Voz en Español' + '</div>';
     voiceContent += '<select id="ttsVoiceEs" onchange="localStorage.setItem(\'ttsVoice_es\',this.value);" style="width:100%;padding:10px 12px;background:rgba(20,10,40,0.8);border:1px solid rgba(102,126,234,0.35);border-radius:8px;color:#667eea;font-size:0.82em;cursor:pointer;">';
-    voiceContent += '<option value="">' + 'Automática (predeterminada)' + '</option>';
+    voiceContent += '<option value="">' + (currentLang==='es'?'Automática (predeterminada)':'Automatic (default)') + '</option>';
     esVoices.forEach(function(v) {
         var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
         voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
@@ -35064,7 +35264,7 @@ function openPreferencesModal() {
     voiceContent += '<div style="margin-bottom:12px;">';
     voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">🇺🇸 ' + 'Voz en Inglés' + '</div>';
     voiceContent += '<select id="ttsVoiceEn" onchange="localStorage.setItem(\'ttsVoice_en\',this.value);" style="width:100%;padding:10px 12px;background:rgba(20,10,40,0.8);border:1px solid rgba(102,126,234,0.35);border-radius:8px;color:#667eea;font-size:0.82em;cursor:pointer;">';
-    voiceContent += '<option value="">' + 'Automática (predeterminada)' + '</option>';
+    voiceContent += '<option value="">' + (currentLang==='es'?'Automática (predeterminada)':'Automatic (default)') + '</option>';
     enVoices.forEach(function(v) {
         var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
         voiceContent += '<option value="' + v.name + '"' + (savedVoiceEn === v.name ? ' selected' : '') + '>' + label + '</option>';
@@ -35076,7 +35276,7 @@ function openPreferencesModal() {
 
     // Speed control
     voiceContent += '<div style="margin-bottom:8px;">';
-    voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">⚡ ' + 'Velocidad' + ' <span id="ttsRateLabel" style="color:#667eea;">' + savedRate.toFixed(1) + 'x</span></div>';
+    voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">⚡ ' + (currentLang==='es'?'Velocidad':'Speed') + ' <span id="ttsRateLabel" style="color:#667eea;">' + savedRate.toFixed(1) + 'x</span></div>';
     voiceContent += '<input type="range" id="ttsRateSlider" min="0.5" max="2.0" step="0.1" value="' + savedRate + '" oninput="localStorage.setItem(\'ttsRate\',this.value);document.getElementById(\'ttsRateLabel\').textContent=parseFloat(this.value).toFixed(1)+\'x\';" style="width:100%;accent-color:#667eea;">';
     voiceContent += '</div>';
 
@@ -35090,13 +35290,13 @@ function openPreferencesModal() {
     });
     if (esVoicesRaw.length === 0) diagHtml += '(vacío — recarga la página o espera)';
     voiceContent += '<details style="margin-top:8px;">';
-    voiceContent += '<summary style="cursor:pointer;font-size:0.7em;color:rgba(255,255,255,0.25);">🔧 ' + 'Diagnóstico de voces' + '</summary>';
+    voiceContent += '<summary style="cursor:pointer;font-size:0.7em;color:rgba(255,255,255,0.25);">🔧 ' + (currentLang==='es'?'Diagnóstico de voces':'Voices diagnostic') + '</summary>';
     voiceContent += '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);margin-top:6px;padding:8px;background:rgba(0,0,0,0.3);border-radius:6px;max-height:150px;overflow-y:auto;font-family:monospace;">' + diagHtml + '</div>';
     voiceContent += '</details>';
 
     var currentVoiceName = currentLang === 'es' ? (savedVoiceEs || 'Auto') : (savedVoiceEn || 'Auto');
     if (currentVoiceName.length > 20) currentVoiceName = currentVoiceName.substring(0, 18) + '...';
-    sectionsHtml += _s('🔊', 'Voz' + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + currentVoiceName + ')</span>', '#7ec8ff', voiceContent);
+    sectionsHtml += _s('🔊', (currentLang==='es'?'Voz':'Voice') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + currentVoiceName + ')</span>', '#7ec8ff', voiceContent);
 
     // ── Tamaño de Celdas ──
     var cs = localStorage.getItem('dayCellSize') || 'small';
@@ -35146,7 +35346,7 @@ function openPreferencesModal() {
 
         // Local file export/import
         '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
-            '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + 'Exportar archivo' + '</button>' +
+            '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar archivo':'Export file') + '</button>' +
             '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + 'Restaurar archivo' + '</button>' +
         '</div>' +
 
@@ -35170,7 +35370,7 @@ function openPreferencesModal() {
                 '</button>' +
             '</div>' +
             '<div style="display:flex;gap:8px;">' +
-                '<button onclick="driveBackupNow()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.82em;font-weight:600;cursor:pointer;">☁️ ' + 'Guardar ahora' + '</button>' +
+                '<button onclick="driveBackupNow()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.82em;font-weight:600;cursor:pointer;">☁️ ' + (currentLang==='es'?'Guardar ahora':'Save now') + '</button>' +
                 '<button onclick="driveRestoreNow()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(66,133,244,0.1),rgba(66,133,244,0.02));border:1px solid rgba(66,133,244,0.25);border-radius:8px;color:rgba(120,170,247,0.7);font-size:0.82em;font-weight:600;cursor:pointer;">⬇️ ' + 'Restaurar de Drive' + '</button>' +
             '</div>'
         ) : (
@@ -35230,7 +35430,7 @@ function openPreferencesModal() {
     sectionsHtml += _s('🧠', currentLang==='es'?'Quiz Diario de Repaso':'Daily Review Quiz', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:10px;">' + 'Recibe quizzes diarios para repasar lo que ya estudiaste con el tutor o el curso.' + '</div>' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
-            '<span style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + 'Activar Quiz Diario' + '</span>' +
+            '<span style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + (currentLang==='es'?'Activar Quiz Diario':'Enable Daily Quiz') + '</span>' +
             '<label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">' +
                 '<input type="checkbox" ' + (_dqPrefs.enabled?'checked':'') + ' onchange="toggleDailyQuiz(this.checked);var bg=this.nextElementSibling;var dot=bg.nextElementSibling;if(this.checked){bg.style.background=\'linear-gradient(135deg,#ffd700,#ff9800)\';dot.style.left=\'22px\';}else{bg.style.background=\'rgba(255,255,255,0.15)\';dot.style.left=\'2px\';}" style="opacity:0;width:0;height:0;" />' +
                 '<span style="position:absolute;inset:0;background:' + (_dqPrefs.enabled?'linear-gradient(135deg,#ffd700,#ff9800)':'rgba(255,255,255,0.15)') + ';border-radius:24px;transition:0.3s;"></span>' +
@@ -35253,7 +35453,7 @@ function openPreferencesModal() {
                 '</select></div>' +
         '</div>' +
         '<div style="margin-bottom:10px;">' +
-            '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:3px;">' + 'Días por semana' + '</div>' +
+            '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:3px;">' + (currentLang==='es'?'Días por semana':'Days per week') + '</div>' +
             '<div style="display:flex;gap:4px;">' +
                 [1,2,3,4,5,6,7].map(function(d) { return '<button onclick="updateDailyQuizPref(\'daysPerWeek\',' + d + ');var bs=this.parentElement.querySelectorAll(\'button\');bs.forEach(function(b){b.style.background=\'rgba(255,255,255,0.04)\';b.style.border=\'1px solid rgba(255,255,255,0.1)\';b.style.color=\'rgba(255,255,255,0.4)\';});this.style.background=\'linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,215,0,0.08))\';this.style.border=\'2px solid rgba(255,215,0,0.6)\';this.style.color=\'#ffd700\';" style="flex:1;padding:6px 0;border-radius:6px;font-size:0.78em;font-weight:700;cursor:pointer;background:' + (_dqPrefs.daysPerWeek===d?'linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,215,0,0.08))':'rgba(255,255,255,0.04)') + ';border:' + (_dqPrefs.daysPerWeek===d?'2px solid rgba(255,215,0,0.6)':'1px solid rgba(255,255,255,0.1)') + ';color:' + (_dqPrefs.daysPerWeek===d?'#ffd700':'rgba(255,255,255,0.4)') + ';">' + d + '</button>'; }).join('') +
             '</div>' +
@@ -35263,7 +35463,7 @@ function openPreferencesModal() {
         '</div>' +
         '<hr style="border-color:rgba(255,255,255,0.06);margin:12px 0;" />' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
-            '<div><span style="font-size:0.82em;color:rgba(255,255,255,0.6);">💡 ' + 'Conceptos nuevos diarios' + '</span>' +
+            '<div><span style="font-size:0.82em;color:rgba(255,255,255,0.6);">💡 ' + (currentLang==='es'?'Conceptos nuevos diarios':'New daily concepts') + '</span>' +
                 '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);">' + 'Recibe información interesante de temas nuevos que puedes explorar' + '</div></div>' +
             '<label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">' +
                 '<input type="checkbox" ' + (_dqPrefs.newConcepts?'checked':'') + ' onchange="updateDailyQuizPref(\'newConcepts\',this.checked);var track=this.nextElementSibling;var thumb=track.nextElementSibling;if(this.checked){track.style.background=\'linear-gradient(135deg,#4ecdc4,#44b09e)\';thumb.style.left=\'22px\';}else{track.style.background=\'rgba(255,255,255,0.15)\';thumb.style.left=\'2px\';}" style="opacity:0;width:0;height:0;" />' +
@@ -35271,7 +35471,7 @@ function openPreferencesModal() {
                 '<span style="position:absolute;left:' + (_dqPrefs.newConcepts?'22':'2') + 'px;top:2px;width:20px;height:20px;background:white;border-radius:50%;transition:0.3s;"></span>' +
             '</label>' +
         '</div>' +
-        (_dqPrefs.newConcepts ? '<div style="margin-bottom:8px;"><div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:3px;">' + 'Conceptos por día' + '</div>' +
+        (_dqPrefs.newConcepts ? '<div style="margin-bottom:8px;"><div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-bottom:3px;">' + (currentLang==='es'?'Conceptos por día':'Concepts per day') + '</div>' +
             '<select onchange="updateDailyQuizPref(\'newConceptsPerDay\',parseInt(this.value))" style="width:100%;padding:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(78,205,196,0.25);border-radius:6px;color:#4ecdc4;font-size:0.82em;">' +
                 '<option value="1"' + (_dqPrefs.newConceptsPerDay===1?' selected':'') + '>1</option>' +
                 '<option value="2"' + (_dqPrefs.newConceptsPerDay===2?' selected':'') + '>2</option>' +
@@ -35295,7 +35495,7 @@ function openPreferencesModal() {
     // ── Actualización / Update ──
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + 'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.' + '</div>' +
-        '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + 'Forzar Actualización' + '</button>' +
+        '<button onclick="forceAppUpdate()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🔄 ' + (currentLang==='es'?'Forzar Actualización':'Force Update') + '</button>' +
         '<div onclick="window._creatorTaps=(window._creatorTaps||0)+1;clearTimeout(window._creatorTimer);window._creatorTimer=setTimeout(function(){window._creatorTaps=0;},2000);if(window._creatorTaps>=5){window._creatorTaps=0;if(localStorage.getItem(\'astrofield_creator\')===\'true\'){localStorage.removeItem(\'astrofield_creator\');this.style.borderColor=\'rgba(74,158,255,0.2)\';alert(\'Modo creador desactivado\');}else{var pw=prompt(\'Contraseña de creador:\');if(pw===\'astro2026\'){localStorage.setItem(\'astrofield_creator\',\'true\');this.style.borderColor=\'#4ecdc4\';alert(\'Modo creador activado — reabre Preferencias\');}else if(pw!==null){alert(\'Contraseña incorrecta\');}}}" style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid ' + (localStorage.getItem('astrofield_creator')==='true'?'rgba(78,205,196,0.5)':'rgba(74,158,255,0.2)') + ';border-radius:8px;cursor:pointer;user-select:none;">⚡ AstroAtlas ' + (window.APP_VERSION || 'v636') + '</div>'
     );
 
@@ -35316,8 +35516,23 @@ function closePreferencesModal() {
 async function handleNotifToggle(enable) {
     if (enable) {
         if (!('Notification' in window)) {
+            // v745: en APK Capacitor usar LocalNotifications nativo (no Web API)
+            var _isCap745b = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+            if (_isCap745b) {
+                try {
+                    var LN = window.Capacitor.Plugins.LocalNotifications;
+                    if (LN) {
+                        var perm = await LN.requestPermissions();
+                        if (perm && perm.display === 'granted') {
+                            localStorage.setItem('notifEnabled', 'true');
+                        }
+                    }
+                } catch(e) { console.warn('[Notif] LocalNotifications error:', e); }
+                openPreferencesModal();
+                return;
+            }
             alert(currentLang==='es'?'Tu navegador no soporta notificaciones':'Your browser does not support notifications');
-            openPreferencesModal(); // refresh UI
+            openPreferencesModal();
             return;
         }
         if (Notification.permission === 'denied') {
@@ -36473,6 +36688,30 @@ function openLocationSelector() {
     try { filterCities(''); } catch(e) { console.error('[Loc] filterCities error:', e); }
     try { updateLocationTimeBanner(); } catch(e) {}
     try { startLocTimeBannerClock(); } catch(e) {}
+    // v747: Adjuntar touchend/click directos al botón X (fix WebView Android donde onclick no dispara)
+    try {
+        var _closeBtnLoc = modal.querySelector('.modal-header .close');
+        if (_closeBtnLoc && !_closeBtnLoc._wired747) {
+            _closeBtnLoc._wired747 = true;
+            // Aumentar área de toque
+            _closeBtnLoc.style.padding = '8px 14px';
+            _closeBtnLoc.style.margin = '-8px -14px';
+            _closeBtnLoc.style.minWidth = '44px';
+            _closeBtnLoc.style.minHeight = '44px';
+            _closeBtnLoc.style.display = 'inline-flex';
+            _closeBtnLoc.style.alignItems = 'center';
+            _closeBtnLoc.style.justifyContent = 'center';
+            _closeBtnLoc.style.cursor = 'pointer';
+            _closeBtnLoc.style.touchAction = 'manipulation';
+            var _closeLocHandler = function(ev) {
+                if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch(_ee) {} }
+                try { closeLocationSelector(); } catch(_e1) { console.error('[Loc X]', _e1); }
+                return false;
+            };
+            _closeBtnLoc.addEventListener('click', _closeLocHandler, true);
+            _closeBtnLoc.addEventListener('touchend', _closeLocHandler, { passive: false, capture: true });
+        }
+    } catch(_ex) { console.warn('[Loc] close button wire:', _ex); }
 }
 
 // Store the device's real timezone offset for comparison
@@ -36750,6 +36989,29 @@ function setUserLocation(lat, lon, name) {
     localStorage.setItem('userLat', lat);
     localStorage.setItem('userLon', lon);
     localStorage.setItem('userName', name);
+    // v745: Re-renderizar globos sublunar/subsolar inmediatamente para reflejar nueva ubicación
+    try {
+        var nowR = new Date();
+        if (typeof renderSublunaryGlobe === 'function' && typeof getAstroData === 'function') {
+            var astroR = getAstroData(nowR);
+            renderSublunaryGlobe(parseFloat(astroR.sublunarLat), getSublunaryLonDeg(nowR));
+        }
+        if (typeof renderSubsolarGlobe === 'function' && typeof getSunDeclination === 'function') {
+            renderSubsolarGlobe(getSunDeclination(nowR), getSubsolarLonDeg(nowR));
+        }
+    } catch(_ee) { console.warn('[setUserLocation] globe refresh:', _ee); }
+    // v745: Sync widget data después de cambio de ubicación
+    if (window._syncWidgetDataPublic) try { window._syncWidgetDataPublic(); } catch(e){}
+    // v747: Refrescar mapa Leaflet del location modal (fix: mapa no actualiza al obtener GPS)
+    try {
+        if (typeof _locLeafletMap !== 'undefined' && _locLeafletMap && typeof _locLeafletMap.setView === 'function') {
+            _locLeafletMap.setView([lat, lon], 10);
+            setTimeout(function() { try { _locLeafletMap.invalidateSize(); } catch(_e1){} }, 100);
+            // Ocultar botón "Seleccionar este punto" porque acabamos de fijar ubicación
+            var _btnConfirm = document.getElementById('locMapConfirm');
+            if (_btnConfirm) _btnConfirm.style.display = 'none';
+        }
+    } catch(_em) { console.warn('[setUserLocation] leaflet refresh:', _em); }
     // Update currentLocDisplay if modal is open
     var cld = document.getElementById('currentLocDisplay');
     if (cld) cld.textContent = 'Actual: ' + name + ' (' + lat + '\u00b0, ' + lon + '\u00b0)';
@@ -37121,6 +37383,18 @@ function _initFirebase() {
 // ── Auth Functions ──
 function _signInGoogle() {
     if (!_auth) return;
+    // v746: En Capacitor WebView ni popup ni redirect funcionan con Firebase Auth
+    // (Google rechaza el origin `https://localhost`). Requiere plugin nativo
+    // `@capacitor-firebase/authentication` (proyecto medio, no en esta beta).
+    // Por ahora: solo permitir email/password en APK.
+    var isCapacitor = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (isCapacitor) {
+        var msg = currentLang === 'es'
+            ? 'Inicia sesión con Google requiere un plugin nativo aún no implementado en esta APK beta.\n\nPor ahora usá email + contraseña abajo, o instalá la PWA en Chrome móvil (https://naguall.github.io/astro-atlas/) que sí soporta Google Sign-In.'
+            : 'Google Sign-In requires a native plugin not yet implemented in this beta APK.\n\nFor now use email + password below, or install the PWA in Chrome mobile (https://naguall.github.io/astro-atlas/) which supports Google Sign-In.';
+        alert(msg);
+        return;
+    }
     var provider = new firebase.auth.GoogleAuthProvider();
     _auth.signInWithPopup(provider).catch(function(e) { alert('Error: ' + e.message); });
 }
@@ -41107,7 +41381,8 @@ window._attachReadDbl = function(el, getId, titleTxt) {
 // Read aloud the last AI message in a chat container
 window.readAloudLastMsg = function(containerId) {
     if (!window.speechSynthesis) {
-        alert(currentLang === 'es' ? 'Tu navegador no soporta síntesis de voz.' : 'Your browser does not support speech synthesis.');
+        var _isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        alert(currentLang === 'es' ? (_isCap ? 'TTS (lectura en voz alta) aún no está disponible en esta versión de la APK. Próximamente.' : 'Tu navegador no soporta síntesis de voz.') : (_isCap ? 'TTS (read aloud) not yet available in this APK version. Coming soon.' : 'Your browser does not support speech synthesis.'));
         return;
     }
     // If already playing, toggle stop
@@ -41140,7 +41415,8 @@ window.readAloudLastMsg = function(containerId) {
 // clickX/clickY: tap coordinates used to find starting chunk via elementFromPoint (Android)
 window.readAloud = function(elementId, startFromText, clickX, clickY) {
     if (!window.speechSynthesis) {
-        alert(currentLang === 'es' ? 'Tu navegador no soporta síntesis de voz.' : 'Your browser does not support speech synthesis.');
+        var _isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        alert(currentLang === 'es' ? (_isCap ? 'TTS (lectura en voz alta) aún no está disponible en esta versión de la APK. Próximamente.' : 'Tu navegador no soporta síntesis de voz.') : (_isCap ? 'TTS (read aloud) not yet available in this APK version. Coming soon.' : 'Your browser does not support speech synthesis.'));
         return;
     }
     // If currently playing this same element and no startFromText, toggle stop
