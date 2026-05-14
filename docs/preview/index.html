@@ -34,18 +34,6 @@
 
     <!-- ═══ PREVIEW DESIGN OVERRIDES ═══ -->
     <style id="preview-design-overrides">
-        /* Banner "preview mode" arriba para identificar visualmente */
-        body::before {
-            content: "🎨 PREVIEW · cambios de diseño en evaluación";
-            position: sticky; top: 0; left: 0; right: 0; z-index: 100000;
-            display: block;
-            background: linear-gradient(90deg, #ff6b6b, #c41e1e);
-            color: #fff; font-size: 11px; font-weight: 500;
-            text-align: center; padding: 4px 12px;
-            letter-spacing: 1px;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
         /* ═══ FIX #1: Día actual con glow celeste brillante en grid Lunar ═══ */
         /* El código actual usa .day-current o similar — apuntamos a varios posibles selectores */
         .day-cell.today,
@@ -75,16 +63,22 @@
             opacity: 0.85;
         }
 
-        /* ═══ FIX #3: Tab activo con pill llenado (replicar el patrón Solar) ═══ */
-        .mode-btn.active,
-        .calendar-mode-btn.active,
-        .nav-tab.active,
-        button[class*="mode"][class*="active"] {
-            background: rgba(126,200,255,0.25) !important;
-            border: 1px solid rgba(126,200,255,0.75) !important;
+        /* ═══ FIX #3: Tab activo con pill celeste/aqua llenado (apuntando a IDs reales) ═══ */
+        /* La app usa inline-style con gold via JS — overrideamos con ID + !important */
+        #lunarModeBtn.preview-active-tab,
+        #solarModeBtn.preview-active-tab,
+        #gregorianModeBtn.preview-active-tab,
+        #personalModeBtn.preview-active-tab,
+        #socialModeBtn.preview-active-tab {
+            background: linear-gradient(135deg, rgba(126,200,255,0.28) 0%, rgba(126,200,255,0.10) 100%) !important;
+            border: 1.5px solid rgba(126,200,255,0.75) !important;
             color: #7ec8ff !important;
-            font-weight: 600 !important;
-            box-shadow: 0 0 0 1px rgba(126,200,255,0.2) !important;
+            box-shadow: 0 0 16px rgba(126,200,255,0.35), inset 0 0 8px rgba(126,200,255,0.1) !important;
+            font-weight: 700 !important;
+        }
+        /* Tabs no-activos: que se vean discretos */
+        .mode-btns button:not(.preview-active-tab) {
+            opacity: 0.65 !important;
         }
 
         /* ═══ FIX #5: Banner update más fino y discreto ═══ */
@@ -127,7 +121,53 @@
             padding-right: 12px !important;
             margin-right: 8px !important;
         }
+
+        /* Banner PREVIEW fijo arriba */
+        #preview-banner-fixed {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100000;
+            background: linear-gradient(90deg, #ff6b6b, #c41e1e);
+            color: #fff; font-size: 11px; font-weight: 600;
+            text-align: center; padding: 5px 12px;
+            letter-spacing: 1.5px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        body { padding-top: 24px !important; }
     </style>
+    <script>
+    // Preview helper: inyectar banner + marcar tab activo por su estilo inline gold
+    document.addEventListener('DOMContentLoaded', function(){
+        // Banner rojo
+        if (!document.getElementById('preview-banner-fixed')) {
+            var bn = document.createElement('div');
+            bn.id = 'preview-banner-fixed';
+            bn.textContent = '🎨 PREVIEW · cambios de diseño en evaluación · v748-preview';
+            document.body.insertBefore(bn, document.body.firstChild);
+        }
+
+        // Detectar tab activo por inline-style con color gold y marcarlo con clase
+        function markActiveTab() {
+            var ids = ['lunarModeBtn','solarModeBtn','gregorianModeBtn','personalModeBtn','socialModeBtn'];
+            ids.forEach(function(id){
+                var b = document.getElementById(id);
+                if (!b) return;
+                var s = b.getAttribute('style') || '';
+                // El activo tiene linear-gradient con (232, 200, 74)
+                var isActive = s.indexOf('232, 200, 74') >= 0 && s.indexOf('0.267') >= 0;
+                if (isActive) {
+                    b.classList.add('preview-active-tab');
+                } else {
+                    b.classList.remove('preview-active-tab');
+                }
+            });
+        }
+        markActiveTab();
+        // Observar cambios para re-detectar cuando cambia el tab activo
+        var obs = new MutationObserver(markActiveTab);
+        var mb = document.querySelector('.mode-btns');
+        if (mb) obs.observe(mb, { subtree: true, attributes: true, attributeFilter: ['style'] });
+    });
+    </script>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
     <script>window.APP_VERSION = 'v748-preview';</script>
