@@ -8084,15 +8084,30 @@ function handleGcalTokenResponse(response) {
 }
 
 function gcalSignIn() {
-    // v745: en APK Capacitor, Google Identity Services NO carga porque el WebView
+    // v745/v747: en APK Capacitor, Google Identity Services NO carga porque el WebView
     // tiene origin `https://localhost` que NO está registrado como autorizado en
-    // la consola de Google Cloud. Solución temporal: avisar al usuario y abrir la PWA.
+    // la consola de Google Cloud. Workaround: abrir la PWA en Chrome externo.
     var _isCap745 = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if (_isCap745) {
-        var msg = currentLang === 'es'
-            ? 'Google Calendar requiere un plugin nativo aún no implementado en esta APK beta.\n\nPor ahora, abrí la PWA en Chrome móvil (https://naguall.github.io/astro-atlas/) para sincronizar con Google Calendar. Los eventos se guardan en tu cuenta Google y aparecen en cualquier dispositivo.'
-            : 'Google Calendar requires a native plugin not yet implemented in this beta APK.\n\nFor now, open the PWA in Chrome mobile (https://naguall.github.io/astro-atlas/) to sync with Google Calendar. Events save to your Google account and appear on any device.';
-        alert(msg);
+        var L = currentLang === 'es';
+        // v747: confirmación con apertura directa de la PWA en Chrome externo
+        var url = 'https://naguall.github.io/astro-atlas/';
+        if (confirm((L
+            ? 'Google Calendar en la APK requiere un plugin OAuth nativo (próximamente).\n\n¿Abrir la PWA en Chrome ahora para sincronizar? Los eventos guardados en tu cuenta Google aparecerán también en la APK al sincronizar.'
+            : 'Google Calendar in the APK requires a native OAuth plugin (coming soon).\n\nOpen the PWA in Chrome now to sync? Events saved to your Google account will also appear in the APK after syncing.'))) {
+            try {
+                // Intentar abrir en navegador externo via Capacitor App plugin
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.openUrl) {
+                    window.Capacitor.Plugins.App.openUrl({ url: url }).catch(function() {
+                        window.open(url, '_system');
+                    });
+                } else {
+                    window.open(url, '_system');
+                }
+            } catch(e) {
+                window.open(url, '_blank');
+            }
+        }
         return;
     }
     if (!GCAL_CLIENT_ID) {
@@ -12734,6 +12749,9 @@ function triggerDreamAlarm() {
     // 2. Play alarm sound (60 seconds) with voice detection to stop
     playDreamAlarmSound();
 
+    // v747: Mostrar overlay con botón STOP grande para detener manualmente
+    showDreamAlarmStopOverlay();
+
     // 3. Show notification
     if ('Notification' in window && Notification.permission === 'granted') {
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -12777,6 +12795,55 @@ function stopDreamAlarmSound() {
     if (navigator.vibrate) navigator.vibrate(0);
     window._dreamAlarmAudio = null;
     console.log('🌙 Dream alarm sound stopped');
+    // v747: Quitar overlay de stop si está visible
+    var _stopOv = document.getElementById('dreamAlarmStopOverlay');
+    if (_stopOv) _stopOv.remove();
+}
+
+// v747: Overlay con botón STOP grande para detener manualmente la alarma
+function showDreamAlarmStopOverlay() {
+    var L = currentLang === 'es';
+    // Si ya existe, no duplicar
+    if (document.getElementById('dreamAlarmStopOverlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'dreamAlarmStopOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 40%,rgba(20,10,40,0.96),rgba(2,2,15,0.99));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:20px;animation:dreamAlarmFadeIn 0.4s ease;';
+    ov.innerHTML = ''
+        + '<style>@keyframes dreamAlarmFadeIn{from{opacity:0}to{opacity:1}}'
+        + '@keyframes dreamAlarmPulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(255,107,107,0.5)}50%{transform:scale(1.05);box-shadow:0 0 80px rgba(255,107,107,0.85)}}</style>'
+        + '<div style="font-family:\'Cinzel\',serif;font-size:1.6em;color:#c9a840;letter-spacing:3px;text-align:center;">🌙 ' + (L ? 'Ensueño' : 'Dream') + '</div>'
+        + '<div style="font-size:0.95em;color:rgba(255,255,255,0.7);text-align:center;max-width:280px;">' + (L ? 'Habla en voz alta para detener la alarma y grabar tu sueño' : 'Speak aloud to stop the alarm and record your dream') + '</div>'
+        + '<button id="dreamAlarmStopBtn" style="margin-top:10px;padding:28px 50px;background:linear-gradient(135deg,#ff5252,#c41e1e);border:none;border-radius:50%;color:#fff;font-size:1.4em;font-weight:700;cursor:pointer;animation:dreamAlarmPulse 1.5s ease-in-out infinite;min-width:160px;min-height:160px;letter-spacing:2px;">⏹<br>STOP</button>'
+        + '<button id="dreamAlarmJournalBtn" style="margin-top:8px;padding:14px 28px;background:rgba(78,205,196,0.18);border:1px solid rgba(78,205,196,0.5);border-radius:24px;color:#80cbc4;font-size:0.9em;cursor:pointer;">📓 ' + (L ? 'Abrir diario' : 'Open journal') + '</button>';
+    document.body.appendChild(ov);
+
+    function _close() {
+        stopDreamAlarmSound();
+        if (navigator.vibrate) navigator.vibrate(0);
+        var o = document.getElementById('dreamAlarmStopOverlay');
+        if (o) o.remove();
+    }
+    var stopBtn = document.getElementById('dreamAlarmStopBtn');
+    var journalBtn = document.getElementById('dreamAlarmJournalBtn');
+    if (stopBtn) {
+        var _stopHandler = function(ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } _close(); };
+        stopBtn.addEventListener('click', _stopHandler);
+        stopBtn.addEventListener('touchend', _stopHandler, { passive: false });
+    }
+    if (journalBtn) {
+        var _jHandler = function(ev) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            _close();
+            try { openDreamRecorder(); } catch(e) { console.warn(e); }
+        };
+        journalBtn.addEventListener('click', _jHandler);
+        journalBtn.addEventListener('touchend', _jHandler, { passive: false });
+    }
+    // Auto-remove después de 3 minutos si nada
+    setTimeout(function() {
+        var o = document.getElementById('dreamAlarmStopOverlay');
+        if (o) o.remove();
+    }, 180000);
 }
 
 function playDreamAlarmSound() {
@@ -35869,6 +35936,25 @@ function openNotifHistoryModal() {
         setTimeout(window._sendClearBadgeToSW, 600);
         setTimeout(window._sendClearBadgeToSW, 1500);
     }
+    // v747: En Capacitor APK, llamar a LocalNotifications para limpiar la bandeja del sistema
+    // (fix: "la notif queda afuera aunque ya la vi adentro")
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            var LN = window.Capacitor.Plugins.LocalNotifications;
+            // Remover todas las notificaciones entregadas (delivered) de la bandeja
+            if (typeof LN.removeAllDeliveredNotifications === 'function') {
+                LN.removeAllDeliveredNotifications().catch(function(){});
+            }
+            // También cancelar las pending de este id pool (mejor esfuerzo)
+            if (typeof LN.getPending === 'function') {
+                LN.getPending().then(function(r) {
+                    if (r && r.notifications && r.notifications.length) {
+                        // No cancelamos pending — son alarmas/eventos futuros legítimos
+                    }
+                }).catch(function(){});
+            }
+        }
+    } catch(_eCapN) { console.warn('[notif] LocalNotifications clear:', _eCapN); }
 
     titleEl.textContent = currentLang==='es'?'🔔 Notificaciones de Hoy':'🔔 Today\'s Notifications';
 

@@ -38,6 +38,360 @@
     console.log('[MoonSync] Running as native app on: ' + platform);
 
     // ══════════════════════════════════════════
+    // LOCAL NOTIFICATIONS (v745: polyfill window.Notification)
+    // ══════════════════════════════════════════
+    // En Capacitor WebView, window.Notification NO existe.
+    // Para que el código existente que llama `new Notification(title, opts)` siga funcionando,
+    // polyfilleamos window.Notification para que use @capacitor/local-notifications nativo.
+
+    var LocalNotifications = null;
+    try {
+        LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+    } catch(e) {}
+
+    if (LocalNotifications && typeof window.Notification === 'undefined') {
+        console.log('[MoonSync] Polyfilling window.Notification → LocalNotifications');
+
+        var _notifIdCounter = 1;
+
+        // Constructor: new Notification(title, opts)
+        function _NotifPolyfill(title, opts) {
+            opts = opts || {};
+            var id = _notifIdCounter++;
+            // Schedule immediately (delay 100ms to avoid race conditions)
+            LocalNotifications.schedule({
+                notifications: [{
+                    id: id,
+                    title: title || 'AstroAtlas',
+                    body: opts.body || '',
+                    sound: opts.silent ? null : 'default',
+                    schedule: { at: new Date(Date.now() + 100) },
+                    actionTypeId: opts.tag || '',
+                    extra: opts.data || {}
+                }]
+            }).catch(function(e) {
+                console.warn('[Notification polyfill] schedule error:', e);
+            });
+            this.title = title;
+            this.body = opts.body || '';
+            this.tag = opts.tag || '';
+            this._id = id;
+            this.close = function() {
+                if (id) LocalNotifications.cancel({ notifications: [{ id: id }] }).catch(function(){});
+            };
+            this.onclick = null;
+            this.onshow = null;
+            this.onclose = null;
+            this.onerror = null;
+        }
+        _NotifPolyfill.permission = 'default';
+        _NotifPolyfill.requestPermission = function(cb) {
+            return LocalNotifications.requestPermissions().then(function(r) {
+                var p = (r && r.display === 'granted') ? 'granted' : 'denied';
+                _NotifPolyfill.permission = p;
+                if (cb) cb(p);
+                return p;
+            }).catch(function() {
+                if (cb) cb('denied');
+                return 'denied';
+            });
+        };
+
+        // Initialize permission state by checking current
+        LocalNotifications.checkPermissions().then(function(r) {
+            _NotifPolyfill.permission = (r && r.display === 'granted') ? 'granted' : 'default';
+        }).catch(function(){});
+
+        window.Notification = _NotifPolyfill;
+
+        // Listener: handle taps on notification
+        LocalNotifications.addListener('localNotificationActionPerformed', function(action) {
+            console.log('[LocalNotifications] tap:', action.notification.id);
+            // The PWA code's notificationclick handler from sw.js won't fire here;
+            // app is already in foreground via Capacitor lifecycle.
+        });
+    }
+
+    /**
+     * Schedule a notification at a specific date (used by dream alarm, etc.).
+     * Wrapper around LocalNotifications.schedule for explicit time-based scheduling.
+     */
+    // ══════════════════════════════════════════
+    // TEXT-TO-SPEECH (v745) — Native via @capacitor-community/text-to-speech
+    // ══════════════════════════════════════════
+    // En WebView Capacitor, window.speechSynthesis NO existe (o falla).
+    // El plugin TTS usa el motor nativo de Android (TextToSpeech / AVSpeechSynthesizer en iOS).
+    //
+    // Trade-off: pierde el karaoke palabra-por-palabra que la PWA tiene vía onboundary.
+    // El plugin no expone eventos de boundary. Para APK aceptamos esto.
+
+    var TTSPlugin = null;
+    try {
+        TTSPlugin = window.Capacitor.Plugins.TextToSpeech;
+    } catch(e) {}
+
+    window.MoonSyncNative.tts = {
+        available: !!TTSPlugin,
+        speak: function(text, opts) {
+            opts = opts || {};
+            if (!TTSPlugin) return Promise.reject('TTS plugin not available');
+            return TTSPlugin.speak({
+                text: text || '',
+                lang: opts.lang || (currentLang === 'es' ? 'es-ES' : 'en-US'),
+                rate: opts.rate || 1.0,
+                pitch: opts.pitch || 1.0,
+                volume: opts.volume || 1.0,
+                category: 'ambient'
+            });
+        },
+        stop: function() {
+            if (!TTSPlugin) return Promise.resolve();
+            return TTSPlugin.stop().catch(function(){});
+        },
+        isSpeaking: function() {
+            if (!TTSPlugin) return Promise.resolve(false);
+            return TTSPlugin.isSpeaking().then(function(r) { return r && r.value; }).catch(function(){ return false; });
+        }
+    };
+
+    // v745: polyfill window.speechSynthesis SI no existe Y tenemos plugin nativo
+    if (TTSPlugin && (typeof window.speechSynthesis === 'undefined')) {
+        console.log('[MoonSync] Polyfilling window.speechSynthesis → TTSPlugin');
+
+        function _SpeechSynthesisUtterancePoly(text) {
+            this.text = text || '';
+            this.lang = 'es-ES';
+            this.rate = 1.0;
+            this.pitch = 1.0;
+            this.volume = 1.0;
+            this.voice = null;
+            this.onstart = null;
+            this.onend = null;
+            this.onerror = null;
+            this.onboundary = null; // no soportado por plugin nativo
+        }
+
+        var _ttsPolyfill = {
+            speaking: false,
+            paused: false,
+            pending: false,
+            _queue: [],
+            speak: function(utter) {
+                this.speaking = true;
+                var self = this;
+                try { if (utter.onstart) utter.onstart({}); } catch(e){}
+                TTSPlugin.speak({
+                    text: utter.text,
+                    lang: utter.lang || 'es-ES',
+                    rate: utter.rate || 1.0,
+                    pitch: utter.pitch || 1.0,
+                    volume: utter.volume || 1.0
+                }).then(function() {
+                    self.speaking = false;
+                    try { if (utter.onend) utter.onend({}); } catch(e){}
+                }).catch(function(err) {
+                    self.speaking = false;
+                    try { if (utter.onerror) utter.onerror({ error: String(err) }); } catch(e){}
+                });
+            },
+            cancel: function() {
+                this.speaking = false;
+                TTSPlugin.stop().catch(function(){});
+            },
+            pause: function() { this.paused = true; TTSPlugin.stop().catch(function(){}); },
+            resume: function() { this.paused = false; /* no-op, plugin no soporta resume */ },
+            getVoices: function() { return []; }
+        };
+        window.SpeechSynthesisUtterance = _SpeechSynthesisUtterancePoly;
+        window.speechSynthesis = _ttsPolyfill;
+    }
+
+    // ══════════════════════════════════════════
+    // SPEECH RECOGNITION (v747) — polyfill window.SpeechRecognition
+    // ══════════════════════════════════════════
+    // En WebView Capacitor, window.SpeechRecognition / webkitSpeechRecognition NO existen.
+    // Usamos @capacitor-community/speech-recognition (motor nativo Android).
+
+    var SRPlugin = null;
+    try {
+        SRPlugin = window.Capacitor.Plugins.SpeechRecognition;
+    } catch(e) {}
+
+    if (SRPlugin && typeof window.SpeechRecognition === 'undefined' && typeof window.webkitSpeechRecognition === 'undefined') {
+        console.log('[MoonSync] Polyfilling window.SpeechRecognition → native plugin');
+
+        function _SpeechRecognitionPoly() {
+            this.lang = 'es-ES';
+            this.continuous = false;
+            this.interimResults = false;
+            this.maxAlternatives = 1;
+            this.onresult = null;
+            this.onerror = null;
+            this.onstart = null;
+            this.onend = null;
+            this.onaudiostart = null;
+            this.onspeechstart = null;
+            this.onspeechend = null;
+            this._listening = false;
+            this._partialListener = null;
+            this._self = this;
+        }
+        _SpeechRecognitionPoly.prototype.start = function() {
+            var self = this;
+            self._listening = true;
+            // Pedir permisos
+            SRPlugin.requestPermissions().then(function() {
+                if (typeof self.onstart === 'function') {
+                    try { self.onstart({}); } catch(e) {}
+                }
+                // Si hay listener de partial results, suscribir
+                if (self.interimResults) {
+                    SRPlugin.addListener('partialResults', function(data) {
+                        if (!self._listening) return;
+                        if (typeof self.onresult === 'function' && data && data.matches && data.matches.length) {
+                            try {
+                                self.onresult({
+                                    resultIndex: 0,
+                                    results: [{
+                                        0: { transcript: data.matches[0], confidence: 0.9 },
+                                        isFinal: false,
+                                        length: 1
+                                    }]
+                                });
+                            } catch(e) {}
+                        }
+                    }).then(function(h) { self._partialListener = h; }).catch(function(){});
+                }
+                SRPlugin.start({
+                    language: self.lang || 'es-ES',
+                    maxResults: self.maxAlternatives || 1,
+                    prompt: '',
+                    partialResults: !!self.interimResults,
+                    popup: false
+                }).then(function(res) {
+                    if (!self._listening) return;
+                    if (typeof self.onresult === 'function' && res && res.matches && res.matches.length) {
+                        try {
+                            self.onresult({
+                                resultIndex: 0,
+                                results: [{
+                                    0: { transcript: res.matches[0], confidence: 1 },
+                                    isFinal: true,
+                                    length: 1
+                                }]
+                            });
+                        } catch(e) {}
+                    }
+                    self._listening = false;
+                    if (typeof self.onend === 'function') {
+                        try { self.onend({}); } catch(e) {}
+                    }
+                    if (self._partialListener && self._partialListener.remove) {
+                        try { self._partialListener.remove(); } catch(e) {}
+                        self._partialListener = null;
+                    }
+                }).catch(function(err) {
+                    self._listening = false;
+                    if (typeof self.onerror === 'function') {
+                        try { self.onerror({ error: String(err) }); } catch(e) {}
+                    }
+                    if (typeof self.onend === 'function') {
+                        try { self.onend({}); } catch(e) {}
+                    }
+                });
+            }).catch(function(err) {
+                self._listening = false;
+                if (typeof self.onerror === 'function') {
+                    try { self.onerror({ error: 'not-allowed' }); } catch(e) {}
+                }
+                if (typeof self.onend === 'function') {
+                    try { self.onend({}); } catch(e) {}
+                }
+            });
+        };
+        _SpeechRecognitionPoly.prototype.stop = function() {
+            var self = this;
+            self._listening = false;
+            if (SRPlugin && typeof SRPlugin.stop === 'function') {
+                SRPlugin.stop().catch(function(){});
+            }
+            if (self._partialListener && self._partialListener.remove) {
+                try { self._partialListener.remove(); } catch(e) {}
+                self._partialListener = null;
+            }
+        };
+        _SpeechRecognitionPoly.prototype.abort = _SpeechRecognitionPoly.prototype.stop;
+        _SpeechRecognitionPoly.prototype.addEventListener = function(evt, fn) {
+            this['on' + evt] = fn;
+        };
+        _SpeechRecognitionPoly.prototype.removeEventListener = function(evt) {
+            this['on' + evt] = null;
+        };
+
+        window.SpeechRecognition = _SpeechRecognitionPoly;
+        window.webkitSpeechRecognition = _SpeechRecognitionPoly;
+    }
+
+    // ══════════════════════════════════════════
+    // ANDROID WIDGET BRIDGE (v745)
+    // ══════════════════════════════════════════
+    // Permite a la app JS actualizar los datos que muestra el widget en home screen.
+    // El widget Java calcula la fase lunar y amanecer/atardecer por su cuenta,
+    // pero el día personal del año depende del cumpleaños del usuario (en JS).
+
+    var WidgetBridge = null;
+    try {
+        WidgetBridge = window.Capacitor.Plugins.WidgetBridge;
+    } catch(e) {}
+
+    /**
+     * Actualiza los datos del widget Android.
+     * Llamar después de que el usuario configure su cumpleaños o ubicación.
+     *
+     * @param {Object} data
+     *   - personalDay {number}: día personal actual (1-366)
+     *   - personalTotal {number}: total días año personal (365 o 366)
+     *   - userLat {number}: latitud para sunrise/sunset
+     *   - userLon {number}: longitud para sunrise/sunset
+     *   - lang {string}: 'es' o 'en'
+     */
+    window.MoonSyncNative.updateWidgetData = function(data) {
+        if (!WidgetBridge) return Promise.resolve({success: false, reason: 'plugin not available'});
+        return WidgetBridge.setWidgetData(data).catch(function(e) {
+            console.warn('[Widget] update error:', e);
+            return {success: false, error: String(e)};
+        });
+    };
+
+    window.MoonSyncNative.refreshWidget = function() {
+        if (!WidgetBridge) return Promise.resolve();
+        return WidgetBridge.refreshWidget().catch(function(){});
+    };
+
+    window.MoonSyncNative.scheduleNotification = function(opts) {
+        if (!LocalNotifications) {
+            return Promise.reject('LocalNotifications plugin not available');
+        }
+        var id = opts.id || Math.floor(Math.random() * 1000000);
+        return LocalNotifications.schedule({
+            notifications: [{
+                id: id,
+                title: opts.title || 'AstroAtlas',
+                body: opts.body || '',
+                sound: opts.silent ? null : 'default',
+                schedule: { at: opts.at || new Date(Date.now() + 1000) },
+                actionTypeId: opts.tag || '',
+                extra: opts.data || {}
+            }]
+        });
+    };
+
+    window.MoonSyncNative.cancelNotification = function(id) {
+        if (!LocalNotifications) return Promise.reject('not available');
+        return LocalNotifications.cancel({ notifications: [{ id: id }] });
+    };
+
+    // ══════════════════════════════════════════
     // PUSH NOTIFICATIONS (FCM / APNs)
     // ══════════════════════════════════════════
 
