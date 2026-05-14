@@ -581,6 +581,86 @@
         });
     };
 
+    // v747-fix: polyfill navigator.geolocation.getCurrentPosition → plugin nativo
+    // (en WebView Capacitor, navigator.geolocation falla por origin restrictions).
+    if (Geolocation) {
+        console.log('[MoonSync] Polyfilling navigator.geolocation → Capacitor plugin');
+        var _origGeo = window.navigator.geolocation;
+        var _capGeo = {
+            getCurrentPosition: function(success, error, opts) {
+                Geolocation.requestPermissions().then(function() {
+                    return Geolocation.getCurrentPosition({
+                        enableHighAccuracy: opts && opts.enableHighAccuracy !== undefined ? opts.enableHighAccuracy : true,
+                        timeout: opts && opts.timeout ? opts.timeout : 15000,
+                        maximumAge: opts && opts.maximumAge ? opts.maximumAge : 0
+                    });
+                }).then(function(pos) {
+                    if (typeof success === 'function') {
+                        success({
+                            coords: {
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy,
+                                altitude: pos.coords.altitude || null,
+                                altitudeAccuracy: pos.coords.altitudeAccuracy || null,
+                                heading: pos.coords.heading || null,
+                                speed: pos.coords.speed || null
+                            },
+                            timestamp: pos.timestamp || Date.now()
+                        });
+                    }
+                }).catch(function(err) {
+                    console.warn('[MoonSync] Geolocation error:', err);
+                    if (typeof error === 'function') {
+                        var msg = String(err && err.message || err || '');
+                        var code = 2; // POSITION_UNAVAILABLE
+                        if (msg.toLowerCase().indexOf('denied') >= 0 || msg.toLowerCase().indexOf('permission') >= 0) code = 1;
+                        else if (msg.toLowerCase().indexOf('timeout') >= 0) code = 3;
+                        error({ code: code, message: msg, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+                    }
+                });
+            },
+            watchPosition: function(success, error, opts) {
+                var watchId = null;
+                Geolocation.requestPermissions().then(function() {
+                    return Geolocation.watchPosition({
+                        enableHighAccuracy: opts && opts.enableHighAccuracy !== undefined ? opts.enableHighAccuracy : true,
+                        timeout: opts && opts.timeout ? opts.timeout : 15000
+                    }, function(pos, err) {
+                        if (pos && typeof success === 'function') {
+                            success({
+                                coords: {
+                                    latitude: pos.coords.latitude,
+                                    longitude: pos.coords.longitude,
+                                    accuracy: pos.coords.accuracy
+                                },
+                                timestamp: pos.timestamp || Date.now()
+                            });
+                        } else if (err && typeof error === 'function') {
+                            error({ code: 2, message: String(err) });
+                        }
+                    });
+                }).then(function(id) { watchId = id; }).catch(function(e) {
+                    if (typeof error === 'function') error({ code: 1, message: String(e) });
+                });
+                return watchId;
+            },
+            clearWatch: function(id) {
+                if (id) Geolocation.clearWatch({ id: id }).catch(function(){});
+            }
+        };
+        try {
+            Object.defineProperty(window.navigator, 'geolocation', { value: _capGeo, configurable: true });
+        } catch(_egd) {
+            // Algunos WebViews no permiten redefinir — fallback a sobreescribir métodos directamente
+            try {
+                _origGeo.getCurrentPosition = _capGeo.getCurrentPosition;
+                _origGeo.watchPosition = _capGeo.watchPosition;
+                _origGeo.clearWatch = _capGeo.clearWatch;
+            } catch(_egd2) { console.warn('[MoonSync] Could not override navigator.geolocation:', _egd2); }
+        }
+    }
+
     // ══════════════════════════════════════════
     // DEVICE MOTION (Compass / Accelerometer)
     // ══════════════════════════════════════════

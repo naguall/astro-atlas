@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v747';</script>
+    <script>window.APP_VERSION = 'v748';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -36774,6 +36774,8 @@ function openLocationSelector() {
     try { filterCities(''); } catch(e) { console.error('[Loc] filterCities error:', e); }
     try { updateLocationTimeBanner(); } catch(e) {}
     try { startLocTimeBannerClock(); } catch(e) {}
+    // v747-fix: inicializar mapa Leaflet (estaba definido pero nunca se llamaba — por eso el pin no se movía)
+    try { if (typeof initLocMap === 'function') initLocMap(); } catch(_eIm) { console.warn('[Loc] initLocMap:', _eIm); }
     // v747: Adjuntar touchend/click directos al botón X (fix WebView Android donde onclick no dispara)
     try {
         var _closeBtnLoc = modal.querySelector('.modal-header .close');
@@ -36851,7 +36853,13 @@ function stopLocTimeBannerClock() {
 }
 
 function closeLocationSelector() {
-    document.getElementById('locationModal').classList.remove('show');
+    var _lm = document.getElementById('locationModal');
+    if (_lm) {
+        _lm.classList.remove('show');
+        // v747-fix: openLocationSelector setea inline `display:flex` que sobrevive al remove('show').
+        // Limpiar el inline para que el CSS base (display:none) gane.
+        _lm.style.display = 'none';
+    }
     stopLocTimeBannerClock();
     // If opened from tide modal, reopen tide modal
     if (window._reopenTideAfterLoc) {
