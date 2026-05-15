@@ -26180,6 +26180,12 @@ function renderPersonalCalendar() {
                      '⚡ ' + (L?'Tránsitos':'Transits') + (majorTransits&&majorTransits.length>0?' ('+majorTransits.length+')':'') +
                    '</div>' +
                    transitsHTML +
+                   // v749b: botón "Interpretar todo" como en los otros calendarios (Lunar/Solar/Gregoriano)
+                   (majorTransits && majorTransits.length > 0
+                     ? '<div style="margin-top:4px;border-top:1px solid ' + c_aspBorder + '22;padding-top:4px;">' +
+                         '<div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:' + c_aspBorder + ';cursor:pointer;padding:3px;background:' + c_aspBorder + '14;border-radius:4px;border:1px solid ' + c_aspBorder + '33;">✦ ' + (L?'Interpretar todo':'Interpret all') + '</div>' +
+                       '</div>'
+                     : '') +
                  '</div>' +
                '</div>';
     })();
