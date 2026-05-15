@@ -19739,6 +19739,88 @@ function showAllAspectsInterpretation() {
 }
 window.showAllAspectsInterpretation = showAllAspectsInterpretation;
 
+// v749c: Interpretación ESPECÍFICA de tránsitos sobre carta natal en el tab Astro/Calend.
+// A diferencia de showAllAspectsInterpretation (que interpreta aspectos genéricos del día
+// como cambios de signo, retrógrados, etc.), esta función se enfoca en:
+//   - Tránsitos planetarios sobre tu carta natal (transit ☉ ⌂ natal Marte, etc.)
+//   - Contexto de tu año personal y día personal
+//   - Contexto de tu carta natal (Sol, Luna, ASC, MC)
+function showAllTransitsInterpretation() {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    var L = currentLang === 'es';
+    var today = new Date();
+
+    titleEl.textContent = L ? '✦ Tránsitos de Hoy sobre tu Carta Natal' : '✦ Today\'s Transits over your Natal Chart';
+
+    // Get transits + personal year context from window globals set by _todayBanner
+    var transits = window._astroTodayTransits || [];
+    var pYear = window._astroTodayPersonalYear || '?';
+    var pDay = window._astroTodayPersonalDay || '?';
+    var pTotal = window._astroTodayTotalPDays || 365;
+
+    // Get natal chart for context
+    var natalStored = null;
+    try { natalStored = JSON.parse(localStorage.getItem('natalChart') || 'null'); } catch(e) {}
+
+    // Build readable transit list
+    var transitTexts = transits.map(function(tr) {
+        var pName = (typeof planetNames !== 'undefined' && planetNames[tr.transitPlanet]) ? planetNames[tr.transitPlanet] : tr.transitPlanet;
+        var nName = (typeof planetNames !== 'undefined' && planetNames[tr.natalPlanet]) ? planetNames[tr.natalPlanet] : tr.natalPlanet;
+        return pName + ' ' + tr.symbol + ' ' + (L?'natal ':'natal ') + nName + (tr.type ? ' (' + tr.type + ')' : '');
+    });
+
+    // Build HTML
+    var html = '<div style="margin-bottom:15px;">';
+    html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.5);margin-bottom:8px;">' + today.toLocaleDateString(L?'es':'en',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + '</div>';
+    html += '<div style="background:rgba(126,200,255,0.06);border:1px solid rgba(126,200,255,0.25);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:0.85em;color:rgba(255,255,255,0.85);">'
+         + (L ? 'Día personal' : 'Personal day') + ' <b style="color:#e8c84a;">' + pDay + '/' + pTotal + '</b>'
+         + ' &middot; ' + (L ? 'Año personal' : 'Personal year') + ' <b style="color:#b39ddb;">' + pYear + '</b>'
+         + '</div>';
+    if (transitTexts.length === 0) {
+        html += '<div style="font-style:italic;color:rgba(255,255,255,0.5);padding:8px;">' + (L?'Sin tránsitos mayores hoy':'No major transits today') + '</div>';
+    } else {
+        transitTexts.forEach(function(txt) {
+            var safeTxt = txt.replace(/'/g, "\\'");
+            html += '<div onclick="showBannerAspectDetail(\'' + safeTxt + '\')" style="font-size:0.85em;padding:6px 10px;margin-bottom:4px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.18);border-radius:6px;cursor:pointer;color:rgba(255,255,255,0.85);transition:all 0.2s;">' + txt + '</div>';
+        });
+    }
+    html += '</div>';
+    html += '<div style="border-top:2px solid #7ec8ff;padding-top:12px;"><h4 style="color:#7ec8ff;margin-bottom:8px;">✦ ' + (L ? 'Interpretación de tránsitos' : 'Transits interpretation') + '</h4><div id="aiTransitsInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Build natal context for AI
+    var natalCtx = '';
+    if (natalStored) {
+        try {
+            if (natalStored.sun) natalCtx += '- Sol natal: ' + (natalStored.sun.sign || '?') + ' ' + (natalStored.sun.degree || '') + '\n';
+            if (natalStored.moon) natalCtx += '- Luna natal: ' + (natalStored.moon.sign || '?') + ' ' + (natalStored.moon.degree || '') + '\n';
+            if (natalStored.ascendant) natalCtx += '- Ascendente: ' + (natalStored.ascendant.sign || natalStored.ascendant || '?') + '\n';
+            if (natalStored.mc) natalCtx += '- Medio Cielo: ' + (natalStored.mc.sign || natalStored.mc || '?') + '\n';
+        } catch(_eN) {}
+    }
+
+    // Build AI prompt focused on transits + personal year context
+    var prompt = L
+        ? 'Interpreta los siguientes TRÁNSITOS planetarios de HOY sobre mi carta natal, EN CONJUNTO, considerando mi año personal y día personal:\n\n'
+            + 'CONTEXTO NATAL:\n' + (natalCtx || '(carta natal no disponible)\n') + '\n'
+            + 'CICLO PERSONAL:\n- Día personal: ' + pDay + ' de ' + pTotal + '\n- Año personal: ' + pYear + '\n\n'
+            + 'TRÁNSITOS DE HOY:\n' + transitTexts.join('\n') + '\n\n'
+            + 'Describe el panorama energético del día desde mi perspectiva natal, qué áreas se activan, y consejos concretos teniendo en cuenta dónde estoy en el ciclo de mi año personal.'
+        : 'Interpret the following TRANSITS of TODAY over my natal chart, AS A WHOLE, considering my personal year and personal day:\n\n'
+            + 'NATAL CONTEXT:\n' + (natalCtx || '(natal chart unavailable)\n') + '\n'
+            + 'PERSONAL CYCLE:\n- Personal day: ' + pDay + ' of ' + pTotal + '\n- Personal year: ' + pYear + '\n\n'
+            + 'TODAY\'S TRANSITS:\n' + transitTexts.join('\n') + '\n\n'
+            + 'Describe the energetic landscape of the day from my natal perspective, what areas are activated, and concrete advice considering where I am in my personal year cycle.';
+
+    var readingTitle = L ? 'Tránsitos — ' + today.toLocaleDateString('es',{day:'numeric',month:'short'}) : 'Transits — ' + today.toLocaleDateString('en',{day:'numeric',month:'short'});
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiTransitsInterpDiv', readingTitle); }, 100);
+}
+window.showAllTransitsInterpretation = showAllTransitsInterpretation;
+
 function showDayInterpretation(aspectsText, dateLabel, dateMs) {
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
@@ -26129,17 +26211,22 @@ function renderPersonalCalendar() {
         }
 
         // TRÁNSITOS column (major transits)
+        // v749c: mostrar TODOS los tránsitos con scroll (antes slice(0,6) ocultaba algunos sin acceso).
+        // Exponer la lista completa en window para que showAllTransitsInterpretation() la lea.
         var transitsHTML = '';
         if (majorTransits && majorTransits.length > 0) {
-            transitsHTML = '<div style="display:flex;flex-direction:column;gap:2px;align-items:center;max-height:80px;overflow-y:auto;scrollbar-width:none;">' +
-                majorTransits.slice(0, 6).map(function(tr) {
+            window._astroTodayTransits = majorTransits;
+            window._astroTodayPersonalYear = _personalYear;
+            window._astroTodayPersonalDay = _todayPersDay;
+            window._astroTodayTotalPDays = _totalPDays;
+            transitsHTML = '<div style="display:flex;flex-direction:column;gap:2px;align-items:stretch;max-height:80px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;">' +
+                majorTransits.map(function(tr) {
                     var pName = (typeof planetNames !== 'undefined' && planetNames[tr.transitPlanet]) ? planetNames[tr.transitPlanet] : tr.transitPlanet;
                     var nName = (typeof planetNames !== 'undefined' && planetNames[tr.natalPlanet]) ? planetNames[tr.natalPlanet] : tr.natalPlanet;
                     var trText = (pName + ' ' + tr.symbol + ' ' + (L?'natal':'natal') + ' ' + nName).replace(/'/g, "\\'");
                     var trColor = tr.type === 'trine' ? '#7c4dff' : tr.type === 'sextile' ? '#4ecdc4' : tr.type === 'square' ? '#ff9f43' : tr.type === 'opposition' ? '#ee5a6f' : '#ff6b6b';
                     return '<div onclick="showBannerAspectDetail(\'' + trText + '\')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ' + trColor + ';"><span style="color:#e8eaf6;">' + pName.substring(0,3) + ' ' + tr.symbol + ' ' + nName.substring(0,3) + '</span></div>';
                 }).join('') +
-                (majorTransits.length > 6 ? '<div style="font-size:0.6em;text-align:center;color:#8899cc;">+' + (majorTransits.length-6) + '</div>' : '') +
                 '</div>';
         } else {
             transitsHTML = '<div style="font-size:0.6em;color:' + c_aspBorder + '66;font-style:italic;padding:4px 0;text-align:center;">' + (L?'Sin tránsitos':'No transits') + '</div>';
@@ -26180,10 +26267,11 @@ function renderPersonalCalendar() {
                      '⚡ ' + (L?'Tránsitos':'Transits') + (majorTransits&&majorTransits.length>0?' ('+majorTransits.length+')':'') +
                    '</div>' +
                    transitsHTML +
-                   // v749b: botón "Interpretar todo" como en los otros calendarios (Lunar/Solar/Gregoriano)
+                   // v749c: botón "Interpretar todo" llama a fn ESPECÍFICA de Astro
+                   // (tránsitos sobre carta natal + contexto año personal, NO aspectos genéricos del día)
                    (majorTransits && majorTransits.length > 0
                      ? '<div style="margin-top:4px;border-top:1px solid ' + c_aspBorder + '22;padding-top:4px;">' +
-                         '<div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:' + c_aspBorder + ';cursor:pointer;padding:3px;background:' + c_aspBorder + '14;border-radius:4px;border:1px solid ' + c_aspBorder + '33;">✦ ' + (L?'Interpretar todo':'Interpret all') + '</div>' +
+                         '<div onclick="showAllTransitsInterpretation()" style="font-size:0.6em;text-align:center;color:' + c_aspBorder + ';cursor:pointer;padding:3px;background:' + c_aspBorder + '14;border-radius:4px;border:1px solid ' + c_aspBorder + '33;">✦ ' + (L?'Interpretar todo':'Interpret all') + '</div>' +
                        '</div>'
                      : '') +
                  '</div>' +
