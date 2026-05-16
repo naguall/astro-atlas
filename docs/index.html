@@ -5674,6 +5674,10 @@ const majorConfigurations2026 = [
 // Get planet initials for compact display
 function getPlanetInitial(planetName) {
     const initials = {
+        'Sol': 'Sol',
+        'Sun': 'Sol',
+        'Luna': 'Lun',
+        'Moon': 'Moo',
         'Mercurio': 'Mer',
         'Mercury': 'Mer',
         'Venus': 'Ven',
@@ -5693,21 +5697,47 @@ function getPlanetInitial(planetName) {
     return initials[planetName] || planetName.substring(0, 3);
 }
 
+// v749l: cache de aspectos dinámicos por mes (computeDynamicMonthAspects es caro, ~280 cálculos)
+window._dynAspMonthCache = window._dynAspMonthCache || {};
+
 function getInterPlanetaryAspects(date) {
     const aspects = [];
     const targetYear = date.getFullYear();
     const targetMonth = date.getMonth();
     const targetDay = date.getDate();
-    
+
+    // Aspectos hardcoded en interPlanetaryAspects2026 (planetas lentos pre-calculados)
     for (const aspect of interPlanetaryAspects2026) {
         const aspectDate = new Date(aspect.date);
-        
         if (aspectDate.getFullYear() === targetYear &&
             aspectDate.getMonth() === targetMonth &&
             aspectDate.getDate() === targetDay) {
             aspects.push(aspect);
         }
     }
+
+    // v749l: Aspectos dinámicos (Sol/Mercurio/Venus/Marte) computados con astronomy-engine
+    // Estos no están en interPlanetaryAspects2026 — por eso antes no aparecían en celdas Lunar/Solar/Greg
+    try {
+        var cacheKey = targetYear + '-' + targetMonth;
+        if (!window._dynAspMonthCache[cacheKey] && typeof computeDynamicMonthAspects === 'function') {
+            window._dynAspMonthCache[cacheKey] = computeDynamicMonthAspects(targetYear, targetMonth);
+        }
+        var dynByDay = window._dynAspMonthCache[cacheKey] || {};
+        var dynForDay = dynByDay[targetDay] || [];
+        dynForDay.forEach(function(da) {
+            aspects.push({
+                date: date.toISOString(),
+                planet1: da.p1,
+                planet2: da.p2,
+                aspect: da.aspectName,
+                symbol: da.sym,
+                _dynamic: true,
+                _orb: da.orb
+            });
+        });
+    } catch(_e) { console.warn('[getInterPlanetaryAspects] dynamic:', _e); }
+
     return aspects;
 }
 
@@ -10118,17 +10148,32 @@ function openSavedReadingsModal(tab) {
     var html = '';
 
     // Tab buttons
-    // v749g: agregado tab "Eventos" PRIMERO (eventos astrológicos del año por mes)
+    // v749k: 4 tabs FLAT (sin sub-tabs): Eventos · Interpretaciones · Personal · Sueños
+    // (antes Diarios era padre de Personal/Sueños — ahora todos al mismo nivel)
+    if (activeTab === 'diario') activeTab = 'diario-personal'; // alias legacy
     var eventosActive = activeTab === 'eventos';
     var lecturasActive = activeTab === 'lecturas';
-    var diarioActive = activeTab === 'diario';
-    var diarioPersonalActive = activeTab === 'diario' || activeTab === 'diario-personal';
+    var diarioPersonalActive = activeTab === 'diario-personal';
     var diarioSuenosActive = activeTab === 'diario-suenos';
-    var anyDiarioActive = diarioPersonalActive || diarioSuenosActive;
-    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);">';
-    html += '<button onclick="openSavedReadingsModal(\'eventos\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (eventosActive ? '#7ec8ff' : 'transparent') + ';background:' + (eventosActive ? 'rgba(126,200,255,0.1)' : 'transparent') + ';color:' + (eventosActive ? '#7ec8ff' : 'rgba(255,255,255,0.4)') + ';">📅 ' + (L ? 'Eventos' : 'Events') + '</button>';
-    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Interpretaciones' : 'Interpretations') + ' (' + readings.length + ')</button>';
-    html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (anyDiarioActive ? '#9b59b6' : 'transparent') + ';background:' + (anyDiarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (anyDiarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diarios' : 'Diaries') + '</button>';
+    var anyDiarioActive = diarioPersonalActive || diarioSuenosActive; // kept for back-compat in render below
+
+    // Pre-compute counts para mostrar en los tabs
+    var _personalCount = 0, _suenosCount = 0;
+    try {
+        _personalCount = diaryEntries.length;
+        var _dreamsRaw = JSON.parse(localStorage.getItem('lunarCalendarDreams_' + profileId) || '{}');
+        Object.keys(_dreamsRaw).forEach(function(k){
+            var v = _dreamsRaw[k];
+            var arr = (typeof _migrateDreamEntry === 'function') ? _migrateDreamEntry(v) : (Array.isArray(v) ? v : (v && v.text ? [v] : []));
+            arr.forEach(function(d){ if (d && d.text && String(d.text).trim()) _suenosCount++; });
+        });
+    } catch(_eCnt) {}
+
+    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);overflow-x:auto;-webkit-overflow-scrolling:touch;">';
+    html += '<button onclick="openSavedReadingsModal(\'eventos\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (eventosActive ? '#7ec8ff' : 'transparent') + ';background:' + (eventosActive ? 'rgba(126,200,255,0.1)' : 'transparent') + ';color:' + (eventosActive ? '#7ec8ff' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📅 ' + (L ? 'Eventos' : 'Events') + '</button>';
+    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📚 ' + (L ? 'Interp.' : 'Interp.') + ' (' + readings.length + ')</button>';
+    html += '<button onclick="openSavedReadingsModal(\'diario-personal\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (diarioPersonalActive ? '#9b59b6' : 'transparent') + ';background:' + (diarioPersonalActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (diarioPersonalActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📓 ' + (L ? 'Personal' : 'Personal') + ' (' + _personalCount + ')</button>';
+    html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (diarioSuenosActive ? '#5dade2' : 'transparent') + ';background:' + (diarioSuenosActive ? 'rgba(93,173,226,0.1)' : 'transparent') + ';color:' + (diarioSuenosActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">🌙 ' + (L ? 'Sueños' : 'Dreams') + ' (' + _suenosCount + ')</button>';
     html += '</div>';
 
     // v749j: contenido del tab Eventos — eventos de AGENDA del usuario (no astrológicos), organizados por mes
@@ -10255,11 +10300,7 @@ function openSavedReadingsModal(tab) {
         });
         dreamEntries.sort(function(a, b) { return b.date.localeCompare(a.date) || a.dreamIndex - b.dreamIndex; });
 
-        // Sub-tabs: Personal / Sueños
-        html += '<div style="display:flex;gap:0;margin-bottom:12px;">';
-        html += '<button onclick="openSavedReadingsModal(\'diario-personal\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioPersonalActive ? '#9b59b6' : 'rgba(155,89,182,0.2)') + ';background:' + (diarioPersonalActive ? 'rgba(155,89,182,0.12)' : 'transparent') + ';color:' + (diarioPersonalActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">📓 ' + (L ? 'Personal' : 'Personal') + ' (' + diaryEntries.length + ')</button>';
-        html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioSuenosActive ? '#5dade2' : 'rgba(93,173,226,0.2)') + ';background:' + (diarioSuenosActive ? 'rgba(93,173,226,0.12)' : 'transparent') + ';color:' + (diarioSuenosActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">🌙 ' + (L ? 'Sueños' : 'Dreams') + ' (' + dreamEntries.length + ')</button>';
-        html += '</div>';
+        // v749k: sub-tabs Personal/Sueños eliminados — ahora son tabs principales arriba (flat).
 
         if (diarioPersonalActive) {
             // Personal diary entries
@@ -27950,63 +27991,15 @@ function generateGregorianMonth() {
         ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] :
         ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    // v749i: Pre-computar aspectos dinámicos (Sol/Mercurio/Venus/Marte) del mes para mostrar en CELDAS
-    // (antes solo aparecían en la lista de abajo; ahora también en el cell del día pico)
-    var _dynAspByDay = {};
+    // v749l: pre-computar y cachear aspectos dinámicos del mes (Sol/Mercurio/Venus/Marte)
+    // (los inserta getInterPlanetaryAspects en sus retornos via el cache window._dynAspMonthCache)
     try {
-        if (typeof Astronomy !== 'undefined') {
-            var _planets = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
-            var _planetInit = { Sun:'☉', Mercury:'☿', Venus:'♀', Mars:'♂', Jupiter:'♃', Saturn:'♄', Uranus:'♅', Neptune:'♆', Pluto:'♇' };
-            var _aspDefs = [
-                { sym: '☌', deg: 0,   orb: 3 },
-                { sym: '⚹', deg: 60,  orb: 2 },
-                { sym: '□', deg: 90,  orb: 3 },
-                { sym: '△', deg: 120, orb: 3 },
-                { sym: '☍', deg: 180, orb: 3 }
-            ];
-            var _lastD = lastDay.getDate();
-            var _positions = [];
-            for (var _d = 1; _d <= _lastD; _d++) {
-                var _dt = new Date(currentGregorianYear, currentGregorianMonth, _d, 12);
-                var _t = Astronomy.MakeTime(_dt);
-                var _posD = {};
-                for (var _pi = 0; _pi < _planets.length; _pi++) {
-                    try { _posD[_planets[_pi]] = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[_planets[_pi]], _t, true)).elon; } catch(_e) {}
-                }
-                _positions.push(_posD);
-            }
-            for (var _i = 0; _i < _planets.length; _i++) {
-                for (var _j = _i+1; _j < _planets.length; _j++) {
-                    // Filtrar: solo computamos pares que involucran Sol/Mercurio/Venus/Marte (los lentos ya están hardcoded)
-                    var _isFast = (['Sun','Mercury','Venus','Mars'].indexOf(_planets[_i]) >= 0) || (['Sun','Mercury','Venus','Mars'].indexOf(_planets[_j]) >= 0);
-                    if (!_isFast) continue;
-                    for (var _ai = 0; _ai < _aspDefs.length; _ai++) {
-                        var _asp = _aspDefs[_ai];
-                        var _minOrb = 999, _minIdx = -1;
-                        for (var _di = 0; _di < _positions.length; _di++) {
-                            var _pos = _positions[_di];
-                            if (_pos[_planets[_i]] === undefined || _pos[_planets[_j]] === undefined) continue;
-                            var _diff = Math.abs(_pos[_planets[_i]] - _pos[_planets[_j]]) % 360;
-                            if (_diff > 180) _diff = 360 - _diff;
-                            var _o = Math.abs(_diff - _asp.deg);
-                            if (_o < _minOrb) { _minOrb = _o; _minIdx = _di; }
-                        }
-                        if (_minOrb < _asp.orb && _minIdx > 0 && _minIdx < _positions.length-1) {
-                            var _dayN = _minIdx + 1;
-                            if (!_dynAspByDay[_dayN]) _dynAspByDay[_dayN] = [];
-                            _dynAspByDay[_dayN].push({
-                                p1: _planets[_i], p2: _planets[_j], sym: _asp.sym,
-                                init1: _planetInit[_planets[_i]] || _planets[_i].substring(0,3),
-                                init2: _planetInit[_planets[_j]] || _planets[_j].substring(0,3),
-                                orb: _minOrb
-                            });
-                        }
-                    }
-                }
-            }
+        var _ckGreg = currentGregorianYear + '-' + currentGregorianMonth;
+        if (!window._dynAspMonthCache) window._dynAspMonthCache = {};
+        if (!window._dynAspMonthCache[_ckGreg] && typeof computeDynamicMonthAspects === 'function') {
+            window._dynAspMonthCache[_ckGreg] = computeDynamicMonthAspects(currentGregorianYear, currentGregorianMonth);
         }
-    } catch(_eDyn) { console.warn('[generateGregorianMonth] dynamic aspects:', _eDyn); }
-    window._gregDynAspByDay = _dynAspByDay; // expose para debug
+    } catch(_eGm) {}
 
     let html = '<div class="lunar-week" style="margin-bottom: 10px; overflow: hidden;">';
     // Month nav row
@@ -28070,24 +28063,16 @@ function generateGregorianMonth() {
             html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${eclClickTxt}')" style="color:#FFD700; font-size: 0.6em; font-weight:bold; cursor:pointer;">${planetaryEvents.eclipse.type==='solar'?'☀️ Ecl.Sol':'🌒 Ecl.Lun'}</div>`;
         }
         
-        // Inter-planetary aspects (limit 1)
-        planetaryEvents.interPlanetaryAspects.slice(0,1).forEach(asp => {
+        // v749l: Inter-planetary aspects — ahora hasta 3 (antes solo 1)
+        // getInterPlanetaryAspects ahora incluye AMBOS: hardcoded (planetas lentos) + dinámicos (Sol/Mercurio/Venus/Marte)
+        planetaryEvents.interPlanetaryAspects.slice(0,3).forEach(asp => {
             const p1 = getPlanetInitial(asp.planet1);
             const p2 = getPlanetInitial(asp.planet2);
             const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
-            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
+            // Color naranja para aspectos dinámicos, celeste para hardcoded
+            const _aColor = asp._dynamic ? '#ff9f43' : '#7ec8ff';
+            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:${_aColor};font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}${asp._orb !== undefined ? ' (orbe ' + asp._orb.toFixed(1) + '°)' : ''}">${p1} ${asp.symbol} ${p2}</div>`;
         });
-
-        // v749i: Aspectos dinámicos computados (Sol/Mercurio/Venus/Marte) — antes no se mostraban en las celdas
-        var _dynForDay = (typeof _dynAspByDay !== 'undefined') ? _dynAspByDay[day] : null;
-        if (_dynForDay && _dynForDay.length > 0) {
-            // Mostrar hasta 2 aspectos dinámicos por día (los que tienen orbe más chico = más exactos)
-            _dynForDay.sort(function(a,b){ return a.orb - b.orb; });
-            _dynForDay.slice(0, 2).forEach(function(da) {
-                var _daText = (tp(da.p1) + ' ' + da.sym + ' ' + tp(da.p2)).replace(/'/g, "\\'");
-                html += '<div onclick="event.stopPropagation(); showBannerAspectDetail(\'' + _daText + '\')" style="color:#ff9f43;font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="' + da.p1 + ' ' + da.sym + ' ' + da.p2 + ' (orbe ' + da.orb.toFixed(1) + '°)">' + da.init1 + ' ' + da.sym + ' ' + da.init2 + '</div>';
-            });
-        }
         
         // Sign changes (limit 2)
         planetaryEvents.signChanges.slice(0,2).forEach(sc => {
@@ -28162,6 +28147,73 @@ function generateGregorianMonth() {
 
     return html;
 }
+
+// v749l: Función global compartida para computar aspectos dinámicos del mes
+// (Sol/Mercurio/Venus/Marte vs cualquier otro planeta) — usada por Gregoriano, Lunar y Solar
+// Retorna: { dayNumber: [{ p1, p2, sym, init1, init2, orb, aspectName }, ...] }
+function computeDynamicMonthAspects(year, month) {
+    var byDay = {};
+    if (typeof Astronomy === 'undefined') return byDay;
+    var planetsAll = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+    // Mapeo a nombres ES para mantener la convención abreviada del resto de la app
+    var pNameES = { Sun:'Sol', Mercury:'Mercurio', Venus:'Venus', Mars:'Marte', Jupiter:'Júpiter', Saturn:'Saturno', Uranus:'Urano', Neptune:'Neptuno', Pluto:'Plutón' };
+    var aspDefs = [
+        { name: 'conjunción', sym: 'd', deg: 0,   orb: 3 },     // 'd' como en el código existente (conjunción)
+        { name: 'sextil',     sym: '*', deg: 60,  orb: 2 },     // '*' para sextil
+        { name: 'cuadratura', sym: '□', deg: 90,  orb: 3 },     // '□' cuadratura
+        { name: 'trígono',    sym: '△', deg: 120, orb: 3 },     // '△' trígono
+        { name: 'oposición',  sym: '↔', deg: 180, orb: 3 }      // '↔' oposición (ASCII-friendly)
+    ];
+    var lastDayN = new Date(year, month + 1, 0).getDate();
+    var positions = [];
+    for (var d = 1; d <= lastDayN; d++) {
+        var dt = new Date(year, month, d, 12);
+        var t = Astronomy.MakeTime(dt);
+        var posD = {};
+        for (var pi = 0; pi < planetsAll.length; pi++) {
+            try { posD[planetsAll[pi]] = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[planetsAll[pi]], t, true)).elon; } catch(_e) {}
+        }
+        positions.push(posD);
+    }
+    for (var i = 0; i < planetsAll.length; i++) {
+        for (var j = i+1; j < planetsAll.length; j++) {
+            // Solo pares que involucran Sol/Mercurio/Venus/Marte (los lentos ya están hardcoded)
+            var isFast = (['Sun','Mercury','Venus','Mars'].indexOf(planetsAll[i]) >= 0)
+                      || (['Sun','Mercury','Venus','Mars'].indexOf(planetsAll[j]) >= 0);
+            if (!isFast) continue;
+            for (var ai = 0; ai < aspDefs.length; ai++) {
+                var asp = aspDefs[ai];
+                var minOrb = 999, minIdx = -1;
+                for (var di = 0; di < positions.length; di++) {
+                    var pos = positions[di];
+                    if (pos[planetsAll[i]] === undefined || pos[planetsAll[j]] === undefined) continue;
+                    var diff = Math.abs(pos[planetsAll[i]] - pos[planetsAll[j]]) % 360;
+                    if (diff > 180) diff = 360 - diff;
+                    var o = Math.abs(diff - asp.deg);
+                    if (o < minOrb) { minOrb = o; minIdx = di; }
+                }
+                if (minOrb < asp.orb && minIdx > 0 && minIdx < positions.length-1) {
+                    var dayN = minIdx + 1;
+                    if (!byDay[dayN]) byDay[dayN] = [];
+                    var p1ES = pNameES[planetsAll[i]] || planetsAll[i];
+                    var p2ES = pNameES[planetsAll[j]] || planetsAll[j];
+                    byDay[dayN].push({
+                        p1: p1ES,
+                        p2: p2ES,
+                        sym: asp.sym,
+                        aspectName: asp.name,
+                        // Usa la convención del resto del calendario: getPlanetInitial → "Sol", "Mer", "Ura"
+                        init1: (typeof getPlanetInitial === 'function') ? getPlanetInitial(p1ES) : p1ES.substring(0,3),
+                        init2: (typeof getPlanetInitial === 'function') ? getPlanetInitial(p2ES) : p2ES.substring(0,3),
+                        orb: minOrb
+                    });
+                }
+            }
+        }
+    }
+    return byDay;
+}
+window.computeDynamicMonthAspects = computeDynamicMonthAspects;
 
 // v749f: Interpretar todo el mes dividido en 2 quincenas (1-15 y 16-fin)
 // Abre el modal natalDetailModal con 2 secciones, cada una con su prompt AI independiente
