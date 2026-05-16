@@ -355,9 +355,11 @@
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
-            /* v749h: margin:auto causaba que con poco contenido el modal saltara hacia abajo (centrado vertical).
-               margin:0 auto solo centra horizontalmente — el modal queda anclado al top consistentemente. */
-            margin: 0 auto; padding: 28px;
+            /* v749h+n: anclar el modal al TOP de forma explícita. margin auto causaba centrado vertical.
+               align-self:flex-start asegura alineación al inicio del flex container vertical de .modal. */
+            margin: 0 auto;
+            align-self: flex-start;
+            padding: 28px;
             border: 1px solid var(--gold-border); border-top: 2px solid var(--gold);
             border-radius: 18px; width: 90%; max-width: 700px;
             box-shadow: 0 0 50px var(--gold-glow), 0 24px 60px rgba(0,0,0,0.65);
@@ -28328,6 +28330,28 @@ function interpretMonthByFortnights(year, month) {
 }
 window.interpretMonthByFortnights = interpretMonthByFortnights;
 
+// v749m: paleta unificada para los eventos astrológicos del mes (sin colisiones)
+// Tipos de aspecto siguen convención clásica: cálidos = duros, fríos = suaves
+function getAstroEventColor(category, aspectName) {
+    if (category === 'signChange')    return '#7ec8ff';   // celeste
+    if (category === 'retrograde')    return '#f4b942';   // ámbar (distinto del naranja de cuadratura)
+    if (category === 'eclipse')       return '#d32f2f';   // rojo intenso
+    if (category === 'astroEvent')    return '#FFD700';   // dorado (equinox/solstice)
+    if (category === 'fullMoon')      return '#FFD700';   // dorado
+    if (category === 'moonPhase')     return '#b39ddb';   // lila (nueva/cuartos)
+    if (category === 'stellium')      return '#FFD700';   // dorado (con icono ★)
+    if (category === 'aspect') {
+        var n = (aspectName || '').toLowerCase();
+        if (n.indexOf('conjun') >= 0) return '#ff6b6b';   // rojo coral — conjunción
+        if (n.indexOf('sext')   >= 0) return '#4ecdc4';   // turquesa — sextil
+        if (n.indexOf('cuadrat')>= 0 || n.indexOf('squar') >= 0) return '#ff9f43';   // naranja — cuadratura
+        if (n.indexOf('trígono')>= 0 || n.indexOf('trigono') >= 0 || n.indexOf('trine') >= 0) return '#a584d8';   // violeta suave — trígono
+        if (n.indexOf('oposic') >= 0 || n.indexOf('opposit')>= 0) return '#ec407a';  // rosa — oposición
+        return '#7c4dff';   // fallback violeta intenso
+    }
+    return '#7ec8ff';
+}
+
 // v749e: Computar todos los eventos astrológicos del mes
 // (incluye aspectos Sol/Mercurio/Venus/Marte computados dinámicamente con astronomy-engine,
 // no solo los aspectos lentos hardcoded en interPlanetaryAspects2026)
@@ -28351,7 +28375,7 @@ function computeMonthAstroEvents(year, month) {
         try {
             var sc = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
             sc.forEach(function(c) {
-                events.push({ day: d, date: date, color: '#7ec8ff', icon: '➔',
+                events.push({ day: d, date: date, color: getAstroEventColor('signChange'), icon: '➔',
                     label: pName(c.planet) + ' → ' + (typeof ts==='function' ? ts(c.toSign) : c.toSign),
                     detail: c.time || '' });
             });
@@ -28363,7 +28387,7 @@ function computeMonthAstroEvents(year, month) {
             rt.forEach(function(r) {
                 var lbl = pName(r.planet) + (r.isStart ? (L?' inicia retrógrado':' starts retrograde') : (L?' se pone directo':' goes direct'));
                 if (r.sign) lbl += (L?' en ':' in ') + (typeof ts==='function' ? ts(r.sign) : r.sign);
-                events.push({ day: d, date: date, color: '#ff9f43', icon: r.isStart ? '℞' : 'D', label: lbl, detail: '' });
+                events.push({ day: d, date: date, color: getAstroEventColor('retrograde'), icon: r.isStart ? '℞' : 'D', label: lbl, detail: '' });
             });
         } catch(e) {}
 
@@ -28371,7 +28395,7 @@ function computeMonthAstroEvents(year, month) {
         try {
             var ecl = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
             if (ecl) {
-                events.push({ day: d, date: date, color: '#f5576c', icon: ecl.type === 'solar' ? '🌑' : '🌕',
+                events.push({ day: d, date: date, color: getAstroEventColor('eclipse'), icon: ecl.type === 'solar' ? '🌑' : '🌕',
                     label: (ecl.type === 'solar' ? (L?'Eclipse Solar':'Solar Eclipse') : (L?'Eclipse Lunar':'Lunar Eclipse')), detail: '' });
             }
         } catch(e) {}
@@ -28382,7 +28406,7 @@ function computeMonthAstroEvents(year, month) {
             if (ae) {
                 var lbl = L ? (ae.esName || 'Evento astronómico') : (ae.enName || 'Astronomical event');
                 var tm = ae.date ? ae.date.toLocaleTimeString(L?'es':'en',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
-                events.push({ day: d, date: date, color: '#FFD700', icon: '☀️', label: lbl, detail: tm });
+                events.push({ day: d, date: date, color: getAstroEventColor('astroEvent'), icon: '☀️', label: lbl, detail: tm });
             }
         } catch(e) {}
 
@@ -28396,19 +28420,26 @@ function computeMonthAstroEvents(year, month) {
                 else if (me.type === 'firstQuarter') moonLbl = L?'Cuarto Creciente':'First Quarter';
                 else if (me.type === 'lastQuarter') moonLbl = L?'Cuarto Menguante':'Last Quarter';
                 else moonLbl = me.name || 'Fase Lunar';
-                events.push({ day: d, date: date, color: me.type==='full'?'#FFD700':'#b39ddb',
+                events.push({ day: d, date: date,
+                    color: me.type==='full' ? getAstroEventColor('fullMoon') : getAstroEventColor('moonPhase'),
                     icon: me.type==='full'?'🌕':me.type==='new'?'🌑':me.type==='firstQuarter'?'🌓':'🌗',
                     label: moonLbl, detail: '' });
             }
         } catch(e) {}
 
-        // Aspectos inter-planetarios hardcoded (Saturno/Urano/Neptuno/Plutón mayoritariamente)
+        // Aspectos inter-planetarios — usa color según el TIPO DE ASPECTO (hardcoded + dinámicos)
         try {
             var ipa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
             ipa.forEach(function(a) {
                 var lbl = pName(a.planet1) + ' ' + a.symbol + ' ' + pName(a.planet2);
                 if (a.signs) lbl += ' (' + a.signs + ')';
-                events.push({ day: d, date: date, color: '#7c4dff', icon: '✦', label: lbl, detail: a.aspect || '' });
+                events.push({
+                    day: d, date: date,
+                    color: getAstroEventColor('aspect', a.aspect),
+                    icon: '✦',
+                    label: lbl,
+                    detail: a.aspect || ''
+                });
             });
         } catch(e) {}
 
@@ -28417,7 +28448,7 @@ function computeMonthAstroEvents(year, month) {
             var pats = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
             pats.forEach(function(p) {
                 if (p.type === 'stellium') {
-                    events.push({ day: d, date: date, color: '#FFD700', icon: '★',
+                    events.push({ day: d, date: date, color: getAstroEventColor('stellium'), icon: '★',
                         label: (L?'Stellium en ':'Stellium in ') + (typeof ts==='function' ? ts(p.sign) : p.sign),
                         detail: (p.planets || []).join(', ') });
                 }
@@ -28431,11 +28462,12 @@ function computeMonthAstroEvents(year, month) {
         if (typeof Astronomy !== 'undefined') {
             var planets = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
             var aspectDefs = [
-                { name: L?'conjunción':'conjunction', sym: '☌', deg: 0,   orb: 3, color: '#ff6b6b' },
-                { name: L?'sextil':'sextile',         sym: '⚹', deg: 60,  orb: 2, color: '#4ecdc4' },
-                { name: L?'cuadratura':'square',      sym: '□', deg: 90,  orb: 3, color: '#ff9f43' },
-                { name: L?'trígono':'trine',          sym: '△', deg: 120, orb: 3, color: '#7c4dff' },
-                { name: L?'oposición':'opposition',   sym: '☍', deg: 180, orb: 3, color: '#ee5a6f' }
+                // v749m: colores via helper getAstroEventColor (consistente con hardcoded)
+                { name: L?'conjunción':'conjunction', sym: '☌', deg: 0,   orb: 3, color: getAstroEventColor('aspect', L?'conjunción':'conjunction') },
+                { name: L?'sextil':'sextile',         sym: '⚹', deg: 60,  orb: 2, color: getAstroEventColor('aspect', L?'sextil':'sextile') },
+                { name: L?'cuadratura':'square',      sym: '□', deg: 90,  orb: 3, color: getAstroEventColor('aspect', L?'cuadratura':'square') },
+                { name: L?'trígono':'trine',          sym: '△', deg: 120, orb: 3, color: getAstroEventColor('aspect', L?'trígono':'trine') },
+                { name: L?'oposición':'opposition',   sym: '☍', deg: 180, orb: 3, color: getAstroEventColor('aspect', L?'oposición':'opposition') }
             ];
             // Pre-compute longitudes per day
             var positions = [];
