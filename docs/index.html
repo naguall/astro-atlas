@@ -5708,7 +5708,9 @@ function getPlanetInitial(planetName) {
 }
 
 // v749l: cache de aspectos dinámicos por mes (computeDynamicMonthAspects es caro, ~280 cálculos)
+// v749q: prefijo de versión en el cache para forzar invalidación cuando cambian símbolos
 window._dynAspMonthCache = window._dynAspMonthCache || {};
+window._dynAspCacheVer = 'q'; // bump si cambias símbolos/aspectos
 
 function getInterPlanetaryAspects(date) {
     const aspects = [];
@@ -5729,7 +5731,7 @@ function getInterPlanetaryAspects(date) {
     // v749l: Aspectos dinámicos (Sol/Mercurio/Venus/Marte) computados con astronomy-engine
     // Estos no están en interPlanetaryAspects2026 — por eso antes no aparecían en celdas Lunar/Solar/Greg
     try {
-        var cacheKey = targetYear + '-' + targetMonth;
+        var cacheKey = (window._dynAspCacheVer || 'v0') + '-' + targetYear + '-' + targetMonth;
         if (!window._dynAspMonthCache[cacheKey] && typeof computeDynamicMonthAspects === 'function') {
             window._dynAspMonthCache[cacheKey] = computeDynamicMonthAspects(targetYear, targetMonth);
         }
@@ -28156,12 +28158,13 @@ function computeDynamicMonthAspects(year, month) {
     var planetsAll = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
     // Mapeo a nombres ES para mantener la convención abreviada del resto de la app
     var pNameES = { Sun:'Sol', Mercury:'Mercurio', Venus:'Venus', Mars:'Marte', Jupiter:'Júpiter', Saturn:'Saturno', Uranus:'Urano', Neptune:'Neptuno', Pluto:'Plutón' };
+    // v749q: símbolos astrológicos estándar — antes había 'd' '*' '↔' que no coincidían con los hardcoded
     var aspDefs = [
-        { name: 'conjunción', sym: 'd', deg: 0,   orb: 3 },     // 'd' como en el código existente (conjunción)
-        { name: 'sextil',     sym: '*', deg: 60,  orb: 2 },     // '*' para sextil
-        { name: 'cuadratura', sym: '□', deg: 90,  orb: 3 },     // '□' cuadratura
-        { name: 'trígono',    sym: '△', deg: 120, orb: 3 },     // '△' trígono
-        { name: 'oposición',  sym: '↔', deg: 180, orb: 3 }      // '↔' oposición (ASCII-friendly)
+        { name: 'conjunción', sym: '☌', deg: 0,   orb: 3 },
+        { name: 'sextil',     sym: '⚹', deg: 60,  orb: 2 },
+        { name: 'cuadratura', sym: '□', deg: 90,  orb: 3 },
+        { name: 'trígono',    sym: '△', deg: 120, orb: 3 },
+        { name: 'oposición',  sym: '☍', deg: 180, orb: 3 }
     ];
     var lastDayN = new Date(year, month + 1, 0).getDate();
     var positions = [];
@@ -28453,74 +28456,24 @@ function computeMonthAstroEvents(year, month) {
         } catch(e) {}
     }
 
-    // 2) Aspectos inter-planetarios computados dinámicamente (Sol/Mercurio/Venus/Marte y todos los pares)
-    //    Detectamos el día de orbe MÍNIMO en el mes para cada pair × aspect.
-    try {
-        if (typeof Astronomy !== 'undefined') {
-            var planets = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
-            var aspectDefs = [
-                // v749m: colores via helper getAstroEventColor (consistente con hardcoded)
-                { name: L?'conjunción':'conjunction', sym: '☌', deg: 0,   orb: 3, color: getAstroEventColor('aspect', L?'conjunción':'conjunction') },
-                { name: L?'sextil':'sextile',         sym: '⚹', deg: 60,  orb: 2, color: getAstroEventColor('aspect', L?'sextil':'sextile') },
-                { name: L?'cuadratura':'square',      sym: '□', deg: 90,  orb: 3, color: getAstroEventColor('aspect', L?'cuadratura':'square') },
-                { name: L?'trígono':'trine',          sym: '△', deg: 120, orb: 3, color: getAstroEventColor('aspect', L?'trígono':'trine') },
-                { name: L?'oposición':'opposition',   sym: '☍', deg: 180, orb: 3, color: getAstroEventColor('aspect', L?'oposición':'opposition') }
-            ];
-            // Pre-compute longitudes per day
-            var positions = [];
-            for (var d2 = 1; d2 <= lastDayN; d2++) {
-                var dt = new Date(year, month, d2, 12);
-                var t = Astronomy.MakeTime(dt);
-                var posDay = {};
-                for (var pi = 0; pi < planets.length; pi++) {
-                    try { posDay[planets[pi]] = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[planets[pi]], t, true)).elon; } catch(_e1) {}
-                }
-                positions.push(posDay);
-            }
-            // For each pair × aspect, find min orb day
-            var dynSeen = {}; // de-dupe contra hardcoded
-            for (var i = 0; i < planets.length; i++) {
-                for (var j = i+1; j < planets.length; j++) {
-                    for (var ai = 0; ai < aspectDefs.length; ai++) {
-                        var asp = aspectDefs[ai];
-                        var minOrb = 999, minIdx = -1;
-                        for (var di = 0; di < positions.length; di++) {
-                            var pos = positions[di];
-                            if (pos[planets[i]] === undefined || pos[planets[j]] === undefined) continue;
-                            var diff = Math.abs(pos[planets[i]] - pos[planets[j]]) % 360;
-                            if (diff > 180) diff = 360 - diff;
-                            var orb = Math.abs(diff - asp.deg);
-                            if (orb < minOrb) { minOrb = orb; minIdx = di; }
-                        }
-                        if (minOrb < asp.orb && minIdx >= 0) {
-                            // Check if borders (otherwise could be partial — peak outside month)
-                            // Only register if it's a true local minimum (orb at peak < orb at borders)
-                            if (minIdx === 0 || minIdx === positions.length-1) {
-                                // Skip border peaks — probably the real peak is in adjacent month
-                                continue;
-                            }
-                            var key = (minIdx+1) + '|' + planets[i] + '|' + asp.sym + '|' + planets[j];
-                            if (dynSeen[key]) continue;
-                            dynSeen[key] = 1;
-                            events.push({
-                                day: minIdx + 1,
-                                date: new Date(year, month, minIdx + 1),
-                                color: asp.color,
-                                icon: '✦',
-                                label: pName(planets[i]) + ' ' + asp.sym + ' ' + pName(planets[j]),
-                                detail: asp.name + ' · orbe ' + minOrb.toFixed(1) + '°'
-                            });
-                        }
-                    }
-                }
-            }
-        }
-    } catch(_eAsp) { console.warn('[Astro events] aspect compute:', _eAsp); }
+    // v749q: REMOVIDO el loop duplicado de aspectos dinámicos — getInterPlanetaryAspects() arriba
+    // ya los incluye (vía cache window._dynAspMonthCache). Esto eliminaba los duplicados que se veían:
+    //   "Sol d Mercurio conjunción" + "Sol ☌ Mercurio conjunción · orbe 0.2°"
 
-    // De-duplicate y ordenar por día
+    // De-duplicar por (día + planetas + tipo aspecto) — normaliza para evitar duplicados
+    // entre hardcoded (con signos en label) y dinámico (sin signos)
     var seen = {};
     events = events.filter(function(e) {
-        var k = e.day + '|' + e.label;
+        // Para aspectos: extraer planetas y símbolo para dedup robusto
+        var match = (e.label || '').match(/^([A-ZÁÉÍÓÚÑa-záéíóúñ]+)\s+([☌⚹□△☍✦])\s+([A-ZÁÉÍÓÚÑa-záéíóúñ]+)/);
+        var k;
+        if (match) {
+            // Sort planets para que orden no afecte
+            var pair = [match[1], match[3]].sort().join('|');
+            k = e.day + '|asp|' + match[2] + '|' + pair;
+        } else {
+            k = e.day + '|' + e.label;
+        }
         if (seen[k]) return false;
         seen[k] = 1;
         return true;
