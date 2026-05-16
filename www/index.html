@@ -278,18 +278,7 @@
             box-shadow: 0 0 16px rgba(126,200,255,0.55), inset 0 1px 0 rgba(126,200,255,0.25);
             position: relative;
         }
-        .day-cell.today::after {
-            content: "HOY";
-            position: absolute;
-            top: 1px; right: 4px;
-            font-size: 8px;
-            color: #7ec8ff;
-            font-weight: 700;
-            letter-spacing: 1px;
-            opacity: 0.85;
-            pointer-events: none;
-        }
-        body.lang-en .day-cell.today::after { content: "TODAY"; }
+        /* v749u: removido label "HOY" del cell (se solapaba con la fecha). El glow celeste indica HOY. */
         .day-cell.weekend {
             background: rgba(25,20,8,0.95);
             border-color: rgba(201,168,64,0.35);
@@ -24008,7 +23997,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${currentLang==='es'?'Calend':'Calend'}</span><span class="subtab-full">${currentLang==='es'?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${currentLang==='es'?'Hoy':'Today'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${currentLang==='es'?'Mapa':'Map'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${currentLang==='es'?'Ciclos':'Cycles'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)"><span class="subtab-short">${currentLang==='es'?'Ciclos':'Cycles'}</span><span class="subtab-full">${currentLang==='es'?'Ciclos Personales 2026':'Personal Cycles 2026'}</span></button>
         </div>
         <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;"></div>
         <div id="natalGroupRelaciones" class="natal-subtabs" style="display:none;">
@@ -28231,7 +28220,8 @@ function interpretMonthByFortnights(year, month) {
         ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
         : ['January','February','March','April','May','June','July','August','September','October','November','December'];
     var monthLabel = monthNamesL[month] + ' ' + year;
-    titleEl.textContent = (L ? '✦ Interpretación de ' : '✦ Interpretation of ') + monthLabel;
+    // v749u: título corto para que entre en 1 línea (antes "Interpretación de Junio 2026" se cortaba)
+    titleEl.textContent = '✦ ' + monthLabel;
 
     // Reset estado modal (mismo fix que aspectos)
     modal.classList.remove('show');
@@ -28261,23 +28251,23 @@ function interpretMonthByFortnights(year, month) {
 
     // Construir HTML con 2 secciones
     var html = '<div style="margin-bottom:14px;font-size:0.85em;color:rgba(255,255,255,0.55);">'
-        + (L ? 'Mes completo dividido en dos quincenas. Cada interpretación toma los aspectos planetarios, retrógrados, cambios de signo, lunas y eventos relevantes de ese período.' : 'Full month divided in two fortnights. Each interpretation uses planetary aspects, retrogrades, sign changes, lunations and relevant events of that period.')
+        + (L ? 'Mes completo dividido en 2 quincenas.' : 'Full month divided into 2 fortnights.')
         + '</div>';
 
     // Quincena 1
     html += '<div style="border:1px solid rgba(126,200,255,0.25);border-radius:8px;padding:12px;margin-bottom:14px;background:rgba(126,200,255,0.04);">';
-    html += '<h3 style="margin:0 0 8px 0;color:#7ec8ff;font-family:\'Cinzel\',serif;letter-spacing:1.5px;font-size:1em;">'
-         + (L ? '⏵ Primera quincena · 1–15 ' : '⏵ First fortnight · 1–15 ')
-         + monthNamesL[month] + '</h3>';
+    html += '<h3 style="margin:0 0 8px 0;color:#7ec8ff;font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">'
+         + (L ? '⏵ Quincena 1' : '⏵ Fortnight 1')
+         + '</h3>';
     html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q1Events) + '</div>';
     html += '<div style="border-top:1px solid rgba(126,200,255,0.20);padding-top:10px;"><div style="font-size:0.75em;color:#7ec8ff;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiQ1InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
     html += '</div>';
 
     // Quincena 2
     html += '<div style="border:1px solid rgba(232,200,74,0.25);border-radius:8px;padding:12px;background:rgba(232,200,74,0.04);">';
-    html += '<h3 style="margin:0 0 8px 0;color:#e8c84a;font-family:\'Cinzel\',serif;letter-spacing:1.5px;font-size:1em;">'
-         + (L ? '⏵ Segunda quincena · 16–' : '⏵ Second fortnight · 16–')
-         + lastDayN + ' ' + monthNamesL[month] + '</h3>';
+    html += '<h3 style="margin:0 0 8px 0;color:#e8c84a;font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">'
+         + (L ? '⏵ Quincena 2' : '⏵ Fortnight 2')
+         + '</h3>';
     html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q2Events) + '</div>';
     html += '<div style="border-top:1px solid rgba(232,200,74,0.20);padding-top:10px;"><div style="font-size:0.75em;color:#e8c84a;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiQ2InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
     html += '</div>';
@@ -28331,6 +28321,152 @@ function interpretMonthByFortnights(year, month) {
     }, 250);
 }
 window.interpretMonthByFortnights = interpretMonthByFortnights;
+
+// v749u: Interpretar todo el ciclo lunar (de luna nueva a luna nueva siguiente)
+function interpretLunarCycle(today, weeks) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+    var L = currentLang === 'es';
+
+    // Reset modal estado
+    modal.classList.remove('show'); modal.style.display = 'none'; void modal.offsetWidth; modal.style.display = '';
+
+    // Rango del ciclo
+    var startDate = weeks && weeks[0] && weeks[0].days && weeks[0].days[0] ? weeks[0].days[0].date : today;
+    var lastWeek = weeks && weeks[weeks.length - 1];
+    var endDate = lastWeek && lastWeek.days && lastWeek.days[lastWeek.days.length - 1] ? lastWeek.days[lastWeek.days.length - 1].date : today;
+    var fmt = function(d) { return d.getDate() + ' ' + (L?'de ':'')  + (L ? ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][d.getMonth()] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]); };
+    titleEl.textContent = '☽ ' + (L?'Ciclo lunar':'Lunar cycle');
+
+    // Listar eventos astrológicos del ciclo
+    var allEvents = [];
+    weeks.forEach(function(w) {
+        if (w.days) w.days.forEach(function(day) {
+            var d = day.date;
+            try {
+                var ipa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(d) : [];
+                ipa.forEach(function(a){ allEvents.push(d.getDate() + '/' + (d.getMonth()+1) + ': ' + a.planet1 + ' ' + a.symbol + ' ' + a.planet2 + (a.aspect?' ('+a.aspect+')':'')); });
+            } catch(e){}
+            try {
+                var sc = (typeof getSignChanges === 'function') ? getSignChanges(d) : [];
+                sc.forEach(function(c){ allEvents.push(d.getDate() + '/' + (d.getMonth()+1) + ': ' + c.planet + ' → ' + c.toSign); });
+            } catch(e){}
+            try {
+                var rt = (typeof getRetrogrades === 'function') ? getRetrogrades(d) : [];
+                rt.forEach(function(r){ allEvents.push(d.getDate() + '/' + (d.getMonth()+1) + ': ' + r.planet + (r.isStart?' ℞':' D')); });
+            } catch(e){}
+            try {
+                var me = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(d) : null;
+                if (me) allEvents.push(d.getDate() + '/' + (d.getMonth()+1) + ': ' + (me.type==='new'?'🌑 Luna Nueva':me.type==='full'?'🌕 Luna Llena':'🌓 Cuarto'));
+            } catch(e){}
+        });
+    });
+
+    var html = '<div style="margin-bottom:12px;font-size:0.85em;color:rgba(255,255,255,0.6);">'
+        + (L ? 'Ciclo lunar completo' : 'Full lunar cycle') + ' &middot; ' + fmt(startDate) + ' — ' + fmt(endDate)
+        + '</div>';
+    html += '<div style="border:1px solid rgba(126,200,255,0.25);border-radius:8px;padding:12px;background:rgba(126,200,255,0.04);">';
+    html += '<h3 style="margin:0 0 8px 0;color:#7ec8ff;font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">☽ ' + (L?'Interpretación del ciclo':'Cycle interpretation') + '</h3>';
+    html += '<div id="aiLunarCycleInterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div>';
+    html += '</div>';
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Natal context
+    var natalCtx = '';
+    try {
+        var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+        if (ns) {
+            if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+            if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+            if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+        }
+    } catch(e) {}
+
+    var prompt = L
+        ? 'Interpretá el ciclo lunar completo de ' + fmt(startDate) + ' a ' + fmt(endDate) + ' como una narrativa integrada (no listado evento por evento). '
+            + 'Describí el arco emocional/energético del mes lunar, las fases y los temas que se activan en cada momento.\n\n'
+            + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
+            + 'EVENTOS DEL CICLO:\n' + (allEvents.length ? allEvents.join('\n') : '(sin eventos mayores)')
+        : 'Interpret the full lunar cycle from ' + fmt(startDate) + ' to ' + fmt(endDate) + ' as an integrated narrative (not a list). '
+            + 'Describe the emotional/energetic arc of the lunar month, phases and themes activated at each moment.\n\n'
+            + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
+            + 'CYCLE EVENTS:\n' + (allEvents.length ? allEvents.join('\n') : '(no major events)');
+
+    var readingTitle = (L?'Ciclo lunar — ':'Lunar cycle — ') + fmt(startDate) + ' / ' + fmt(endDate);
+    setTimeout(function() {
+        if (typeof fetchAIInterpretation === 'function') fetchAIInterpretation(prompt, 'aiLunarCycleInterpDiv', readingTitle);
+    }, 100);
+}
+window.interpretLunarCycle = interpretLunarCycle;
+
+// v749u: Interpretar todo el mes solar (signo zodiacal completo)
+function interpretSolarSign(signObj) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+    var L = currentLang === 'es';
+    modal.classList.remove('show'); modal.style.display = 'none'; void modal.offsetWidth; modal.style.display = '';
+
+    var signStart = signObj && signObj.start ? new Date(signObj.start) : new Date();
+    var signEnd = signObj && signObj.end ? new Date(signObj.end) : new Date();
+    var signName = signObj && signObj.name ? signObj.name : (L?'Signo':'Sign');
+    var fmt = function(d) { return d.getDate() + '/' + (d.getMonth()+1); };
+    titleEl.textContent = '☉ ' + signName;
+
+    // Recolectar eventos del rango
+    var allEvents = [];
+    for (var d = new Date(signStart); d <= signEnd; d.setDate(d.getDate()+1)) {
+        var dCopy = new Date(d);
+        try {
+            var ipa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(dCopy) : [];
+            ipa.forEach(function(a){ allEvents.push(dCopy.getDate() + '/' + (dCopy.getMonth()+1) + ': ' + a.planet1 + ' ' + a.symbol + ' ' + a.planet2 + (a.aspect?' ('+a.aspect+')':'')); });
+        } catch(e){}
+        try {
+            var sc = (typeof getSignChanges === 'function') ? getSignChanges(dCopy) : [];
+            sc.forEach(function(c){ allEvents.push(dCopy.getDate() + '/' + (dCopy.getMonth()+1) + ': ' + c.planet + ' → ' + c.toSign); });
+        } catch(e){}
+    }
+
+    var html = '<div style="margin-bottom:12px;font-size:0.85em;color:rgba(255,255,255,0.6);">'
+        + (L ? 'Mes solar completo' : 'Full solar month') + ' &middot; ' + fmt(signStart) + ' — ' + fmt(signEnd)
+        + '</div>';
+    html += '<div style="border:1px solid rgba(255,149,0,0.25);border-radius:8px;padding:12px;background:rgba(255,149,0,0.04);">';
+    html += '<h3 style="margin:0 0 8px 0;color:#ff9500;font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">☉ ' + (L?'Interpretación de':'Interpretation of') + ' ' + signName + '</h3>';
+    html += '<div id="aiSolarSignInterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div>';
+    html += '</div>';
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var natalCtx = '';
+    try {
+        var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+        if (ns) {
+            if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+            if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+            if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+        }
+    } catch(e) {}
+
+    var prompt = L
+        ? 'Interpretá el mes solar de ' + signName + ' (' + fmt(signStart) + ' a ' + fmt(signEnd) + ') como una narrativa integrada. '
+            + 'Describí los temas dominantes del signo, qué áreas se activan y consejos para fluir con la energía.\n\n'
+            + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
+            + 'EVENTOS DEL MES:\n' + (allEvents.length ? allEvents.join('\n') : '(sin eventos mayores)')
+        : 'Interpret the solar month of ' + signName + ' (' + fmt(signStart) + ' to ' + fmt(signEnd) + ') as an integrated narrative. '
+            + 'Describe the dominant themes of the sign, what areas activate and advice to flow with the energy.\n\n'
+            + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
+            + 'MONTH EVENTS:\n' + (allEvents.length ? allEvents.join('\n') : '(no major events)');
+
+    var readingTitle = (L?'Mes solar ':'Solar month ') + signName;
+    setTimeout(function() {
+        if (typeof fetchAIInterpretation === 'function') fetchAIInterpretation(prompt, 'aiSolarSignInterpDiv', readingTitle);
+    }, 100);
+}
+window.interpretSolarSign = interpretSolarSign;
 
 // v749m: paleta unificada para los eventos astrológicos del mes (sin colisiones)
 // Tipos de aspecto siguen convención clásica: cálidos = duros, fríos = suaves
@@ -28521,6 +28657,20 @@ function renderSolarCalendar() {
 
     // Generate solar calendar
     solarWeeks.innerHTML = generateSolarWeeks(sign);
+
+    // v749u: botón "Interpretar mes solar" debajo de la grilla
+    try {
+        var _Lsi = (typeof currentLang !== 'undefined' && currentLang === 'es');
+        var _btnSi = document.createElement('div');
+        _btnSi.style.cssText = 'margin:14px 0 6px;padding:10px 14px;background:rgba(255,149,0,0.10);border:1px solid rgba(255,149,0,0.30);border-radius:8px;color:#ff9500;text-align:center;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.15s;';
+        _btnSi.innerHTML = '☉ ' + (_Lsi ? 'Interpretar ' + sign.name : 'Interpret ' + sign.name);
+        _btnSi.setAttribute('onmouseover', "this.style.background='rgba(255,149,0,0.18)'");
+        _btnSi.setAttribute('onmouseout', "this.style.background='rgba(255,149,0,0.10)'");
+        _btnSi.onclick = function() {
+            if (typeof interpretSolarSign === 'function') interpretSolarSign(sign);
+        };
+        solarWeeks.appendChild(_btnSi);
+    } catch(_eBtnS) { console.warn('[Solar] interpret btn:', _eBtnS); }
 
     // Update currentDayInfo to show solar data instead of lunar
     updateCurrentDayInfoForMode('solar');
@@ -31070,6 +31220,20 @@ function renderCalendar() {
     // Swap: clear and append fragment in one go (single repaint — no Samsung flicker)
     container.innerHTML = '';
     container.appendChild(_fragment);
+
+    // v749u: botón "Interpretar ciclo lunar" debajo de la grilla
+    try {
+        var _Lci = (typeof currentLang !== 'undefined' && currentLang === 'es');
+        var _btnLci = document.createElement('div');
+        _btnLci.style.cssText = 'margin:14px 0 6px;padding:10px 14px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:8px;color:#7ec8ff;text-align:center;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.15s;';
+        _btnLci.innerHTML = '✦ ' + (_Lci ? 'Interpretar ciclo lunar' : 'Interpret lunar cycle');
+        _btnLci.setAttribute('onmouseover', "this.style.background='rgba(126,200,255,0.18)'");
+        _btnLci.setAttribute('onmouseout', "this.style.background='rgba(126,200,255,0.10)'");
+        _btnLci.onclick = function() {
+            if (typeof interpretLunarCycle === 'function') interpretLunarCycle(today, weeks);
+        };
+        container.appendChild(_btnLci);
+    } catch(_eBtnL) { console.warn('[Lunar] interpret btn:', _eBtnL); }
 
     // v743: Auto-scroll removido — el usuario pidió que al entrar al tab Lunar NO haga scroll
     // automático hacia la semana de hoy. (Antes v645 lo hacía con scrollIntoView smooth.)
