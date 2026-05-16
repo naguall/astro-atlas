@@ -619,21 +619,6 @@
             header > div.mode-btns { flex-direction: row !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
             #notificationBtn, #langES, #langEN { font-size: 1em !important; padding: 4px 8px !important; }
             
-            /* v749r: en mobile, eventos del día en Gregoriano hacen wrap a 2 líneas
-               (las celdas son angostas por 7 columnas — antes el título se cortaba a 1-2 caracteres) */
-            #gregorianCalendar .day-event-item {
-                white-space: normal !important;
-                font-size: 0.7em !important;
-                line-height: 1.05 !important;
-                padding: 1px 3px !important;
-                display: -webkit-box !important;
-                -webkit-line-clamp: 2 !important;
-                -webkit-box-orient: vertical !important;
-                overflow: hidden !important;
-                text-overflow: clip !important;
-                word-break: break-word !important;
-            }
-
             /* ── Modals: full width ── */
             .modal-content {
                 width: 96% !important;
@@ -28058,7 +28043,9 @@ function generateGregorianMonth() {
         html += '<div class="day-content" style="font-size: 0.7em; display: flex; flex-direction: row; gap: 4px; justify-content: space-between;">';
         
         // Left: Events
-        html += '<div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;">';
+        // v749s: align-items:flex-start permite que el texto del evento se desborde de la columna
+        // hacia la derecha (igual que en Lunar/Solar) en vez de quedar atrapado en columna angosta.
+        html += '<div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; align-items: flex-start;">';
         if (events && events.length > 0) {
             events.slice(0,2).forEach(evt => {
                 html += `<div class="day-event-item type-${evt.type}">${evt.title}</div>`;
