@@ -10116,15 +10116,70 @@ function openSavedReadingsModal(tab) {
     var html = '';
 
     // Tab buttons
+    // v749g: agregado tab "Eventos" PRIMERO (eventos astrológicos del año por mes)
+    var eventosActive = activeTab === 'eventos';
     var lecturasActive = activeTab === 'lecturas';
     var diarioActive = activeTab === 'diario';
-    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);">';
-    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Interpretaciones' : 'Interpretations') + ' (' + readings.length + ')</button>';
     var diarioPersonalActive = activeTab === 'diario' || activeTab === 'diario-personal';
     var diarioSuenosActive = activeTab === 'diario-suenos';
     var anyDiarioActive = diarioPersonalActive || diarioSuenosActive;
+    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);">';
+    html += '<button onclick="openSavedReadingsModal(\'eventos\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (eventosActive ? '#7ec8ff' : 'transparent') + ';background:' + (eventosActive ? 'rgba(126,200,255,0.1)' : 'transparent') + ';color:' + (eventosActive ? '#7ec8ff' : 'rgba(255,255,255,0.4)') + ';">📅 ' + (L ? 'Eventos' : 'Events') + '</button>';
+    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Interpretaciones' : 'Interpretations') + ' (' + readings.length + ')</button>';
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (anyDiarioActive ? '#9b59b6' : 'transparent') + ';background:' + (anyDiarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (anyDiarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diarios' : 'Diaries') + '</button>';
     html += '</div>';
+
+    // v749g: contenido del tab Eventos — todos los eventos astrológicos del año por mes
+    if (eventosActive) {
+        var currentYear = (typeof currentGregorianYear !== 'undefined') ? currentGregorianYear : new Date().getFullYear();
+        var mNamesG = L
+            ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+            : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        html += '<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+        html += '<div style="font-size:0.95em;color:#7ec8ff;font-weight:600;">✦ ' + (L?'Eventos astrológicos':'Astrological events') + ' ' + currentYear + '</div>';
+        html += '<div style="display:flex;gap:6px;align-items:center;">';
+        html += '<button onclick="openSavedReadingsModal(\'eventos\');setTimeout(function(){window._evtModalYear=' + (currentYear-1) + ';openSavedReadingsModal(\'eventos\');},10)" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">←</button>';
+        html += '<span style="font-size:0.85em;color:rgba(255,255,255,0.5);">' + (window._evtModalYear || currentYear) + '</span>';
+        html += '<button onclick="window._evtModalYear=' + ((window._evtModalYear || currentYear)+1) + ';openSavedReadingsModal(\'eventos\')" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">→</button>';
+        html += '</div></div>';
+        var renderYear = window._evtModalYear || currentYear;
+        var totalAllYear = 0;
+        var monthsHtml = '';
+        for (var mi = 0; mi < 12; mi++) {
+            var mEvents = (typeof computeMonthAstroEvents === 'function') ? computeMonthAstroEvents(renderYear, mi) : [];
+            totalAllYear += mEvents.length;
+            var monthLabel = mNamesG[mi];
+            var isExpanded = (mi === new Date().getMonth() && renderYear === new Date().getFullYear()); // expandido por defecto el mes actual
+            var detailId = 'evtMonth_' + renderYear + '_' + mi;
+            monthsHtml += '<div style="margin-bottom:6px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.18);border-radius:8px;overflow:hidden;">';
+            monthsHtml += '<div onclick="(function(){var el=document.getElementById(\'' + detailId + '\');var arr=document.getElementById(\'' + detailId + '_arr\');var open=el.style.display!==\'none\';el.style.display=open?\'none\':\'block\';arr.textContent=open?\'▸\':\'▾\';})()" style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600;color:#c9a840;">';
+            monthsHtml += '<span><span id="' + detailId + '_arr" style="display:inline-block;width:14px;color:rgba(201,168,64,0.7);">' + (isExpanded?'▾':'▸') + '</span> ' + monthLabel + ' ' + renderYear + '</span>';
+            monthsHtml += '<span style="font-size:0.78em;color:rgba(201,168,64,0.65);font-weight:500;">' + mEvents.length + '</span>';
+            monthsHtml += '</div>';
+            monthsHtml += '<div id="' + detailId + '" style="display:' + (isExpanded?'block':'none') + ';padding:0 10px 10px 10px;">';
+            if (mEvents.length === 0) {
+                monthsHtml += '<div style="font-style:italic;color:rgba(255,255,255,0.4);font-size:0.82em;padding:6px 0;">' + (L?'Sin eventos en este mes':'No events in this month') + '</div>';
+            } else {
+                mEvents.forEach(function(e) {
+                    var dayOfWeek2 = e.date.toLocaleDateString(L?'es':'en', { weekday: 'short' });
+                    var clickTxt = (e.label || '').replace(/'/g, "\\'").replace(/"/g, '');
+                    monthsHtml += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="display:flex;align-items:center;gap:8px;padding:5px 8px;margin-top:4px;background:rgba(0,0,0,0.25);border-radius:5px;border-left:3px solid ' + e.color + ';font-size:0.8em;cursor:pointer;">';
+                    monthsHtml += '<span style="font-weight:700;color:' + e.color + ';min-width:50px;">' + String(e.day).padStart(2,'0') + ' ' + dayOfWeek2.substring(0,3) + '</span>';
+                    monthsHtml += '<span style="flex:1;color:rgba(255,255,255,0.88);">' + (e.icon||'✦') + ' ' + e.label + '</span>';
+                    if (e.detail) monthsHtml += '<span style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + e.detail + '</span>';
+                    monthsHtml += '</div>';
+                });
+                monthsHtml += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,168,64,0.20);">';
+                monthsHtml += '<div onclick="interpretMonthByFortnights(' + renderYear + ',' + mi + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:6px 10px;background:rgba(201,168,64,0.10);border-radius:5px;border:1px solid rgba(201,168,64,0.30);font-size:0.78em;font-weight:600;">';
+                monthsHtml += '✦ ' + (L?'Interpretar ':'Interpret ') + monthLabel + ' (2 ' + (L?'quincenas':'fortnights') + ')';
+                monthsHtml += '</div></div>';
+            }
+            monthsHtml += '</div></div>';
+        }
+        html += '<div style="margin-bottom:10px;font-size:0.78em;color:rgba(255,255,255,0.45);">' + totalAllYear + ' ' + (L?'eventos en':'events in') + ' ' + renderYear + ' &middot; ' + (L?'tocá cada mes para expandir':'tap each month to expand') + '</div>';
+        html += '<div style="max-height:60vh;overflow-y:auto;padding-right:4px;">' + monthsHtml + '</div>';
+    }
+    else
 
     if (lecturasActive) {
         if (readings.length === 0) {
@@ -27996,6 +28051,12 @@ function generateGregorianMonth() {
             html += '</div>';
         });
         html += '</div>';
+        // v749f: Botón "Interpretar todo el mes" dividido en 2 quincenas
+        var _monthLbl = monthNamesG[currentGregorianMonth] + ' ' + currentGregorianYear;
+        html += '<div style="margin-top:10px;border-top:1px solid rgba(201,168,64,0.22);padding-top:10px;">';
+        html += '<div onclick="interpretMonthByFortnights(' + currentGregorianYear + ',' + currentGregorianMonth + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:8px 12px;background:rgba(201,168,64,0.10);border-radius:6px;border:1px solid rgba(201,168,64,0.35);font-size:0.85em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">';
+        html += '✦ ' + (currentLang === 'es' ? 'Interpretar todo ' + _monthLbl + ' (2 quincenas)' : 'Interpret all of ' + _monthLbl + ' (2 fortnights)');
+        html += '</div></div>';
     } else {
         html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos astrológicos este mes' : 'No astrological events this month') + '</div>';
     }
@@ -28003,6 +28064,119 @@ function generateGregorianMonth() {
 
     return html;
 }
+
+// v749f: Interpretar todo el mes dividido en 2 quincenas (1-15 y 16-fin)
+// Abre el modal natalDetailModal con 2 secciones, cada una con su prompt AI independiente
+function interpretMonthByFortnights(year, month) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) { console.error('[interpretMonthByFortnights] modal not found'); return; }
+    var L = currentLang === 'es';
+    var monthNamesL = L
+        ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthLabel = monthNamesL[month] + ' ' + year;
+    titleEl.textContent = (L ? '✦ Interpretación de ' : '✦ Interpretation of ') + monthLabel;
+
+    // Reset estado modal (mismo fix que aspectos)
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    void modal.offsetWidth;
+    modal.style.display = '';
+
+    // Computar todos los eventos del mes
+    var allEvents = (typeof computeMonthAstroEvents === 'function') ? computeMonthAstroEvents(year, month) : [];
+    var lastDayN = new Date(year, month + 1, 0).getDate();
+    var midDay = 15; // quincena 1 = días 1-15, quincena 2 = días 16-fin
+
+    function eventsInRange(fromD, toD) {
+        return allEvents.filter(function(e) { return e.day >= fromD && e.day <= toD; });
+    }
+
+    var q1Events = eventsInRange(1, midDay);
+    var q2Events = eventsInRange(midDay + 1, lastDayN);
+
+    function buildEventListHtml(events) {
+        if (!events.length) return '<div style="font-style:italic;color:rgba(255,255,255,0.45);padding:6px 0;">' + (L?'Sin eventos':'No events') + '</div>';
+        return events.map(function(e) {
+            var prefix = String(e.day).padStart(2,'0');
+            return '<div style="font-size:0.85em;padding:5px 8px;margin-bottom:3px;background:rgba(0,0,0,0.25);border-left:3px solid ' + e.color + ';border-radius:4px;color:rgba(255,255,255,0.85);"><b style="color:' + e.color + ';">' + prefix + '</b> &middot; ' + (e.icon||'✦') + ' ' + e.label + (e.detail ? ' <span style="opacity:0.6;font-size:0.85em;">· ' + e.detail + '</span>' : '') + '</div>';
+        }).join('');
+    }
+
+    // Construir HTML con 2 secciones
+    var html = '<div style="margin-bottom:14px;font-size:0.85em;color:rgba(255,255,255,0.55);">'
+        + (L ? 'Mes completo dividido en dos quincenas. Cada interpretación toma los aspectos planetarios, retrógrados, cambios de signo, lunas y eventos relevantes de ese período.' : 'Full month divided in two fortnights. Each interpretation uses planetary aspects, retrogrades, sign changes, lunations and relevant events of that period.')
+        + '</div>';
+
+    // Quincena 1
+    html += '<div style="border:1px solid rgba(126,200,255,0.25);border-radius:8px;padding:12px;margin-bottom:14px;background:rgba(126,200,255,0.04);">';
+    html += '<h3 style="margin:0 0 8px 0;color:#7ec8ff;font-family:\'Cinzel\',serif;letter-spacing:1.5px;font-size:1em;">'
+         + (L ? '⏵ Primera quincena · 1–15 ' : '⏵ First fortnight · 1–15 ')
+         + monthNamesL[month] + '</h3>';
+    html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q1Events) + '</div>';
+    html += '<div style="border-top:1px solid rgba(126,200,255,0.20);padding-top:10px;"><div style="font-size:0.75em;color:#7ec8ff;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiQ1InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
+    html += '</div>';
+
+    // Quincena 2
+    html += '<div style="border:1px solid rgba(232,200,74,0.25);border-radius:8px;padding:12px;background:rgba(232,200,74,0.04);">';
+    html += '<h3 style="margin:0 0 8px 0;color:#e8c84a;font-family:\'Cinzel\',serif;letter-spacing:1.5px;font-size:1em;">'
+         + (L ? '⏵ Segunda quincena · 16–' : '⏵ Second fortnight · 16–')
+         + lastDayN + ' ' + monthNamesL[month] + '</h3>';
+    html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q2Events) + '</div>';
+    html += '<div style="border-top:1px solid rgba(232,200,74,0.20);padding-top:10px;"><div style="font-size:0.75em;color:#e8c84a;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiQ2InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
+    html += '</div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Construir prompts AI por quincena
+    function eventsToText(events) {
+        return events.map(function(e) {
+            return String(e.day).padStart(2,'0') + ' ' + monthNamesL[month] + ': ' + e.label + (e.detail ? ' (' + e.detail + ')' : '');
+        }).join('\n');
+    }
+
+    // Carta natal context (si está guardada)
+    var natalCtx = '';
+    try {
+        var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+        if (ns) {
+            if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+            if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+            if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+        }
+    } catch(_eN) {}
+
+    function buildPrompt(q, fromDay, toDay, events) {
+        var range = String(fromDay).padStart(2,'0') + '–' + String(toDay).padStart(2,'0') + ' ' + monthNamesL[month] + ' ' + year;
+        if (L) {
+            return 'Interpreta la ' + (q===1?'PRIMERA QUINCENA':'SEGUNDA QUINCENA') + ' (' + range + ') como un panorama astrológico integrado. '
+                 + 'Da una visión narrativa de las energías dominantes, los temas centrales que se activan, los días clave y consejos prácticos.\n\n'
+                 + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
+                 + 'EVENTOS DEL PERÍODO:\n' + (events.length ? eventsToText(events) : '(sin eventos mayores en este período — describe igual la energía general)') + '\n\n'
+                 + 'Mantenelo conciso, claro y aplicable al día a día. No listes evento por evento; tejé una narrativa.';
+        } else {
+            return 'Interpret the ' + (q===1?'FIRST FORTNIGHT':'SECOND FORTNIGHT') + ' (' + range + ') as an integrated astrological landscape. '
+                 + 'Give a narrative view of the dominant energies, the central themes activated, the key days and practical advice.\n\n'
+                 + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
+                 + 'EVENTS OF THE PERIOD:\n' + (events.length ? eventsToText(events) : '(no major events in this period — describe general energy anyway)') + '\n\n'
+                 + 'Keep it concise, clear and applicable to daily life. Don\'t list event by event; weave a narrative.';
+        }
+    }
+
+    var titleQ1 = (L?'Quincena 1':'Fortnight 1') + ' — ' + monthLabel;
+    var titleQ2 = (L?'Quincena 2':'Fortnight 2') + ' — ' + monthLabel;
+
+    setTimeout(function() {
+        fetchAIInterpretation(buildPrompt(1, 1, midDay, q1Events), 'aiQ1InterpDiv', titleQ1);
+    }, 100);
+    setTimeout(function() {
+        fetchAIInterpretation(buildPrompt(2, midDay + 1, lastDayN, q2Events), 'aiQ2InterpDiv', titleQ2);
+    }, 250);
+}
+window.interpretMonthByFortnights = interpretMonthByFortnights;
 
 // v749e: Computar todos los eventos astrológicos del mes
 // (incluye aspectos Sol/Mercurio/Venus/Marte computados dinámicamente con astronomy-engine,
