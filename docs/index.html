@@ -30836,7 +30836,8 @@ function renderCalendar() {
     // Mostrar título "Hoy" siempre (incluso si no se encuentra, mostrar info básica)
     if (currentDayInCycle) {
         // Determinar qué información mostrar según el modo de calendario
-        let displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
+        // v749w: en banner del banner HOY el titulo dice solo "Aspectos" (no "Aspectos de Hoy") para no ser redundante
+        let displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
         let displayEmoji = '';
         let displayDay = '';
         let displayInfo = '';
@@ -30848,8 +30849,9 @@ function renderCalendar() {
             const moonLongitude = getMoonPosition(today);
             const moonSignData = getZodiacSignWithDegree(moonLongitude);
             const moonSign = moonSignData.formatted;
-            displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
-            displayEmoji = emoji;
+            // v749w: titulo en lunar solo "Aspectos" (no "Aspectos de Hoy")
+            displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
+            displayEmoji = ''; // v749w: sin icono de luna celeste — el banner ya es de HOY, no hace falta
             displayDay = currentDayInCycle.lunarDay;
             displayInfo = formatDate(_thisNM) + ' - ' + formatDate(_nmEndDisplay) + ' · ' + cycleTotalDays + ' días';
         } else if (calendarMode === 'solar') {
@@ -30925,10 +30927,36 @@ function renderCalendar() {
         const todayDynamicPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(today) : [];
         const todayDynamicStellium = todayDynamicPatterns.find(function(p) { return p.type === 'stellium'; });
 
+        // v749w: agregar moonEvent (Luna Nueva/Llena/Cuartos) — antes no aparecía en banner Lunar
+        // pero sí en Solar/Gregoriano. Ahora consistente en los 3 calendarios.
+        let _todayMoonEventBanner = null;
+        try {
+            const _mevB = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(today) : null;
+            if (_mevB) {
+                let _bnName = '';
+                let _bnIcon = '';
+                let _bnColor = '';
+                if (_mevB.type === 'new') { _bnName = currentLang==='es'?'Luna Nueva':'New Moon'; _bnIcon = '🌑'; _bnColor = '#a8b2d1'; }
+                else if (_mevB.type === 'full') { _bnName = currentLang==='es'?'Luna Llena':'Full Moon'; _bnIcon = '🌕'; _bnColor = '#FFD700'; }
+                else if (_mevB.type === 'firstQuarter') { _bnName = currentLang==='es'?'Cuarto Creciente':'First Quarter'; _bnIcon = '🌓'; _bnColor = '#7ec8ff'; }
+                else if (_mevB.type === 'lastQuarter') { _bnName = currentLang==='es'?'Cuarto Menguante':'Last Quarter'; _bnIcon = '🌗'; _bnColor = '#a8b2d1'; }
+                else { _bnName = _mevB.name || 'Fase Lunar'; _bnIcon = _mevB.icon || '☽'; _bnColor = '#a8b2d1'; }
+                let _bnSign = '';
+                try {
+                    const _moonLonBn = (typeof getMoonPosition === 'function') ? getMoonPosition(today) : null;
+                    if (_moonLonBn !== null && typeof getZodiacSignFromLongitude === 'function') {
+                        _bnSign = getZodiacSignFromLongitude(_moonLonBn) || '';
+                    }
+                } catch(_eSign) {}
+                _todayMoonEventBanner = { name: _bnName, icon: _bnIcon, color: _bnColor, sign: _bnSign };
+            }
+        } catch(_eMev) { console.warn('[Lunar banner] moonEvent compute:', _eMev); }
+
         // Combinar TODOS los eventos planetarios del día — orden: eclipses, equinoccios, stelliums, cambios signo, retrógrados, aspectos
         const allPlanetaryEvents = [
             ...(todayEclipse2 ? [{ type: 'eclipse', data: todayEclipse2 }] : []),
             ...(todayAstroEvent2 ? [{ type: 'astroEvent', data: todayAstroEvent2 }] : []),
+            ...(_todayMoonEventBanner ? [{ type: 'moonPhase', data: _todayMoonEventBanner }] : []),
             ...(todayStellium2 ? [{ type: 'stellium', data: todayStellium2 }] : (todayDynamicStellium ? [{ type: 'stellium', data: { sign: todayDynamicStellium.sign, planets: todayDynamicStellium.planets } }] : [])),
             ...todaySignChanges.map(ch => ({ type: 'signChange', data: ch })),
             ...todayRetrogrades.map(ret => ({ type: 'retrograde', data: ret })),
@@ -31004,13 +31032,17 @@ function renderCalendar() {
                 <!-- Luna/Sol/Info Hoy -->
                 <div style="background: ${bannerAspBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor}44; border-top: 2px solid ${bannerAspColor}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
-                        <span style="font-size: 1em;">${calendarMode === 'lunar' ? '☽' : calendarMode === 'solar' ? '☉' : '📅'}</span>
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
                     </div>
                     ${allPlanetaryEvents.length > 0 ? `
                     <div style="display:flex;flex-direction:column;gap:2px;align-items:center;max-height:52px;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
                         ${allPlanetaryEvents.slice(0, 8).map(event => {
-                            if (event.type === 'eclipse') {
+                            if (event.type === 'moonPhase') {
+                                // v749w: render Luna Nueva/Llena/Cuartos en banner Lunar (antes solo Solar/Greg)
+                                const mp = event.data;
+                                const mpText = (mp.icon + ' ' + mp.name + (mp.sign ? (currentLang==='es' ? ' en ' : ' in ') + mp.sign : '')).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${mpText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(168,178,209,0.15);border-radius:4px;border-left:2px solid ${mp.color};font-weight:bold;text-align:center;width:100%;cursor:pointer;">${mp.icon} ${mp.name}${mp.sign?' · '+mp.sign:''}</div>`;
+                            } else if (event.type === 'eclipse') {
                                 const ecl = event.data;
                                 const eclText = (ecl.type || 'Eclipse').replace(/'/g, "\\'");
                                 return `<div onclick="showBannerAspectDetail('${eclText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.2);border-radius:4px;border-left:2px solid #f5576c;font-weight:bold;text-align:center;width:100%;cursor:pointer;">🌑 ${ecl.type || 'Eclipse'}</div>`;
