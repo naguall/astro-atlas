@@ -22984,6 +22984,17 @@ function switchProfile(id) {
     var interpModal = document.getElementById('natalDetailModal');
     if (interpModal) interpModal.classList.remove('show');
 
+    // v749x: Forzar refresh completo de TODOS los sub-tabs de Astro/Detalles
+    // (limpia globalNatalChart + container para evitar mostrar data del perfil anterior)
+    if (typeof globalNatalChart !== 'undefined') globalNatalChart = null;
+    var _natalGrid = document.getElementById('natalCalendarGrid');
+    if (_natalGrid) _natalGrid.innerHTML = '';
+    // Limpiar también tab content de sub-tabs que se llenan lazy
+    ['natalTabChart','natalTabTables','natalTabCalendar','natalTabHoy','natalTabMapa','natalTabCiclos','natalTabAspects2026','natalTabSinastria','natalTabCurso'].forEach(function(tid){
+        var el = document.getElementById(tid);
+        if (el) el.innerHTML = '';
+    });
+
     renderPersonalCalendar();
 }
 
