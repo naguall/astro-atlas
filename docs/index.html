@@ -355,10 +355,13 @@
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
-            /* v749h+n: anclar el modal al TOP de forma explícita. margin auto causaba centrado vertical.
-               align-self:flex-start asegura alineación al inicio del flex container vertical de .modal. */
-            margin: 0 auto;
-            align-self: flex-start;
+            /* v749o: FORZAR anclaje al top con !important para que ningún otro rule pueda overridear.
+               El bug era: contentMargin computado mostraba 129.578px top — margin auto absorbía espacio. */
+            margin-top: 20px !important;
+            margin-bottom: auto !important;
+            margin-left: auto;
+            margin-right: auto;
+            align-self: flex-start !important;
             padding: 28px;
             border: 1px solid var(--gold-border); border-top: 2px solid var(--gold);
             border-radius: 18px; width: 90%; max-width: 700px;
@@ -620,12 +623,17 @@
             .modal-content {
                 width: 96% !important;
                 max-width: 96vw !important;
-                margin: auto !important;
+                /* v749p: margin auto causaba descuadre vertical en mobile (modal saltaba abajo con poco contenido). */
+                margin-top: 20px !important;
+                margin-bottom: auto !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
                 padding: 12px !important;
                 max-height: none !important;
                 box-sizing: border-box !important;
                 overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
+                align-self: flex-start !important;
             }
             .modal-header { margin-bottom: 10px !important; padding-bottom: 8px !important; }
             /* Mobile modals: ensure safe-area padding */
@@ -10150,32 +10158,17 @@ function openSavedReadingsModal(tab) {
     var html = '';
 
     // Tab buttons
-    // v749k: 4 tabs FLAT (sin sub-tabs): Eventos · Interpretaciones · Personal · Sueños
-    // (antes Diarios era padre de Personal/Sueños — ahora todos al mismo nivel)
-    if (activeTab === 'diario') activeTab = 'diario-personal'; // alias legacy
+    // v749o: REVERTIDO a 3 tabs principales — Diarios vuelve a ser padre de Personal/Sueños
+    // (4 tabs no entran cómodos en mobile)
     var eventosActive = activeTab === 'eventos';
     var lecturasActive = activeTab === 'lecturas';
-    var diarioPersonalActive = activeTab === 'diario-personal';
+    var diarioPersonalActive = activeTab === 'diario' || activeTab === 'diario-personal';
     var diarioSuenosActive = activeTab === 'diario-suenos';
-    var anyDiarioActive = diarioPersonalActive || diarioSuenosActive; // kept for back-compat in render below
-
-    // Pre-compute counts para mostrar en los tabs
-    var _personalCount = 0, _suenosCount = 0;
-    try {
-        _personalCount = diaryEntries.length;
-        var _dreamsRaw = JSON.parse(localStorage.getItem('lunarCalendarDreams_' + profileId) || '{}');
-        Object.keys(_dreamsRaw).forEach(function(k){
-            var v = _dreamsRaw[k];
-            var arr = (typeof _migrateDreamEntry === 'function') ? _migrateDreamEntry(v) : (Array.isArray(v) ? v : (v && v.text ? [v] : []));
-            arr.forEach(function(d){ if (d && d.text && String(d.text).trim()) _suenosCount++; });
-        });
-    } catch(_eCnt) {}
-
-    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);overflow-x:auto;-webkit-overflow-scrolling:touch;">';
-    html += '<button onclick="openSavedReadingsModal(\'eventos\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (eventosActive ? '#7ec8ff' : 'transparent') + ';background:' + (eventosActive ? 'rgba(126,200,255,0.1)' : 'transparent') + ';color:' + (eventosActive ? '#7ec8ff' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📅 ' + (L ? 'Eventos' : 'Events') + '</button>';
-    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📚 ' + (L ? 'Interp.' : 'Interp.') + ' (' + readings.length + ')</button>';
-    html += '<button onclick="openSavedReadingsModal(\'diario-personal\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (diarioPersonalActive ? '#9b59b6' : 'transparent') + ';background:' + (diarioPersonalActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (diarioPersonalActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">📓 ' + (L ? 'Personal' : 'Personal') + ' (' + _personalCount + ')</button>';
-    html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="flex:1;min-width:fit-content;padding:10px 8px;font-size:0.82em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (diarioSuenosActive ? '#5dade2' : 'transparent') + ';background:' + (diarioSuenosActive ? 'rgba(93,173,226,0.1)' : 'transparent') + ';color:' + (diarioSuenosActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';white-space:nowrap;">🌙 ' + (L ? 'Sueños' : 'Dreams') + ' (' + _suenosCount + ')</button>';
+    var anyDiarioActive = diarioPersonalActive || diarioSuenosActive;
+    html += '<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid rgba(201,168,64,0.2);">';
+    html += '<button onclick="openSavedReadingsModal(\'eventos\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (eventosActive ? '#7ec8ff' : 'transparent') + ';background:' + (eventosActive ? 'rgba(126,200,255,0.1)' : 'transparent') + ';color:' + (eventosActive ? '#7ec8ff' : 'rgba(255,255,255,0.4)') + ';">📅 ' + (L ? 'Eventos' : 'Events') + '</button>';
+    html += '<button onclick="openSavedReadingsModal(\'lecturas\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (lecturasActive ? '#c9a840' : 'transparent') + ';background:' + (lecturasActive ? 'rgba(201,168,64,0.1)' : 'transparent') + ';color:' + (lecturasActive ? '#c9a840' : 'rgba(255,255,255,0.4)') + ';">📚 ' + (L ? 'Interpretaciones' : 'Interpretations') + ' (' + readings.length + ')</button>';
+    html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (anyDiarioActive ? '#9b59b6' : 'transparent') + ';background:' + (anyDiarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (anyDiarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diarios' : 'Diaries') + '</button>';
     html += '</div>';
 
     // v749j: contenido del tab Eventos — eventos de AGENDA del usuario (no astrológicos), organizados por mes
@@ -10302,7 +10295,11 @@ function openSavedReadingsModal(tab) {
         });
         dreamEntries.sort(function(a, b) { return b.date.localeCompare(a.date) || a.dreamIndex - b.dreamIndex; });
 
-        // v749k: sub-tabs Personal/Sueños eliminados — ahora son tabs principales arriba (flat).
+        // v749o: sub-tabs Personal/Sueños (revertido de v749k — vuelven a ser sub-tabs)
+        html += '<div style="display:flex;gap:0;margin-bottom:12px;">';
+        html += '<button onclick="openSavedReadingsModal(\'diario-personal\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioPersonalActive ? '#9b59b6' : 'rgba(155,89,182,0.2)') + ';background:' + (diarioPersonalActive ? 'rgba(155,89,182,0.12)' : 'transparent') + ';color:' + (diarioPersonalActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">📓 ' + (L ? 'Personal' : 'Personal') + ' (' + diaryEntries.length + ')</button>';
+        html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="flex:1;padding:8px;font-size:0.82em;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid ' + (diarioSuenosActive ? '#5dade2' : 'rgba(93,173,226,0.2)') + ';background:' + (diarioSuenosActive ? 'rgba(93,173,226,0.12)' : 'transparent') + ';color:' + (diarioSuenosActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';border-radius:6px 6px 0 0;">🌙 ' + (L ? 'Sueños' : 'Dreams') + ' (' + dreamEntries.length + ')</button>';
+        html += '</div>';
 
         if (diarioPersonalActive) {
             // Personal diary entries
