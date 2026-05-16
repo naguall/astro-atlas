@@ -355,7 +355,9 @@
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
-            margin: auto; padding: 28px;
+            /* v749h: margin:auto causaba que con poco contenido el modal saltara hacia abajo (centrado vertical).
+               margin:0 auto solo centra horizontalmente — el modal queda anclado al top consistentemente. */
+            margin: 0 auto; padding: 28px;
             border: 1px solid var(--gold-border); border-top: 2px solid var(--gold);
             border-radius: 18px; width: 90%; max-width: 700px;
             box-shadow: 0 0 50px var(--gold-glow), 0 24px 60px rgba(0,0,0,0.65);
