@@ -27972,6 +27972,54 @@ function generateGregorianMonth() {
     // Planet & Constellation panel removed from Gregorian (v583)
 
     html += '</div>';
+
+    // v749c: Lista de eventos del mes debajo del calendario gregoriano
+    var monthEvents = [];
+    for (var _eDay = 1; _eDay <= lastDay.getDate(); _eDay++) {
+        var _eDate = new Date(currentGregorianYear, currentGregorianMonth, _eDay);
+        var _eEvts = getAllEventsForDate(_eDate);
+        if (_eEvts && _eEvts.length > 0) {
+            _eEvts.forEach(function(evt, idx) {
+                monthEvents.push({ date: _eDate, day: _eDay, evt: evt, idx: idx });
+            });
+        }
+    }
+    // Sort por día y hora
+    monthEvents.sort(function(a, b) {
+        if (a.day !== b.day) return a.day - b.day;
+        var ta = a.evt.time || '00:00';
+        var tb = b.evt.time || '00:00';
+        return ta.localeCompare(tb);
+    });
+
+    html += '<div style="margin-top:14px;padding:12px 14px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.22);border-radius:10px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+    html += '<div style="font-size:0.9em;color:#c9a840;font-weight:700;letter-spacing:1px;text-transform:uppercase;">📅 ' + (currentLang === 'es' ? 'Eventos de ' : 'Events of ') + monthNamesG[currentGregorianMonth] + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(201,168,64,0.7);">' + monthEvents.length + ' ' + (currentLang === 'es' ? (monthEvents.length === 1 ? 'evento' : 'eventos') : (monthEvents.length === 1 ? 'event' : 'events')) + '</div>';
+    html += '</div>';
+
+    if (monthEvents.length > 0) {
+        html += '<div style="display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-right:4px;">';
+        monthEvents.forEach(function(item) {
+            var evt = item.evt;
+            var isCompleted = evt.completed || false;
+            var evtColor = evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#7ec8ff';
+            var evtIcon = evt.type === 'reminder' ? '🔔' : evt.type === 'appointment' ? '📌' : '✦';
+            var dayOfWeek = item.date.toLocaleDateString(currentLang === 'es' ? 'es' : 'en', { weekday: 'short' });
+            var evtKey = (typeof getDateKey === 'function') ? getDateKey(item.date) : item.date.toISOString().slice(0,10);
+            html += '<div onclick="openEventsModal(new Date(' + item.date.getTime() + '), 0)" style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(0,0,0,0.30);border-radius:6px;border-left:3px solid ' + evtColor + ';font-size:0.82em;color:rgba(255,255,255,' + (isCompleted ? '0.5' : '0.92') + ');cursor:pointer;transition:background 0.15s;' + (isCompleted ? 'text-decoration:line-through;' : '') + '" onmouseover="this.style.background=\'rgba(0,0,0,0.45)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.30)\'">';
+            html += '<input type="checkbox" ' + (isCompleted ? 'checked' : '') + ' onclick="event.stopPropagation();toggleEventComplete(\'' + evtKey + '\',' + item.idx + ');renderGregorianCalendar();" style="cursor:pointer;width:14px;height:14px;flex-shrink:0;accent-color:' + evtColor + ';">';
+            html += '<div style="flex-shrink:0;font-weight:700;color:' + evtColor + ';min-width:54px;text-align:left;font-size:0.95em;">' + String(item.day).padStart(2,'0') + ' ' + dayOfWeek.substring(0,3) + '</div>';
+            html += '<div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + evtIcon + ' ' + (evt.title || '(sin título)') + '</div>';
+            if (evt.time) html += '<div style="font-size:0.92em;color:#c9a840;font-weight:bold;flex-shrink:0;font-variant-numeric:tabular-nums;">' + evt.time + '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+    } else {
+        html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos en este mes' : 'No events this month') + '</div>';
+    }
+    html += '</div>';
+
     return html;
 }
 
