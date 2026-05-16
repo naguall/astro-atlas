@@ -20056,7 +20056,7 @@ function updateCurrentDayInfoForMode(mode) {
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    let displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
+    let displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
     let displayEmoji = '☽';
     let displayDay = 0;
     let displayInfo = '';
@@ -20065,7 +20065,7 @@ function updateCurrentDayInfoForMode(mode) {
     if (mode === 'solar') {
         const sunLongitude = getPlanetPosition('sun', today);
         const sunSignData = getZodiacSignWithDegree(sunLongitude);
-        displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
+        displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
         displayEmoji = '';
         // Calculate sign day (days since sign started)
         const todaySignIdx = getCurrentSign(); // Always use TODAY's sign, not displayed
@@ -20083,7 +20083,7 @@ function updateCurrentDayInfoForMode(mode) {
         const astroDay = Math.floor((today - equinox) / 86400000) + 1;
         displayInfo = `<span style="font-size:1.4em;font-weight:800;color:#e8c84a;">${astroDay}/365</span>`;
     } else if (mode === 'gregorian') {
-        displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
+        displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
         displayEmoji = '';
         const monthNames = currentLang === 'es' ?
             ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] :
@@ -20099,7 +20099,7 @@ function updateCurrentDayInfoForMode(mode) {
         const elongation = calculateLunarPhase(today);
         const moonLongitude = getMoonPosition(today);
         const moonSignData = getZodiacSignWithDegree(moonLongitude);
-        displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
+        displayTitle = currentLang === 'es' ? 'Aspectos' : 'Aspects';
         displayEmoji = getMoonEmoji(elongation);
         displayDay = getLunarDayForDate(today) || 1;
         displayInfo = moonSignData.formatted;
@@ -20369,10 +20369,11 @@ function updateCurrentDayInfoForMode(mode) {
                             return '';
                         }).join('')}
                     </div>
-                    <div style="margin-top:4px;border-top:1px solid ${bannerAspColor2}22;padding-top:4px;">
+                    ` : `<div style="font-size:0.6em;color:${bannerAspColor2}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
+                    <!-- v749y: botón "Interpretar todo" SIEMPRE visible al final -->
+                    <div style="margin-top:auto;padding-top:4px;border-top:1px solid ${bannerAspColor2}22;">
                         <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor2};cursor:pointer;padding:3px;background:${bannerAspColor2}14;border-radius:4px;border:1px solid ${bannerAspColor2}33;">✦ ${currentLang==='es'?'Interpretar todo':'Interpret all'}</div>
                     </div>
-                    ` : `<div style="font-size:0.6em;color:${bannerAspColor2}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
                 </div>
             </div>
         `;
@@ -22987,6 +22988,11 @@ function switchProfile(id) {
     // v749x: Forzar refresh completo de TODOS los sub-tabs de Astro/Detalles
     // (limpia globalNatalChart + container para evitar mostrar data del perfil anterior)
     if (typeof globalNatalChart !== 'undefined') globalNatalChart = null;
+    // v749y: limpiar TODAS las variables globales con tránsitos del perfil anterior
+    if (typeof globalTodayTransits !== 'undefined') globalTodayTransits = [];
+    if (typeof window._astroTodayTransits !== 'undefined') window._astroTodayTransits = [];
+    if (typeof window._astroTodayPersonalYear !== 'undefined') window._astroTodayPersonalYear = null;
+    if (typeof window._astroTodayPersonalDay !== 'undefined') window._astroTodayPersonalDay = null;
     var _natalGrid = document.getElementById('natalCalendarGrid');
     if (_natalGrid) _natalGrid.innerHTML = '';
     // Limpiar también tab content de sub-tabs que se llenan lazy
@@ -22994,6 +23000,9 @@ function switchProfile(id) {
         var el = document.getElementById(tid);
         if (el) el.innerHTML = '';
     });
+    // v749y: forzar limpiar el banner central (HOY card) que muestra tránsitos
+    var _cdi = document.getElementById('currentDayInfo');
+    if (_cdi) _cdi.innerHTML = '';
 
     renderPersonalCalendar();
 }
@@ -31090,10 +31099,11 @@ function renderCalendar() {
                         }).join('')}
                         ${allPlanetaryEvents.length > 6 ? `<div style="font-size:0.6em;text-align:center;color:#8899cc;">+${allPlanetaryEvents.length - 6}</div>` : ''}
                     </div>
-                    <div style="margin-top:4px;border-top:1px solid ${bannerAspColor}22;padding-top:4px;">
+                    ` : `<div style="font-size:0.6em;color:${bannerAspColor}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
+                    <!-- v749y: botón "Interpretar todo" SIEMPRE visible al final (no condicional a eventos) -->
+                    <div style="margin-top:auto;padding-top:4px;border-top:1px solid ${bannerAspColor}22;">
                         <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor};cursor:pointer;padding:3px;background:${bannerAspColor}14;border-radius:4px;border:1px solid ${bannerAspColor}33;">✦ ${currentLang==='es'?'Interpretar todo':'Interpret all'}</div>
                     </div>
-                    ` : `<div style="font-size:0.6em;color:${bannerAspColor}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
                 </div>
             </div>
         `;
