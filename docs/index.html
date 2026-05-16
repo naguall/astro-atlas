@@ -27973,54 +27973,207 @@ function generateGregorianMonth() {
 
     html += '</div>';
 
-    // v749c: Lista de eventos del mes debajo del calendario gregoriano
-    var monthEvents = [];
-    for (var _eDay = 1; _eDay <= lastDay.getDate(); _eDay++) {
-        var _eDate = new Date(currentGregorianYear, currentGregorianMonth, _eDay);
-        var _eEvts = getAllEventsForDate(_eDate);
-        if (_eEvts && _eEvts.length > 0) {
-            _eEvts.forEach(function(evt, idx) {
-                monthEvents.push({ date: _eDate, day: _eDay, evt: evt, idx: idx });
-            });
-        }
-    }
-    // Sort por día y hora
-    monthEvents.sort(function(a, b) {
-        if (a.day !== b.day) return a.day - b.day;
-        var ta = a.evt.time || '00:00';
-        var tb = b.evt.time || '00:00';
-        return ta.localeCompare(tb);
-    });
+    // v749e: Lista de EVENTOS ASTROLÓGICOS del mes debajo del calendario gregoriano
+    // Incluye: cambios de signo, retrógrados, aspectos inter-planetarios (computados dinámicamente
+    // + los hardcoded), lunas nuevas/llenas/cuartos, eclipses, equinoccios/solsticios, stelliums.
+    var astroEvents = computeMonthAstroEvents(currentGregorianYear, currentGregorianMonth);
 
     html += '<div style="margin-top:14px;padding:12px 14px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.22);border-radius:10px;">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
-    html += '<div style="font-size:0.9em;color:#c9a840;font-weight:700;letter-spacing:1px;text-transform:uppercase;">📅 ' + (currentLang === 'es' ? 'Eventos de ' : 'Events of ') + monthNamesG[currentGregorianMonth] + '</div>';
-    html += '<div style="font-size:0.75em;color:rgba(201,168,64,0.7);">' + monthEvents.length + ' ' + (currentLang === 'es' ? (monthEvents.length === 1 ? 'evento' : 'eventos') : (monthEvents.length === 1 ? 'event' : 'events')) + '</div>';
+    html += '<div style="font-size:0.9em;color:#c9a840;font-weight:700;letter-spacing:1px;text-transform:uppercase;">✦ ' + (currentLang === 'es' ? 'Eventos astrológicos de ' : 'Astrological events of ') + monthNamesG[currentGregorianMonth] + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(201,168,64,0.7);">' + astroEvents.length + '</div>';
     html += '</div>';
 
-    if (monthEvents.length > 0) {
-        html += '<div style="display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-right:4px;">';
-        monthEvents.forEach(function(item) {
-            var evt = item.evt;
-            var isCompleted = evt.completed || false;
-            var evtColor = evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#7ec8ff';
-            var evtIcon = evt.type === 'reminder' ? '🔔' : evt.type === 'appointment' ? '📌' : '✦';
+    if (astroEvents.length > 0) {
+        html += '<div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-right:4px;">';
+        astroEvents.forEach(function(item) {
             var dayOfWeek = item.date.toLocaleDateString(currentLang === 'es' ? 'es' : 'en', { weekday: 'short' });
-            var evtKey = (typeof getDateKey === 'function') ? getDateKey(item.date) : item.date.toISOString().slice(0,10);
-            html += '<div onclick="openEventsModal(new Date(' + item.date.getTime() + '), 0)" style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(0,0,0,0.30);border-radius:6px;border-left:3px solid ' + evtColor + ';font-size:0.82em;color:rgba(255,255,255,' + (isCompleted ? '0.5' : '0.92') + ');cursor:pointer;transition:background 0.15s;' + (isCompleted ? 'text-decoration:line-through;' : '') + '" onmouseover="this.style.background=\'rgba(0,0,0,0.45)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.30)\'">';
-            html += '<input type="checkbox" ' + (isCompleted ? 'checked' : '') + ' onclick="event.stopPropagation();toggleEventComplete(\'' + evtKey + '\',' + item.idx + ');renderGregorianCalendar();" style="cursor:pointer;width:14px;height:14px;flex-shrink:0;accent-color:' + evtColor + ';">';
-            html += '<div style="flex-shrink:0;font-weight:700;color:' + evtColor + ';min-width:54px;text-align:left;font-size:0.95em;">' + String(item.day).padStart(2,'0') + ' ' + dayOfWeek.substring(0,3) + '</div>';
-            html += '<div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + evtIcon + ' ' + (evt.title || '(sin título)') + '</div>';
-            if (evt.time) html += '<div style="font-size:0.92em;color:#c9a840;font-weight:bold;flex-shrink:0;font-variant-numeric:tabular-nums;">' + evt.time + '</div>';
+            var clickTxt = (item.label || '').replace(/'/g, "\\'").replace(/"/g, '');
+            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(0,0,0,0.30);border-radius:6px;border-left:3px solid ' + item.color + ';font-size:0.82em;color:rgba(255,255,255,0.92);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(0,0,0,0.45)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.30)\'">';
+            html += '<div style="flex-shrink:0;font-weight:700;color:' + item.color + ';min-width:54px;text-align:left;font-size:0.95em;">' + String(item.day).padStart(2,'0') + ' ' + dayOfWeek.substring(0,3) + '</div>';
+            html += '<div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><span style="margin-right:6px;">' + (item.icon || '✦') + '</span>' + item.label + '</div>';
+            if (item.detail) html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);flex-shrink:0;">' + item.detail + '</div>';
             html += '</div>';
         });
         html += '</div>';
     } else {
-        html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos en este mes' : 'No events this month') + '</div>';
+        html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos astrológicos este mes' : 'No astrological events this month') + '</div>';
     }
     html += '</div>';
 
     return html;
+}
+
+// v749e: Computar todos los eventos astrológicos del mes
+// (incluye aspectos Sol/Mercurio/Venus/Marte computados dinámicamente con astronomy-engine,
+// no solo los aspectos lentos hardcoded en interPlanetaryAspects2026)
+function computeMonthAstroEvents(year, month) {
+    var events = [];
+    var lastDayN = new Date(year, month + 1, 0).getDate();
+    var L = (typeof currentLang !== 'undefined' && currentLang === 'es');
+
+    // Helper para traducir nombre de planeta
+    function pName(p) {
+        var map = { Sun:'Sol', Mercury:'Mercurio', Venus:'Venus', Mars:'Marte', Jupiter:'Júpiter', Saturn:'Saturno', Uranus:'Urano', Neptune:'Neptuno', Pluto:'Plutón' };
+        if (L && map[p]) return map[p];
+        return p;
+    }
+
+    // 1) Cambios de signo, retrógrados, eclipses, equinoccios, aspectos hardcoded
+    for (var d = 1; d <= lastDayN; d++) {
+        var date = new Date(year, month, d, 12);
+
+        // Cambios de signo
+        try {
+            var sc = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
+            sc.forEach(function(c) {
+                events.push({ day: d, date: date, color: '#7ec8ff', icon: '➔',
+                    label: pName(c.planet) + ' → ' + (typeof ts==='function' ? ts(c.toSign) : c.toSign),
+                    detail: c.time || '' });
+            });
+        } catch(e) {}
+
+        // Retrógrados (inicio + directo)
+        try {
+            var rt = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
+            rt.forEach(function(r) {
+                var lbl = pName(r.planet) + (r.isStart ? (L?' inicia retrógrado':' starts retrograde') : (L?' se pone directo':' goes direct'));
+                if (r.sign) lbl += (L?' en ':' in ') + (typeof ts==='function' ? ts(r.sign) : r.sign);
+                events.push({ day: d, date: date, color: '#ff9f43', icon: r.isStart ? '℞' : 'D', label: lbl, detail: '' });
+            });
+        } catch(e) {}
+
+        // Eclipses
+        try {
+            var ecl = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
+            if (ecl) {
+                events.push({ day: d, date: date, color: '#f5576c', icon: ecl.type === 'solar' ? '🌑' : '🌕',
+                    label: (ecl.type === 'solar' ? (L?'Eclipse Solar':'Solar Eclipse') : (L?'Eclipse Lunar':'Lunar Eclipse')), detail: '' });
+            }
+        } catch(e) {}
+
+        // Equinoccios / solsticios
+        try {
+            var ae = (typeof isAstronomicalEvent === 'function') ? isAstronomicalEvent(date) : null;
+            if (ae) {
+                var lbl = L ? (ae.esName || 'Evento astronómico') : (ae.enName || 'Astronomical event');
+                var tm = ae.date ? ae.date.toLocaleTimeString(L?'es':'en',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+                events.push({ day: d, date: date, color: '#FFD700', icon: '☀️', label: lbl, detail: tm });
+            }
+        } catch(e) {}
+
+        // Luna nueva / llena / cuartos
+        try {
+            var me = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(date) : null;
+            if (me) {
+                var moonLbl;
+                if (me.type === 'new') moonLbl = L?'Luna Nueva':'New Moon';
+                else if (me.type === 'full') moonLbl = L?'Luna Llena':'Full Moon';
+                else if (me.type === 'firstQuarter') moonLbl = L?'Cuarto Creciente':'First Quarter';
+                else if (me.type === 'lastQuarter') moonLbl = L?'Cuarto Menguante':'Last Quarter';
+                else moonLbl = me.name || 'Fase Lunar';
+                events.push({ day: d, date: date, color: me.type==='full'?'#FFD700':'#b39ddb',
+                    icon: me.type==='full'?'🌕':me.type==='new'?'🌑':me.type==='firstQuarter'?'🌓':'🌗',
+                    label: moonLbl, detail: '' });
+            }
+        } catch(e) {}
+
+        // Aspectos inter-planetarios hardcoded (Saturno/Urano/Neptuno/Plutón mayoritariamente)
+        try {
+            var ipa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
+            ipa.forEach(function(a) {
+                var lbl = pName(a.planet1) + ' ' + a.symbol + ' ' + pName(a.planet2);
+                if (a.signs) lbl += ' (' + a.signs + ')';
+                events.push({ day: d, date: date, color: '#7c4dff', icon: '✦', label: lbl, detail: a.aspect || '' });
+            });
+        } catch(e) {}
+
+        // Stelliums
+        try {
+            var pats = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+            pats.forEach(function(p) {
+                if (p.type === 'stellium') {
+                    events.push({ day: d, date: date, color: '#FFD700', icon: '★',
+                        label: (L?'Stellium en ':'Stellium in ') + (typeof ts==='function' ? ts(p.sign) : p.sign),
+                        detail: (p.planets || []).join(', ') });
+                }
+            });
+        } catch(e) {}
+    }
+
+    // 2) Aspectos inter-planetarios computados dinámicamente (Sol/Mercurio/Venus/Marte y todos los pares)
+    //    Detectamos el día de orbe MÍNIMO en el mes para cada pair × aspect.
+    try {
+        if (typeof Astronomy !== 'undefined') {
+            var planets = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+            var aspectDefs = [
+                { name: L?'conjunción':'conjunction', sym: '☌', deg: 0,   orb: 3, color: '#ff6b6b' },
+                { name: L?'sextil':'sextile',         sym: '⚹', deg: 60,  orb: 2, color: '#4ecdc4' },
+                { name: L?'cuadratura':'square',      sym: '□', deg: 90,  orb: 3, color: '#ff9f43' },
+                { name: L?'trígono':'trine',          sym: '△', deg: 120, orb: 3, color: '#7c4dff' },
+                { name: L?'oposición':'opposition',   sym: '☍', deg: 180, orb: 3, color: '#ee5a6f' }
+            ];
+            // Pre-compute longitudes per day
+            var positions = [];
+            for (var d2 = 1; d2 <= lastDayN; d2++) {
+                var dt = new Date(year, month, d2, 12);
+                var t = Astronomy.MakeTime(dt);
+                var posDay = {};
+                for (var pi = 0; pi < planets.length; pi++) {
+                    try { posDay[planets[pi]] = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[planets[pi]], t, true)).elon; } catch(_e1) {}
+                }
+                positions.push(posDay);
+            }
+            // For each pair × aspect, find min orb day
+            var dynSeen = {}; // de-dupe contra hardcoded
+            for (var i = 0; i < planets.length; i++) {
+                for (var j = i+1; j < planets.length; j++) {
+                    for (var ai = 0; ai < aspectDefs.length; ai++) {
+                        var asp = aspectDefs[ai];
+                        var minOrb = 999, minIdx = -1;
+                        for (var di = 0; di < positions.length; di++) {
+                            var pos = positions[di];
+                            if (pos[planets[i]] === undefined || pos[planets[j]] === undefined) continue;
+                            var diff = Math.abs(pos[planets[i]] - pos[planets[j]]) % 360;
+                            if (diff > 180) diff = 360 - diff;
+                            var orb = Math.abs(diff - asp.deg);
+                            if (orb < minOrb) { minOrb = orb; minIdx = di; }
+                        }
+                        if (minOrb < asp.orb && minIdx >= 0) {
+                            // Check if borders (otherwise could be partial — peak outside month)
+                            // Only register if it's a true local minimum (orb at peak < orb at borders)
+                            if (minIdx === 0 || minIdx === positions.length-1) {
+                                // Skip border peaks — probably the real peak is in adjacent month
+                                continue;
+                            }
+                            var key = (minIdx+1) + '|' + planets[i] + '|' + asp.sym + '|' + planets[j];
+                            if (dynSeen[key]) continue;
+                            dynSeen[key] = 1;
+                            events.push({
+                                day: minIdx + 1,
+                                date: new Date(year, month, minIdx + 1),
+                                color: asp.color,
+                                icon: '✦',
+                                label: pName(planets[i]) + ' ' + asp.sym + ' ' + pName(planets[j]),
+                                detail: asp.name + ' · orbe ' + minOrb.toFixed(1) + '°'
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    } catch(_eAsp) { console.warn('[Astro events] aspect compute:', _eAsp); }
+
+    // De-duplicate y ordenar por día
+    var seen = {};
+    events = events.filter(function(e) {
+        var k = e.day + '|' + e.label;
+        if (seen[k]) return false;
+        seen[k] = 1;
+        return true;
+    });
+    events.sort(function(a, b) { return a.day - b.day; });
+    return events;
 }
 
 function renderSolarCalendar() {
