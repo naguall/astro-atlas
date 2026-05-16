@@ -805,8 +805,10 @@
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
                 <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astro</span></button>
+                <!-- v749u: tab Atlas = entry point a vistas Tierra y Sistema Solar -->
+                <button id="atlasModeBtn" onclick="switchToAtlasMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="atlasButtonLabel">Atlas</span></button>
                 <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Social</button>
-                <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
+                <!-- Earth y Solar System se acceden via Atlas (no como tabs principales) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
                 <!-- 2026 moved inside Astro tab as subtab (v429) -->
@@ -20384,13 +20386,14 @@ function updateModeButtons() {
     const ssBtn = document.getElementById('solarSystemModeBtn');
     const gregorianBtn = document.getElementById('gregorianModeBtn');
     const personalBtn = document.getElementById('personalModeBtn');
+    const atlasBtn = document.getElementById('atlasModeBtn'); // v749u
 
     const asp2026Btn = document.getElementById('aspects2026ModeBtn');
     const socialBtn = document.getElementById('socialModeBtn');
 
     // Reset all
     // v749: inactivos a 65% opacidad para que el activo se distinga más
-    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn, personalBtn, asp2026Btn, socialBtn].forEach(btn => {
+    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn, personalBtn, atlasBtn, asp2026Btn, socialBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = 'rgba(255,255,255,0.04)'; btn.style.border = '1px solid rgba(255,255,255,0.10)';
         btn.style.color = 'rgba(255,255,255,0.45)';
@@ -20410,8 +20413,8 @@ function updateModeButtons() {
     };
     if (calendarMode === 'lunar') activeStyle(lunarBtn, '#7ec8ff'); // v749 celeste (era dorado #e8c84a)
     else if (calendarMode === 'solar') activeStyle(solarBtn, '#ff9500');
-    else if (calendarMode === 'earth') activeStyle(earthBtn, '#4ecdc4');
-    else if (calendarMode === 'solarsystem') activeStyle(ssBtn, '#ff9500');
+    else if (calendarMode === 'earth') activeStyle(atlasBtn, '#4ecdc4'); // v749u: earth highlight Atlas
+    else if (calendarMode === 'solarsystem') activeStyle(atlasBtn, '#ff9500'); // v749u: SS highlight Atlas
     else if (calendarMode === 'gregorian') activeStyle(gregorianBtn, '#e8c84a');
     else if (calendarMode === 'personal') activeStyle(personalBtn, '#9b59b6');
     else if (calendarMode === 'aspects2026') activeStyle(asp2026Btn, '#e91e63');
@@ -35578,6 +35581,50 @@ window.switchToSolarMode = switchToSolarMode;
 window.switchToGregorianMode = switchToGregorianMode;
 window.switchToEarthMode = switchToEarthMode;
 window.switchToSolarSystemMode = switchToSolarSystemMode;
+
+// v749u: Tab Atlas = entry point a Tierra y Sistema Solar con sub-tabs
+function switchToAtlasMode(subTab) {
+    var L = currentLang === 'es';
+    var lastSubTab = localStorage.getItem('atlasSubTab') || 'earth';
+    var which = subTab || lastSubTab;
+    if (which === 'solarsystem') {
+        switchToSolarSystemMode();
+    } else {
+        switchToEarthMode();
+    }
+    localStorage.setItem('atlasSubTab', which);
+    // Inyectar la barra de sub-tabs al inicio del panel activo
+    setTimeout(function() { injectAtlasSubTabBar(which); }, 50);
+}
+window.switchToAtlasMode = switchToAtlasMode;
+
+function injectAtlasSubTabBar(active) {
+    var L = currentLang === 'es';
+    var existing = document.getElementById('atlasSubTabBar');
+    if (existing) existing.remove();
+    // Target the visible panel: earthInfoPanel or solarSystemPanel
+    var target = null;
+    var earthPanel = document.getElementById('earthInfoPanel');
+    var ssPanel = document.getElementById('solarSystemPanel');
+    if (earthPanel && earthPanel.style.display !== 'none' && earthPanel.offsetParent !== null) target = earthPanel;
+    else if (ssPanel && ssPanel.style.display !== 'none' && ssPanel.offsetParent !== null) target = ssPanel;
+    if (!target) return;
+
+    var bar = document.createElement('div');
+    bar.id = 'atlasSubTabBar';
+    bar.style.cssText = 'display:flex;gap:6px;justify-content:center;padding:8px 10px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.10);';
+    function btnStyle(isActive, color) {
+        return 'padding:6px 14px;background:' + (isActive ? 'rgba(' + color + ',0.18)' : 'transparent')
+             + ';border:1px solid ' + (isActive ? 'rgba(' + color + ',0.55)' : 'rgba(255,255,255,0.15)')
+             + ';border-radius:16px;color:' + (isActive ? 'rgb(' + color + ')' : 'rgba(255,255,255,0.5)')
+             + ';font-size:0.82em;font-weight:600;cursor:pointer;';
+    }
+    bar.innerHTML =
+        '<button onclick="switchToAtlasMode(\'earth\')" style="' + btnStyle(active==='earth', '78,205,196') + '">🌍 ' + (L?'Tierra':'Earth') + '</button>' +
+        '<button onclick="switchToAtlasMode(\'solarsystem\')" style="' + btnStyle(active==='solarsystem', '255,149,0') + '">☀ ' + (L?'Sistema Solar':'Solar System') + '</button>';
+    target.insertBefore(bar, target.firstChild);
+}
+window.injectAtlasSubTabBar = injectAtlasSubTabBar;
 window.switchToAspects2026Mode = switchToAspects2026Mode;
 window.toggleAspect2026Details = toggleAspect2026Details;
 window.showAspect2026Detail = showAspect2026Detail;
