@@ -7479,8 +7479,8 @@ function _translateStaticElements() {
     if (majTitle && (majTitle.textContent === 'Configuración Planetaria' || majTitle.textContent === 'Planetary Configuration'))
         majTitle.textContent = L ? 'Configuración Planetaria' : 'Planetary Configuration';
     var savedTitle = document.getElementById('savedReadingsTitle');
-    if (savedTitle && (savedTitle.textContent === '📚 Interpretaciones y Diarios' || savedTitle.textContent === '📚 Readings & Journals'))
-        savedTitle.textContent = L ? '📚 Interpretaciones y Diarios' : '📚 Readings & Journals';
+    if (savedTitle && (savedTitle.textContent.indexOf('Interpretaciones') >= 0 || savedTitle.textContent.indexOf('Readings') >= 0 || savedTitle.textContent.indexOf('Interpretations') >= 0 || savedTitle.textContent.indexOf('Eventos') >= 0))
+        savedTitle.textContent = L ? '📚 Eventos, Interpretaciones y Diarios' : '📚 Events, Interpretations & Diaries';
 }
 
 function updateModalTranslations() {
@@ -10073,7 +10073,7 @@ function openSavedReadingsModal(tab) {
     var bodyEl = document.getElementById('savedReadingsBody');
     var L = currentLang === 'es';
     var activeTab = tab || 'lecturas';
-    titleEl.textContent = L ? '📚 Interpretaciones y Diarios' : '📚 Interpretations & Diaries';
+    titleEl.textContent = L ? '📚 Eventos, Interpretaciones y Diarios' : '📚 Events, Interpretations & Diaries';
 
     // One-time cleanup: remove old diary_astro_* keys (aspects are now embedded in export)
     if (!window._astroCleanupDone) {
@@ -10131,54 +10131,81 @@ function openSavedReadingsModal(tab) {
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="flex:1;padding:10px;font-size:0.9em;font-weight:700;cursor:pointer;border:none;border-bottom:3px solid ' + (anyDiarioActive ? '#9b59b6' : 'transparent') + ';background:' + (anyDiarioActive ? 'rgba(155,89,182,0.1)' : 'transparent') + ';color:' + (anyDiarioActive ? '#9b59b6' : 'rgba(255,255,255,0.4)') + ';">📝 ' + (L ? 'Diarios' : 'Diaries') + '</button>';
     html += '</div>';
 
-    // v749g: contenido del tab Eventos — todos los eventos astrológicos del año por mes
+    // v749j: contenido del tab Eventos — eventos de AGENDA del usuario (no astrológicos), organizados por mes
     if (eventosActive) {
         var currentYear = (typeof currentGregorianYear !== 'undefined') ? currentGregorianYear : new Date().getFullYear();
         var mNamesG = L
             ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
             : ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        html += '<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">';
-        html += '<div style="font-size:0.95em;color:#7ec8ff;font-weight:600;">✦ ' + (L?'Eventos astrológicos':'Astrological events') + ' ' + currentYear + '</div>';
-        html += '<div style="display:flex;gap:6px;align-items:center;">';
-        html += '<button onclick="openSavedReadingsModal(\'eventos\');setTimeout(function(){window._evtModalYear=' + (currentYear-1) + ';openSavedReadingsModal(\'eventos\');},10)" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">←</button>';
-        html += '<span style="font-size:0.85em;color:rgba(255,255,255,0.5);">' + (window._evtModalYear || currentYear) + '</span>';
-        html += '<button onclick="window._evtModalYear=' + ((window._evtModalYear || currentYear)+1) + ';openSavedReadingsModal(\'eventos\')" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">→</button>';
-        html += '</div></div>';
         var renderYear = window._evtModalYear || currentYear;
+
+        // Recolectar TODOS los eventos de agenda del año en una sola pasada
+        // (recorremos getAllEventsForDate para cada día del año)
+        var agendaByMonth = {}; // { 0: [...], 1: [...], ... 11: [...] }
         var totalAllYear = 0;
+        for (var mIdx = 0; mIdx < 12; mIdx++) agendaByMonth[mIdx] = [];
+        for (var mIdx2 = 0; mIdx2 < 12; mIdx2++) {
+            var lastD = new Date(renderYear, mIdx2 + 1, 0).getDate();
+            for (var dN = 1; dN <= lastD; dN++) {
+                var dt = new Date(renderYear, mIdx2, dN);
+                var evList = (typeof getAllEventsForDate === 'function') ? getAllEventsForDate(dt) : [];
+                if (evList && evList.length > 0) {
+                    evList.forEach(function(ev, eidx) {
+                        agendaByMonth[mIdx2].push({ date: new Date(renderYear, mIdx2, dN), day: dN, evt: ev, idx: eidx });
+                        totalAllYear++;
+                    });
+                }
+            }
+            // Sort por día y hora
+            agendaByMonth[mIdx2].sort(function(a, b) {
+                if (a.day !== b.day) return a.day - b.day;
+                var ta = a.evt.time || '00:00';
+                var tb = b.evt.time || '00:00';
+                return ta.localeCompare(tb);
+            });
+        }
+
+        html += '<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+        html += '<div style="font-size:0.95em;color:#7ec8ff;font-weight:600;">📅 ' + (L?'Mis eventos':'My events') + '</div>';
+        html += '<div style="display:flex;gap:6px;align-items:center;">';
+        html += '<button onclick="window._evtModalYear=' + (renderYear-1) + ';openSavedReadingsModal(\'eventos\')" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">←</button>';
+        html += '<span style="font-size:0.85em;color:rgba(255,255,255,0.5);">' + renderYear + '</span>';
+        html += '<button onclick="window._evtModalYear=' + (renderYear+1) + ';openSavedReadingsModal(\'eventos\')" style="padding:4px 10px;background:rgba(126,200,255,0.10);border:1px solid rgba(126,200,255,0.30);border-radius:4px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">→</button>';
+        html += '</div></div>';
+        html += '<div style="margin-bottom:10px;font-size:0.78em;color:rgba(255,255,255,0.45);">' + totalAllYear + ' ' + (L?'eventos en':'events in') + ' ' + renderYear + ' &middot; ' + (L?'tocá cada mes para expandir':'tap each month to expand') + '</div>';
+
         var monthsHtml = '';
         for (var mi = 0; mi < 12; mi++) {
-            var mEvents = (typeof computeMonthAstroEvents === 'function') ? computeMonthAstroEvents(renderYear, mi) : [];
-            totalAllYear += mEvents.length;
+            var mEvents = agendaByMonth[mi];
             var monthLabel = mNamesG[mi];
-            var isExpanded = (mi === new Date().getMonth() && renderYear === new Date().getFullYear()); // expandido por defecto el mes actual
-            var detailId = 'evtMonth_' + renderYear + '_' + mi;
-            monthsHtml += '<div style="margin-bottom:6px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.18);border-radius:8px;overflow:hidden;">';
-            monthsHtml += '<div onclick="(function(){var el=document.getElementById(\'' + detailId + '\');var arr=document.getElementById(\'' + detailId + '_arr\');var open=el.style.display!==\'none\';el.style.display=open?\'none\':\'block\';arr.textContent=open?\'▸\':\'▾\';})()" style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600;color:#c9a840;">';
-            monthsHtml += '<span><span id="' + detailId + '_arr" style="display:inline-block;width:14px;color:rgba(201,168,64,0.7);">' + (isExpanded?'▾':'▸') + '</span> ' + monthLabel + ' ' + renderYear + '</span>';
-            monthsHtml += '<span style="font-size:0.78em;color:rgba(201,168,64,0.65);font-weight:500;">' + mEvents.length + '</span>';
+            var isExpanded = (mi === new Date().getMonth() && renderYear === new Date().getFullYear() && mEvents.length > 0);
+            var detailId = 'agnMonth_' + renderYear + '_' + mi;
+            monthsHtml += '<div style="margin-bottom:6px;background:rgba(20,20,40,0.5);border:1px solid rgba(126,200,255,0.18);border-radius:8px;overflow:hidden;">';
+            monthsHtml += '<div onclick="(function(){var el=document.getElementById(\'' + detailId + '\');var arr=document.getElementById(\'' + detailId + '_arr\');var open=el.style.display!==\'none\';el.style.display=open?\'none\':\'block\';arr.textContent=open?\'▸\':\'▾\';})()" style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600;color:#7ec8ff;">';
+            monthsHtml += '<span><span id="' + detailId + '_arr" style="display:inline-block;width:14px;color:rgba(126,200,255,0.7);">' + (isExpanded?'▾':'▸') + '</span> ' + monthLabel + ' ' + renderYear + '</span>';
+            monthsHtml += '<span style="font-size:0.78em;color:rgba(126,200,255,0.65);font-weight:500;">' + mEvents.length + '</span>';
             monthsHtml += '</div>';
             monthsHtml += '<div id="' + detailId + '" style="display:' + (isExpanded?'block':'none') + ';padding:0 10px 10px 10px;">';
             if (mEvents.length === 0) {
                 monthsHtml += '<div style="font-style:italic;color:rgba(255,255,255,0.4);font-size:0.82em;padding:6px 0;">' + (L?'Sin eventos en este mes':'No events in this month') + '</div>';
             } else {
-                mEvents.forEach(function(e) {
-                    var dayOfWeek2 = e.date.toLocaleDateString(L?'es':'en', { weekday: 'short' });
-                    var clickTxt = (e.label || '').replace(/'/g, "\\'").replace(/"/g, '');
-                    monthsHtml += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="display:flex;align-items:center;gap:8px;padding:5px 8px;margin-top:4px;background:rgba(0,0,0,0.25);border-radius:5px;border-left:3px solid ' + e.color + ';font-size:0.8em;cursor:pointer;">';
-                    monthsHtml += '<span style="font-weight:700;color:' + e.color + ';min-width:50px;">' + String(e.day).padStart(2,'0') + ' ' + dayOfWeek2.substring(0,3) + '</span>';
-                    monthsHtml += '<span style="flex:1;color:rgba(255,255,255,0.88);">' + (e.icon||'✦') + ' ' + e.label + '</span>';
-                    if (e.detail) monthsHtml += '<span style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + e.detail + '</span>';
+                mEvents.forEach(function(item) {
+                    var evt = item.evt;
+                    var isCompleted = evt.completed || false;
+                    var evtColor = evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#7ec8ff';
+                    var evtIcon = evt.type === 'reminder' ? '🔔' : evt.type === 'appointment' ? '📌' : '✦';
+                    var dayOfWeek2 = item.date.toLocaleDateString(L?'es':'en', { weekday: 'short' });
+                    var evKey = (typeof getDateKey === 'function') ? getDateKey(item.date) : item.date.toISOString().slice(0,10);
+                    monthsHtml += '<div onclick="openEventsModal(new Date(' + item.date.getTime() + '), 0)" style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-top:4px;background:rgba(0,0,0,0.25);border-radius:5px;border-left:3px solid ' + evtColor + ';font-size:0.82em;cursor:pointer;color:rgba(255,255,255,' + (isCompleted?'0.5':'0.92') + ');' + (isCompleted?'text-decoration:line-through;':'') + '">';
+                    monthsHtml += '<input type="checkbox" ' + (isCompleted?'checked':'') + ' onclick="event.stopPropagation();toggleEventComplete(\'' + evKey + '\',' + item.idx + ');openSavedReadingsModal(\'eventos\');" style="cursor:pointer;width:14px;height:14px;flex-shrink:0;accent-color:' + evtColor + ';">';
+                    monthsHtml += '<span style="font-weight:700;color:' + evtColor + ';min-width:50px;font-size:0.95em;">' + String(item.day).padStart(2,'0') + ' ' + dayOfWeek2.substring(0,3) + '</span>';
+                    monthsHtml += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + evtIcon + ' ' + (evt.title || '(' + (L?'sin título':'untitled') + ')') + '</span>';
+                    if (evt.time) monthsHtml += '<span style="font-size:0.85em;color:#c9a840;font-weight:bold;flex-shrink:0;font-variant-numeric:tabular-nums;">' + evt.time + '</span>';
                     monthsHtml += '</div>';
                 });
-                monthsHtml += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,168,64,0.20);">';
-                monthsHtml += '<div onclick="interpretMonthByFortnights(' + renderYear + ',' + mi + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:6px 10px;background:rgba(201,168,64,0.10);border-radius:5px;border:1px solid rgba(201,168,64,0.30);font-size:0.78em;font-weight:600;">';
-                monthsHtml += '✦ ' + (L?'Interpretar ':'Interpret ') + monthLabel + ' (2 ' + (L?'quincenas':'fortnights') + ')';
-                monthsHtml += '</div></div>';
             }
             monthsHtml += '</div></div>';
         }
-        html += '<div style="margin-bottom:10px;font-size:0.78em;color:rgba(255,255,255,0.45);">' + totalAllYear + ' ' + (L?'eventos en':'events in') + ' ' + renderYear + ' &middot; ' + (L?'tocá cada mes para expandir':'tap each month to expand') + '</div>';
         html += '<div style="max-height:60vh;overflow-y:auto;padding-right:4px;">' + monthsHtml + '</div>';
     }
     else
@@ -27915,13 +27942,71 @@ function generateGregorianMonth() {
     const lastDay = new Date(currentGregorianYear, currentGregorianMonth + 1, 0);
     const today = new Date();
     today.setHours(0,0,0,0);
-    
+
     const monthNamesG = currentLang === 'es' ?
         ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] :
         ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const dayNames = currentLang === 'es' ?
         ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] :
         ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // v749i: Pre-computar aspectos dinámicos (Sol/Mercurio/Venus/Marte) del mes para mostrar en CELDAS
+    // (antes solo aparecían en la lista de abajo; ahora también en el cell del día pico)
+    var _dynAspByDay = {};
+    try {
+        if (typeof Astronomy !== 'undefined') {
+            var _planets = ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+            var _planetInit = { Sun:'☉', Mercury:'☿', Venus:'♀', Mars:'♂', Jupiter:'♃', Saturn:'♄', Uranus:'♅', Neptune:'♆', Pluto:'♇' };
+            var _aspDefs = [
+                { sym: '☌', deg: 0,   orb: 3 },
+                { sym: '⚹', deg: 60,  orb: 2 },
+                { sym: '□', deg: 90,  orb: 3 },
+                { sym: '△', deg: 120, orb: 3 },
+                { sym: '☍', deg: 180, orb: 3 }
+            ];
+            var _lastD = lastDay.getDate();
+            var _positions = [];
+            for (var _d = 1; _d <= _lastD; _d++) {
+                var _dt = new Date(currentGregorianYear, currentGregorianMonth, _d, 12);
+                var _t = Astronomy.MakeTime(_dt);
+                var _posD = {};
+                for (var _pi = 0; _pi < _planets.length; _pi++) {
+                    try { _posD[_planets[_pi]] = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[_planets[_pi]], _t, true)).elon; } catch(_e) {}
+                }
+                _positions.push(_posD);
+            }
+            for (var _i = 0; _i < _planets.length; _i++) {
+                for (var _j = _i+1; _j < _planets.length; _j++) {
+                    // Filtrar: solo computamos pares que involucran Sol/Mercurio/Venus/Marte (los lentos ya están hardcoded)
+                    var _isFast = (['Sun','Mercury','Venus','Mars'].indexOf(_planets[_i]) >= 0) || (['Sun','Mercury','Venus','Mars'].indexOf(_planets[_j]) >= 0);
+                    if (!_isFast) continue;
+                    for (var _ai = 0; _ai < _aspDefs.length; _ai++) {
+                        var _asp = _aspDefs[_ai];
+                        var _minOrb = 999, _minIdx = -1;
+                        for (var _di = 0; _di < _positions.length; _di++) {
+                            var _pos = _positions[_di];
+                            if (_pos[_planets[_i]] === undefined || _pos[_planets[_j]] === undefined) continue;
+                            var _diff = Math.abs(_pos[_planets[_i]] - _pos[_planets[_j]]) % 360;
+                            if (_diff > 180) _diff = 360 - _diff;
+                            var _o = Math.abs(_diff - _asp.deg);
+                            if (_o < _minOrb) { _minOrb = _o; _minIdx = _di; }
+                        }
+                        if (_minOrb < _asp.orb && _minIdx > 0 && _minIdx < _positions.length-1) {
+                            var _dayN = _minIdx + 1;
+                            if (!_dynAspByDay[_dayN]) _dynAspByDay[_dayN] = [];
+                            _dynAspByDay[_dayN].push({
+                                p1: _planets[_i], p2: _planets[_j], sym: _asp.sym,
+                                init1: _planetInit[_planets[_i]] || _planets[_i].substring(0,3),
+                                init2: _planetInit[_planets[_j]] || _planets[_j].substring(0,3),
+                                orb: _minOrb
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    } catch(_eDyn) { console.warn('[generateGregorianMonth] dynamic aspects:', _eDyn); }
+    window._gregDynAspByDay = _dynAspByDay; // expose para debug
 
     let html = '<div class="lunar-week" style="margin-bottom: 10px; overflow: hidden;">';
     // Month nav row
@@ -27992,6 +28077,17 @@ function generateGregorianMonth() {
             const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
             html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
         });
+
+        // v749i: Aspectos dinámicos computados (Sol/Mercurio/Venus/Marte) — antes no se mostraban en las celdas
+        var _dynForDay = (typeof _dynAspByDay !== 'undefined') ? _dynAspByDay[day] : null;
+        if (_dynForDay && _dynForDay.length > 0) {
+            // Mostrar hasta 2 aspectos dinámicos por día (los que tienen orbe más chico = más exactos)
+            _dynForDay.sort(function(a,b){ return a.orb - b.orb; });
+            _dynForDay.slice(0, 2).forEach(function(da) {
+                var _daText = (tp(da.p1) + ' ' + da.sym + ' ' + tp(da.p2)).replace(/'/g, "\\'");
+                html += '<div onclick="event.stopPropagation(); showBannerAspectDetail(\'' + _daText + '\')" style="color:#ff9f43;font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="' + da.p1 + ' ' + da.sym + ' ' + da.p2 + ' (orbe ' + da.orb.toFixed(1) + '°)">' + da.init1 + ' ' + da.sym + ' ' + da.init2 + '</div>';
+            });
+        }
         
         // Sign changes (limit 2)
         planetaryEvents.signChanges.slice(0,2).forEach(sc => {
@@ -28057,7 +28153,7 @@ function generateGregorianMonth() {
         var _monthLbl = monthNamesG[currentGregorianMonth] + ' ' + currentGregorianYear;
         html += '<div style="margin-top:10px;border-top:1px solid rgba(201,168,64,0.22);padding-top:10px;">';
         html += '<div onclick="interpretMonthByFortnights(' + currentGregorianYear + ',' + currentGregorianMonth + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:8px 12px;background:rgba(201,168,64,0.10);border-radius:6px;border:1px solid rgba(201,168,64,0.35);font-size:0.85em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">';
-        html += '✦ ' + (currentLang === 'es' ? 'Interpretar todo ' + _monthLbl + ' (2 quincenas)' : 'Interpret all of ' + _monthLbl + ' (2 fortnights)');
+        html += '✦ ' + (currentLang === 'es' ? 'Interpretar ' + _monthLbl : 'Interpret ' + _monthLbl);
         html += '</div></div>';
     } else {
         html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos astrológicos este mes' : 'No astrological events this month') + '</div>';
