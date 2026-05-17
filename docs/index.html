@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ap';</script>
+    <script>window.APP_VERSION = 'v749aq';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -22179,7 +22179,7 @@ window.buildCalRelSelector = function() {
 
     var html = '<div class="personal-natal-card" style="padding:8px 10px;margin-bottom:6px;">';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
-    html += pill('natal', '🔮', (L?'Natal':'Natal'), '#c39bd3');
+    // v749aq: solo 3 modos relacionales (Natal removido — no aplica en calendario de Relaciones)
     html += pill('sinastria', '💞', (L?'Sinastría':'Synastry'), '#e91e63');
     html += pill('compuesta', '💫', (L?'Compuesta':'Composite'), '#9b59b6');
     html += pill('davison', '🌌', 'Davison', '#3498db');
@@ -24506,6 +24506,20 @@ function switchNatalTab(tabName, btn) {
     }
     // v749ao: nuevo sub-tab "Calendario" en Relaciones
     if (tabName === 'relcalendar') {
+        // v749aq: si no hay modo relacional seteado (o es 'natal'), default a sinastría
+        if (!window._calRelMode || window._calRelMode === 'natal') {
+            var profiles = [];
+            try { profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(_){}
+            var activeId = localStorage.getItem('activeProfileId');
+            var others = profiles.filter(function(p){ return p.id !== activeId; });
+            if (others.length > 0) {
+                var secId = window._calRelSecondProfileId && others.find(function(p){return p.id===window._calRelSecondProfileId;}) ? window._calRelSecondProfileId : others[0].id;
+                window._calRelMode = 'sinastria';
+                window._calRelSecondProfileId = secId;
+                localStorage.setItem('calRelMode', 'sinastria');
+                localStorage.setItem('calRelSecondProfileId', secId);
+            }
+        }
         setTimeout(function() {
             if (typeof renderPersonalCalendar === 'function') {
                 renderPersonalCalendar({ relations: true, targetContainerId: 'natalTabRelCalendar' });
@@ -26884,7 +26898,7 @@ function renderPersonalCalendar(opts) {
         ${_isRelMode && typeof buildCalRelSelector === 'function' ? buildCalRelSelector() : ''}
         ${_relHeaderHTML}
         ${_isRelMode ? '' : natalSubTabsHTML}
-        <div id="natalCalendarGrid">
+        <div ${_isRelMode ? 'id="relCalCalendarGrid"' : 'id="natalCalendarGrid"'}>
         ${_isRelMode ? '' : _todayBanner}
         <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
@@ -27166,7 +27180,7 @@ function renderPersonalCalendar(opts) {
     } else {
         calendarHTML += yearEventsHTML;
     }
-    calendarHTML += '</div><!-- close natalCalendarGrid -->';
+    calendarHTML += _isRelMode ? '</div><!-- close relCalCalendarGrid -->' : '</div><!-- close natalCalendarGrid -->';
 
     container.innerHTML = calendarHTML;
 }
@@ -28119,11 +28133,40 @@ function showPersonalDayDetail(year, month, day) {
                         ${_lunarDayNum ? `<span style="padding:2px 7px;background:rgba(126,200,255,0.12);border:1px solid rgba(126,200,255,0.3);border-radius:10px;color:#7ec8ff;">☽ ${L?'Día Lunar':'Lunar Day'} ${_lunarDayNum}</span>` : ''}
                         ${_solarSignData ? `<span style="padding:2px 7px;background:${_solarSignData.color}1a;border:1px solid ${_solarSignData.color}50;border-radius:10px;color:${_solarSignData.color};">${_solarSignData.symbol||'☉'} ${_solarSignData.name} · ${_solarSignData.dayInSign}/${_solarSignData.totalDays}</span>` : ''}
                         <!-- v749ak: formato día personal = X/Y donde Y son los días RESTANTES al cumple
-                             (no el total 365). Si es el día del cumple, mostrar "🎂 ¡Hoy!". -->
-                        ${_daysToBd === 0
-                            ? `<span style="padding:2px 7px;background:rgba(179,157,219,0.18);border:1px solid rgba(179,157,219,0.4);border-radius:10px;color:#b39ddb;font-weight:700;">🎂 ${L?'¡Cumple hoy!':'Birthday today!'}</span>`
-                            : `<span style="padding:2px 7px;background:rgba(232,200,74,0.12);border:1px solid rgba(232,200,74,0.3);border-radius:10px;color:#e8c84a;">${L?'Día Personal':'Personal Day'} ${_persDayNum}/${_daysToBd}</span>`
-                        }
+                             (no el total 365). Si es el día del cumple, mostrar "🎂 ¡Hoy!".
+                             v749aq: en modo sinastría, mostrar chips para AMBOS perfiles A y B. -->
+                        ${(function() {
+                            // Chip del perfil A (siempre)
+                            var nameA = (_relMode === 'sinastria' && _relCtx.profileA) ? (_relCtx.profileA.name || 'A') : '';
+                            var aChip = _daysToBd === 0
+                                ? `<span style="padding:2px 7px;background:rgba(179,157,219,0.18);border:1px solid rgba(179,157,219,0.4);border-radius:10px;color:#b39ddb;font-weight:700;">🎂 ${L?'¡Cumple':'Bday'} ${nameA||''} ${L?'hoy!':'today!'}</span>`
+                                : `<span style="padding:2px 7px;background:rgba(232,200,74,0.12);border:1px solid rgba(232,200,74,0.3);border-radius:10px;color:#e8c84a;">${nameA ? '👤 '+nameA+' · ' : ''}${L?'Día Pers':'Day'} ${_persDayNum}/${_daysToBd}</span>`;
+
+                            // Chip del perfil B (SOLO en sinastría)
+                            var bChip = '';
+                            if (_relMode === 'sinastria' && _relCtx.profileB && _relCtx.profileB.date) {
+                                try {
+                                    var pbParts = _relCtx.profileB.date.split('-').map(Number);
+                                    var pbM = pbParts[1], pbD = pbParts[2];
+                                    var pbBirthAnn = new Date(date.getFullYear(), pbM - 1, pbD);
+                                    var pbNextBd = new Date(date.getFullYear() + 1, pbM - 1, pbD);
+                                    var pbPrevBd = new Date(date.getFullYear() - 1, pbM - 1, pbD);
+                                    var pbDayNum, pbDaysToBd;
+                                    if (date >= pbBirthAnn) {
+                                        pbDayNum = Math.floor((date - pbBirthAnn) / 86400000) + 1;
+                                        pbDaysToBd = Math.round((pbNextBd - date) / 86400000);
+                                    } else {
+                                        pbDayNum = Math.floor((date - pbPrevBd) / 86400000) + 1;
+                                        pbDaysToBd = Math.round((pbBirthAnn - date) / 86400000);
+                                    }
+                                    var nameB = _relCtx.profileB.name || 'B';
+                                    bChip = pbDaysToBd === 0
+                                        ? `<span style="padding:2px 7px;background:rgba(233,30,99,0.18);border:1px solid rgba(233,30,99,0.4);border-radius:10px;color:#e91e63;font-weight:700;">🎂 ${L?'¡Cumple':'Bday'} ${nameB} ${L?'hoy!':'today!'}</span>`
+                                        : `<span style="padding:2px 7px;background:rgba(233,30,99,0.12);border:1px solid rgba(233,30,99,0.3);border-radius:10px;color:#e91e63;">👤 ${nameB} · ${L?'Día Pers':'Day'} ${pbDayNum}/${pbDaysToBd}</span>`;
+                                } catch(e) { /* skip B chip on error */ }
+                            }
+                            return aChip + bChip;
+                        })()}
                     </div>
                 </div>
                 <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;flex-shrink:0;margin-left:8px;">✕</button>
@@ -28372,14 +28415,52 @@ function interpretCalendarDay(year, month, day) {
         var profileChart = localStorage.getItem('natalChart_' + natal.id);
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { return; }
-    var transits = calculateTransitsToNatal(date, natalChart);
+
+    // v749aq: detectar modo relacional y construir prompt apropiado
+    var _ctx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _isRel = _ctx.mode !== 'natal';
+    var _relPrefix = '';
+    var transitChart = natalChart; // por default usar la natal del perfil activo
+
+    if (_isRel) {
+        if (_ctx.mode === 'compuesta') {
+            transitChart = _ctx.chartA; // chartA = composite chart
+            _relPrefix = L
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA COMPUESTA de la relación entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. La carta compuesta representa la relación como ENTIDAD PROPIA (midpoints planetarios). NO interpretes mi carta personal — interpretá los tránsitos sobre LA RELACIÓN como una entidad. '
+                : 'RELATIONAL CONTEXT: This is about the COMPOSITE CHART of the relationship between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. The composite chart represents the relationship AS ITS OWN ENTITY (planetary midpoints). Do NOT interpret my personal chart — interpret transits on THE RELATIONSHIP as an entity. ';
+        } else if (_ctx.mode === 'davison') {
+            transitChart = _ctx.chartA; // chartA = davison chart
+            _relPrefix = L
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA DAVISON de la relación entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. La carta Davison es una carta REAL calculada al midpoint temporal y espacial de ambos nacimientos. NO interpretes mi carta personal — interpretá los tránsitos sobre la carta Davison como representante real de la relación. '
+                : 'RELATIONAL CONTEXT: This is about the DAVISON CHART of the relationship between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. The Davison chart is a REAL chart calculated at the time/space midpoint of both births. Do NOT interpret my personal chart — interpret transits on the Davison chart as the real representative of the relationship. ';
+        } else if (_ctx.mode === 'sinastria') {
+            _relPrefix = L
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la SINASTRÍA (compatibilidad) entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. Analizá los tránsitos del día sobre LAS DOS CARTAS NATALES (no solo una). Si hay días de DOBLE ACTIVACIÓN (mismo planeta tránsito hits ambas cartas), enfatizá su importancia para la relación. NO interpretes solo mi carta — siempre considerá las dos. '
+                : 'RELATIONAL CONTEXT: This is about SYNASTRY (compatibility) between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. Analyze the day\'s transits on BOTH NATAL CHARTS (not just one). If there are DOUBLE ACTIVATION days (same transit planet hits both charts), emphasize their importance for the relationship. Do NOT interpret only my chart — always consider both. ';
+        }
+    }
+
+    var transits = calculateTransitsToNatal(date, transitChart);
     var transitDesc = transits.map(function(t) {
-        return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+        return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (_isRel ? 'rel' : 'natal') + ' ' + (planetNames[t.natalPlanet]||t.natalPlanet);
     }).join(', ');
 
-    var prompt = L
-        ? 'Dame una interpretación completa y personalizada del día ' + dateStr + ' para mi perfil natal. Los tránsitos activos ese día son: ' + (transitDesc || 'ninguno significativo') + '. Incluye: 1) Cómo me afectan personalmente estos tránsitos, 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
-        : 'Give me a complete personalized interpretation of ' + dateStr + ' for my natal profile. Active transits that day are: ' + (transitDesc || 'none significant') + '. Include: 1) How these transits affect me personally, 2) General energy of the day, 3) Practical advice, 4) Any important warnings.';
+    // Sinastría: tránsitos sobre Chart B también
+    var transitsBDesc = '';
+    if (_ctx.mode === 'sinastria' && _ctx.chartB) {
+        var transitsB = calculateTransitsToNatal(date, _ctx.chartB);
+        transitsBDesc = transitsB.map(function(t) {
+            return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+        }).join(', ');
+    }
+
+    var prompt = _relPrefix + (L
+        ? 'Dame una interpretación completa del día ' + dateStr + '. Tránsitos sobre la carta ' + (_isRel ? _ctx.label : 'natal') + ': ' + (transitDesc || 'ninguno significativo')
+          + (transitsBDesc ? '. Tránsitos sobre la carta de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
+          + '. Incluí: 1) Cómo afectan estos tránsitos al ' + (_isRel ? 'vínculo' : 'perfil personal') + ', 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
+        : 'Give me a complete interpretation of ' + dateStr + '. Transits on the ' + (_isRel ? _ctx.label : 'natal') + ' chart: ' + (transitDesc || 'none significant')
+          + (transitsBDesc ? '. Transits on ' + (_ctx.profileB.name||'B') + '\'s chart: ' + transitsBDesc : '')
+          + '. Include: 1) How these transits affect the ' + (_isRel ? 'relationship' : 'personal profile') + ', 2) General energy of the day, 3) Practical advice, 4) Any important warnings.');
 
     var _title = L ? 'Interpretación del Día' : 'Day Interpretation';
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
@@ -28425,6 +28506,25 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         natalChart = pc ? JSON.parse(pc) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { return; }
     if (!natalChart) return;
+
+    // v749aq: si estamos en modo relacional, usar el chart relacional + prefijo de contexto
+    var _isectCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _isectRelPrefix = '';
+    if (_isectCtx.mode === 'compuesta') {
+        natalChart = _isectCtx.chartA;
+        _isectRelPrefix = L
+            ? 'CONTEXTO: Carta COMPUESTA de la relación ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN como entidad, no sobre la carta personal. '
+            : 'CONTEXT: COMPOSITE CHART of relationship ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpret about the RELATIONSHIP as an entity, not personal chart. ';
+    } else if (_isectCtx.mode === 'davison') {
+        natalChart = _isectCtx.chartA;
+        _isectRelPrefix = L
+            ? 'CONTEXTO: Carta DAVISON de la relación ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN, no sobre carta personal. '
+            : 'CONTEXT: DAVISON CHART of relationship ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpret about the RELATIONSHIP, not personal chart. ';
+    } else if (_isectCtx.mode === 'sinastria') {
+        _isectRelPrefix = L
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_isectCtx.profileA.name||'A') + ' y ' + (_isectCtx.profileB.name||'B') + '. Considerá AMBAS cartas natales, no solo una. '
+            : 'CONTEXT: SYNASTRY between ' + (_isectCtx.profileA.name||'A') + ' and ' + (_isectCtx.profileB.name||'B') + '. Consider BOTH natal charts, not just one. ';
+    }
 
     var prompt = '', sectionTitle = '';
 
@@ -28512,7 +28612,9 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
     document.getElementById('compPlanetDetailTitle').textContent = sectionTitle;
     document.getElementById('compPlanetDetailBody').innerHTML = bodyHtml;
     detailModal.classList.add('show');
-    setTimeout(function() { fetchAIInterpretation(prompt, 'psectionInterpDiv', sectionTitle); }, 100);
+    // v749aq: prepend prefijo de contexto relacional al prompt si aplica
+    var _finalPrompt = (_isectRelPrefix || '') + prompt;
+    setTimeout(function() { fetchAIInterpretation(_finalPrompt, 'psectionInterpDiv', sectionTitle); }, 100);
 };
 
 // ===== INTERPRET SINGLE TRANSIT ASPECT =====
