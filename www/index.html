@@ -26622,16 +26622,8 @@ function renderPersonalCalendar() {
     calendarHTML += `
             </div>
         </div>
-
-        <!-- Legend -->
-        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
-            <span style="color:#e8c84a;font-weight:600;"># = ${currentLang==='es'?'Día personal':'Personal day'}</span>
-            <span style="color:#7ec8ff;">☿☍♄ = ${currentLang==='es'?'Aspectos':'Aspects'}</span>
-            <span style="color:#ff6b6b;">℞ = ${currentLang==='es'?'Retrógrado':'Retrograde'}</span>
-            <span style="color:#4ecdc4;">→ = ${currentLang==='es'?'Cambio signo':'Sign change'}</span>
-            <span style="color:#FFD700;">★ = Stellium</span>
-            <span style="color:#ef5350;">🌑🌕 = ${currentLang==='es'?'Luna':'Moon'}</span>
-        </div>
+        <!-- v749ad: Leyenda removida a pedido del usuario (ocupaba espacio innecesario;
+             los iconos #/℞/→/★/🌑🌕 son auto-explicativos en contexto). -->
     `;
 
     // ===== YEARLY EVENTS LIST (inside natalCalendarGrid so it only shows on Calendar tab) =====
