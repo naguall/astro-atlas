@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ai';</script>
+    <script>window.APP_VERSION = 'v749ak';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -27638,15 +27638,69 @@ function showPersonalDayDetail(year, month, day) {
     const _allSeasons = [..._getPersonalSeasons(year, birthM, birthD), ..._getPersonalSeasons(year - 1, birthM, birthD)];
     const daySeason = _allSeasons.find(s => s.date.toDateString() === date.toDateString());
 
-    const dateStr = date.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const dateStr = date.toLocaleDateString(L?'es':'en', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+    // v749aj: datos del día — lunar / solar / signo / día personal / días al cumple
+    var _lunarDayNum = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(date) : null;
+    var _solarSignData = (function() {
+        if (typeof solarSigns2026 === 'undefined') return null;
+        for (var i = 0; i < solarSigns2026.length; i++) {
+            var s = solarSigns2026[i];
+            var sStart = new Date(s.start);
+            var sEnd = new Date(s.end);
+            if (date >= sStart && date <= sEnd) {
+                return {
+                    name: s.name,
+                    symbol: s.symbol || '',
+                    color: s.color || '#c9a840',
+                    dayInSign: Math.floor((date - sStart) / 86400000) + 1,
+                    totalDays: Math.ceil((sEnd - sStart) / 86400000) + 1
+                };
+            }
+        }
+        return null;
+    })();
+    var _persDayBirthAnn = new Date(date.getFullYear(), birthM - 1, birthD);
+    var _persDayNextBd = new Date(date.getFullYear() + 1, birthM - 1, birthD);
+    var _persDayPrevBd = new Date(date.getFullYear() - 1, birthM - 1, birthD);
+    var _persDayNum, _persDayTotal, _daysToBd;
+    if (date >= _persDayBirthAnn) {
+        _persDayNum = Math.floor((date - _persDayBirthAnn) / 86400000) + 1;
+        _persDayTotal = Math.round((_persDayNextBd - _persDayBirthAnn) / 86400000);
+        _daysToBd = Math.round((_persDayNextBd - date) / 86400000);
+    } else {
+        _persDayNum = Math.floor((date - _persDayPrevBd) / 86400000) + 1;
+        _persDayTotal = Math.round((_persDayBirthAnn - _persDayPrevBd) / 86400000);
+        _daysToBd = Math.round((_persDayBirthAnn - date) / 86400000);
+    }
 
     let html = `
         <div style="padding:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0;">
-                    ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
-                </h3>
-                <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;">✕</button>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div style="flex:1;">
+                    <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0 0 6px 0;">
+                        ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
+                    </h3>
+                    <!-- v749aj: chips con día lunar / solar / signo / día personal / días al cumple -->
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:0.7em;color:rgba(255,255,255,0.75);">
+                        ${_lunarDayNum ? `<span style="padding:2px 7px;background:rgba(126,200,255,0.12);border:1px solid rgba(126,200,255,0.3);border-radius:10px;color:#7ec8ff;">☽ ${L?'Día Lunar':'Lunar Day'} ${_lunarDayNum}</span>` : ''}
+                        ${_solarSignData ? `<span style="padding:2px 7px;background:${_solarSignData.color}1a;border:1px solid ${_solarSignData.color}50;border-radius:10px;color:${_solarSignData.color};">${_solarSignData.symbol||'☉'} ${_solarSignData.name} · ${_solarSignData.dayInSign}/${_solarSignData.totalDays}</span>` : ''}
+                        <!-- v749ak: formato día personal = X/Y donde Y son los días RESTANTES al cumple
+                             (no el total 365). Si es el día del cumple, mostrar "🎂 ¡Hoy!". -->
+                        ${_daysToBd === 0
+                            ? `<span style="padding:2px 7px;background:rgba(179,157,219,0.18);border:1px solid rgba(179,157,219,0.4);border-radius:10px;color:#b39ddb;font-weight:700;">🎂 ${L?'¡Cumple hoy!':'Birthday today!'}</span>`
+                            : `<span style="padding:2px 7px;background:rgba(232,200,74,0.12);border:1px solid rgba(232,200,74,0.3);border-radius:10px;color:#e8c84a;">${L?'Día Personal':'Personal Day'} ${_persDayNum}/${_daysToBd}</span>`
+                        }
+                    </div>
+                </div>
+                <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;flex-shrink:0;margin-left:8px;">✕</button>
+            </div>
+
+            <!-- v749aj: botón "Interpretar el día" ahora ARRIBA, justo debajo de la fecha -->
+            <div style="margin-bottom:14px;text-align:center;">
+                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:10px 18px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.88em;font-weight:700;cursor:pointer;width:100%;max-width:400px;">
+                    ✨ ${L ? 'Interpretar el día completo' : 'Interpret full day'}
+                </button>
             </div>
 
             ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${currentLang==='es'?'¡Feliz Retorno Solar!':'Happy Solar Return!'}</div>` : ''}
@@ -27656,14 +27710,16 @@ function showPersonalDayDetail(year, month, day) {
             </div>` : ''}
 
             ${(function() {
-                // Cosmic cycles for this day
+                // Cosmic cycles for this day — v749aj: cada ciclo es clickeable e interpretable individualmente
                 try {
                     var dayCycles = calculateCosmicCyclesForMonth(year, month, natalChart, natal.date).filter(function(c) { return c.day === day; });
                     if (dayCycles.length === 0) return '';
                     return dayCycles.map(function(c) {
                         var timeStr = c.exactTime ? c.exactTime.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) : '';
-                        return '<div style="text-align:center;padding:8px 10px;background:' + c.color + '12;border:1px solid ' + c.color + '44;border-radius:8px;margin-bottom:8px;font-size:0.85em;color:' + c.color + ';">' +
-                            '<div style="font-weight:700;">' + c.icon + ' ' + c.label + (timeStr ? ' — ' + timeStr : '') + '</div>' +
+                        // v749aj: payload para interpretPersonalSection — cycle:<type>|<label>|<desc>
+                        var cyclePayload = ('cycle:' + (c.type || '') + '|' + (c.label || '') + '|' + (c.desc || '')).replace(/'/g, "\\'");
+                        return '<div onclick="interpretPersonalSection(\'' + cyclePayload + '\',' + year + ',' + month + ',' + day + ')" style="text-align:center;padding:8px 10px;background:' + c.color + '12;border:1px solid ' + c.color + '44;border-radius:8px;margin-bottom:8px;font-size:0.85em;color:' + c.color + ';cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'' + c.color + '22\'" onmouseout="this.style.background=\'' + c.color + '12\'" title="' + (L?'Click para interpretar':'Click to interpret') + '">' +
+                            '<div style="font-weight:700;">' + c.icon + ' ' + c.label + (timeStr ? ' — ' + timeStr : '') + ' <span style="font-size:0.8em;opacity:0.6;">✨</span></div>' +
                             '<div style="font-size:0.82em;opacity:0.8;margin-top:2px;">' + c.desc + '</div>' +
                         '</div>';
                     }).join('');
@@ -27741,8 +27797,9 @@ function showPersonalDayDetail(year, month, day) {
                               + (pat.icon || '✦') + ' ' + pat.name + ' — ' + (pat.planets ? pat.planets.join(', ') : '') + '</div>';
                     });
 
+                    // v749aj: título clickeable que abre interpretación de la sección
                     return '<div style="margin-bottom:12px;">'
-                         + '<div style="font-size:0.75em;font-weight:700;color:#c9a840;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">✦ ' + (L ? 'Aspectos del Día' : 'Aspects of the Day') + ' (' + total + ')</div>'
+                         + '<div onclick="interpretPersonalSection(\'aspectosDelDia\',' + year + ',' + month + ',' + day + ')" style="font-size:0.75em;font-weight:700;color:#c9a840;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);" title="' + (L?'Click para interpretar':'Click to interpret') + '">✦ ' + (L ? 'Aspectos del Día' : 'Aspects of the Day') + ' (' + total + ') <span style="font-size:0.85em;opacity:0.7;">✨</span></div>'
                          + rows
                          + '</div>';
                 } catch(e) { console.warn('Error generando Aspectos del Día:', e); return ''; }
@@ -27750,7 +27807,8 @@ function showPersonalDayDetail(year, month, day) {
 
             <!-- Transit Positions -->
             <div style="margin-bottom:12px;">
-                <div style="font-size:0.75em;font-weight:700;color:#7ec8ff;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Posiciones Planetarias' : 'Planetary Positions'}</div>
+                <!-- v749aj: título clickeable -->
+                <div onclick="interpretPersonalSection('posiciones',${year},${month},${day})" style="font-size:0.75em;font-weight:700;color:#7ec8ff;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);" title="${L?'Click para interpretar':'Click to interpret'}">${L ? 'Posiciones Planetarias' : 'Planetary Positions'} <span style="font-size:0.85em;opacity:0.7;">✨</span></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:0.78em;">
                     ${Object.entries(transitPositions).map(([p, data]) => {
                         const pNamesEN = {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node'};
@@ -27762,7 +27820,7 @@ function showPersonalDayDetail(year, month, day) {
             </div>
 
             <!-- Slow Planet Transits (Jupiter+) -->
-            ${slowTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="font-size:0.75em;font-weight:700;color:#e74c3c;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔴 ' + (L ? 'Tránsitos Mayores (Lentos)' : 'Major Transits (Slow)') + ' (' + slowTransits.length + ')</div>' + slowTransits.map(function(t) {
+            ${slowTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="interpretPersonalSection(\'transitosMayores\',' + year + ',' + month + ',' + day + ')" style="font-size:0.75em;font-weight:700;color:#e74c3c;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.2);" title="' + (L?'Click para interpretar':'Click to interpret') + '">🔴 ' + (L ? 'Tránsitos Mayores (Lentos)' : 'Major Transits (Slow)') + ' (' + slowTransits.length + ') <span style="font-size:0.85em;opacity:0.7;">✨</span></div>' + slowTransits.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
@@ -27784,7 +27842,7 @@ function showPersonalDayDetail(year, month, day) {
                 }).join('') + '</div>' : ''}
 
             <!-- Personal Planet Transits (Sun, Venus, Mars) -->
-            ${personalTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="font-size:0.75em;font-weight:700;color:#f1c40f;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🟡 ' + (L ? 'Tránsitos Personales' : 'Personal Transits') + ' (' + personalTransits.length + ')</div>' + personalTransits.map(function(t) {
+            ${personalTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="interpretPersonalSection(\'transitosPersonales\',' + year + ',' + month + ',' + day + ')" style="font-size:0.75em;font-weight:700;color:#f1c40f;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.2);" title="' + (L?'Click para interpretar':'Click to interpret') + '">🟡 ' + (L ? 'Tránsitos Personales' : 'Personal Transits') + ' (' + personalTransits.length + ') <span style="font-size:0.85em;opacity:0.7;">✨</span></div>' + personalTransits.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
@@ -27806,7 +27864,8 @@ function showPersonalDayDetail(year, month, day) {
                 }).join('') + '</div>' : ''}
 
             <!-- Fast Transits (Moon, Mercury) — collapsed -->
-            ${fastTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="var c=this.nextElementSibling;c.style.display=c.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.chevron\').textContent=c.style.display===\'none\'?\'▸\':\'▾\'" style="font-size:0.72em;font-weight:700;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:4px;"><span class="chevron">▸</span> ☽☿ ' + (L ? 'Luna y Mercurio' : 'Moon & Mercury') + ' (' + fastTransits.length + ')</div><div style="display:none;">' + fastTransits.map(function(t) {
+            <!-- v749aj: split toggle (chevron expand) y botón ✨ interpretar para no confundir gestos -->
+            ${fastTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><div onclick="var c=this.parentElement.nextElementSibling;c.style.display=c.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.chevron\').textContent=c.style.display===\'none\'?\'▸\':\'▾\'" style="flex:1;font-size:0.72em;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);"><span class="chevron">▸</span> ☽☿ ' + (L ? 'Luna y Mercurio' : 'Moon & Mercury') + ' (' + fastTransits.length + ')</div><button onclick="interpretPersonalSection(\'transitosRapidos\',' + year + ',' + month + ',' + day + ')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:rgba(255,255,255,0.5);font-size:0.85em;cursor:pointer;padding:4px 8px;" title="' + (L?'Interpretar':'Interpret') + '">✨</button></div><div style="display:none;">' + fastTransits.map(function(t) {
                     var safeDate = dateStr.replace(/'/g, "\\'");
                     return '<div class="transit-aspect-row ' + t.class + '" onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDate + '\')" style="opacity:0.6;cursor:pointer;padding:4px 10px;" title="' + (currentLang==='es'?'Click para interpretar':'Click to interpret') + '">'
                         + '<span style="font-size:0.9em;">' + t.transitSymbol + '</span>'
@@ -27817,13 +27876,7 @@ function showPersonalDayDetail(year, month, day) {
                     + '</div>';
                 }).join('') + '</div></div>' : ''}
 
-            <!-- Interpretar el día button -->
-            ${(slowTransits.length > 0 || personalTransits.length > 0 || fastTransits.length > 0) ? `
-            <div style="margin-top:14px;text-align:center;">
-                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:12px 20px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.9em;font-weight:700;cursor:pointer;width:90%;max-width:400px;">
-                    ✨ ${L ? 'Interpretar el día' : 'Interpret the day'}
-                </button>
-            </div>` : ''}
+            <!-- v749aj: botón "Interpretar el día" movido al inicio (justo debajo del header) -->
         </div>
     `;
 
@@ -27891,6 +27944,114 @@ function interpretCalendarDay(year, month, day) {
     detailModal.classList.add('show');
     setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
 }
+
+// ===== v749aj: INTERPRET A SINGLE SECTION of Activaciones Personales =====
+// Cada título del modal personalDayDetail llama acá con el tipo de sección. Arma prompt específico
+// y abre overlay modal con fetchAIInterpretation (mismo patrón que interpretCalendarDay).
+// Tipos soportados: aspectosDelDia, posiciones, transitosMayores, transitosPersonales,
+//                   transitosRapidos, cycle:<cycleType>
+window.interpretPersonalSection = function(sectionType, year, month, day) {
+    var L = currentLang === 'es';
+    var date = new Date(year, month, day);
+    var dateStr = date.toLocaleDateString(L?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    var natal = getNatalData();
+    if (!natal) return;
+    var natalChart;
+    try {
+        var pc = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = pc ? JSON.parse(pc) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    var prompt = '', sectionTitle = '';
+
+    if (sectionType === 'aspectosDelDia') {
+        var sc = (typeof getSignChanges==='function')? getSignChanges(date):[];
+        var rg = (typeof getRetrogrades==='function')? getRetrogrades(date):[];
+        var ia = (typeof getInterPlanetaryAspects==='function')? getInterPlanetaryAspects(date):[];
+        var ec = (typeof getEclipseInfo==='function')? getEclipseInfo(date):null;
+        var me = (typeof getMoonEventForDate==='function')? getMoonEventForDate(date):null;
+        var st = (typeof getStellium==='function')? getStellium(date):null;
+        var events = [];
+        if (me) events.push(me.type==='full'?(L?'Luna Llena':'Full Moon'):me.type==='new'?(L?'Luna Nueva':'New Moon'):(me.name||(L?'evento lunar':'lunar event')));
+        if (ec) events.push(ec.type==='solar'?(L?'Eclipse Solar':'Solar Eclipse'):(L?'Eclipse Lunar':'Lunar Eclipse'));
+        if (st) events.push('Stellium ' + (L?'en ':'in ') + st.sign);
+        sc.forEach(function(s){ events.push((planetNames[s.planet]||s.planet) + ' → ' + s.toSign); });
+        rg.forEach(function(r){ events.push((planetNames[r.planet]||r.planet) + (r.isStart?(L?' inicia retrógrado':' starts retrograde'):(L?' se pone directo':' goes direct')) + (r.sign?(L?' en ':' in ')+r.sign:'')); });
+        ia.forEach(function(a){ events.push((planetNames[a.planet1]||a.planet1)+' '+a.symbol+' '+(planetNames[a.planet2]||a.planet2)); });
+
+        sectionTitle = L?'Aspectos del Día':'Aspects of the Day';
+        prompt = L
+            ? 'Interpretá los aspectos planetarios y eventos generales del cielo el ' + dateStr + ' y cómo me afectan personalmente según mi carta natal. Eventos: ' + (events.length?events.join('; '):'sin eventos significativos') + '. Incluí: 1) Simbolismo astrológico de cada evento, 2) Energía colectiva del día, 3) Cómo aterrizarlo en mi vida personal según mi carta, 4) Consejos para navegar el día.'
+            : 'Interpret the planetary aspects and general sky events on ' + dateStr + ' and how they affect me personally according to my natal chart. Events: ' + (events.length?events.join('; '):'no significant events') + '. Include: 1) Astrological symbolism of each event, 2) Collective energy of the day, 3) How to ground it in my personal life according to my chart, 4) Advice to navigate the day.';
+    } else if (sectionType === 'posiciones') {
+        var pos = {};
+        ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'].forEach(function(p){
+            try { pos[p] = getZodiacSignWithDegree(getPlanetPosition(p, date)).formatted; } catch(e){}
+        });
+        var desc = Object.entries(pos).map(function(kv){ return (planetNames[kv[0]]||kv[0]) + ': ' + kv[1]; }).join(', ');
+        sectionTitle = L?'Posiciones Planetarias':'Planetary Positions';
+        prompt = L
+            ? 'Interpretá las posiciones planetarias del cielo el ' + dateStr + ' y cómo activan mi carta natal: ' + desc + '. Para cada planeta importante, explicá: 1) Qué casa natal mía transita, 2) Qué aspecto forma con planetas natales clave, 3) Qué área de vida activa, 4) Cómo aprovechar la energía.'
+            : 'Interpret the planetary positions in the sky on ' + dateStr + ' and how they activate my natal chart: ' + desc + '. For each important planet, explain: 1) Which of my natal houses it transits, 2) What aspect it forms with key natal planets, 3) What life area it activates, 4) How to leverage the energy.';
+    } else if (sectionType === 'transitosMayores' || sectionType === 'transitosPersonales' || sectionType === 'transitosRapidos') {
+        var transits = calculateTransitsToNatal(date, natalChart);
+        var tier = sectionType === 'transitosMayores' ? 'slow' : sectionType === 'transitosPersonales' ? 'personal' : 'fast';
+        var subset = transits.filter(function(t){ return t.tier === tier; });
+        var desc = subset.map(function(t){ return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet); }).join(', ');
+        if (sectionType === 'transitosMayores') {
+            sectionTitle = L?'Tránsitos Mayores (Lentos)':'Major Transits (Slow)';
+            prompt = L
+                ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos lentos activos') + '. Estos marcan ciclos largos y transformaciones profundas. Detallá: 1) Simbolismo de cada tránsito, 2) Casa natal y área de vida activada, 3) Lección o crecimiento, 4) Tiempo aproximado de influencia, 5) Cómo navegar.'
+                : 'Interpret the SLOW major transits (Jupiter, Saturn, Uranus, Neptune, Pluto) on my natal chart on ' + dateStr + ': ' + (desc || 'no active slow transits') + '. These mark long cycles and deep transformations. Detail: 1) Symbolism of each transit, 2) Natal house and life area activated, 3) Lesson or growth, 4) Approximate duration, 5) How to navigate.';
+        } else if (sectionType === 'transitosPersonales') {
+            sectionTitle = L?'Tránsitos Personales':'Personal Transits';
+            prompt = L
+                ? 'Interpretá los tránsitos de planetas PERSONALES (Sol, Venus, Marte) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos personales significativos') + '. Estos activan identidad, amor, deseo y acción. Detallá la energía del día y cómo aprovecharla concretamente.'
+                : 'Interpret the PERSONAL planet transits (Sun, Venus, Mars) on my natal chart on ' + dateStr + ': ' + (desc || 'no significant personal transits') + '. These activate identity, love, desire and action. Detail the energy of the day and how to leverage it concretely.';
+        } else {
+            sectionTitle = L?'Luna y Mercurio':'Moon & Mercury';
+            prompt = L
+                ? 'Interpretá los tránsitos RÁPIDOS (Luna y Mercurio) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos rápidos') + '. Estos activan emociones, comunicación y mente del momento. Dame el tono emocional y mental del día.'
+                : 'Interpret the FAST transits (Moon and Mercury) on my natal chart on ' + dateStr + ': ' + (desc || 'no fast transits') + '. These activate emotions, communication and mind of the moment. Give me the emotional and mental tone of the day.';
+        }
+    } else if (sectionType.indexOf('cycle:') === 0) {
+        // sectionType formato: "cycle:<cycleType>|<label>|<desc>"
+        var parts = sectionType.substring(6).split('|');
+        var cycleType = parts[0] || '';
+        var cycleLabel = parts[1] || '';
+        var cycleDesc = parts[2] || '';
+        sectionTitle = cycleLabel;
+        prompt = L
+            ? 'Interpretá específicamente este ciclo cósmico personal del ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detallá: 1) Qué significa este evento astrológico, 2) Cómo me afecta personalmente según mi carta natal, 3) Qué tema o ciclo se activa para mí, 4) Cómo aprovecharlo concretamente en los próximos días/semanas.'
+            : 'Specifically interpret this personal cosmic cycle on ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detail: 1) What this astrological event means, 2) How it affects me personally according to my natal chart, 3) What theme or cycle activates for me, 4) How to leverage it concretely in the coming days/weeks.';
+    } else {
+        return;
+    }
+
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">✨</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + sectionTitle + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="psectionInterpDiv"></div>';
+
+    var detailModal = document.getElementById('compositePlanetDetailModal');
+    if (!detailModal) {
+        detailModal = document.createElement('div');
+        detailModal.id = 'compositePlanetDetailModal';
+        detailModal.className = 'modal';
+        detailModal.style.zIndex = '10010';
+        detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
+        document.body.appendChild(detailModal);
+    }
+    document.getElementById('compPlanetDetailTitle').textContent = sectionTitle;
+    document.getElementById('compPlanetDetailBody').innerHTML = bodyHtml;
+    detailModal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'psectionInterpDiv', sectionTitle); }, 100);
+};
 
 // ===== INTERPRET SINGLE TRANSIT ASPECT =====
 function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr) {
