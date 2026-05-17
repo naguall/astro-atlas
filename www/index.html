@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ao';</script>
+    <script>window.APP_VERSION = 'v749ap';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -22129,9 +22129,19 @@ window.setCalRelMode = function(mode, secondProfileId) {
     // Invalidar caches para forzar recálculo
     window._calRelCompCache = null;
     window._calRelDavCache = null;
-    // Re-render
+    // v749ap: detectar si estamos renderizando dentro del calendario relacional vs personal,
+    // y re-llamar con las opts correctas. Si el div natalTabRelCalendar está visible/poblado,
+    // estamos en modo relacional.
+    var _relContainer = document.getElementById('natalTabRelCalendar');
+    var _inRelMode = _relContainer && (_relContainer.style.display !== 'none' || _relContainer.children.length > 0);
     if (typeof renderPersonalCalendar === 'function') {
-        try { renderPersonalCalendar(); } catch(e) { console.warn(e); }
+        try {
+            if (_inRelMode) {
+                renderPersonalCalendar({ relations: true, targetContainerId: 'natalTabRelCalendar' });
+            } else {
+                renderPersonalCalendar();
+            }
+        } catch(e) { console.warn(e); }
     }
 };
 
@@ -26834,9 +26844,45 @@ function renderPersonalCalendar(opts) {
         window._calRelChartB = null;
     }
 
+    // v749ap: header relacional cuando estamos en modo Sinastría/Compuesta/Davison
+    var _relHeaderHTML = '';
+    if (_isRelMode) {
+        var _ctx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+        if (_ctx.mode !== 'natal' && _ctx.profileA && _ctx.profileB) {
+            var _modeIcon = _ctx.mode === 'compuesta' ? '💫' : _ctx.mode === 'davison' ? '🌌' : '💞';
+            var _modeName = _ctx.mode === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart')
+                          : _ctx.mode === 'davison' ? (L?'Carta Davison':'Davison Chart')
+                          : (L?'Sinastría':'Synastry');
+            var _aName = _ctx.profileA.name || _ctx.profileA.cityName || 'A';
+            var _bName = _ctx.profileB.name || _ctx.profileB.cityName || 'B';
+            var _sep = _ctx.mode === 'sinastria' ? ' ↔ ' : ' + ';
+            // Info específica de cada modo
+            var _modeInfo = '';
+            if (_ctx.mode === 'compuesta') {
+                _modeInfo = L ? 'Tránsitos sobre la carta compuesta (midpoints de ambos natales). Esta carta representa la relación como entidad propia.'
+                              : 'Transits on the composite chart (midpoints of both natals). This chart represents the relationship as its own entity.';
+            } else if (_ctx.mode === 'davison') {
+                _modeInfo = L ? 'Tránsitos sobre la carta Davison (punto medio temporal y espacial entre ambos nacimientos).'
+                              : 'Transits on the Davison chart (midpoint in time and space between both births).';
+                if (_ctx.davData) {
+                    _modeInfo += '<br><span style="font-size:0.85em;color:rgba(255,255,255,0.55);">' + (L?'Fecha media: ':'Midpoint date: ') + _ctx.davData.dateStr + '</span>';
+                }
+            } else {
+                _modeInfo = L ? 'Tránsitos sobre AMBAS cartas. Días con 💞 = doble activación (mismo planeta hits ambas cartas).'
+                              : 'Transits on BOTH charts. Days with 💞 = double activation (same planet hits both charts).';
+            }
+            _relHeaderHTML = '<div class="personal-natal-card" style="padding:12px;margin-bottom:8px;">'
+                + '<div style="font-family:Cinzel,serif;font-size:1em;color:#c39bd3;text-align:center;margin-bottom:4px;">' + _modeIcon + ' ' + _modeName + '</div>'
+                + '<div style="text-align:center;font-size:0.9em;color:#fff;margin-bottom:6px;">' + _aName + _sep + _bName + '</div>'
+                + '<div style="font-size:0.75em;color:rgba(255,255,255,0.55);text-align:center;line-height:1.5;">' + _modeInfo + '</div>'
+                + '</div>';
+        }
+    }
+
     let calendarHTML = `
         ${_isRelMode ? '' : buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
         ${_isRelMode && typeof buildCalRelSelector === 'function' ? buildCalRelSelector() : ''}
+        ${_relHeaderHTML}
         ${_isRelMode ? '' : natalSubTabsHTML}
         <div id="natalCalendarGrid">
         ${_isRelMode ? '' : _todayBanner}
@@ -27101,7 +27147,25 @@ function renderPersonalCalendar(opts) {
     }
     yearEventsHTML += '</div></div>';
 
-    calendarHTML += yearEventsHTML;
+    // v749ap: Ciclos personales (retornos solares/lunares basados en cumpleaños del perfil A)
+    // NO se muestran en modo relacional puro — porque:
+    //   - Compuesta: no hay "cumpleaños" de la relación
+    //   - Davison: el "cumpleaños" es la fecha del midpoint, distinta a la del perfil
+    //   - Sinastría: deberían mostrarse para ambos perfiles (TODO en futura versión)
+    // En su lugar mostramos un mensaje explicativo.
+    if (_isRelMode) {
+        calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:12px;text-align:center;">'
+            + '<div style="font-size:0.8em;color:rgba(255,255,255,0.55);line-height:1.5;">'
+            + (L ? '📊 Las celdas del calendario muestran los tránsitos del cielo del día sobre la carta '
+                 : '📊 The calendar cells show today\'s sky transits on the chart ')
+            + (window._calRelMode === 'sinastria' ? (L?'de AMBOS perfiles':'of BOTH profiles')
+              : window._calRelMode === 'compuesta' ? (L?'compuesta de la relación':'composite chart of the relationship')
+              : (L?'Davison de la relación':'Davison chart of the relationship'))
+            + '. ' + (L ? 'Hacé click en cualquier día para ver el detalle.' : 'Click any day to see details.') + '</div>'
+            + '</div>';
+    } else {
+        calendarHTML += yearEventsHTML;
+    }
     calendarHTML += '</div><!-- close natalCalendarGrid -->';
 
     container.innerHTML = calendarHTML;
