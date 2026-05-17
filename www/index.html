@@ -21020,7 +21020,17 @@ function getHouseForLongitude(longitude, houseCusps) {
 var _transitsCache = {};
 var _transitsCacheSize = 0;
 function calculateTransitsToNatal(transitDate, natalChart) {
-    var _cacheKey = transitDate.toDateString();
+    // v749z: cache key incluye identidad del natalChart — antes solo fecha → al cambiar perfil
+    // devolvía los tránsitos del perfil ANTERIOR (mismo día = mismo cache).
+    var _natalId = '';
+    try {
+        if (natalChart && natalChart.planets && natalChart.planets.sun) {
+            _natalId = '|' + natalChart.planets.sun.longitude.toFixed(2)
+                     + '|' + (natalChart.planets.moon ? natalChart.planets.moon.longitude.toFixed(2) : '')
+                     + '|' + (natalChart.houses ? natalChart.houses.asc.toFixed(2) : '');
+        }
+    } catch(_eCk) {}
+    var _cacheKey = transitDate.toDateString() + _natalId;
     if (_transitsCache[_cacheKey]) return _transitsCache[_cacheKey];
     if (_transitsCacheSize > 90) { _transitsCache = {}; _transitsCacheSize = 0; }
     const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron'];
@@ -22988,11 +22998,13 @@ function switchProfile(id) {
     // v749x: Forzar refresh completo de TODOS los sub-tabs de Astro/Detalles
     // (limpia globalNatalChart + container para evitar mostrar data del perfil anterior)
     if (typeof globalNatalChart !== 'undefined') globalNatalChart = null;
-    // v749y: limpiar TODAS las variables globales con tránsitos del perfil anterior
+    // v749y/z: limpiar TODAS las variables globales con tránsitos del perfil anterior
     if (typeof globalTodayTransits !== 'undefined') globalTodayTransits = [];
     if (typeof window._astroTodayTransits !== 'undefined') window._astroTodayTransits = [];
     if (typeof window._astroTodayPersonalYear !== 'undefined') window._astroTodayPersonalYear = null;
     if (typeof window._astroTodayPersonalDay !== 'undefined') window._astroTodayPersonalDay = null;
+    // v749z: invalidar cache de calculateTransitsToNatal (raíz del bug: cacheaba por fecha sin id de natal)
+    if (typeof _transitsCache !== 'undefined') { _transitsCache = {}; _transitsCacheSize = 0; }
     var _natalGrid = document.getElementById('natalCalendarGrid');
     if (_natalGrid) _natalGrid.innerHTML = '';
     // Limpiar también tab content de sub-tabs que se llenan lazy
