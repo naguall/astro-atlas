@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ag';</script>
+    <script>window.APP_VERSION = 'v749ai';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -984,18 +984,20 @@
                 <p id="dayOptionsDate" style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.78em;margin:4px 0 0;"></p>
             </div>
             <div style="padding:6px 0;">
-                <!-- v749ae: Opción "Detalles Personales" — solo visible cuando se abre desde Calendario Personal.
-                     Por defecto display:none; handlePersonalDayClick la activa antes de mostrar el modal. -->
-                <div onclick="selectDayOption('detalles')" id="personalDetailsOptionBtn" style="display:none;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;background:rgba(155,89,182,0.08);border-left:3px solid #9b59b6;" onmouseenter="this.style.background='rgba(155,89,182,0.16)'" onmouseleave="this.style.background='rgba(155,89,182,0.08)'">
-                    <div style="text-align:center;">
-                        <div style="color:#c39bd3;font-size:0.92em;font-weight:700;">🔮 <span data-i18n="dayOptPersonalDetails">Detalles Personales</span></div>
-                        <div style="color:rgba(195,155,211,0.55);font-size:0.7em;" data-i18n="dayOptPersonalDetailsDesc">Retorno lunar, tránsitos a tu natal, ciclos cósmicos</div>
-                    </div>
-                </div>
+                <!-- v749ai: orden definitivo: Agenda primero, Activaciones Personales segundo, Aspectos (oculto en
+                     modo Personal), Diarios último. -->
                 <div onclick="selectDayOption('agenda')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
                     <div style="text-align:center;">
                         <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;" data-i18n="dayOptAgenda">📅 Agenda / Eventos</div>
                         <div style="color:rgba(255,255,255,0.35);font-size:0.7em;" data-i18n="dayOptAgendaDesc">Citas, recordatorios, eventos</div>
+                    </div>
+                </div>
+                <!-- v749ah/ai: "Activaciones Personales" — suma de aspectos + tránsitos + ciclos + retornos del perfil.
+                     Solo visible cuando se abre desde Calendario Personal. Mismo estilo que las otras opciones. -->
+                <div onclick="selectDayOption('detalles')" id="personalDetailsOptionBtn" style="display:none;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
+                    <div style="text-align:center;">
+                        <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;">✨ <span data-i18n="dayOptPersonalActivations">Activaciones Personales</span></div>
+                        <div style="color:rgba(255,255,255,0.35);font-size:0.7em;" data-i18n="dayOptPersonalActivationsDesc">Aspectos, tránsitos, retornos y ciclos</div>
                     </div>
                 </div>
                 <div onclick="selectDayOption('aspectos')" id="aspectsOptionBtn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
@@ -7557,7 +7559,10 @@ function updateModalTranslations() {
         'dayOptAspects': L ? 'Aspectos Planetarios' : 'Planetary Aspects',
         'dayOptAspectsDesc': L ? 'Conjunciones, trígonos, cuadraturas' : 'Conjunctions, trines, squares',
         'dayOptDiary': L ? 'Diarios y Reflexiones' : 'Diaries & Reflections',
-        'dayOptDiaryDesc': L ? 'Reflexiones, emociones, sueños' : 'Reflections, emotions, dreams'
+        'dayOptDiaryDesc': L ? 'Reflexiones, emociones, sueños' : 'Reflections, emotions, dreams',
+        // v749ah: nueva opción "Activaciones Personales" (solo visible en calendario Personal)
+        'dayOptPersonalActivations': L ? 'Activaciones Personales' : 'Personal Activations',
+        'dayOptPersonalActivationsDesc': L ? 'Aspectos, tránsitos, retornos y ciclos' : 'Aspects, transits, returns and cycles'
     };
     Object.keys(i18nMap).forEach(function(key) {
         var els = document.querySelectorAll('[data-i18n="' + key + '"]');
@@ -27569,8 +27574,10 @@ function handlePersonalDayClick(year, month, day) {
         // Store personal detail callback
         window._pendingPersonalDetail = { year: year, month: month, day: day };
 
-        if (aspectsBtn) { aspectsBtn.style.display = 'flex'; aspectsBtn.style.visibility = 'visible'; aspectsBtn.style.opacity = '1'; }
-        // v749ae: activar opción "Detalles Personales" como primera opción del menú
+        // v749ah: en modo Personal NO mostrar "Aspectos Planetarios" — los aspectos pasan a estar
+        // dentro de "Activaciones Personales" (suma de aspectos + tránsitos + ciclos + retornos).
+        if (aspectsBtn) { aspectsBtn.style.display = 'none'; }
+        // v749ae/ah: activar opción "Activaciones Personales" como primera opción del menú
         var personalDetailsBtn = document.getElementById('personalDetailsOptionBtn');
         if (personalDetailsBtn) personalDetailsBtn.style.display = 'flex';
         modal.classList.add('show');
@@ -27661,6 +27668,84 @@ function showPersonalDayDetail(year, month, day) {
                         '</div>';
                     }).join('');
                 } catch(e) { return ''; }
+            })()}
+
+            <!-- v749ah: ASPECTOS DEL DÍA — eventos planetarios generales (no específicos al natal del perfil).
+                 Pedido del usuario: "los aspectos deben estar incluidos en Activaciones Personales". -->
+            ${(function() {
+                try {
+                    var _daySignChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
+                    var _dayRetrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
+                    var _dayInterAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
+                    var _dayEclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
+                    var _dayMoonEv = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(date) : null;
+                    var _dayStellium = (typeof getStellium === 'function') ? getStellium(date) : null;
+                    var _dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+
+                    var total = _daySignChanges.length + _dayRetrogrades.length + _dayInterAspects.length
+                              + (_dayEclipse ? 1 : 0) + (_dayMoonEv ? 1 : 0) + (_dayStellium ? 1 : 0) + _dayPatterns.length;
+                    if (total === 0) return '';
+
+                    var rows = '';
+
+                    // Luna (nueva/llena/cuartos)
+                    if (_dayMoonEv) {
+                        var moonName = _dayMoonEv.type === 'full' ? (L?'Luna Llena':'Full Moon')
+                                     : _dayMoonEv.type === 'new'  ? (L?'Luna Nueva':'New Moon')
+                                     : (_dayMoonEv.name || '');
+                        var moonIcon = _dayMoonEv.type === 'full' ? '🌕' : _dayMoonEv.type === 'new' ? '🌑' : (_dayMoonEv.icon || '☽');
+                        rows += '<div style="padding:6px 10px;border-left:3px solid #ffd54f;background:rgba(255,213,79,0.08);border-radius:6px;margin-bottom:4px;font-size:0.85em;">'
+                              + moonIcon + ' ' + moonName + '</div>';
+                    }
+
+                    // Eclipse
+                    if (_dayEclipse) {
+                        var eclLabel = _dayEclipse.type === 'solar' ? (L?'Eclipse Solar':'Solar Eclipse') : (L?'Eclipse Lunar':'Lunar Eclipse');
+                        rows += '<div style="padding:6px 10px;border-left:3px solid #f5576c;background:rgba(245,87,108,0.08);border-radius:6px;margin-bottom:4px;font-size:0.85em;">🌒 ' + eclLabel + '</div>';
+                    }
+
+                    // Stellium
+                    if (_dayStellium) {
+                        rows += '<div style="padding:6px 10px;border-left:3px solid #FFD700;background:rgba(255,215,0,0.08);border-radius:6px;margin-bottom:4px;font-size:0.85em;">★ Stellium ' + (_dayStellium.sign || '') + '</div>';
+                    }
+
+                    // Cambios de signo
+                    _daySignChanges.forEach(function(sc) {
+                        var pAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(tp(sc.planet)) : tp(sc.planet).substring(0,3);
+                        rows += '<div style="padding:6px 10px;border-left:3px solid ' + (sc.color || '#4ecdc4') + ';background:rgba(78,205,196,0.06);border-radius:6px;margin-bottom:4px;font-size:0.85em;" title="' + tp(sc.planet) + ' → ' + ts(sc.toSign) + '">'
+                              + pAbbr + ' → ' + ts(sc.toSign).substring(0,3) + (sc.time ? ' · ' + sc.time : '') + '</div>';
+                    });
+
+                    // Retrógrados
+                    _dayRetrogrades.forEach(function(ret) {
+                        var pAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(tp(ret.planet)) : tp(ret.planet).substring(0,3);
+                        var retLabel = ret.isStart ? (L?'Retro':'Retro') : (L?'Directo':'Direct');
+                        var sAbbr = ret.sign ? ' ' + ret.sign.substring(0,3) : '';
+                        rows += '<div style="padding:6px 10px;border-left:3px solid #ff6b6b;background:rgba(255,107,107,0.06);border-radius:6px;margin-bottom:4px;font-size:0.85em;" title="' + tp(ret.planet) + ' ' + retLabel + (ret.sign?' en '+ret.sign:'') + '">'
+                              + pAbbr + ' ' + (ret.isStart ? '℞' : 'D') + sAbbr + '</div>';
+                    });
+
+                    // Aspectos planetarios generales del día
+                    _dayInterAspects.forEach(function(asp) {
+                        var p1Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(tp(asp.planet1)) : tp(asp.planet1).substring(0,3);
+                        var p2Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(tp(asp.planet2)) : tp(asp.planet2).substring(0,3);
+                        var aspName = asp.aspectName || asp.aspect || '';
+                        rows += '<div style="padding:6px 10px;border-left:3px solid ' + (asp.color || '#7ec8ff') + ';background:rgba(126,200,255,0.06);border-radius:6px;margin-bottom:4px;font-size:0.85em;" title="' + tp(asp.planet1) + ' ' + asp.symbol + ' ' + tp(asp.planet2) + (aspName?' ('+aspName+')':'') + '">'
+                              + p1Abbr + ' ' + asp.symbol + ' ' + p2Abbr + (asp.time ? ' · ' + asp.time : '') + '</div>';
+                    });
+
+                    // Patrones (Gran Trino, T-Cuadrada, etc.)
+                    _dayPatterns.forEach(function(pat) {
+                        if (pat.type === 'stellium') return; // ya mostrado arriba
+                        rows += '<div style="padding:6px 10px;border-left:3px solid ' + (pat.color || '#c9a840') + ';background:rgba(201,168,64,0.06);border-radius:6px;margin-bottom:4px;font-size:0.85em;">'
+                              + (pat.icon || '✦') + ' ' + pat.name + ' — ' + (pat.planets ? pat.planets.join(', ') : '') + '</div>';
+                    });
+
+                    return '<div style="margin-bottom:12px;">'
+                         + '<div style="font-size:0.75em;font-weight:700;color:#c9a840;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">✦ ' + (L ? 'Aspectos del Día' : 'Aspects of the Day') + ' (' + total + ')</div>'
+                         + rows
+                         + '</div>';
+                } catch(e) { console.warn('Error generando Aspectos del Día:', e); return ''; }
             })()}
 
             <!-- Transit Positions -->
@@ -31163,27 +31248,46 @@ function renderCalendar() {
                                 return `<div onclick="showBannerAspectDetail('${aeText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(255,215,0,0.15);border-radius:4px;border-left:2px solid #FFD700;font-weight:bold;text-align:center;width:100%;cursor:pointer;">☀️ ${lbl}${timeStr?' · '+timeStr:''}</div>`;
                             } else if (event.type === 'stellium') {
                                 const st = event.data;
+                                // v749ah: abreviar signo (Géminis → Gém)
+                                const _stSignAbbr = st.sign ? st.sign.substring(0,3) : '';
                                 const stText = ('Stellium en ' + (st.sign||'')).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${stText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(201,168,64,0.15);border-radius:4px;border-left:2px solid #c9a840;text-align:center;width:100%;cursor:pointer;">✨ Stellium ${st.sign||''}</div>`;
+                                return `<div onclick="showBannerAspectDetail('${stText}')" title="${stText}" style="font-size:0.65em;padding:2px 4px;background:rgba(201,168,64,0.15);border-radius:4px;border-left:2px solid #c9a840;text-align:center;width:100%;cursor:pointer;">✨ Stellium ${_stSignAbbr}</div>`;
                             } else if (event.type === 'signChange') {
                                 const ch = event.data;
-                                const chText = (tp(ch.planet) + ' entra en ' + ts(ch.toSign)).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${chText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${ch.color};"><span style="color:#e8eaf6">${tp(ch.planet)} → ${ts(ch.toSign)}${ch.time?' <span style="font-weight:bold;color:#c9a840">'+ch.time+'</span>':''}</span></div>`;
+                                // v749ah: abreviar planeta + signo (Mercurio → Géminis ==> Mer → Gém)
+                                const _chPlanetFull = tp(ch.planet);
+                                const _chSignFull = ts(ch.toSign);
+                                const _chPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_chPlanetFull) : _chPlanetFull.substring(0,3);
+                                const _chSignAbbr = _chSignFull.substring(0,3);
+                                const chText = (_chPlanetFull + ' entra en ' + _chSignFull).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${chText}')" title="${chText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${ch.color};"><span style="color:#e8eaf6">${_chPlanetAbbr} → ${_chSignAbbr}${ch.time?' <span style="font-weight:bold;color:#c9a840">'+ch.time+'</span>':''}</span></div>`;
                             } else if (event.type === 'retrograde') {
                                 const ret = event.data;
+                                // v749ah: abreviar planeta + signo (Mercurio ℞ Géminis ==> Mer ℞ Gém)
+                                const _retPlanetFull = tp(ret.planet);
+                                const _retPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_retPlanetFull) : _retPlanetFull.substring(0,3);
+                                const _retSignAbbr = ret.sign ? ret.sign.substring(0,3) : '';
                                 const retSignStr = ret.sign ? ' en ' + ts(ret.sign) : '';
-                                const retText = (tp(ret.planet) + (ret.isStart ? ' entra en retrogradación' : ' se pone directo') + retSignStr).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${retText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid #ff6b6b;"><span style="color:#e8eaf6">${tp(ret.planet)} ${ret.isStart?'℞':'D'} ${ret.sign||''}</span></div>`;
+                                const retText = (_retPlanetFull + (ret.isStart ? ' entra en retrogradación' : ' se pone directo') + retSignStr).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${retText}')" title="${retText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid #ff6b6b;"><span style="color:#e8eaf6">${_retPlanetAbbr} ${ret.isStart?'℞':'D'} ${_retSignAbbr}</span></div>`;
                             } else if (event.type === 'interPlanetaryAspect') {
                                 const asp = event.data;
+                                // v749ah: abreviar ambos planetas (Mercurio d Urano ==> Mer d Ura)
+                                const _aspP1Full = tp(asp.planet1);
+                                const _aspP2Full = tp(asp.planet2);
+                                const _aspP1Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspP1Full) : _aspP1Full.substring(0,3);
+                                const _aspP2Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspP2Full) : _aspP2Full.substring(0,3);
                                 const ts2 = asp.time?`<span style="font-weight:bold;color:#c9a840">${asp.time}</span> `:'';
-                                const ipaText = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + tp(asp.planet2) + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${ipaText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${asp.color};"><span style="color:#e8eaf6">${ts2}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</span></div>`;
+                                const ipaText = (_aspP1Full + ' ' + asp.symbol + ' ' + _aspP2Full + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${ipaText}')" title="${ipaText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${asp.color};"><span style="color:#e8eaf6">${ts2}${_aspP1Abbr} ${asp.symbol} ${_aspP2Abbr}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
-                                const aspText = ('Luna ' + asp.symbol + ' ' + tp(asp.planetName) + ' (' + (asp.class||'') + ')').replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${aspText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${color};border-right:2px solid ${color};"><span style="color:#e8eaf6">☽ ${asp.symbol} ${tp(asp.planetName)}</span></div>`;
+                                // v749ah: abreviar planeta natal
+                                const _aspPlanetFull = tp(asp.planetName);
+                                const _aspPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspPlanetFull) : _aspPlanetFull.substring(0,3);
+                                const aspText = ('Luna ' + asp.symbol + ' ' + _aspPlanetFull + ' (' + (asp.class||'') + ')').replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${aspText}')" title="${aspText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${color};border-right:2px solid ${color};"><span style="color:#e8eaf6">☽ ${asp.symbol} ${_aspPlanetAbbr}</span></div>`;
                             }
                         }).join('')}
                         ${allPlanetaryEvents.length > 6 ? `<div style="font-size:0.6em;text-align:center;color:#8899cc;">+${allPlanetaryEvents.length - 6}</div>` : ''}
