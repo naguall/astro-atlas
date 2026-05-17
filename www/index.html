@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749am';</script>
+    <script>window.APP_VERSION = 'v749an';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -566,6 +566,10 @@
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
         .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
+        /* v749an: doble activación sinastría — borde rosa pulsante */
+        .personal-day-cell.double-activation { border: 1.5px solid rgba(233,30,99,0.70) !important; box-shadow: 0 0 12px rgba(233,30,99,0.30), inset 0 0 8px rgba(233,30,99,0.10); }
+        .personal-day-cell.double-activation::after { content: '💞'; position: absolute; top: 2px; right: 3px; font-size: 0.6em; opacity: 0.85; pointer-events: none; }
+        .personal-day-cell.double-activation { position: relative; }
         .personal-day-num { font-weight: 700; color: #c39bd3; margin-bottom: 2px; }
         .personal-day-cell.today .personal-day-num { color: #64B5F6; }
         .personal-transit-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 1px; }
@@ -22022,6 +22026,195 @@ function renderChartCompareTab(method) {
 window.renderChartCompareTab = renderChartCompareTab;
 
 // ── Carta Compuesta: midpoint between two charts ──
+// ════════════════════════════════════════════════════════════════════
+// v749an: SISTEMA DE MODO RELACIONAL PARA EL CALENDARIO PERSONAL
+// ════════════════════════════════════════════════════════════════════
+// El calendario Astro/Calend acepta 4 modos:
+//   - 'natal'    : carta del perfil activo (default)
+//   - 'compuesta': midpoints planetarios entre 2 cartas
+//   - 'davison'  : carta natal real para el midpoint temporal/espacial entre 2 cartas
+//   - 'sinastria': ambas cartas activas, tránsitos calculados sobre las dos
+//
+// Estado global:
+//   window._calRelMode             = 'natal' | 'compuesta' | 'davison' | 'sinastria'
+//   window._calRelSecondProfileId  = id del 2° perfil (solo si modo != natal)
+//   window._calRelEffectiveChart   = carta resultante (cacheada)
+//   window._calRelChartB           = carta del 2° perfil (solo sinastría)
+//
+// Helper que retorna { mode, label, chartA, chartB?, profileA, profileB? }
+window.getCalRelContext = function() {
+    var mode = window._calRelMode || 'natal';
+    var profiles = [];
+    try { profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(_){}
+    var activeId = localStorage.getItem('activeProfileId');
+    var profileA = profiles.find(function(p){ return p.id === activeId; }) || profiles[0];
+    if (!profileA) return { mode: 'natal' };
+
+    var chartA = null;
+    try {
+        var ckA = localStorage.getItem('natalChart_' + profileA.id) || localStorage.getItem('natalChart');
+        if (ckA) chartA = JSON.parse(ckA);
+    } catch(_){}
+    if (!chartA) return { mode: 'natal' };
+
+    if (mode === 'natal' || !window._calRelSecondProfileId) {
+        return { mode: 'natal', label: profileA.name || 'Natal', chartA: chartA, profileA: profileA };
+    }
+
+    var profileB = profiles.find(function(p){ return p.id === window._calRelSecondProfileId; });
+    if (!profileB) return { mode: 'natal', label: profileA.name, chartA: chartA, profileA: profileA };
+
+    var chartB = null;
+    try {
+        var ckB = localStorage.getItem('natalChart_' + profileB.id);
+        if (ckB) chartB = JSON.parse(ckB);
+    } catch(_){}
+    if (!chartB) return { mode: 'natal', label: profileA.name, chartA: chartA, profileA: profileA };
+
+    var cacheKey = profileA.id + '|' + profileB.id;
+
+    if (mode === 'compuesta') {
+        if (!window._calRelCompCache || window._calRelCompCache.cacheKey !== cacheKey) {
+            window._calRelCompCache = { cacheKey: cacheKey, chart: calculateCompositeChart(chartA, chartB) };
+        }
+        return {
+            mode: 'compuesta',
+            label: (currentLang==='es'?'Compuesta':'Composite') + ': ' + profileA.name + ' + ' + profileB.name,
+            chartA: window._calRelCompCache.chart,
+            profileA: profileA, profileB: profileB
+        };
+    }
+
+    if (mode === 'davison') {
+        if (!window._calRelDavCache || window._calRelDavCache.cacheKey !== cacheKey) {
+            try {
+                var davData = calculateDavisonData(profileA, profileB);
+                var davChart = calculateNatalChart(davData.date); // usa el mismo helper que el modal Davison existente
+                window._calRelDavCache = { cacheKey: cacheKey, chart: davChart, davData: davData };
+            } catch(e) { console.warn('Davison calc error:', e); return { mode: 'natal', chartA: chartA, profileA: profileA, label: profileA.name }; }
+        }
+        return {
+            mode: 'davison',
+            label: 'Davison: ' + profileA.name + ' + ' + profileB.name,
+            chartA: window._calRelDavCache.chart,
+            davData: window._calRelDavCache.davData,
+            profileA: profileA, profileB: profileB
+        };
+    }
+
+    if (mode === 'sinastria') {
+        return {
+            mode: 'sinastria',
+            label: (currentLang==='es'?'Sinastría':'Synastry') + ': ' + profileA.name + ' ↔ ' + profileB.name,
+            chartA: chartA, chartB: chartB,
+            profileA: profileA, profileB: profileB
+        };
+    }
+
+    return { mode: 'natal', chartA: chartA, profileA: profileA, label: profileA.name };
+};
+
+// Cambia de modo, persiste en localStorage, dispara re-render del calendario
+window.setCalRelMode = function(mode, secondProfileId) {
+    window._calRelMode = mode;
+    if (mode === 'natal') {
+        window._calRelSecondProfileId = null;
+        localStorage.removeItem('calRelMode');
+        localStorage.removeItem('calRelSecondProfileId');
+    } else {
+        if (secondProfileId) window._calRelSecondProfileId = secondProfileId;
+        localStorage.setItem('calRelMode', mode);
+        if (window._calRelSecondProfileId) localStorage.setItem('calRelSecondProfileId', window._calRelSecondProfileId);
+    }
+    // Invalidar caches para forzar recálculo
+    window._calRelCompCache = null;
+    window._calRelDavCache = null;
+    // Re-render
+    if (typeof renderPersonalCalendar === 'function') {
+        try { renderPersonalCalendar(); } catch(e) { console.warn(e); }
+    }
+};
+
+// Restaurar modo desde localStorage al cargar
+if (!window._calRelModeInit) {
+    window._calRelModeInit = true;
+    try {
+        var savedMode = localStorage.getItem('calRelMode');
+        var savedSec = localStorage.getItem('calRelSecondProfileId');
+        if (savedMode && savedSec) {
+            window._calRelMode = savedMode;
+            window._calRelSecondProfileId = savedSec;
+        }
+    } catch(_){}
+}
+
+// HTML del selector de modo (4 pills + dropdown de segundo perfil cuando aplica)
+window.buildCalRelSelector = function() {
+    var L = currentLang === 'es';
+    var ctx = getCalRelContext();
+    var mode = ctx.mode;
+    var profiles = [];
+    try { profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(_){}
+    var activeId = localStorage.getItem('activeProfileId');
+    var otherProfiles = profiles.filter(function(p){ return p.id !== activeId; });
+
+    var pill = function(m, icon, lbl, color) {
+        var active = (mode === m);
+        var bg = active ? color + '33' : 'rgba(255,255,255,0.04)';
+        var bd = active ? color : 'rgba(255,255,255,0.15)';
+        var col = active ? color : 'rgba(255,255,255,0.55)';
+        var fw = active ? '700' : '500';
+        return '<button onclick="_onCalRelModeClick(\'' + m + '\')" style="padding:4px 10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:14px;color:' + col + ';font-weight:' + fw + ';cursor:pointer;font-size:0.72em;white-space:nowrap;flex-shrink:0;">' + icon + ' ' + lbl + '</button>';
+    };
+
+    var html = '<div class="personal-natal-card" style="padding:8px 10px;margin-bottom:6px;">';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
+    html += pill('natal', '🔮', (L?'Natal':'Natal'), '#c39bd3');
+    html += pill('sinastria', '💞', (L?'Sinastría':'Synastry'), '#e91e63');
+    html += pill('compuesta', '💫', (L?'Compuesta':'Composite'), '#9b59b6');
+    html += pill('davison', '🌌', 'Davison', '#3498db');
+    html += '</div>';
+
+    // Selector de 2do perfil si no es natal
+    if (mode !== 'natal') {
+        html += '<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75em;">';
+        html += '<span style="color:rgba(255,255,255,0.5);">' + (L?'Con:':'With:') + '</span>';
+        if (otherProfiles.length === 0) {
+            html += '<span style="color:#ff9f43;">' + (L?'Necesitás otro perfil para este modo. Cargá uno desde Preferencias.':'You need another profile for this mode. Add one from Preferences.') + '</span>';
+        } else {
+            html += '<select onchange="setCalRelMode(\'' + mode + '\', this.value)" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;padding:3px 6px;font-size:0.85em;flex:1;max-width:200px;">';
+            otherProfiles.forEach(function(p) {
+                var sel = (p.id === window._calRelSecondProfileId) ? ' selected' : '';
+                html += '<option value="' + p.id + '"' + sel + '>' + (p.name || p.cityName || p.id) + '</option>';
+            });
+            html += '</select>';
+        }
+        html += '</div>';
+        if (ctx.label && otherProfiles.length > 0 && window._calRelSecondProfileId) {
+            html += '<div style="margin-top:4px;font-size:0.7em;color:rgba(255,255,255,0.45);">' + ctx.label + '</div>';
+        }
+    }
+    html += '</div>';
+    return html;
+};
+
+// Click en pill — si elige modo relacional sin 2do perfil, autoselecciona el primero disponible
+window._onCalRelModeClick = function(mode) {
+    if (mode === 'natal') { setCalRelMode('natal'); return; }
+    var profiles = [];
+    try { profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(_){}
+    var activeId = localStorage.getItem('activeProfileId');
+    var others = profiles.filter(function(p){ return p.id !== activeId; });
+    if (others.length === 0) {
+        alert(currentLang==='es' ? 'Necesitás cargar otro perfil natal para usar este modo. Agregalo desde Preferencias → Perfiles.' : 'You need to add another natal profile to use this mode. Add one from Preferences → Profiles.');
+        return;
+    }
+    // Si ya hay 2do perfil seleccionado, conservarlo; sino tomar el primer "other"
+    var secondId = window._calRelSecondProfileId || others[0].id;
+    if (!others.find(function(p){ return p.id === secondId; })) secondId = others[0].id;
+    setCalRelMode(mode, secondId);
+};
+
 function calculateCompositeChart(nc1, nc2) {
     var composite = { planets: {}, houses: null };
     var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
@@ -26594,8 +26787,22 @@ function renderPersonalCalendar() {
                '</div>';
     })();
 
+    // v749an: aplicar override de chart relacional (compuesta / davison) si el modo no es natal.
+    // En sinastría mantenemos natalChart = chartA pero exponemos chartB globalmente.
+    var _calRelCtx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    if (_calRelCtx.mode === 'compuesta' || _calRelCtx.mode === 'davison') {
+        natalChart = _calRelCtx.chartA;
+        window._calRelChartB = null;
+    } else if (_calRelCtx.mode === 'sinastria') {
+        // chartA ya es el activeProfile natalChart; exponer chartB para que el cell rendering lo use
+        window._calRelChartB = _calRelCtx.chartB;
+    } else {
+        window._calRelChartB = null;
+    }
+
     let calendarHTML = `
         ${buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
+        ${(typeof buildCalRelSelector === 'function') ? buildCalRelSelector() : ''}
         ${natalSubTabsHTML}
         <div id="natalCalendarGrid">
         ${_todayBanner}
@@ -26633,7 +26840,22 @@ function renderPersonalCalendar() {
         const isBirthday = (month === birthM - 1 && day === birthD);
 
         // Calculate transits for this day (lightweight — only count aspects)
-        const dayTransits = calculateTransitsToNatal(date, natalChart);
+        const dayTransitsA = calculateTransitsToNatal(date, natalChart);
+        // v749an: en sinastría, calcular tránsitos a chartB también y mergear
+        const dayTransitsB = window._calRelChartB ? calculateTransitsToNatal(date, window._calRelChartB) : [];
+        // Marcar origen para distinguir en day-detail
+        dayTransitsA.forEach(function(t){ t._fromChart = 'A'; });
+        dayTransitsB.forEach(function(t){ t._fromChart = 'B'; });
+        const dayTransits = dayTransitsA.concat(dayTransitsB);
+
+        // v749an: detectar doble activación — mismo transitPlanet hits ambas cartas el mismo día
+        let _isDoubleActivation = false;
+        if (dayTransitsB.length > 0) {
+            const _planetsA = new Set(dayTransitsA.filter(t => !['moon','mercury'].includes(t.transitPlanet)).map(t => t.transitPlanet));
+            const _planetsB = new Set(dayTransitsB.filter(t => !['moon','mercury'].includes(t.transitPlanet)).map(t => t.transitPlanet));
+            _isDoubleActivation = [..._planetsA].some(p => _planetsB.has(p));
+        }
+
         const majorCount = dayTransits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).length;
         const hasTrine = dayTransits.some(t => t.type === 'trine' && !['moon','mercury'].includes(t.transitPlanet));
         const hasSquare = dayTransits.some(t => t.type === 'square' && !['moon','mercury'].includes(t.transitPlanet));
@@ -26645,6 +26867,8 @@ function renderPersonalCalendar() {
         if (isToday) classes += ' today';
         if (isWeekend) classes += ' weekend';
         if (isBirthday) classes += ' birthday';
+        // v749an: highlight especial para doble activación en modo sinastría
+        if (_isDoubleActivation) classes += ' double-activation';
 
         // Personal year day: day 1 = birthday
         const birthAnniversary = new Date(year, birthM - 1, birthD);
@@ -27677,6 +27901,16 @@ function showPersonalDayDetail(year, month, day) {
     } catch(e) { return; }
     if (!natalChart) return;
 
+    // v749an: aplicar override de modo relacional
+    var _relCtx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _relMode = _relCtx.mode;
+    var _relChartB = null;
+    if (_relMode === 'compuesta' || _relMode === 'davison') {
+        natalChart = _relCtx.chartA; // override
+    } else if (_relMode === 'sinastria') {
+        _relChartB = _relCtx.chartB;
+    }
+
     const transits = calculateTransitsToNatal(date, natalChart);
     // Calculate perfection times only for this detail view (expensive, not done in bulk)
     transits.forEach(function(t) {
@@ -27687,6 +27921,27 @@ function showPersonalDayDetail(year, month, day) {
     const slowTransits = transits.filter(t => t.tier === 'slow');
     const personalTransits = transits.filter(t => t.tier === 'personal');
     const fastTransits = transits.filter(t => t.tier === 'fast');
+
+    // v749an: tránsitos sobre Chart B (solo en sinastría) — para mostrar lado a lado
+    var transitsB = [];
+    if (_relChartB) {
+        transitsB = calculateTransitsToNatal(date, _relChartB);
+        transitsB.forEach(function(t) {
+            if (t.tier !== 'fast') {
+                try { t.perfectionTime = findExactTransitTime(t.transitPlanet, t.natalLon, t.type === 'conjunction' ? 0 : t.type === 'semisextile' ? 30 : t.type === 'semicuadratura' ? 45 : t.type === 'sextile' ? 60 : t.type === 'square' ? 90 : t.type === 'trine' ? 120 : t.type === 'sesquicuadratura' ? 135 : t.type === 'quincunx' ? 150 : 180, date); } catch(e) {}
+            }
+        });
+    }
+    var slowTransitsB = transitsB.filter(t => t.tier === 'slow');
+    var personalTransitsB = transitsB.filter(t => t.tier === 'personal');
+
+    // v749an: detectar planetas con doble activación
+    var _doubleActPlanets = [];
+    if (transitsB.length > 0) {
+        var _aMajor = new Set(transits.filter(t => !['moon','mercury'].includes(t.transitPlanet)).map(t => t.transitPlanet));
+        var _bMajor = new Set(transitsB.filter(t => !['moon','mercury'].includes(t.transitPlanet)).map(t => t.transitPlanet));
+        _doubleActPlanets = [..._aMajor].filter(p => _bMajor.has(p));
+    }
 
     // Also get current transit positions
     const transitPositions = {};
@@ -27771,6 +28026,12 @@ function showPersonalDayDetail(year, month, day) {
                 </div>
                 <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;flex-shrink:0;margin-left:8px;">✕</button>
             </div>
+
+            <!-- v749an: banner de modo relacional si no es natal -->
+            ${_relMode !== 'natal' ? `<div style="margin-bottom:10px;padding:8px 12px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;text-align:center;font-size:0.82em;color:#c39bd3;">
+                ${_relMode === 'compuesta' ? '💫' : _relMode === 'davison' ? '🌌' : '💞'} ${_relCtx.label}
+                ${_doubleActPlanets.length > 0 ? `<div style="margin-top:4px;font-size:0.85em;color:#e91e63;font-weight:700;">💞 ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}</div>` : ''}
+            </div>` : ''}
 
             <!-- v749aj: botón "Interpretar el día" ahora ARRIBA, justo debajo de la fecha -->
             <div style="margin-bottom:14px;text-align:center;">
@@ -27951,6 +28212,29 @@ function showPersonalDayDetail(year, month, day) {
                         + '<span style="font-size:0.6em;color:rgba(255,255,255,0.25);margin-left:auto;">' + t.orbFormatted + ' ' + t.applyingLabel + '</span>'
                     + '</div>';
                 }).join('') + '</div></div>' : ''}
+
+            <!-- v749an: en sinastría, sección extra con tránsitos sobre el SEGUNDO perfil (chart B) -->
+            ${_relMode === 'sinastria' && transitsB.length > 0 ? `
+            <div style="margin-top:14px;padding-top:10px;border-top:2px dashed rgba(233,30,99,0.30);">
+                <div style="font-size:0.85em;font-weight:700;color:#e91e63;margin-bottom:8px;text-align:center;">💞 ${L?'Tránsitos sobre':'Transits on'} ${_relCtx.profileB && _relCtx.profileB.name ? _relCtx.profileB.name : (L?'su carta':'their chart')}</div>
+                ${slowTransitsB.length > 0 ? '<div style="margin-bottom:10px;"><div style="font-size:0.72em;font-weight:700;color:#e74c3c;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🔴 ' + (L ? 'Mayores' : 'Major') + ' (' + slowTransitsB.length + ')</div>' + slowTransitsB.map(function(t) {
+                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+                    return '<div style="padding:5px 8px;border-left:3px solid ' + t.color + ';margin-bottom:3px;font-size:0.82em;color:rgba(255,255,255,0.75);">'
+                        + '<span>' + t.transitSymbol + ' ' + t.symbol + ' ' + t.natalSymbol + '</span>'
+                        + ' <span>' + aspDesc + '</span>'
+                        + ' <span style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + t.orbFormatted + '</span>'
+                    + '</div>';
+                }).join('') + '</div>' : ''}
+                ${personalTransitsB.length > 0 ? '<div style="margin-bottom:10px;"><div style="font-size:0.72em;font-weight:700;color:#f1c40f;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🟡 ' + (L ? 'Personales' : 'Personal') + ' (' + personalTransitsB.length + ')</div>' + personalTransitsB.map(function(t) {
+                    var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+                    return '<div style="padding:5px 8px;border-left:2px solid ' + t.color + '40;margin-bottom:3px;font-size:0.8em;color:rgba(255,255,255,0.6);">'
+                        + '<span>' + t.transitSymbol + ' ' + t.symbol + ' ' + t.natalSymbol + '</span>'
+                        + ' <span>' + aspDesc + '</span>'
+                        + ' <span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + t.orbFormatted + '</span>'
+                    + '</div>';
+                }).join('') + '</div>' : ''}
+                ${slowTransitsB.length === 0 && personalTransitsB.length === 0 ? `<div style="text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.82em;padding:8px;">${L?'Sin tránsitos significativos hoy':'No significant transits today'}</div>` : ''}
+            </div>` : ''}
 
             <!-- v749aj: botón "Interpretar el día" movido al inicio (justo debajo del header) -->
         </div>
