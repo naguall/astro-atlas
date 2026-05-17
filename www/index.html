@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749an';</script>
+    <script>window.APP_VERSION = 'v749ao';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -24398,6 +24398,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${currentLang==='es'?'Sinastría':'Synastry'}</span><span class="subtab-full">${currentLang==='es'?'Sinastría':'Synastry'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${currentLang==='es'?'Compuesta':'Composite'}</span><span class="subtab-full">${currentLang==='es'?'Carta Compuesta':'Composite Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${currentLang==='es'?'Carta Davison':'Davison Chart'}</span></button>
+            <!-- v749ao: nuevo sub-tab Calendario relacional -->
+            <button class="natal-subtab" onclick="switchNatalTab('relcalendar',this)"><span class="subtab-short">📅 ${currentLang==='es'?'Calendario':'Calendar'}</span><span class="subtab-full">📅 ${currentLang==='es'?'Calendario Relacional':'Relations Calendar'}</span></button>
         </div>
         <div id="natalGroupCurso" class="natal-subtabs" style="display:none;">
             <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 ${currentLang==='es'?'Tutor AI':'AI Tutor'}</button>
@@ -24413,6 +24415,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div id="natalTabSinastria" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabCompuesta" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabDavison" class="natal-tab-content" style="display:none;"></div>
+        <!-- v749ao: container del calendario relacional (Sinastría/Compuesta/Davison) -->
+        <div id="natalTabRelCalendar" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabTutor" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabMapa" class="natal-tab-content" style="display:none;"></div>`;
 }
@@ -24489,6 +24493,20 @@ function switchNatalTab(tabName, btn) {
     }
     if (tabName === 'davison') {
         setTimeout(function() { renderChartCompareTab('davison'); }, 100);
+    }
+    // v749ao: nuevo sub-tab "Calendario" en Relaciones
+    if (tabName === 'relcalendar') {
+        setTimeout(function() {
+            if (typeof renderPersonalCalendar === 'function') {
+                renderPersonalCalendar({ relations: true, targetContainerId: 'natalTabRelCalendar' });
+            }
+        }, 100);
+    } else {
+        // Si salimos del relcalendar, marcar que ya NO estamos en modo relacional
+        // (para que showPersonalDayDetail no use el chart override)
+        if (tabName !== 'relcalendar') {
+            window._isRelationsCalendarActive = false;
+        }
     }
     if (tabName === 'curso') {
         setTimeout(function() { if (typeof renderCursoInTab === 'function') renderCursoInTab(); }, 100);
@@ -26552,7 +26570,15 @@ function getCosmicCyclesSummary(natalChart, birthDate) {
 }
 
 // --- Personal Calendar Rendering ---
-function renderPersonalCalendar() {
+function renderPersonalCalendar(opts) {
+    // v749ao: opts.relations === true → calendario relacional (Sinastría/Compuesta/Davison).
+    // Por default (sin opts) → calendario personal natal puro.
+    opts = opts || {};
+    var _isRelMode = !!opts.relations;
+    var _targetContainerId = opts.targetContainerId || 'personalCalendar';
+    // Flag global para que showPersonalDayDetail sepa desde qué calendario se abrió
+    window._isRelationsCalendarActive = _isRelMode;
+
     const natal = getNatalData();
     if (!natal) { renderPersonalSetupForm(); return; }
 
@@ -26587,15 +26613,19 @@ function renderPersonalCalendar() {
     const nav = document.querySelector('.navigation');
     nav.style.display = 'none';
 
-    // Calendar container
-    let container = document.getElementById('personalCalendar');
-    if (!container) {
+    // Calendar container (v749ao: target configurable para modo relacional)
+    let container = document.getElementById(_targetContainerId);
+    if (!container && _targetContainerId === 'personalCalendar') {
         container = document.createElement('div');
         container.id = 'personalCalendar';
         const lunarWeeks = document.getElementById('lunarWeeks');
         if (lunarWeeks && lunarWeeks.parentNode) {
             lunarWeeks.parentNode.insertBefore(container, lunarWeeks.nextSibling);
         }
+    }
+    if (!container) {
+        console.warn('[renderPersonalCalendar] container not found:', _targetContainerId);
+        return;
     }
     container.style.display = 'block';
 
@@ -26787,25 +26817,29 @@ function renderPersonalCalendar() {
                '</div>';
     })();
 
-    // v749an: aplicar override de chart relacional (compuesta / davison) si el modo no es natal.
-    // En sinastría mantenemos natalChart = chartA pero exponemos chartB globalmente.
-    var _calRelCtx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
-    if (_calRelCtx.mode === 'compuesta' || _calRelCtx.mode === 'davison') {
-        natalChart = _calRelCtx.chartA;
-        window._calRelChartB = null;
-    } else if (_calRelCtx.mode === 'sinastria') {
-        // chartA ya es el activeProfile natalChart; exponer chartB para que el cell rendering lo use
-        window._calRelChartB = _calRelCtx.chartB;
+    // v749ao: el override de chart relacional SOLO aplica si estamos en modo relacional explícito
+    // (llamados desde el sub-tab "Calendario" de Relaciones). El calendario personal natal queda intacto.
+    if (_isRelMode) {
+        var _calRelCtx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+        if (_calRelCtx.mode === 'compuesta' || _calRelCtx.mode === 'davison') {
+            natalChart = _calRelCtx.chartA;
+            window._calRelChartB = null;
+        } else if (_calRelCtx.mode === 'sinastria') {
+            window._calRelChartB = _calRelCtx.chartB;
+        } else {
+            window._calRelChartB = null;
+        }
     } else {
+        // Modo personal natal: limpiar chartB (por si quedó de una sesión relacional previa)
         window._calRelChartB = null;
     }
 
     let calendarHTML = `
-        ${buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
-        ${(typeof buildCalRelSelector === 'function') ? buildCalRelSelector() : ''}
-        ${natalSubTabsHTML}
+        ${_isRelMode ? '' : buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign)}
+        ${_isRelMode && typeof buildCalRelSelector === 'function' ? buildCalRelSelector() : ''}
+        ${_isRelMode ? '' : natalSubTabsHTML}
         <div id="natalCalendarGrid">
-        ${_todayBanner}
+        ${_isRelMode ? '' : _todayBanner}
         <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
             <!-- Sign navigation inside calendar -->
@@ -27901,14 +27935,18 @@ function showPersonalDayDetail(year, month, day) {
     } catch(e) { return; }
     if (!natalChart) return;
 
-    // v749an: aplicar override de modo relacional
-    var _relCtx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
-    var _relMode = _relCtx.mode;
+    // v749ao: override relacional SOLO si fue abierto desde el calendario de Relaciones
+    var _relMode = 'natal';
+    var _relCtx = { mode: 'natal' };
     var _relChartB = null;
-    if (_relMode === 'compuesta' || _relMode === 'davison') {
-        natalChart = _relCtx.chartA; // override
-    } else if (_relMode === 'sinastria') {
-        _relChartB = _relCtx.chartB;
+    if (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') {
+        _relCtx = getCalRelContext();
+        _relMode = _relCtx.mode;
+        if (_relMode === 'compuesta' || _relMode === 'davison') {
+            natalChart = _relCtx.chartA;
+        } else if (_relMode === 'sinastria') {
+            _relChartB = _relCtx.chartB;
+        }
     }
 
     const transits = calculateTransitsToNatal(date, natalChart);
