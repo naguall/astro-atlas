@@ -2,14 +2,32 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- v749ag Fix B: viewport-fit=cover + maximum-scale evita zoom auto del WebView -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
+    <!-- v749ag Fix A: bloquear auto-scaling del texto del WebView Android (Capacitor)
+         + fijar font-size base. Sin esto, el APK renderiza textos más grandes que PWA. -->
+    <style id="v749ag-webview-normalize">
+        html {
+            font-size: 16px !important;
+            -webkit-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
+        }
+        /* v749ag Fix B: safe-area-inset para que status bar / nav bar no coman contenido en APK */
+        body {
+            padding-top: env(safe-area-inset-top, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding-left: env(safe-area-inset-left, 0);
+            padding-right: env(safe-area-inset-right, 0);
+        }
+    </style>
+
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749af';</script>
+    <script>window.APP_VERSION = 'v749ag';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -36648,7 +36666,20 @@ function reapplyCellSize() {
 // Apply saved cell size on load
 if (!window._cellSizeApplied) {
     window._cellSizeApplied = true;
-    const savedSize = localStorage.getItem('dayCellSize') || 'small'; // v706: default small → 7-col portrait
+    // v749ag Fix D: en APK Capacitor, forzar 'small' siempre para matchear visualmente la PWA.
+    // El WebView de Android renderiza textos ~5% más grandes que Chrome, lo que hacía que el mismo
+    // 'medium' en APK se viera bastante más grande que en PWA. Con 'small' forzado en APK, las
+    // proporciones quedan parejas con la PWA cuando ésta usa el default 'small'.
+    var _isCapNative = (typeof window.Capacitor !== 'undefined'
+                        && window.Capacitor.isNativePlatform
+                        && window.Capacitor.isNativePlatform());
+    var savedSize;
+    if (_isCapNative) {
+        savedSize = 'small';
+        localStorage.setItem('dayCellSize', 'small'); // persiste el override
+    } else {
+        savedSize = localStorage.getItem('dayCellSize') || 'small'; // v706: default small → 7-col portrait
+    }
     setTimeout(() => setCellSize(savedSize), 100);
 }
 
