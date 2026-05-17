@@ -540,7 +540,8 @@
         .transit-aspect-row.quincunx { background: rgba(142,68,173,0.08); border-left: 2px solid #8e44ad; }
         .transit-aspect-row.semisextile { background: rgba(120,144,156,0.08); border-left: 2px solid #78909c; }
         .personal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
-        .personal-day-cell { min-height: 110px; background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; box-sizing: border-box; overflow: hidden; min-width: 0; }
+        /* v749ac: usar la misma var que .day-cell (lunar/solar/greg) para que escale con preferencia small/medium/large */
+        .personal-day-cell { min-height: var(--day-cell-min-height, 110px); background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; box-sizing: border-box; overflow: hidden; min-width: 0; }
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
         .personal-day-cell.past { opacity: 0.4; }
         .personal-day-cell.past:hover { opacity: 0.7; }
@@ -638,7 +639,8 @@
             /* ── Natal calendar: fit within screen ── */
             .personal-natal-card { padding: 6px !important; }
             .personal-month-grid { gap: 2px !important; }
-            .personal-day-cell { min-height: 48px !important; padding: 2px 3px !important; font-size: 0.62em !important; overflow: hidden !important; }
+            /* v749ac: en mobile también usar la var compartida → personal queda a la misma altura que lunar/solar/greg */
+            .personal-day-cell { min-height: var(--day-cell-min-height, 90px) !important; padding: 2px 3px !important; font-size: 0.62em !important; overflow: hidden !important; }
             .personal-day-cell .personal-day-num { font-size: 0.95em !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child { margin-bottom: 4px !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child button { padding: 4px 8px !important; font-size: 0.78em !important; }
@@ -11370,6 +11372,32 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     } catch(parseErr) { /* skip malformed chunk */ }
                 }
             }
+            // v749ab FIX: procesar buffer residual al cerrar el stream.
+            // BUG anterior: si Gemini mandaba el último (o único) chunk grande sin "\n"
+            // final, buffer.split('\n') dejaba ese contenido en `buffer` y al salir del
+            // loop nunca se procesaba → respuesta truncada a mitad de oración.
+            buffer += decoder.decode(); // flush bytes restantes del TextDecoder
+            if (buffer && buffer.trim()) {
+                var _finalLines = buffer.split('\n');
+                for (var _fli = 0; _fli < _finalLines.length; _fli++) {
+                    var _fline = _finalLines[_fli].trim();
+                    if (!_fline.startsWith('data: ')) continue;
+                    var _fjson = _fline.substring(6);
+                    if (_fjson === '[DONE]') continue;
+                    try {
+                        var _fparsed = JSON.parse(_fjson);
+                        if (_fparsed.candidates && _fparsed.candidates[0] && _fparsed.candidates[0].content && _fparsed.candidates[0].content.parts) {
+                            var _fnewText = _fparsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                            text += _fnewText;
+                            _streamDiv.innerHTML = '<p>' + text
+                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                                .replace(/\n\n/g, '</p><p>')
+                                .replace(/\n/g, '<br>') + '</p>';
+                        }
+                    } catch(parseErr) { /* última línea incompleta → no se puede recuperar */ }
+                }
+            }
         } else {
             // Non-streaming fallback (proxy or no streaming support)
             var result = await response.json();
@@ -20348,23 +20376,43 @@ function updateCurrentDayInfoForMode(mode) {
                                 return `<div onclick="showBannerAspectDetail('${stText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(201,168,64,0.15);border-radius:4px;border-left:2px solid #c9a840;text-align:center;width:100%;cursor:pointer;">✨ ${stText}</div>`;
                             } else if (event.type === 'signChange') {
                                 const ch = event.data;
-                                const chText = (tp(ch.planet) + ' → ' + ts(ch.toSign || ch.toSign) + (ch.time?' '+ch.time:'')).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${chText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(78,205,196,0.12);border-radius:4px;border-left:2px solid ${ch.color||'#4ecdc4'};text-align:center;width:100%;cursor:pointer;">${chText}</div>`;
+                                // v749ac: abreviar planeta + signo (1ª línea visible). Tooltip + popup detallado conservan nombre completo.
+                                const _chPlanetFull = tp(ch.planet);
+                                const _chSignFull = ts(ch.toSign || ch.toSign);
+                                const _chPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_chPlanetFull) : _chPlanetFull.substring(0,3);
+                                const _chSignAbbr = _chSignFull.substring(0,3);
+                                const chText = (_chPlanetFull + ' → ' + _chSignFull + (ch.time?' '+ch.time:'')).replace(/'/g, "\\'");
+                                const chDisplay = _chPlanetAbbr + ' → ' + _chSignAbbr + (ch.time?' '+ch.time:'');
+                                return `<div onclick="showBannerAspectDetail('${chText}')" title="${chText}" style="font-size:0.65em;padding:2px 4px;background:rgba(78,205,196,0.12);border-radius:4px;border-left:2px solid ${ch.color||'#4ecdc4'};text-align:center;width:100%;cursor:pointer;">${chDisplay}</div>`;
                             } else if (event.type === 'retrograde') {
                                 const ret = event.data;
+                                // v749ac: abreviar planeta + signo. Texto completo en tooltip y popup.
+                                const _retPlanetFull = tp(ret.planet);
+                                const _retPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_retPlanetFull) : _retPlanetFull.substring(0,3);
+                                const _retSignAbbr = ret.sign ? ' ' + ret.sign.substring(0,3) : '';
                                 const retSign = ret.sign ? ' ' + ret.sign : '';
-                                const retText = (tp(ret.planet) + ' ' + (ret.type==='start'?'℞ Retro':'℞ Directo') + retSign).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${retText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.12);border-radius:4px;border-left:2px solid #e85d7a;text-align:center;width:100%;cursor:pointer;">${retText}</div>`;
+                                const retText = (_retPlanetFull + ' ' + (ret.type==='start'?'℞ Retro':'℞ Directo') + retSign).replace(/'/g, "\\'");
+                                const retDisplay = _retPlanetAbbr + ' ' + (ret.type==='start'?'℞ Retro':'℞ Direct') + _retSignAbbr;
+                                return `<div onclick="showBannerAspectDetail('${retText}')" title="${retText}" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.12);border-radius:4px;border-left:2px solid #e85d7a;text-align:center;width:100%;cursor:pointer;">${retDisplay}</div>`;
                             } else if (event.type === 'interPlanetaryAspect') {
                                 const asp = event.data;
+                                // v749ac: abreviar ambos planetas para que entren en 1 línea.
+                                const _aspP1Full = tp(asp.planet1);
+                                const _aspP2Full = tp(asp.planet2);
+                                const _aspP1Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspP1Full) : _aspP1Full.substring(0,3);
+                                const _aspP2Abbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspP2Full) : _aspP2Full.substring(0,3);
                                 const ts2 = asp.time ? `<span style="font-weight:bold;color:#c9a840">${asp.time}</span> ` : '';
-                                const ipaText = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + tp(asp.planet2) + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${ipaText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">${ts2}${ipaText}</span></div>`;
+                                const ipaText = (_aspP1Full + ' ' + asp.symbol + ' ' + _aspP2Full + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
+                                const ipaDisplay = _aspP1Abbr + ' ' + asp.symbol + ' ' + _aspP2Abbr;
+                                return `<div onclick="showBannerAspectDetail('${ipaText}')" title="${ipaText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">${ts2}${ipaDisplay}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
-                                const aspText = ('☽ ' + asp.symbol + ' ' + tp(asp.planetName) + ' (' + (asp.class||'') + ')').replace(/'/g, "\\'");
-                                return `<div onclick="showBannerAspectDetail('${aspText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${color};border-right:2px solid ${color};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">☽ ${asp.symbol} ${tp(asp.planetName)}</span></div>`;
+                                // v749ac: abreviar planeta natal del aspecto lunar.
+                                const _aspPlanetFull = tp(asp.planetName);
+                                const _aspPlanetAbbr = (typeof getPlanetInitial === 'function') ? getPlanetInitial(_aspPlanetFull) : _aspPlanetFull.substring(0,3);
+                                const aspText = ('☽ ' + asp.symbol + ' ' + _aspPlanetFull + ' (' + (asp.class||'') + ')').replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${aspText}')" title="${aspText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${color};border-right:2px solid ${color};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">☽ ${asp.symbol} ${_aspPlanetAbbr}</span></div>`;
                             }
                             return '';
                         }).join('')}
