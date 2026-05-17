@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ak';</script>
+    <script>window.APP_VERSION = 'v749am';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10126,23 +10126,83 @@ function toggleStarReading(id) {
     readings.forEach(function(r) { if (r.id === id) r.starred = !r.starred; });
     setSavedReadings(readings);
 }
+// v749am: helper global de share — SIEMPRE copia al portapapeles primero (backup contra truncación
+// de Android Intent / WhatsApp / WebView) y luego abre navigator.share. Así el texto completo está
+// disponible para pegar si el receptor cortó el mensaje del share intent.
+window.shareTextSafe = function(title, text) {
+    var L = currentLang === 'es';
+    var copied = false;
+
+    // 1) SIEMPRE copiar al portapapeles primero (esto NUNCA trunca, da el texto completo)
+    function _toastCopiado() {
+        try {
+            var t = document.createElement('div');
+            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(37,211,102,0.95);color:#fff;padding:10px 18px;border-radius:8px;font-size:0.85em;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+            t.textContent = L ? '✓ Texto copiado — pegá si se corta' : '✓ Text copied — paste if cut';
+            document.body.appendChild(t);
+            setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 2200);
+            setTimeout(function() { try { document.body.removeChild(t); } catch(_){} }, 2700);
+        } catch(_){}
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            copied = true; _toastCopiado();
+        }).catch(function() {
+            // textarea fallback
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+                copied = true; _toastCopiado();
+            } catch(_){}
+        });
+    } else {
+        try {
+            var ta2 = document.createElement('textarea');
+            ta2.value = text; ta2.style.position = 'fixed'; ta2.style.opacity = '0';
+            document.body.appendChild(ta2); ta2.select();
+            document.execCommand('copy'); document.body.removeChild(ta2);
+            copied = true; _toastCopiado();
+        } catch(_){}
+    }
+
+    // 2) Abrir share intent nativo si está disponible (puede truncar, pero el clipboard tiene todo)
+    if (navigator.share) {
+        try { navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(){}); } catch(_){}
+    } else if (!copied) {
+        alert(L ? 'Texto copiado al portapapeles. Pégalo en WhatsApp u otra app.' : 'Text copied to clipboard. Paste it in WhatsApp or another app.');
+    }
+};
+
+// v749am: comparte UN bloque del chat de interpretación (initial response o un mensaje específico).
+// Si messageIdx es null/undefined → comparte initialResponse.
+// Si es número → comparte chat.messages[messageIdx].text
+window.shareMessageFromChat = function(chatId, messageIdx) {
+    var chat = getInterpChat(chatId);
+    if (!chat) return;
+    var L = currentLang === 'es';
+    var title = chat.title || (L?'Interpretación AstroAtlas':'AstroAtlas Interpretation');
+    var text = '';
+    var prefix = '';
+
+    if (messageIdx === null || messageIdx === undefined || messageIdx === 'initial') {
+        text = chat.initialResponse || '';
+        prefix = '✨ ' + title + '\n\n';
+    } else if (chat.messages && chat.messages[messageIdx]) {
+        var msg = chat.messages[messageIdx];
+        text = msg.text || '';
+        prefix = (msg.role === 'user' ? '👤 ' : '✨ ') + title + '\n\n';
+    }
+    if (!text) return;
+    shareTextSafe(title, prefix + text + '\n\n— AstroAtlas 🌙');
+};
+
 function shareReading(reading) {
     var shareText = '✨ ' + reading.title + '\n\n' + reading.text + '\n\n— AstroAtlas 🌙';
-    if (navigator.share) {
-        navigator.share({ title: reading.title, text: shareText }).catch(function(){});
-    } else {
-        // Fallback: copy to clipboard
-        navigator.clipboard.writeText(shareText).then(function() {
-            var L = currentLang === 'es';
-            alert(L ? 'Lectura copiada al portapapeles. Pégala en WhatsApp u otra app.' : 'Reading copied to clipboard. Paste it in WhatsApp or another app.');
-        }).catch(function() {
-            // Last resort: textarea trick
-            var ta = document.createElement('textarea');
-            ta.value = shareText; document.body.appendChild(ta);
-            ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-            alert(currentLang === 'es' ? 'Copiado al portapapeles' : 'Copied to clipboard');
-        });
-    }
+    // v749am: usar shareTextSafe (clipboard + share juntos)
+    shareTextSafe(reading.title, shareText);
 }
 function openSavedReadingsModal(tab) {
     var modal = document.getElementById('savedReadingsModal');
@@ -11483,13 +11543,16 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             var chatHtml = '<div style="display:flex;flex-direction:column;max-height:60vh;">';
             // Scrollable messages area
             chatHtml += '<div id="interpChatMessages_' + chatId + '" style="flex:1;overflow-y:auto;min-height:80px;max-height:45vh;padding-bottom:8px;">';
-            // Initial AI response as chat bubble with read-aloud button
-            chatHtml += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:92%;padding:10px 14px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div></div></div>';
-            // Existing chat messages (if reopening)
+            // v749am: initial AI response — botón 📤 chiquito en la esquina superior derecha de la bubble
+            chatHtml += '<div style="margin-bottom:8px;text-align:left;position:relative;"><div style="display:inline-block;max-width:92%;padding:10px 14px;padding-right:36px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);position:relative;"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div><button onclick="shareMessageFromChat(\'' + chatId + '\', \'initial\')" title="' + (L?'Compartir este bloque':'Share this block') + '" style="position:absolute;top:6px;right:6px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">📤</button></div></div>';
+            // Existing chat messages (if reopening) — cada uno con su botón 📤
             if (_existChat && _existChat.messages) {
-                _existChat.messages.forEach(function(msg) {
+                _existChat.messages.forEach(function(msg, _mIdx) {
                     var isUser = msg.role === 'user';
-                    chatHtml += '<div style="margin-bottom:8px;text-align:' + (isUser ? 'right' : 'left') + ';"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;' + (isUser ? 'background:rgba(201,168,64,0.15);color:#c9a840;' : 'background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);') + '">' + msg.text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') + '</div></div>';
+                    var btnBg = isUser ? 'rgba(201,168,64,0.2)' : 'rgba(102,126,234,0.15)';
+                    var btnBd = isUser ? 'rgba(201,168,64,0.4)' : 'rgba(102,126,234,0.3)';
+                    var btnCol = isUser ? '#c9a840' : '#667eea';
+                    chatHtml += '<div style="margin-bottom:8px;text-align:' + (isUser ? 'right' : 'left') + ';"><div style="display:inline-block;max-width:85%;padding:8px 12px;padding-' + (isUser?'left':'right') + ':32px;border-radius:12px;font-size:0.85em;line-height:1.5;position:relative;' + (isUser ? 'background:rgba(201,168,64,0.15);color:#c9a840;' : 'background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);') + '">' + msg.text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') + '<button onclick="shareMessageFromChat(\'' + chatId + '\',' + _mIdx + ')" title="' + (L?'Compartir':'Share') + '" style="position:absolute;top:4px;' + (isUser?'left:4px;':'right:4px;') + 'background:' + btnBg + ';border:1px solid ' + btnBd + ';border-radius:5px;color:' + btnCol + ';font-size:0.75em;cursor:pointer;padding:1px 5px;line-height:1;">📤</button></div></div>';
                 });
             }
             chatHtml += '</div>';
@@ -11712,7 +11775,8 @@ async function sendInterpChatMessage(chatId, readingKey) {
     // Add user message to UI (v725: tag with ID so we can scroll to it later)
     var msgsDiv = document.getElementById('interpChatMessages_' + chatId);
     var _userMsgId = 'interpUserMsg_' + chatId + '_' + Date.now();
-    msgsDiv.innerHTML += '<div id="' + _userMsgId + '" style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(201,168,64,0.15);color:#c9a840;">' + text.replace(/</g,'&lt;') + '</div></div>';
+    // v749am: el botón share se agrega DESPUÉS de saber el msgIdx (después del push a chat.messages)
+    msgsDiv.innerHTML += '<div id="' + _userMsgId + '" style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;padding-left:32px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(201,168,64,0.15);color:#c9a840;position:relative;">' + text.replace(/</g,'&lt;') + '<button id="shareBtn_' + _userMsgId + '" title="' + (L?'Compartir':'Share') + '" style="position:absolute;top:4px;left:4px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:5px;color:#c9a840;font-size:0.75em;cursor:pointer;padding:1px 5px;line-height:1;display:none;">📤</button></div></div>';
 
     // Add typing indicator
     msgsDiv.innerHTML += '<div id="interpTyping_' + chatId + '" style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;border-radius:12px;font-size:0.8em;color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.03);">✨ ' + (L ? 'Consultando...' : 'Consulting...') + '</div></div>';
@@ -11723,6 +11787,13 @@ async function sendInterpChatMessage(chatId, readingKey) {
     // Save user message
     chat.messages.push({ role: 'user', text: text, timestamp: new Date().toISOString() });
     saveInterpChat(chatId, chat);
+    // v749am: activar el botón de share ahora que sabemos el msgIdx
+    var _userMsgIdx = chat.messages.length - 1;
+    var _shareUserBtn = document.getElementById('shareBtn_' + _userMsgId);
+    if (_shareUserBtn) {
+        _shareUserBtn.style.display = 'inline-block';
+        _shareUserBtn.onclick = function() { shareMessageFromChat(chatId, _userMsgIdx); };
+    }
 
     try {
         // Use active persona + add context of original interpretation (light context for speed)
@@ -11765,8 +11836,8 @@ async function sendInterpChatMessage(chatId, readingKey) {
         var _respId = 'interpFollowUp_' + chatId + '_' + Date.now();
 
         if (response.body) {
-            // Create bubble immediately for streaming
-            msgsDiv.innerHTML += '<div id="wrap_' + _respId + '" style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '">▌</div></div></div>';
+            // Create bubble immediately for streaming. v749am: bubble incluye botón 📤 oculto que activa cuando termina.
+            msgsDiv.innerHTML += '<div id="wrap_' + _respId + '" style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;padding-right:32px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);position:relative;"><div id="' + _respId + '">▌</div><button id="shareBtn_' + _respId + '" title="' + (L?'Compartir':'Share') + '" style="position:absolute;top:4px;right:4px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:5px;color:#667eea;font-size:0.75em;cursor:pointer;padding:1px 5px;line-height:1;display:none;">📤</button></div></div>';
             // v725: keep user question pinned at top instead of scrolling to AI bubble
             var _uMsgStream = document.getElementById(_userMsgId);
             if (_uMsgStream) { var _crS = msgsDiv.getBoundingClientRect(); var _urS = _uMsgStream.getBoundingClientRect(); msgsDiv.scrollTop = Math.max(0, msgsDiv.scrollTop + _urS.top - _crS.top - 8); }
@@ -11803,7 +11874,8 @@ async function sendInterpChatMessage(chatId, readingKey) {
             }
             if (aiText) {
                 var formatted = aiText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
-                msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '">' + formatted + '</div></div></div>';
+                // v749am: bubble con botón share
+                msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;padding-right:32px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);position:relative;"><div id="' + _respId + '">' + formatted + '</div><button id="shareBtn_' + _respId + '" title="' + (L?'Compartir':'Share') + '" style="position:absolute;top:4px;right:4px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:5px;color:#667eea;font-size:0.75em;cursor:pointer;padding:1px 5px;line-height:1;display:none;">📤</button></div></div>';
             }
         }
 
@@ -11811,6 +11883,13 @@ async function sendInterpChatMessage(chatId, readingKey) {
             // Save AI response
             chat.messages.push({ role: 'model', text: aiText, timestamp: new Date().toISOString() });
             saveInterpChat(chatId, chat);
+            // v749am: activar botón share de la AI response ahora que sabemos su msgIdx
+            var _aiMsgIdx = chat.messages.length - 1;
+            var _shareAiBtn = document.getElementById('shareBtn_' + _respId);
+            if (_shareAiBtn) {
+                _shareAiBtn.style.display = 'inline-block';
+                _shareAiBtn.onclick = function() { shareMessageFromChat(chatId, _aiMsgIdx); };
+            }
             // Voice conversation mode: auto-read response and re-activate mic
             window._voiceConvoAfterAIResponse(_respId, chatId, readingKey);
             // Add double-click to read from point on follow-up responses
@@ -11854,11 +11933,8 @@ function shareInterpChat(chatId) {
         });
     }
     text += '\n\n— AstroAtlas 🌙';
-    if (navigator.share) {
-        navigator.share({ title: chat.title, text: text }).catch(function(){});
-    } else {
-        navigator.clipboard.writeText(text).then(function() { alert(L ? 'Copiado al portapapeles' : 'Copied to clipboard'); });
-    }
+    // v749am: usar shareTextSafe — siempre copia al portapapeles primero (evita truncación de WhatsApp)
+    shareTextSafe(chat.title, text);
 }
 
 function showNatalDetail(type, data) {
