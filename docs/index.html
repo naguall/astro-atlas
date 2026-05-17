@@ -28090,15 +28090,12 @@ function generateGregorianMonth() {
             html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${eclClickTxt}')" style="color:#FFD700; font-size: 0.6em; font-weight:bold; cursor:pointer;">${planetaryEvents.eclipse.type==='solar'?'☀️ Ecl.Sol':'🌒 Ecl.Lun'}</div>`;
         }
         
-        // v749l: Inter-planetary aspects — ahora hasta 3 (antes solo 1)
-        // getInterPlanetaryAspects ahora incluye AMBOS: hardcoded (planetas lentos) + dinámicos (Sol/Mercurio/Venus/Marte)
+        // v749l+aa: Inter-planetary aspects — hasta 3 con MISMO color (celeste) sin distinguir origen
         planetaryEvents.interPlanetaryAspects.slice(0,3).forEach(asp => {
             const p1 = getPlanetInitial(asp.planet1);
             const p2 = getPlanetInitial(asp.planet2);
             const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
-            // Color naranja para aspectos dinámicos, celeste para hardcoded
-            const _aColor = asp._dynamic ? '#ff9f43' : '#7ec8ff';
-            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:${_aColor};font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}${asp._orb !== undefined ? ' (orbe ' + asp._orb.toFixed(1) + '°)' : ''}">${p1} ${asp.symbol} ${p2}</div>`;
+            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}${asp._orb !== undefined ? ' (orbe ' + asp._orb.toFixed(1) + '°)' : ''}">${p1} ${asp.symbol} ${p2}</div>`;
         });
         
         // Sign changes (limit 2)
