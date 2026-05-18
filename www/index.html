@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749az';</script>
+    <script>window.APP_VERSION = 'v749ba';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -44668,7 +44668,18 @@ function interpretTableSection(section) {
         ? (section === 'planets' ? 'Planetas Natales' : section === 'cusps' ? 'Cúspides de Casas' : 'Aspectos Natales')
         : (section === 'planets' ? 'Natal Planets' : section === 'cusps' ? 'House Cusps' : 'Natal Aspects');
 
-    fetchAIInterpretation(prompt, divId, title);
+    // v749ba: flag para indicar interpretación de carta natal PURA — sin tránsitos del día ni fecha actual
+    window._isPureNatalInterpretation = true;
+    var _pureTitle = title;
+    var _resetFlag = function() { window._isPureNatalInterpretation = false; };
+    try {
+        var p = fetchAIInterpretation(prompt, divId, _pureTitle);
+        if (p && p.finally) p.finally(_resetFlag);
+        else setTimeout(_resetFlag, 30000); // safety reset
+    } catch(e) {
+        _resetFlag();
+        throw e;
+    }
 }
 window.interpretTableSection = interpretTableSection;
 
@@ -45788,12 +45799,54 @@ function resetAllAIChats() {
 
 function buildSystemPrompt(contextLevel) {
     const isEs = currentLang === 'es';
-    // v749az: si estamos en el calendario relacional Y hay cache precalculado,
-    // REEMPLAZAR el contexto natal completo por el contexto relacional limpio.
-    // Esto evita duplicación y evita que el AI mezcle la natal del usuario activo
-    // con la carta compuesta/davison/sinastría.
+    // v749az/ba: contexto limpio según escenario:
+    //   - Interpretación natal pura → SOLO carta natal del perfil activo (sin fecha/hora/tránsitos)
+    //   - Calendario relacional → datos relacionales puros
+    //   - Default → fullCtx completo
     var fullCtx;
-    if (window._isRelationsCalendarActive && window._calRelPromptCache && window._calRelPromptCache.promptText) {
+    if (window._isPureNatalInterpretation) {
+        try {
+            var _pNatal = (typeof getNatalData === 'function') ? getNatalData() : null;
+            if (_pNatal) {
+                var _chData = localStorage.getItem('natalChart_' + _pNatal.id) || localStorage.getItem('natalChart');
+                var _nc = _chData ? JSON.parse(_chData) : null;
+                fullCtx = (isEs?'CARTA NATAL — ':'NATAL CHART — ') + (_pNatal.name || _pNatal.cityName || '') + '\n';
+                fullCtx += (isEs?'Nacimiento: ':'Birth: ') + _pNatal.date + ' ' + (_pNatal.time||'?') + ' — ' + (_pNatal.cityName||'?') + '\n\n';
+                if (_nc && _nc.planets) {
+                    var _pNM = isEs ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte'} : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node'};
+                    fullCtx += (isEs?'PLANETAS NATALES:\n':'NATAL PLANETS:\n');
+                    Object.entries(_nc.planets).forEach(function(en){
+                        var p = en[0], d = en[1];
+                        if (!_pNM[p]) return;
+                        var house = (_nc.houses && typeof getHouseForLongitude === 'function') ? getHouseForLongitude(d.longitude, _nc.houses.cusps) : '?';
+                        fullCtx += '  ' + (_pNM[p]||p) + ': ' + (d.formatted || (d.sign + ' ' + d.degree + '°')) + ' (' + (isEs?'Casa ':'House ') + house + ')' + (d.isRetrograde ? ' ℞' : '') + '\n';
+                    });
+                    if (_nc.houses && _nc.houses.cusps) {
+                        var _hN = ['I(ASC)','II','III','IV(IC)','V','VI','VII(DESC)','VIII','IX','X(MC)','XI','XII'];
+                        fullCtx += (isEs?'\nCASAS:\n':'\nHOUSES:\n');
+                        _nc.houses.cusps.forEach(function(c,i){
+                            var inf = getZodiacSignWithDegree(c);
+                            fullCtx += '  ' + _hN[i] + ': ' + inf.sign + ' ' + inf.degree + '°\n';
+                        });
+                    }
+                    if (_nc.natalAspects && _nc.natalAspects.length > 0) {
+                        fullCtx += (isEs?'\nASPECTOS NATALES:\n':'\nNATAL ASPECTS:\n');
+                        _nc.natalAspects.forEach(function(a){
+                            fullCtx += '  ' + (_pNM[a.planet1]||a.planet1) + ' ' + a.aspect.name + ' ' + (_pNM[a.planet2]||a.planet2) + ' (' + (isEs?'orbe':'orb') + ' ' + a.orbFormatted + ')\n';
+                        });
+                    }
+                }
+                fullCtx += '\n' + (isEs
+                    ? '⚠️ INTERPRETACIÓN PURA DE CARTA NATAL — NO menciones tránsitos del día, NO menciones la fecha actual, NO uses datos del momento presente. SOLO la carta natal en sí, como retrato psicológico/arquetípico de la persona.'
+                    : '⚠️ PURE NATAL CHART INTERPRETATION — Do NOT mention current transits, do NOT mention today\'s date, do NOT use data from the present moment. ONLY the natal chart itself, as a psychological/archetypal portrait of the person.');
+            } else {
+                fullCtx = (isEs?'(Carta natal no disponible)':'(Natal chart not available)');
+            }
+        } catch(_pneErr) {
+            console.warn('Pure natal context error:', _pneErr);
+            fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
+        }
+    } else if (window._isRelationsCalendarActive && window._calRelPromptCache && window._calRelPromptCache.promptText) {
         // Contexto LIMPIO: solo fecha/lugar + datos relacionales (sin natales individuales del usuario)
         var now = new Date();
         fullCtx = (isEs?'Fecha actual: ':'Current date: ') + now.toLocaleDateString(isEs?'es-CR':'en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n';
