@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bh';</script>
+    <script>window.APP_VERSION = 'v749bi';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -21805,11 +21805,16 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
     function px2(r,a){ return (cx+r*Math.cos(a)).toFixed(2); }
     function py2(r,a){ return (cy+r*Math.sin(a)).toFixed(2); }
 
+    // v749bi: fondo blanco como en Detalles/Carta — antes era transparente sobre dark modal
+    svg += '<rect width="'+S+'" height="'+S+'" fill="#0d1117" rx="4"/>';
+    svg += '<circle cx="'+cx+'" cy="'+(cy)+'" r="'+(S/2-4)+'" fill="#fff"/>';
+
     var signGlyphs2 = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
     var signColors2 = ['#c0392b','#27ae60','#f39c12','#2980b9','#e67e22','#27ae60','#2980b9','#c0392b','#8e44ad','#27ae60','#2980b9','#2980b9'];
     var planetGlyphs2 = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊'};
-    var p1Colors = {'sun':'#e67e22','moon':'#546e7a','mercury':'#b8860b','venus':'#27ae60','mars':'#c0392b','jupiter':'#6a5acd','saturn':'#546e7a','uranus':'#16a085','neptune':'#2980b9','pluto':'#555','chiron':'#d4a017','northnode':'#555','lilith':'#444'};
-    var p2Colors = {'sun':'#ff6b35','moon':'#64B5F6','mercury':'#ffd54f','venus':'#66bb6a','mars':'#ef5350','jupiter':'#7e57c2','saturn':'#78909c','uranus':'#26c6da','neptune':'#42a5f5','pluto':'#ab47bc','chiron':'#ffca28','northnode':'#78909c','lilith':'#666'};
+    // v749bi: persona 1 = dorado oscuro, persona 2 = lila oscuro — legible sobre fondo blanco
+    var p1Colors = {'sun':'#c9710e','moon':'#37474f','mercury':'#8b6914','venus':'#1e7e34','mars':'#a93226','jupiter':'#5b4ba0','saturn':'#37474f','uranus':'#0e6e5b','neptune':'#1e5fa3','pluto':'#3d3d3d','chiron':'#a07a10','northnode':'#3d3d3d','lilith':'#222'};
+    var p2Colors = {'sun':'#d35400','moon':'#1565c0','mercury':'#b8860b','venus':'#388e3c','mars':'#c0392b','jupiter':'#6a3da0','saturn':'#455a64','uranus':'#00838f','neptune':'#1976d2','pluto':'#7b1fa2','chiron':'#b87a00','northnode':'#455a64','lilith':'#444'};
 
     // Rotation: ASC on left
     var ascRot = chart1.houses ? chart1.houses.ascendant : 0;
@@ -21818,20 +21823,20 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
     var R_outer = S/2 - 10;
     var R_signInner = R_outer - 40;
 
-    // Zodiac ring
+    // Zodiac ring — v749bi: opacity más alta para fondo blanco
     for (var si=0;si<12;si++) {
         var a1=L2A2(si*30), a2=L2A2((si+1)*30);
         var lf=(a2-a1>0)?0:1;
-        svg += '<path d="M'+px2(R_outer,a1)+' '+py2(R_outer,a1)+' A'+R_outer+' '+R_outer+' 0 0 '+lf+' '+px2(R_outer,a2)+' '+py2(R_outer,a2)+' L'+px2(R_signInner,a2)+' '+py2(R_signInner,a2)+' A'+R_signInner+' '+R_signInner+' 0 0 '+(1-lf)+' '+px2(R_signInner,a1)+' '+py2(R_signInner,a1)+' Z" fill="'+signColors2[si]+'" fill-opacity="0.08" stroke="'+signColors2[si]+'" stroke-opacity="0.3" stroke-width="0.5"/>';
+        svg += '<path d="M'+px2(R_outer,a1)+' '+py2(R_outer,a1)+' A'+R_outer+' '+R_outer+' 0 0 '+lf+' '+px2(R_outer,a2)+' '+py2(R_outer,a2)+' L'+px2(R_signInner,a2)+' '+py2(R_signInner,a2)+' A'+R_signInner+' '+R_signInner+' 0 0 '+(1-lf)+' '+px2(R_signInner,a1)+' '+py2(R_signInner,a1)+' Z" fill="'+signColors2[si]+'" fill-opacity="0.18" stroke="'+signColors2[si]+'" stroke-opacity="0.6" stroke-width="0.6"/>';
         var ma=L2A2(si*30+15);
         svg += '<text x="'+px2((R_outer+R_signInner)/2,ma)+'" y="'+py2((R_outer+R_signInner)/2,ma)+'" fill="'+signColors2[si]+'" font-size="16" text-anchor="middle" dominant-baseline="central">'+signGlyphs2[si]+'</text>';
     }
 
-    // Inner circle (person 1 planets)
+    // Inner circle (person 1 planets) — v749bi: gris medio para que se vea sobre blanco
     var R_p1Mid = R_signInner - 40;
     var R_center = R_signInner - 80;
-    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signInner+'" fill="none" stroke="#333" stroke-width="0.5"/>';
-    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_center+'" fill="none" stroke="#333" stroke-width="0.5"/>';
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signInner+'" fill="none" stroke="#aaa" stroke-width="0.6"/>';
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_center+'" fill="none" stroke="#aaa" stroke-width="0.6"/>';
 
     // Person 1 planets (inner)
     var p1Keys = Object.keys(chart1.planets);
@@ -21848,10 +21853,10 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
         svg += '<text x="'+ppx.toFixed(1)+'" y="'+(ppy).toFixed(1)+'" fill="'+(p1Colors[pp.key]||'#888')+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs2[pp.key]||pp.key[0].toUpperCase())+'</text>';
     });
 
-    // Person 2 planets (outer ring)
+    // Person 2 planets (outer ring) — v749bi: stroke más oscuro para blanco
     var R_p2Inner = R_outer + 4;
     var R_p2Mid = R_outer + 28;
-    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_outer+'" fill="none" stroke="#333" stroke-width="1.2"/>';
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_outer+'" fill="none" stroke="#666" stroke-width="1.2"/>';
 
     var p2Keys = Object.keys(chart2.planets);
     var p2Pos = [];
@@ -21863,8 +21868,8 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
         var angle=L2A2(pp.lon);
         var pr2=R_p2Mid+pp.nudge*9;
         var ppx2=cx+pr2*Math.cos(angle), ppy2=cy+pr2*Math.sin(angle);
-        svg += '<line x1="'+px2(R_outer,angle)+'" y1="'+py2(R_outer,angle)+'" x2="'+ppx2.toFixed(1)+'" y2="'+ppy2.toFixed(1)+'" stroke="rgba(100,181,246,0.2)" stroke-width="0.5"/>';
-        svg += '<text x="'+ppx2.toFixed(1)+'" y="'+(ppy2).toFixed(1)+'" fill="'+(p2Colors[pp.key]||'#64B5F6')+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs2[pp.key]||pp.key[0].toUpperCase())+'</text>';
+        svg += '<line x1="'+px2(R_outer,angle)+'" y1="'+py2(R_outer,angle)+'" x2="'+ppx2.toFixed(1)+'" y2="'+ppy2.toFixed(1)+'" stroke="rgba(106,61,160,0.35)" stroke-width="0.6"/>';
+        svg += '<text x="'+ppx2.toFixed(1)+'" y="'+(ppy2).toFixed(1)+'" fill="'+(p2Colors[pp.key]||'#6a3da0')+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs2[pp.key]||pp.key[0].toUpperCase())+'</text>';
     });
 
     // Synastry aspect lines (between person1 and person2 planets)
@@ -21878,9 +21883,9 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
         svg += '<line x1="'+px2(R_center,a1)+'" y1="'+py2(R_center,a1)+'" x2="'+px2(R_center,a2)+'" y2="'+py2(R_center,a2)+'" stroke="'+a.color+'" stroke-width="1" opacity="'+alpha+'"'+dash+'/>';
     });
 
-    // Labels
-    svg += '<text x="'+cx+'" y="'+(cy-R_center+18)+'" fill="rgba(255,255,255,0.3)" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle">'+(name1||'Person 1')+'</text>';
-    svg += '<text x="'+cx+'" y="'+(cy-R_p2Mid-10)+'" fill="rgba(100,181,246,0.4)" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle">'+(name2||'Person 2')+'</text>';
+    // Labels — v749bi: colores legibles sobre fondo blanco
+    svg += '<text x="'+cx+'" y="'+(cy-R_center+18)+'" fill="rgba(60,60,60,0.85)" font-size="11" font-weight="600" font-family="system-ui,sans-serif" text-anchor="middle">'+(name1||'Person 1')+'</text>';
+    svg += '<text x="'+cx+'" y="'+(cy-R_p2Mid-10)+'" fill="rgba(106,61,160,0.95)" font-size="11" font-weight="600" font-family="system-ui,sans-serif" text-anchor="middle">'+(name2||'Person 2')+'</text>';
 
     var totalR2 = R_p2Mid + 25;
     var vb2 = (cx-totalR2)+' '+(cy-totalR2)+' '+(totalR2*2)+' '+(totalR2*2);
@@ -21936,6 +21941,9 @@ window.openSynastryView = function(profileId) {
 
     // Biwheel
     html += '<div id="synastryBiwheel" style="margin-bottom:14px;"></div>';
+
+    // v749bi: Tabla comparativa Planetas + Casas — Opción A, filas clickeables para interpretar
+    try { html += window.buildSynastryCompareTableHTML(nc1, nc2, name1, name2); } catch(_eTbl) { console.warn('buildSynastryCompareTableHTML err:', _eTbl); }
 
     // Major aspects (clickable)
     html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Aspectos Mayores':'Major Aspects') + ' (' + majorAsp.length + ')</div>';
@@ -22222,6 +22230,200 @@ window.showSynastryHouseDetail = function(dataStr) {
 
     setTimeout(function() {
         fetchAIInterpretation(prompt, 'aiInterpDiv', pName + ' ' + (currentLang==='es'?'Casa':'House') + ' ' + house);
+    }, 200);
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// v749bi: TABLA COMPARATIVA SINASTRÍA — Opción A (3 columnas) con filas clickeables
+// ────────────────────────────────────────────────────────────────────────────
+
+// Construye HTML de tabla unificada Planetas + Casas (3 columnas: item / personA / personB).
+// Cada fila tiene onclick que abre interpretación AI del planeta/casa específico.
+window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
+    var L = currentLang === 'es';
+    var pN = L
+        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith'};
+    var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+
+    var tableStyle = 'width:100%;border-collapse:collapse;font-size:0.82em;margin-top:4px;';
+    var thStyle = 'text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);';
+    var tdStyle = 'padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s;';
+    var headerSec = 'font-size:0.78em;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 4px;padding-left:2px;';
+
+    var html = '';
+
+    // ───── PLANETAS ─────
+    html += '<div style="' + headerSec + '">' + (L?'Planetas (tap fila para interpretar)':'Planets (tap row to interpret)') + '</div>';
+    html += '<table style="' + tableStyle + '">';
+    html += '<thead><tr>';
+    html += '<th style="' + thStyle + 'width:28%;"></th>';
+    html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
+    html += '<th style="' + thStyle + 'color:rgba(195,155,211,0.95);">' + name2 + '</th>';
+    html += '</tr></thead><tbody>';
+    planetOrder.forEach(function(p) {
+        var d1 = nc1.planets && nc1.planets[p];
+        var d2 = nc2.planets && nc2.planets[p];
+        if (!d1 && !d2) return;
+        var inf1 = d1 ? getZodiacSignWithDegree(d1.longitude) : null;
+        var inf2 = d2 ? getZodiacSignWithDegree(d2.longitude) : null;
+        var h1 = (d1 && nc1.houses && typeof getHouseForLongitude==='function') ? getHouseForLongitude(d1.longitude, nc1.houses.cusps) : '';
+        var h2 = (d2 && nc2.houses && typeof getHouseForLongitude==='function') ? getHouseForLongitude(d2.longitude, nc2.houses.cusps) : '';
+        var sameSign = inf1 && inf2 && inf1.sign === inf2.sign;
+        var rowBg = sameSign ? 'background:rgba(46,204,113,0.08);' : '';
+        var dataParts = [p, (inf1?inf1.sign:''), (inf1?inf1.degree:''), (h1||''), (inf2?inf2.sign:''), (inf2?inf2.degree:''), (h2||''), name1, name2];
+        var dataStr = dataParts.join('|').replace(/'/g, "\\'");
+        var v1 = inf1 ? inf1.sign + ' ' + inf1.degree + '°' + (h1?' H'+h1:'') : '—';
+        var v2 = inf2 ? inf2.sign + ' ' + inf2.degree + '°' + (h2?' H'+h2:'') : '—';
+        html += '<tr ' + (rowBg?'style="'+rowBg+'"':'') + ' onclick="window.showSynastryPlanetCompare(\'' + dataStr + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSign?'rgba(46,204,113,0.08)':'') + '\'">';
+        html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + (pN[p]||p) + '</td>';
+        html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + v1 + '</td>';
+        html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + v2 + '</td>';
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    // ───── CASAS ─────
+    if (nc1.houses && nc2.houses && nc1.houses.cusps && nc2.houses.cusps) {
+        var houseLabels = L
+            ? ['I (ASC)','II','III','IV (IC)','V','VI','VII (DESC)','VIII','IX','X (MC)','XI','XII']
+            : ['I (ASC)','II','III','IV (IC)','V','VI','VII (DESC)','VIII','IX','X (MC)','XI','XII'];
+        html += '<div style="' + headerSec + '">' + (L?'Casas — Cúspides (tap fila para interpretar)':'Houses — Cusps (tap row to interpret)') + '</div>';
+        html += '<table style="' + tableStyle + '">';
+        html += '<thead><tr>';
+        html += '<th style="' + thStyle + 'width:28%;"></th>';
+        html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
+        html += '<th style="' + thStyle + 'color:rgba(195,155,211,0.95);">' + name2 + '</th>';
+        html += '</tr></thead><tbody>';
+        for (var hi = 0; hi < 12; hi++) {
+            var c1 = nc1.houses.cusps[hi];
+            var c2 = nc2.houses.cusps[hi];
+            var hinf1 = getZodiacSignWithDegree(c1);
+            var hinf2 = getZodiacSignWithDegree(c2);
+            var sameSignH = hinf1.sign === hinf2.sign;
+            var rowBgH = sameSignH ? 'background:rgba(46,204,113,0.08);' : '';
+            var hData = [hi, hinf1.sign, hinf1.degree, hinf2.sign, hinf2.degree, name1, name2].join('|').replace(/'/g, "\\'");
+            html += '<tr ' + (rowBgH?'style="'+rowBgH+'"':'') + ' onclick="window.showSynastryHouseCompare(\'' + hData + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSignH?'rgba(46,204,113,0.08)':'') + '\'">';
+            html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + houseLabels[hi] + '</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + hinf1.sign + ' ' + hinf1.degree + '°</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + hinf2.sign + ' ' + hinf2.degree + '°</td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+    }
+
+    // Leyenda
+    html += '<div style="margin-top:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">'
+          + '<span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>'
+          + (L?'mismo signo':'same sign')
+          + '</div>';
+
+    return html;
+};
+
+// Click en fila de planeta → modal con interpretación AI de cómo esos dos planetas se relacionan
+window.showSynastryPlanetCompare = function(dataStr) {
+    var parts = dataStr.split('|');
+    var planetKey = parts[0];
+    var sign1 = parts[1], deg1 = parts[2], h1 = parts[3];
+    var sign2 = parts[4], deg2 = parts[5], h2 = parts[6];
+    var name1 = parts[7], name2 = parts[8];
+    var L = currentLang === 'es';
+    var pN = L
+        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith'};
+    var pSym = (typeof planetSymbols !== 'undefined' && planetSymbols[planetKey]) || '';
+    var pName = pN[planetKey] || planetKey;
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
+
+    titleEl.textContent = pName + ' — ' + (L?'comparación':'comparison');
+
+    var v1 = sign1 + ' ' + deg1 + '°' + (h1?' H'+h1:'');
+    var v2 = sign2 + ' ' + deg2 + '°' + (h2?' H'+h2:'');
+
+    var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid rgba(195,155,211,0.5);">';
+    html += '<div style="font-size:2.5em;margin-bottom:8px;">' + pSym + '</div>';
+    html += '<div style="font-size:1.05em;font-weight:700;color:#c9a840;margin-bottom:4px;">' + pName + '</div>';
+    html += '<div style="display:flex;justify-content:space-around;gap:14px;margin-top:10px;font-size:0.85em;">';
+    html += '<div style="flex:1;"><div style="color:rgba(255,255,255,0.4);font-size:0.78em;">' + name1 + '</div><div style="font-weight:700;color:#ffd54f;margin-top:2px;">' + v1 + '</div></div>';
+    html += '<div style="color:rgba(255,255,255,0.3);font-size:1.3em;align-self:center;">↔</div>';
+    html += '<div style="flex:1;"><div style="color:rgba(255,255,255,0.4);font-size:0.78em;">' + name2 + '</div><div style="font-weight:700;color:#c39bd3;margin-top:2px;">' + v2 + '</div></div>';
+    html += '</div></div>';
+
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L?'Interpretación':'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var prompt = L
+        ? 'En la sinastría entre ' + name1 + ' y ' + name2 + ', interpretá la combinación de ' + pName + ' de ambos. El ' + pName + ' de ' + name1 + ' está en ' + sign1 + ' ' + deg1 + '°' + (h1?' (casa ' + h1 + ')':'') + '. El ' + pName + ' de ' + name2 + ' está en ' + sign2 + ' ' + deg2 + '°' + (h2?' (casa ' + h2 + ')':'') + '. Analizá: 1) Qué dinámica crea esta combinación entre ambas personas (cómo se complementan o chocan), 2) El tema arquetípico que aparece en la relación a través de este planeta, 3) Los desafíos y las fortalezas que aporta. Sé específico sobre estas posiciones concretas — no genérico.'
+        : 'In synastry between ' + name1 + ' and ' + name2 + ', interpret the combination of ' + pName + ' of both. ' + name1 + '\'s ' + pName + ' is in ' + sign1 + ' ' + deg1 + '°' + (h1?' (house ' + h1 + ')':'') + '. ' + name2 + '\'s ' + pName + ' is in ' + sign2 + ' ' + deg2 + '°' + (h2?' (house ' + h2 + ')':'') + '. Analyze: 1) What dynamic this combination creates between both people (how they complement or clash), 2) The archetypal theme that emerges in the relationship through this planet, 3) The challenges and strengths it brings. Be specific about these positions — not generic.';
+
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', pName + ' — ' + name1 + ' / ' + name2);
+    }, 200);
+};
+
+// Click en fila de casa → modal con interpretación AI de las dos cúspides comparadas
+window.showSynastryHouseCompare = function(dataStr) {
+    var parts = dataStr.split('|');
+    var hi = parseInt(parts[0]);
+    var sign1 = parts[1], deg1 = parts[2];
+    var sign2 = parts[3], deg2 = parts[4];
+    var name1 = parts[5], name2 = parts[6];
+    var L = currentLang === 'es';
+    var houseLabels = ['I (ASC)','II','III','IV (IC)','V','VI','VII (DESC)','VIII','IX','X (MC)','XI','XII'];
+    var houseThemes = L ? {
+        0:'Identidad, apariencia, primera impresión', 1:'Recursos, valores, seguridad material',
+        2:'Comunicación, hermanos, entorno cercano', 3:'Hogar, familia, raíces emocionales',
+        4:'Creatividad, romance, hijos, diversión', 5:'Salud, trabajo diario, servicio',
+        6:'Relaciones, pareja, asociaciones', 7:'Transformación, sexualidad, recursos compartidos',
+        8:'Filosofía, viajes, educación superior', 9:'Carrera, reputación, logros públicos',
+        10:'Amigos, grupos, esperanzas, proyectos', 11:'Espiritualidad, inconsciente, karma'
+    } : {
+        0:'Identity, appearance, first impression', 1:'Resources, values, material security',
+        2:'Communication, siblings, close environment', 3:'Home, family, emotional roots',
+        4:'Creativity, romance, children, fun', 5:'Health, daily work, service',
+        6:'Relationships, partner, associations', 7:'Transformation, sexuality, shared resources',
+        8:'Philosophy, travel, higher education', 9:'Career, reputation, public achievements',
+        10:'Friends, groups, hopes, projects', 11:'Spirituality, unconscious, karma'
+    };
+    var label = houseLabels[hi];
+    var theme = houseThemes[hi] || '';
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
+
+    titleEl.textContent = (L?'Casa ':'House ') + label + ' — ' + (L?'comparación':'comparison');
+
+    var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid rgba(195,155,211,0.5);">';
+    html += '<div style="font-size:1.1em;font-weight:700;color:#c9a840;margin-bottom:2px;">' + (L?'Casa ':'House ') + label + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:8px;">' + theme + '</div>';
+    html += '<div style="display:flex;justify-content:space-around;gap:14px;margin-top:10px;font-size:0.85em;">';
+    html += '<div style="flex:1;"><div style="color:rgba(255,255,255,0.4);font-size:0.78em;">' + name1 + '</div><div style="font-weight:700;color:#ffd54f;margin-top:2px;">' + sign1 + ' ' + deg1 + '°</div></div>';
+    html += '<div style="color:rgba(255,255,255,0.3);font-size:1.3em;align-self:center;">↔</div>';
+    html += '<div style="flex:1;"><div style="color:rgba(255,255,255,0.4);font-size:0.78em;">' + name2 + '</div><div style="font-weight:700;color:#c39bd3;margin-top:2px;">' + sign2 + ' ' + deg2 + '°</div></div>';
+    html += '</div></div>';
+
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L?'Interpretación':'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var prompt = L
+        ? 'En la sinastría entre ' + name1 + ' y ' + name2 + ', interpretá la cúspide de la Casa ' + label + ' de ambos. La Casa ' + label + ' se relaciona con: ' + theme + '. La cúspide de ' + name1 + ' está en ' + sign1 + ' ' + deg1 + '°. La cúspide de ' + name2 + ' está en ' + sign2 + ' ' + deg2 + '°. Analizá: 1) Cómo cada uno aborda esta área de la vida según el signo de su cúspide, 2) Dónde se complementan y dónde chocan, 3) Qué patrones aparecen en la relación en esta área específica. Sé concreto.'
+        : 'In synastry between ' + name1 + ' and ' + name2 + ', interpret the cusp of House ' + label + ' for both. House ' + label + ' relates to: ' + theme + '. ' + name1 + '\'s cusp is in ' + sign1 + ' ' + deg1 + '°. ' + name2 + '\'s cusp is in ' + sign2 + ' ' + deg2 + '°. Analyze: 1) How each approaches this life area according to their cusp sign, 2) Where they complement and where they clash, 3) What patterns emerge in the relationship in this specific area. Be concrete.';
+
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', (L?'Casa ':'House ') + label);
     }, 200);
 };
 
@@ -28991,13 +29193,46 @@ function interpretCalendarDay(year, month, day) {
         }).join(', ');
     }
 
+    // v749bi: en sinastría, etiquetar los tránsitos sobre la carta A con el NOMBRE de profileA (no "Sinastría: A↔B")
+    // El AI antes se confundía y se enfocaba sólo en B porque era la única tabla con dueño claro.
+    var _firstTransitLabel;
+    if (_isRel) {
+        if (_ctx.mode === 'sinastria') {
+            _firstTransitLabel = (L?'la carta natal de ':'the natal chart of ') + (_ctx.profileA.name||'A');
+        } else {
+            _firstTransitLabel = (L?'la ':'the ') + _ctx.label;
+        }
+    } else {
+        _firstTransitLabel = (L?'la carta natal':'the natal chart');
+    }
+
+    var _sinBalanceNote = (_ctx.mode === 'sinastria')
+        ? (L
+            ? ' IMPORTANTE: tenés DOS cartas natales (de ' + (_ctx.profileA.name||'A') + ' y de ' + (_ctx.profileB.name||'B') + '). Dale peso EQUILIBRADO a ambas — no te enfoques solo en una persona. Interpretá los tránsitos sobre cada carta por separado Y cómo el conjunto afecta al vínculo.'
+            : ' IMPORTANT: you have TWO natal charts (of ' + (_ctx.profileA.name||'A') + ' and of ' + (_ctx.profileB.name||'B') + '). Give BALANCED weight to both — do not focus on only one person. Interpret transits on each chart separately AND how the combination affects the bond.')
+        : '';
+
     var prompt = _relPrefix + (L
-        ? 'Dame una interpretación completa del día ' + dateStr + '. Tránsitos sobre la carta ' + (_isRel ? _ctx.label : 'natal') + ': ' + (transitDesc || 'ninguno significativo')
-          + (transitsBDesc ? '. Tránsitos sobre la carta de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
-          + '. Incluí: 1) Cómo afectan estos tránsitos al ' + (_isRel ? 'vínculo' : 'perfil personal') + ', 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
-        : 'Give me a complete interpretation of ' + dateStr + '. Transits on the ' + (_isRel ? _ctx.label : 'natal') + ' chart: ' + (transitDesc || 'none significant')
-          + (transitsBDesc ? '. Transits on ' + (_ctx.profileB.name||'B') + '\'s chart: ' + transitsBDesc : '')
-          + '. Include: 1) How these transits affect the ' + (_isRel ? 'relationship' : 'personal profile') + ', 2) General energy of the day, 3) Practical advice, 4) Any important warnings.');
+        ? 'Dame una interpretación completa del día ' + dateStr + '. Tránsitos sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo')
+          + (transitsBDesc ? '. Tránsitos sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
+          + _sinBalanceNote
+          + ' Incluí: 1) Cómo afectan estos tránsitos al ' + (_isRel ? 'vínculo' : 'perfil personal') + ', 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
+        : 'Give me a complete interpretation of ' + dateStr + '. Transits on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant')
+          + (transitsBDesc ? '. Transits on the natal chart of ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
+          + _sinBalanceNote
+          + ' Include: 1) How these transits affect the ' + (_isRel ? 'relationship' : 'personal profile') + ', 2) General energy of the day, 3) Practical advice, 4) Any important warnings.');
+
+    // v749bi: asegurar cache de contexto relacional antes de interpretar
+    // (si no está listo, el AI recibe contexto incompleto y dice "solo tengo fecha de nacimiento de X")
+    if (_isRel && typeof window._precomputeRelData === 'function') {
+        try {
+            var _cKey = (_ctx.profileA && _ctx.profileA.id) + '|' + (_ctx.profileB && _ctx.profileB.id) + '|' + _ctx.mode + '|' + currentLang;
+            if (!window._calRelPromptCache || window._calRelPromptCache.cacheKey !== _cKey) {
+                console.log('[v749bi] Cache miss antes de interpretar — regenerando...');
+                window._precomputeRelData();
+            }
+        } catch(e) { console.warn('[v749bi] precompute on interpret error:', e); }
+    }
 
     var _title = L ? 'Interpretación del Día' : 'Day Interpretation';
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
