@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749au';</script>
+    <script>window.APP_VERSION = 'v749av';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -19815,9 +19815,30 @@ function showBannerAspectDetail(text) {
     var bodyEl = document.getElementById('natalDetailBody');
     var L = currentLang === 'es';
 
-    var prompt = L
-        ? 'Interpreta este aspecto o evento astrológico de hoy y cómo me afecta según mi carta natal: ' + text
-        : 'Interpret this astrological aspect or event today and how it affects me based on my natal chart: ' + text;
+    // v749av: si estamos en modo relacional, ajustar el prompt al contexto de la carta relacional
+    var _sbCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _sbPrefix = '';
+    var _sbCarte = L ? 'mi carta natal' : 'my natal chart';
+    if (_sbCtx.mode === 'compuesta') {
+        _sbPrefix = L
+            ? 'CONTEXTO: Carta COMPUESTA de ' + (_sbCtx.profileA.name||'A') + ' + ' + (_sbCtx.profileB.name||'B') + '. NO interpretes sobre mi carta personal — interpretá sobre la carta compuesta de la RELACIÓN como entidad propia. '
+            : 'CONTEXT: COMPOSITE CHART of ' + (_sbCtx.profileA.name||'A') + ' + ' + (_sbCtx.profileB.name||'B') + '. Do NOT interpret on my personal chart — interpret on the composite chart of the RELATIONSHIP as its own entity. ';
+        _sbCarte = L ? 'la carta compuesta de la relación' : 'the composite chart of the relationship';
+    } else if (_sbCtx.mode === 'davison') {
+        _sbPrefix = L
+            ? 'CONTEXTO: Carta DAVISON de ' + (_sbCtx.profileA.name||'A') + ' + ' + (_sbCtx.profileB.name||'B') + '. NO interpretes sobre mi carta personal — interpretá sobre la carta Davison de la RELACIÓN. '
+            : 'CONTEXT: DAVISON CHART of ' + (_sbCtx.profileA.name||'A') + ' + ' + (_sbCtx.profileB.name||'B') + '. Do NOT interpret on my personal chart — interpret on the Davison chart of the RELATIONSHIP. ';
+        _sbCarte = L ? 'la carta Davison de la relación' : 'the Davison chart of the relationship';
+    } else if (_sbCtx.mode === 'sinastria') {
+        _sbPrefix = L
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_sbCtx.profileA.name||'A') + ' y ' + (_sbCtx.profileB.name||'B') + '. Considerá AMBAS cartas, no solo mi carta personal. '
+            : 'CONTEXT: SYNASTRY between ' + (_sbCtx.profileA.name||'A') + ' and ' + (_sbCtx.profileB.name||'B') + '. Consider BOTH charts, not just my personal chart. ';
+        _sbCarte = L ? 'la sinastría de ambas cartas' : 'the synastry of both charts';
+    }
+
+    var prompt = _sbPrefix + (L
+        ? 'Interpretá este aspecto o evento astrológico de hoy y cómo afecta según ' + _sbCarte + ': ' + text
+        : 'Interpret this astrological aspect or event today and how it affects according to ' + _sbCarte + ': ' + text);
 
     // v741: si el evento es Solsticio/Equinoccio PERSONAL (calculado desde el cumpleaños),
     // inyectar contexto explícito para que el AI no use el solsticio astronómico estándar (21 dic / 21 jun).
@@ -28642,11 +28663,36 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
     var nName = planetNames[natalPlanet] || natalPlanet;
     var aName = aspectNames[aspectType] || aspectType;
 
+    // v749av: si estamos en modo relacional, el tránsito es sobre la carta relacional, no la personal
+    var _itaCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _itaPrefix = '';
+    var _natalLabel = L ? 'natal' : 'natal';
+    var _carteLabel = L ? 'mi carta natal' : 'my natal chart';
+    if (_itaCtx.mode === 'compuesta') {
+        _itaPrefix = L
+            ? 'CONTEXTO: Carta COMPUESTA de la relación ' + (_itaCtx.profileA.name||'A') + ' + ' + (_itaCtx.profileB.name||'B') + '. NO interpretes sobre mi carta personal — interpretá sobre la carta compuesta de la RELACIÓN como entidad propia. '
+            : 'CONTEXT: COMPOSITE CHART of relationship ' + (_itaCtx.profileA.name||'A') + ' + ' + (_itaCtx.profileB.name||'B') + '. Do NOT interpret on my personal chart — interpret on the composite chart of the RELATIONSHIP as its own entity. ';
+        _natalLabel = L ? 'compuesto' : 'composite';
+        _carteLabel = L ? 'la carta compuesta de la relación' : 'the composite chart of the relationship';
+    } else if (_itaCtx.mode === 'davison') {
+        _itaPrefix = L
+            ? 'CONTEXTO: Carta DAVISON de la relación ' + (_itaCtx.profileA.name||'A') + ' + ' + (_itaCtx.profileB.name||'B') + '. NO interpretes sobre mi carta personal — interpretá sobre la carta Davison de la RELACIÓN. '
+            : 'CONTEXT: DAVISON CHART of relationship ' + (_itaCtx.profileA.name||'A') + ' + ' + (_itaCtx.profileB.name||'B') + '. Do NOT interpret on my personal chart — interpret on the Davison chart of the RELATIONSHIP. ';
+        _natalLabel = 'Davison';
+        _carteLabel = L ? 'la carta Davison de la relación' : 'the Davison chart of the relationship';
+    } else if (_itaCtx.mode === 'sinastria') {
+        _itaPrefix = L
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_itaCtx.profileA.name||'A') + ' y ' + (_itaCtx.profileB.name||'B') + '. Considerá AMBAS cartas natales — cómo este tránsito afecta a cada perfil y al vínculo. '
+            : 'CONTEXT: SYNASTRY between ' + (_itaCtx.profileA.name||'A') + ' and ' + (_itaCtx.profileB.name||'B') + '. Consider BOTH natal charts — how this transit affects each profile and the relationship. ';
+        _natalLabel = L ? 'natal de ambos' : 'of both natals';
+        _carteLabel = L ? 'la sinastría de ambas cartas' : 'the synastry of both charts';
+    }
+
     // Keep personalDayModal open — interpretation overlays on top
 
-    var prompt = L
-        ? 'Interpreta en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a mi ' + nName + ' natal (' + dateStr + '). Explica: 1) Qué significa este aspecto en mi carta natal, 2) Cómo me puede afectar emocionalmente, profesionalmente y en relaciones, 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que deba tener especial cuidado.'
-        : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to my natal ' + nName + ' (' + dateStr + '). Explain: 1) What this aspect means in my natal chart, 2) How it may affect me emotionally, professionally and in relationships, 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything I should be especially careful about.';
+    var prompt = _itaPrefix + (L
+        ? 'Interpretá en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explicá: 1) Qué significa este aspecto en ' + _carteLabel + ', 2) Cómo afecta ' + (_itaCtx.mode !== 'natal' ? 'a la relación' : 'emocionalmente, profesionalmente y en relaciones') + ', 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que tener especial cuidado.'
+        : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explain: 1) What this aspect means in ' + _carteLabel + ', 2) How it affects ' + (_itaCtx.mode !== 'natal' ? 'the relationship' : 'emotionally, professionally and in relationships') + ', 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything to be especially careful about.');
 
     var _title = tName + ' ' + aName + ' ' + nName;
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
@@ -28679,25 +28725,66 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
     var pName = planetNames[planet] || planet;
     var pSymbol = planetSymbols[planet] || '';
 
-    // Keep personalDayModal open — interpretation overlays on top
-
-    var natal = getNatalData();
-    var natalInfo = '';
-    if (natal) {
-        try {
-            var profileChart = localStorage.getItem('natalChart_' + natal.id);
-            var nc = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
-            if (nc && nc.planets && nc.planets[planet]) {
-                natalInfo = L
-                    ? '. Mi ' + pName + ' natal está en ' + (nc.planets[planet].formatted || '?') + '.'
-                    : '. My natal ' + pName + ' is in ' + (nc.planets[planet].formatted || '?') + '.';
-            }
-        } catch(e) {}
+    // v749av: detectar modo relacional y usar chart correcto
+    var _itpCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _itpPrefix = '';
+    var _useChart = null;
+    if (_itpCtx.mode === 'compuesta' || _itpCtx.mode === 'davison') {
+        _useChart = _itpCtx.chartA;
+    } else if (_itpCtx.mode === 'sinastria') {
+        _useChart = _itpCtx.chartA; // primary
     }
 
-    var prompt = L
-        ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpreta en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — la energía fundamental, 2) Cómo me afecta personalmente considerando mi carta natal, 3) Qué áreas de vida se activan (emociones, carrera, relaciones, creatividad), 4) Consejos prácticos para aprovechar o navegar esta energía, 5) Cuánto tiempo permanece ' + pName + ' en este signo.'
-        : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting in that position means — the fundamental energy, 2) How it affects me personally considering my natal chart, 3) What life areas it activates (emotions, career, relationships, creativity), 4) Practical advice to harness or navigate this energy, 5) How long ' + pName + ' stays in this sign.';
+    // Keep personalDayModal open — interpretation overlays on top
+
+    var natalInfo = '';
+    if (_useChart && _useChart.planets && _useChart.planets[planet]) {
+        // Modo relacional — usar el planeta del chart relacional
+        var _relChartLabel = _itpCtx.mode === 'compuesta' ? (L?'compuesto':'composite')
+                           : _itpCtx.mode === 'davison' ? 'Davison'
+                           : (L?'sinastría (carta A)':'synastry (chart A)');
+        natalInfo = L
+            ? '. El ' + pName + ' ' + _relChartLabel + ' está en ' + (_useChart.planets[planet].formatted || '?') + '.'
+            : '. The ' + _relChartLabel + ' ' + pName + ' is in ' + (_useChart.planets[planet].formatted || '?') + '.';
+    } else {
+        // Modo natal — usar el planeta del perfil activo
+        var natal = getNatalData();
+        if (natal) {
+            try {
+                var profileChart = localStorage.getItem('natalChart_' + natal.id);
+                var nc = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+                if (nc && nc.planets && nc.planets[planet]) {
+                    natalInfo = L
+                        ? '. Mi ' + pName + ' natal está en ' + (nc.planets[planet].formatted || '?') + '.'
+                        : '. My natal ' + pName + ' is in ' + (nc.planets[planet].formatted || '?') + '.';
+                }
+            } catch(e) {}
+        }
+    }
+
+    // Prefijo para el AI según modo
+    if (_itpCtx.mode === 'compuesta') {
+        _itpPrefix = L
+            ? 'CONTEXTO: Carta COMPUESTA de ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN como entidad, no sobre mi carta personal. '
+            : 'CONTEXT: COMPOSITE CHART of ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpret on the RELATIONSHIP as entity, not my personal chart. ';
+    } else if (_itpCtx.mode === 'davison') {
+        _itpPrefix = L
+            ? 'CONTEXTO: Carta DAVISON de ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN, no carta personal. '
+            : 'CONTEXT: DAVISON CHART of ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpret on the RELATIONSHIP, not personal chart. ';
+    } else if (_itpCtx.mode === 'sinastria') {
+        _itpPrefix = L
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_itpCtx.profileA.name||'A') + ' y ' + (_itpCtx.profileB.name||'B') + '. Considerá AMBAS cartas, no solo mi carta personal. '
+            : 'CONTEXT: SYNASTRY between ' + (_itpCtx.profileA.name||'A') + ' and ' + (_itpCtx.profileB.name||'B') + '. Consider BOTH charts, not just my personal chart. ';
+    }
+
+    var _carteWord = _itpCtx.mode === 'compuesta' ? (L?'la carta compuesta':'the composite chart')
+                   : _itpCtx.mode === 'davison' ? (L?'la carta Davison':'the Davison chart')
+                   : _itpCtx.mode === 'sinastria' ? (L?'la sinastría':'the synastry')
+                   : (L?'mi carta natal':'my natal chart');
+
+    var prompt = _itpPrefix + (L
+        ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpretá en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — energía fundamental, 2) Cómo afecta considerando ' + _carteWord + ', 3) Qué áreas de vida' + (_itpCtx.mode !== 'natal' ? ' de la relación' : '') + ' se activan, 4) Consejos prácticos, 5) Cuánto permanece ' + pName + ' en este signo.'
+        : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting that position means — fundamental energy, 2) How it affects considering ' + _carteWord + ', 3) What life areas' + (_itpCtx.mode !== 'natal' ? ' of the relationship' : '') + ' are activated, 4) Practical advice, 5) How long ' + pName + ' stays in this sign.');
 
     var _title = pName + ' ' + (L ? 'en' : 'in') + ' ' + posFormatted;
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
