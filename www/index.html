@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bi';</script>
+    <script>window.APP_VERSION = 'v749bm';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -11813,8 +11813,87 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             // Non-streaming fallback (proxy or no streaming support)
             var result = await response.json();
             text = '';
-            if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-                text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+            var _finishReason = '';
+            if (result.candidates && result.candidates[0]) {
+                _finishReason = result.candidates[0].finishReason || '';
+                if (result.candidates[0].content) {
+                    text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                }
+            }
+            console.log('[AI proxy] finishReason:', _finishReason || 'STOP', '— chars:', text.length);
+
+            // v749bk: si el proxy truncó la respuesta (finishReason != STOP) Y hay key personal disponible,
+            // reintentar automáticamente con streaming directo a Gemini (más robusto, sin timeout del proxy).
+            // BUG anterior: el proxy de Cloudflare tiene timeout interno y a veces corta respuestas largas
+            // mid-palabra, devolviendo finishReason="MAX_TOKENS"/"OTHER" sin que el usuario sepa.
+            if (_finishReason && _finishReason !== 'STOP' && _finishReason !== 'FINISH_REASON_UNSPECIFIED' && personalKey && !_fellbackToPersonal) {
+                console.warn('[AI] Proxy truncó (' + _finishReason + ', ' + text.length + ' chars) → reintento con key personal streaming');
+                try {
+                    var _streamUrl2 = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                    var _streamResp2 = await fetch(_streamUrl2, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+                    if (_streamResp2.ok && _streamResp2.body) {
+                        var _sDiv2 = document.createElement('div');
+                        _sDiv2.style.cssText = 'font-size:0.88em;line-height:1.7;color:rgba(255,255,255,0.85);';
+                        div.innerHTML = '';
+                        div.appendChild(_sDiv2);
+                        var _rdr2 = _streamResp2.body.getReader();
+                        var _dec2 = new TextDecoder();
+                        var _buf2 = '';
+                        text = ''; // reset — descartamos la respuesta truncada del proxy
+                        function _fmt2(t){ return '<p>' + t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>') + '</p>'; }
+                        while (true) {
+                            var _ck2 = await _rdr2.read();
+                            if (_ck2.done) break;
+                            _buf2 += _dec2.decode(_ck2.value, { stream: true });
+                            var _lns2 = _buf2.split('\n');
+                            _buf2 = _lns2.pop();
+                            for (var _li2 = 0; _li2 < _lns2.length; _li2++) {
+                                var _ln2 = _lns2[_li2].trim();
+                                if (!_ln2.startsWith('data: ')) continue;
+                                var _js2 = _ln2.substring(6);
+                                if (_js2 === '[DONE]') continue;
+                                try {
+                                    var _pp2 = JSON.parse(_js2);
+                                    if (_pp2.candidates && _pp2.candidates[0] && _pp2.candidates[0].content && _pp2.candidates[0].content.parts) {
+                                        text += _pp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+                                        _sDiv2.innerHTML = _fmt2(text);
+                                    }
+                                } catch(_) {}
+                            }
+                        }
+                        // Procesar buffer residual (mismo fix que v749ab)
+                        _buf2 += _dec2.decode();
+                        if (_buf2 && _buf2.trim()) {
+                            var _fln2 = _buf2.split('\n');
+                            for (var _fl2 = 0; _fl2 < _fln2.length; _fl2++) {
+                                var _flt2 = _fln2[_fl2].trim();
+                                if (!_flt2.startsWith('data: ')) continue;
+                                var _fjs2 = _flt2.substring(6);
+                                if (_fjs2 === '[DONE]') continue;
+                                try {
+                                    var _fp2 = JSON.parse(_fjs2);
+                                    if (_fp2.candidates && _fp2.candidates[0] && _fp2.candidates[0].content && _fp2.candidates[0].content.parts) {
+                                        text += _fp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+                                        _sDiv2.innerHTML = _fmt2(text);
+                                    }
+                                } catch(_) {}
+                            }
+                        }
+                        console.log('[AI] Reintento streaming OK — chars:', text.length);
+                    } else {
+                        console.warn('[AI] Reintento streaming respondió', _streamResp2.status);
+                    }
+                } catch(_retryErr) {
+                    console.warn('[AI] Reintento con key personal falló:', _retryErr && _retryErr.message);
+                    // Mantenemos el texto truncado del proxy como mejor esfuerzo
+                }
+            } else if (_finishReason && _finishReason !== 'STOP' && _finishReason !== 'FINISH_REASON_UNSPECIFIED') {
+                // No hay key personal o ya fellback — al menos avisar al user
+                console.warn('[AI] Respuesta truncada por', _finishReason, '— sin key personal para reintento');
             }
         }
     } catch(err) {
@@ -20114,11 +20193,15 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
     }, 100);
 }
 
-function showBannerAspectDetail(text) {
+function showBannerAspectDetail(text, dateStrArg) {
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
     var L = currentLang === 'es';
+
+    // v749bm: aceptar fecha opcional para días pasados/futuros del calendario
+    // Si no se pasa fecha → asumir "hoy" (compatibilidad con llamadas viejas desde otros lugares)
+    var _whenStr = dateStrArg ? dateStrArg : (L?'hoy':'today');
 
     // v749av: si estamos en modo relacional, ajustar el prompt al contexto de la carta relacional
     var _sbCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
@@ -20141,9 +20224,27 @@ function showBannerAspectDetail(text) {
         _sbCarte = L ? 'la sinastría de ambas cartas' : 'the synastry of both charts';
     }
 
+    // v749bm: cache safety antes de interpretar (sólo modo relacional)
+    if (_sbCtx.mode !== 'natal' && typeof window._precomputeRelData === 'function') {
+        try {
+            var _cKeySb = (_sbCtx.profileA && _sbCtx.profileA.id) + '|' + (_sbCtx.profileB && _sbCtx.profileB.id) + '|' + _sbCtx.mode + '|' + currentLang;
+            if (!window._calRelPromptCache || window._calRelPromptCache.cacheKey !== _cKeySb) {
+                console.log('[v749bm] cache miss en showBannerAspectDetail — regenerando');
+                window._precomputeRelData();
+            }
+        } catch(e) {}
+    }
+
+    // v749bm: directiva anti lectura natal sólo para sinastría
+    var _antiNatalSb = (_sbCtx.mode === 'sinastria')
+        ? (L
+            ? ' ⚠️ ENFOCATE en este ASPECTO/EVENTO específico de la fecha indicada. NO hagas una lectura natal general de la sinastría — el sujeto es el evento/aspecto del día.'
+            : ' ⚠️ FOCUS on this SPECIFIC aspect/event on the indicated date. Do NOT make a general natal synastry reading — the subject is the day\'s event/aspect.')
+        : '';
+
     var prompt = _sbPrefix + (L
-        ? 'Interpretá este aspecto o evento astrológico de hoy y cómo afecta según ' + _sbCarte + ': ' + text
-        : 'Interpret this astrological aspect or event today and how it affects according to ' + _sbCarte + ': ' + text);
+        ? 'Interpretá este aspecto o evento astrológico del ' + _whenStr + ' y cómo afecta según ' + _sbCarte + ': ' + text + _antiNatalSb
+        : 'Interpret this astrological aspect or event on ' + _whenStr + ' and how it affects according to ' + _sbCarte + ': ' + text + _antiNatalSb);
 
     // v741: si el evento es Solsticio/Equinoccio PERSONAL (calculado desde el cumpleaños),
     // inyectar contexto explícito para que el AI no use el solsticio astronómico estándar (21 dic / 21 jun).
@@ -22148,11 +22249,11 @@ window.showSynastryAspectDetail = function(dataStr) {
     var pSym1 = (typeof planetSymbols !== 'undefined' && planetSymbols[planet1]) || '';
     var pSym2 = (typeof planetSymbols !== 'undefined' && planetSymbols[planet2]) || '';
 
-    var modal = document.getElementById('natalDetailModal');
-    var titleEl = document.getElementById('natalDetailTitle');
-    var bodyEl = document.getElementById('natalDetailBody');
+    // v749bj: overlay modal (no cierra Sinastría al apretar X)
+    var modal = window._ensureSynOverlayModal ? window._ensureSynOverlayModal() : document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('synOverlayTitle') || document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('synOverlayBody') || document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
-    modal.style.zIndex = '1300';
 
     titleEl.textContent = p1Name + ' ' + sym + ' ' + p2Name;
 
@@ -22204,11 +22305,11 @@ window.showSynastryHouseDetail = function(dataStr) {
         11:'Friends, groups, hopes, projects', 12:'Spirituality, unconscious, karma'
     };
 
-    var modal = document.getElementById('natalDetailModal');
-    var titleEl = document.getElementById('natalDetailTitle');
-    var bodyEl = document.getElementById('natalDetailBody');
+    // v749bj: overlay modal (no cierra Sinastría al apretar X)
+    var modal = window._ensureSynOverlayModal ? window._ensureSynOverlayModal() : document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('synOverlayTitle') || document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('synOverlayBody') || document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
-    modal.style.zIndex = '1300';
 
     titleEl.textContent = pName + ' ' + (currentLang==='es'?'en Casa':'in House') + ' ' + house;
 
@@ -22237,18 +22338,44 @@ window.showSynastryHouseDetail = function(dataStr) {
 // v749bi: TABLA COMPARATIVA SINASTRÍA — Opción A (3 columnas) con filas clickeables
 // ────────────────────────────────────────────────────────────────────────────
 
+// v749bj: helper para modal overlay que NO cierra la vista Sinastría al apretar X
+// Antes los click handlers reemplazaban el contenido del natalDetailModal → al cerrar se perdía
+// la sinastría. Ahora abrimos un modal superpuesto (z-index 10020) y la X solo cierra ese.
+window._ensureSynOverlayModal = function() {
+    var m = document.getElementById('synOverlayModal');
+    if (!m) {
+        m = document.createElement('div');
+        m.id = 'synOverlayModal';
+        m.className = 'modal';
+        m.style.zIndex = '10020';
+        m.onclick = function(e) { if (e.target === m) m.classList.remove('show'); };
+        m.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;">'
+                    + '<div class="modal-header">'
+                    + '<h2 id="synOverlayTitle" style="flex:1;"></h2>'
+                    + '<button class="modal-close" onclick="document.getElementById(\'synOverlayModal\').classList.remove(\'show\')">&times;</button>'
+                    + '</div>'
+                    + '<div id="synOverlayBody"></div>'
+                    + '</div>';
+        document.body.appendChild(m);
+    }
+    return m;
+};
+
 // Construye HTML de tabla unificada Planetas + Casas (3 columnas: item / personA / personB).
 // Cada fila tiene onclick que abre interpretación AI del planeta/casa específico.
+// v749bj: filas compactas — glifos zodiacales, nowrap, padding tight para que entren en una línea
 window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     var L = currentLang === 'es';
     var pN = L
-        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith'}
-        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith'};
+        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo N.',lilith:'Lilith'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'N. Node',lilith:'Lilith'};
     var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+    var zodGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+    function _glyph(longitude) { return zodGlyphs[Math.floor((longitude||0)/30) % 12]; }
 
-    var tableStyle = 'width:100%;border-collapse:collapse;font-size:0.82em;margin-top:4px;';
-    var thStyle = 'text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);';
-    var tdStyle = 'padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s;';
+    var tableStyle = 'width:100%;border-collapse:collapse;font-size:0.82em;margin-top:4px;table-layout:fixed;';
+    var thStyle = 'text-align:left;padding:6px 5px;color:rgba(255,255,255,0.5);font-size:0.74em;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    var tdStyle = 'padding:7px 5px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
     var headerSec = 'font-size:0.78em;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 4px;padding-left:2px;';
 
     var html = '';
@@ -22256,8 +22383,9 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     // ───── PLANETAS ─────
     html += '<div style="' + headerSec + '">' + (L?'Planetas (tap fila para interpretar)':'Planets (tap row to interpret)') + '</div>';
     html += '<table style="' + tableStyle + '">';
+    html += '<colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>';
     html += '<thead><tr>';
-    html += '<th style="' + thStyle + 'width:28%;"></th>';
+    html += '<th style="' + thStyle + '"></th>';
     html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
     html += '<th style="' + thStyle + 'color:rgba(195,155,211,0.95);">' + name2 + '</th>';
     html += '</tr></thead><tbody>';
@@ -22273,8 +22401,9 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
         var rowBg = sameSign ? 'background:rgba(46,204,113,0.08);' : '';
         var dataParts = [p, (inf1?inf1.sign:''), (inf1?inf1.degree:''), (h1||''), (inf2?inf2.sign:''), (inf2?inf2.degree:''), (h2||''), name1, name2];
         var dataStr = dataParts.join('|').replace(/'/g, "\\'");
-        var v1 = inf1 ? inf1.sign + ' ' + inf1.degree + '°' + (h1?' H'+h1:'') : '—';
-        var v2 = inf2 ? inf2.sign + ' ' + inf2.degree + '°' + (h2?' H'+h2:'') : '—';
+        // v749bj: glifo + grado + casa (compacto: "♑ 7° H2")
+        var v1 = inf1 ? _glyph(d1.longitude) + ' ' + inf1.degree + '°' + (h1?' H'+h1:'') : '—';
+        var v2 = inf2 ? _glyph(d2.longitude) + ' ' + inf2.degree + '°' + (h2?' H'+h2:'') : '—';
         html += '<tr ' + (rowBg?'style="'+rowBg+'"':'') + ' onclick="window.showSynastryPlanetCompare(\'' + dataStr + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSign?'rgba(46,204,113,0.08)':'') + '\'">';
         html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + (pN[p]||p) + '</td>';
         html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + v1 + '</td>';
@@ -22285,13 +22414,13 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
 
     // ───── CASAS ─────
     if (nc1.houses && nc2.houses && nc1.houses.cusps && nc2.houses.cusps) {
-        var houseLabels = L
-            ? ['I (ASC)','II','III','IV (IC)','V','VI','VII (DESC)','VIII','IX','X (MC)','XI','XII']
-            : ['I (ASC)','II','III','IV (IC)','V','VI','VII (DESC)','VIII','IX','X (MC)','XI','XII'];
+        var houseLabels = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+        var houseAng = {0:'(ASC)', 3:'(IC)', 6:'(DESC)', 9:'(MC)'};
         html += '<div style="' + headerSec + '">' + (L?'Casas — Cúspides (tap fila para interpretar)':'Houses — Cusps (tap row to interpret)') + '</div>';
         html += '<table style="' + tableStyle + '">';
+        html += '<colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>';
         html += '<thead><tr>';
-        html += '<th style="' + thStyle + 'width:28%;"></th>';
+        html += '<th style="' + thStyle + '"></th>';
         html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
         html += '<th style="' + thStyle + 'color:rgba(195,155,211,0.95);">' + name2 + '</th>';
         html += '</tr></thead><tbody>';
@@ -22303,19 +22432,22 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
             var sameSignH = hinf1.sign === hinf2.sign;
             var rowBgH = sameSignH ? 'background:rgba(46,204,113,0.08);' : '';
             var hData = [hi, hinf1.sign, hinf1.degree, hinf2.sign, hinf2.degree, name1, name2].join('|').replace(/'/g, "\\'");
+            // v749bj: etiqueta más corta "I ASC" en vez de "I (ASC)" + glifo en valores
+            var label = houseLabels[hi] + (houseAng[hi] ? ' ' + houseAng[hi].replace(/[()]/g,'') : '');
             html += '<tr ' + (rowBgH?'style="'+rowBgH+'"':'') + ' onclick="window.showSynastryHouseCompare(\'' + hData + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSignH?'rgba(46,204,113,0.08)':'') + '\'">';
-            html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + houseLabels[hi] + '</td>';
-            html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + hinf1.sign + ' ' + hinf1.degree + '°</td>';
-            html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + hinf2.sign + ' ' + hinf2.degree + '°</td>';
+            html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + label + '</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + _glyph(c1) + ' ' + hinf1.degree + '°</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + _glyph(c2) + ' ' + hinf2.degree + '°</td>';
             html += '</tr>';
         }
         html += '</tbody></table>';
     }
 
-    // Leyenda
-    html += '<div style="margin-top:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">'
-          + '<span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>'
-          + (L?'mismo signo':'same sign')
+    // Leyenda glifos + mismo signo
+    html += '<div style="margin-top:8px;font-size:0.7em;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
+          + '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>' + (L?'mismo signo':'same sign') + '</span>'
+          + '<span style="opacity:0.8;">♈Ari ♉Tau ♊Gém ♋Cán ♌Leo ♍Vir</span>'
+          + '<span style="opacity:0.8;">♎Lib ♏Esc ♐Sag ♑Cap ♒Acu ♓Pis</span>'
           + '</div>';
 
     return html;
@@ -22335,11 +22467,11 @@ window.showSynastryPlanetCompare = function(dataStr) {
     var pSym = (typeof planetSymbols !== 'undefined' && planetSymbols[planetKey]) || '';
     var pName = pN[planetKey] || planetKey;
 
-    var modal = document.getElementById('natalDetailModal');
-    var titleEl = document.getElementById('natalDetailTitle');
-    var bodyEl = document.getElementById('natalDetailBody');
+    // v749bj: overlay modal (no cierra Sinastría al apretar X)
+    var modal = window._ensureSynOverlayModal();
+    var titleEl = document.getElementById('synOverlayTitle');
+    var bodyEl = document.getElementById('synOverlayBody');
     if (!modal || !titleEl || !bodyEl) return;
-    modal.style.zIndex = '1300';
 
     titleEl.textContent = pName + ' — ' + (L?'comparación':'comparison');
 
@@ -22396,11 +22528,11 @@ window.showSynastryHouseCompare = function(dataStr) {
     var label = houseLabels[hi];
     var theme = houseThemes[hi] || '';
 
-    var modal = document.getElementById('natalDetailModal');
-    var titleEl = document.getElementById('natalDetailTitle');
-    var bodyEl = document.getElementById('natalDetailBody');
+    // v749bj: overlay modal (no cierra Sinastría al apretar X)
+    var modal = window._ensureSynOverlayModal();
+    var titleEl = document.getElementById('synOverlayTitle');
+    var bodyEl = document.getElementById('synOverlayBody');
     if (!modal || !titleEl || !bodyEl) return;
-    modal.style.zIndex = '1300';
 
     titleEl.textContent = (L?'Casa ':'House ') + label + ' — ' + (L?'comparación':'comparison');
 
@@ -29102,19 +29234,24 @@ function showPersonalDayDetail(year, month, day) {
             <div style="margin-top:14px;padding-top:10px;border-top:2px dashed rgba(155,89,182,0.40);">
                 <div style="font-size:0.85em;font-weight:700;color:#c39bd3;margin-bottom:8px;text-align:center;">☌ ${L?'Tránsitos sobre':'Transits on'} ${_relCtx.profileB && _relCtx.profileB.name ? _relCtx.profileB.name : (L?'su carta':'their chart')}</div>
                 ${slowTransitsB.length > 0 ? '<div style="margin-bottom:10px;"><div style="font-size:0.72em;font-weight:700;color:#e74c3c;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🔴 ' + (L ? 'Mayores' : 'Major') + ' (' + slowTransitsB.length + ')</div>' + slowTransitsB.map(function(t) {
+                    // v749bm: tránsitos sobre Chart B (Shannon) ahora clickeables — pasa 'B' como targetChart
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
-                    return '<div style="padding:5px 8px;border-left:3px solid ' + t.color + ';margin-bottom:3px;font-size:0.82em;color:rgba(255,255,255,0.75);">'
+                    var safeDateB = dateStr.replace(/'/g, "\\'");
+                    return '<div onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDateB + '\',\'B\')" style="cursor:pointer;padding:5px 8px;border-left:3px solid ' + t.color + ';margin-bottom:3px;font-size:0.82em;color:rgba(255,255,255,0.75);transition:background 0.15s;" onmouseover="this.style.background=\'rgba(195,155,211,0.10)\'" onmouseout="this.style.background=\'\'" title="' + (L?'Click para interpretar':'Click to interpret') + '">'
                         + '<span>' + t.transitSymbol + ' ' + t.symbol + ' ' + t.natalSymbol + '</span>'
                         + ' <span>' + aspDesc + '</span>'
                         + ' <span style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + t.orbFormatted + '</span>'
+                        + ' <span style="font-size:0.7em;color:rgba(195,155,211,0.6);float:right;">✨</span>'
                     + '</div>';
                 }).join('') + '</div>' : ''}
                 ${personalTransitsB.length > 0 ? '<div style="margin-bottom:10px;"><div style="font-size:0.72em;font-weight:700;color:#f1c40f;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🟡 ' + (L ? 'Personales' : 'Personal') + ' (' + personalTransitsB.length + ')</div>' + personalTransitsB.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
-                    return '<div style="padding:5px 8px;border-left:2px solid ' + t.color + '40;margin-bottom:3px;font-size:0.8em;color:rgba(255,255,255,0.6);">'
+                    var safeDateBp = dateStr.replace(/'/g, "\\'");
+                    return '<div onclick="interpretTransitAspect(\'' + t.transitPlanet + '\',\'' + t.type + '\',\'' + t.natalPlanet + '\',\'' + safeDateBp + '\',\'B\')" style="cursor:pointer;padding:5px 8px;border-left:2px solid ' + t.color + '40;margin-bottom:3px;font-size:0.8em;color:rgba(255,255,255,0.6);transition:background 0.15s;" onmouseover="this.style.background=\'rgba(195,155,211,0.08)\'" onmouseout="this.style.background=\'\'" title="' + (L?'Click para interpretar':'Click to interpret') + '">'
                         + '<span>' + t.transitSymbol + ' ' + t.symbol + ' ' + t.natalSymbol + '</span>'
                         + ' <span>' + aspDesc + '</span>'
                         + ' <span style="color:rgba(255,255,255,0.35);font-size:0.85em;">' + t.orbFormatted + '</span>'
+                        + ' <span style="font-size:0.65em;color:rgba(195,155,211,0.5);float:right;">✨</span>'
                     + '</div>';
                 }).join('') + '</div>' : ''}
                 ${slowTransitsB.length === 0 && personalTransitsB.length === 0 ? `<div style="text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.82em;padding:8px;">${L?'Sin tránsitos significativos hoy':'No significant transits today'}</div>` : ''}
@@ -29206,21 +29343,71 @@ function interpretCalendarDay(year, month, day) {
         _firstTransitLabel = (L?'la carta natal':'the natal chart');
     }
 
-    var _sinBalanceNote = (_ctx.mode === 'sinastria')
-        ? (L
-            ? ' IMPORTANTE: tenés DOS cartas natales (de ' + (_ctx.profileA.name||'A') + ' y de ' + (_ctx.profileB.name||'B') + '). Dale peso EQUILIBRADO a ambas — no te enfoques solo en una persona. Interpretá los tránsitos sobre cada carta por separado Y cómo el conjunto afecta al vínculo.'
-            : ' IMPORTANT: you have TWO natal charts (of ' + (_ctx.profileA.name||'A') + ' and of ' + (_ctx.profileB.name||'B') + '). Give BALANCED weight to both — do not focus on only one person. Interpret transits on each chart separately AND how the combination affects the bond.')
-        : '';
+    // v749bl: prompt MUY directivo que evita que el AI haga una lectura de sinastría natal
+    // en vez de los tránsitos del día. Antes el AI se iba al synastry context del system prompt
+    // y daba una lectura natal/sinastría ignorando los tránsitos.
+    var prompt;
+    if (L) {
+        if (_ctx.mode === 'sinastria') {
+            prompt = _relPrefix
+                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — NO es una lectura de la sinastría natal en general. '
+                + 'El SUJETO de esta interpretación son los TRÁNSITOS PLANETARIOS del día y cómo afectan al vínculo entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. '
+                + 'La sinastría natal (aspectos cruzados, overlays de casas, puntaje) que aparece en tu contexto es BACKGROUND/MARCO de referencia — NO la repitas como si fuera la lectura del día.\n\n'
+                + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileA.name||'A') + ': ' + (transitDesc || 'ninguno significativo') + '\n'
+                + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc + '\n' : '')
+                + '\n📌 INSTRUCCIONES CRÍTICAS:\n'
+                + '1. Para cada tránsito importante del día listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién, y qué activa esa combinación específica.\n'
+                + '2. Si hay DOBLES ACTIVACIONES (el mismo planeta tránsito hace aspecto a planetas de AMBAS personas el mismo día), resaltalas como momentos clave.\n'
+                + '3. Dale peso EQUILIBRADO a ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + ' — no centres todo en una sola.\n'
+                + '4. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
+                + '5. Estructura: a) Tránsitos clave del día y a quién afectan, b) Cómo se manifiestan en la dinámica relacional HOY, c) Consejos prácticos para ESTE DÍA, d) Advertencias si hay aspectos duros o dobles activaciones tensas.\n'
+                + '6. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.';
+        } else {
+            // compuesta / davison: una sola "carta" relacional
+            prompt = _relPrefix
+                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — NO es una lectura de la carta relacional en general. '
+                + 'El SUJETO son los TRÁNSITOS PLANETARIOS del día sobre la ' + _ctx.label + '.\n\n'
+                + 'TRÁNSITOS DEL DÍA sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo') + '\n'
+                + '\n📌 INSTRUCCIONES:\n'
+                + '1. Interpretá cada tránsito importante del día y cómo se manifiesta en el vínculo.\n'
+                + '2. Estructura: a) Tránsitos clave, b) Energía general del día para la relación, c) Consejos prácticos para HOY, d) Advertencias.\n'
+                + '3. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo" — NO repitas la carta relacional natal.';
+        }
+    } else {
+        if (_ctx.mode === 'sinastria') {
+            prompt = _relPrefix
+                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general natal synastry reading. '
+                + 'The SUBJECT is TODAY\'S PLANETARY TRANSITS and how they affect the bond between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. '
+                + 'The natal synastry (cross aspects, house overlays, score) in your context is BACKGROUND — do NOT repeat it as if it were today\'s reading.\n\n'
+                + 'TODAY\'S TRANSITS on ' + (_ctx.profileA.name||'A') + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
+                + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + (_ctx.profileB.name||'B') + '\'s natal chart: ' + transitsBDesc + '\n' : '')
+                + '\n📌 CRITICAL INSTRUCTIONS:\n'
+                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom, and what does that specific combination activate.\n'
+                + '2. If there are DOUBLE ACTIVATIONS (same transit planet aspects planets of BOTH people on the same day), highlight them as key moments.\n'
+                + '3. Give BALANCED weight to ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + ' — do not focus on just one.\n'
+                + '4. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
+                + '5. Structure: a) Key transits and who they affect, b) Manifestation in the relational dynamic TODAY, c) Practical advice for THIS DAY, d) Warnings.\n'
+                + '6. If NO significant transits, say "today is a quiet day energetically for the bond" — do NOT invent a natal reading to fill space.';
+        } else {
+            prompt = _relPrefix
+                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general reading of the relational chart. '
+                + 'The SUBJECT is TODAY\'S TRANSITS on the ' + _ctx.label + '.\n\n'
+                + 'TODAY\'S TRANSITS on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant') + '\n'
+                + '\n📌 INSTRUCTIONS:\n'
+                + '1. Interpret each important transit and how it manifests in the bond.\n'
+                + '2. Structure: a) Key transits, b) General energy of the day, c) Practical advice for TODAY, d) Warnings.\n'
+                + '3. If NO significant transits, say so — do NOT repeat the natal relational chart.';
+        }
+    }
 
-    var prompt = _relPrefix + (L
-        ? 'Dame una interpretación completa del día ' + dateStr + '. Tránsitos sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo')
-          + (transitsBDesc ? '. Tránsitos sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
-          + _sinBalanceNote
-          + ' Incluí: 1) Cómo afectan estos tránsitos al ' + (_isRel ? 'vínculo' : 'perfil personal') + ', 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
-        : 'Give me a complete interpretation of ' + dateStr + '. Transits on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant')
-          + (transitsBDesc ? '. Transits on the natal chart of ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc : '')
-          + _sinBalanceNote
-          + ' Include: 1) How these transits affect the ' + (_isRel ? 'relationship' : 'personal profile') + ', 2) General energy of the day, 3) Practical advice, 4) Any important warnings.');
+    // Modo natal puro (no relacional): formato simple
+    if (!_isRel) {
+        prompt = (L
+            ? 'Dame una interpretación completa del día ' + dateStr + '. Tránsitos sobre la carta natal: ' + (transitDesc || 'ninguno significativo')
+              + '. Incluí: 1) Cómo afectan estos tránsitos al perfil personal, 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
+            : 'Give me a complete interpretation of ' + dateStr + '. Transits on the natal chart: ' + (transitDesc || 'none significant')
+              + '. Include: 1) How these transits affect the personal profile, 2) General energy of the day, 3) Practical advice, 4) Any important warnings.');
+    }
 
     // v749bi: asegurar cache de contexto relacional antes de interpretar
     // (si no está listo, el AI recibe contexto incompleto y dice "solo tengo fecha de nacimiento de X")
@@ -29280,8 +29467,10 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
     if (!natalChart) return;
 
     // v749aq: si estamos en modo relacional, usar el chart relacional + prefijo de contexto
+    // v749bm: cache safety + el prefijo AHORA SE PREPENDE al prompt (antes se creaba pero no se usaba)
     var _isectCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
     var _isectRelPrefix = '';
+    var _isectChartB = null;
     if (_isectCtx.mode === 'compuesta') {
         natalChart = _isectCtx.chartA;
         _isectRelPrefix = L
@@ -29293,10 +29482,29 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
             ? 'CONTEXTO: Carta DAVISON de la relación ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN, no sobre carta personal. '
             : 'CONTEXT: DAVISON CHART of relationship ' + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B') + '. Interpret about the RELATIONSHIP, not personal chart. ';
     } else if (_isectCtx.mode === 'sinastria') {
+        _isectChartB = _isectCtx.chartB; // para tránsitos sobre la segunda carta
         _isectRelPrefix = L
             ? 'CONTEXTO: SINASTRÍA entre ' + (_isectCtx.profileA.name||'A') + ' y ' + (_isectCtx.profileB.name||'B') + '. Considerá AMBAS cartas natales, no solo una. '
             : 'CONTEXT: SYNASTRY between ' + (_isectCtx.profileA.name||'A') + ' and ' + (_isectCtx.profileB.name||'B') + '. Consider BOTH natal charts, not just one. ';
     }
+
+    // v749bm: asegurar cache antes de interpretar (modo relacional)
+    if (_isectCtx.mode !== 'natal' && typeof window._precomputeRelData === 'function') {
+        try {
+            var _cKeyIs = (_isectCtx.profileA && _isectCtx.profileA.id) + '|' + (_isectCtx.profileB && _isectCtx.profileB.id) + '|' + _isectCtx.mode + '|' + currentLang;
+            if (!window._calRelPromptCache || window._calRelPromptCache.cacheKey !== _cKeyIs) {
+                console.log('[v749bm] cache miss en interpretPersonalSection — regenerando');
+                window._precomputeRelData();
+            }
+        } catch(e) {}
+    }
+
+    // v749bm: directiva anti lectura natal para sinastría
+    var _antiNatalSec = (_isectCtx.mode === 'sinastria')
+        ? (L
+            ? ' ⚠️ ENFOCATE en los eventos/tránsitos del ' + dateStr + ' — NO hagas una lectura natal general de la sinastría.'
+            : ' ⚠️ FOCUS on events/transits of ' + dateStr + ' — do NOT make a general natal synastry reading.')
+        : '';
 
     var prompt = '', sectionTitle = '';
 
@@ -29316,9 +29524,14 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         ia.forEach(function(a){ events.push((planetNames[a.planet1]||a.planet1)+' '+a.symbol+' '+(planetNames[a.planet2]||a.planet2)); });
 
         sectionTitle = L?'Aspectos del Día':'Aspects of the Day';
-        prompt = L
-            ? 'Interpretá los aspectos planetarios y eventos generales del cielo el ' + dateStr + ' y cómo me afectan personalmente según mi carta natal. Eventos: ' + (events.length?events.join('; '):'sin eventos significativos') + '. Incluí: 1) Simbolismo astrológico de cada evento, 2) Energía colectiva del día, 3) Cómo aterrizarlo en mi vida personal según mi carta, 4) Consejos para navegar el día.'
-            : 'Interpret the planetary aspects and general sky events on ' + dateStr + ' and how they affect me personally according to my natal chart. Events: ' + (events.length?events.join('; '):'no significant events') + '. Include: 1) Astrological symbolism of each event, 2) Collective energy of the day, 3) How to ground it in my personal life according to my chart, 4) Advice to navigate the day.';
+        // v749bm: en sinastría/compuesta/davison "mi carta natal" cambia a la carta relacional
+        var _eventoTarget = _isectCtx.mode === 'sinastria' ? (L?'ambas cartas natales y el vínculo':'both natal charts and the bond')
+                          : _isectCtx.mode === 'compuesta' ? (L?'la carta compuesta de la relación':'the composite chart of the relationship')
+                          : _isectCtx.mode === 'davison' ? (L?'la carta Davison de la relación':'the Davison chart of the relationship')
+                          : (L?'mi carta natal':'my natal chart');
+        prompt = _isectRelPrefix + (L
+            ? 'Interpretá los aspectos planetarios y eventos generales del cielo el ' + dateStr + ' y cómo afectan a ' + _eventoTarget + '. Eventos: ' + (events.length?events.join('; '):'sin eventos significativos') + '. Incluí: 1) Simbolismo astrológico de cada evento, 2) Energía colectiva del día, 3) Cómo aterrizarlo en ' + _eventoTarget + ', 4) Consejos para navegar el día.' + _antiNatalSec
+            : 'Interpret the planetary aspects and general sky events on ' + dateStr + ' and how they affect ' + _eventoTarget + '. Events: ' + (events.length?events.join('; '):'no significant events') + '. Include: 1) Astrological symbolism of each event, 2) Collective energy of the day, 3) How to ground it in ' + _eventoTarget + ', 4) Advice to navigate the day.' + _antiNatalSec);
     } else if (sectionType === 'posiciones') {
         var pos = {};
         ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'].forEach(function(p){
@@ -29326,29 +29539,68 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         });
         var desc = Object.entries(pos).map(function(kv){ return (planetNames[kv[0]]||kv[0]) + ': ' + kv[1]; }).join(', ');
         sectionTitle = L?'Posiciones Planetarias':'Planetary Positions';
-        prompt = L
-            ? 'Interpretá las posiciones planetarias del cielo el ' + dateStr + ' y cómo activan mi carta natal: ' + desc + '. Para cada planeta importante, explicá: 1) Qué casa natal mía transita, 2) Qué aspecto forma con planetas natales clave, 3) Qué área de vida activa, 4) Cómo aprovechar la energía.'
-            : 'Interpret the planetary positions in the sky on ' + dateStr + ' and how they activate my natal chart: ' + desc + '. For each important planet, explain: 1) Which of my natal houses it transits, 2) What aspect it forms with key natal planets, 3) What life area it activates, 4) How to leverage the energy.';
+        var _posTarget = _isectCtx.mode === 'sinastria' ? (L?'ambas cartas natales':'both natal charts')
+                       : _isectCtx.mode === 'compuesta' ? (L?'la carta compuesta':'the composite chart')
+                       : _isectCtx.mode === 'davison' ? (L?'la carta Davison':'the Davison chart')
+                       : (L?'mi carta natal':'my natal chart');
+        prompt = _isectRelPrefix + (L
+            ? 'Interpretá las posiciones planetarias del cielo el ' + dateStr + ' y cómo activan ' + _posTarget + ': ' + desc + '. Para cada planeta importante, explicá: 1) Qué casa natal transita ' + (_isectCtx.mode === 'sinastria' ? 'en cada uno' : '') + ', 2) Qué aspecto forma con planetas natales clave, 3) Qué área de vida activa, 4) Cómo aprovechar la energía.' + _antiNatalSec
+            : 'Interpret the planetary positions in the sky on ' + dateStr + ' and how they activate ' + _posTarget + ': ' + desc + '. For each important planet, explain: 1) Which natal house it transits ' + (_isectCtx.mode === 'sinastria' ? 'in each chart' : '') + ', 2) What aspect it forms with key natal planets, 3) What life area it activates, 4) How to leverage the energy.' + _antiNatalSec);
     } else if (sectionType === 'transitosMayores' || sectionType === 'transitosPersonales' || sectionType === 'transitosRapidos') {
         var transits = calculateTransitsToNatal(date, natalChart);
         var tier = sectionType === 'transitosMayores' ? 'slow' : sectionType === 'transitosPersonales' ? 'personal' : 'fast';
         var subset = transits.filter(function(t){ return t.tier === tier; });
+        var _nameA = (_isectCtx.profileA && _isectCtx.profileA.name) || 'A';
+        var _nameB = (_isectCtx.profileB && _isectCtx.profileB.name) || 'B';
         var desc = subset.map(function(t){ return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet); }).join(', ');
+        // v749bm: en sinastría también incluir tránsitos sobre la carta B
+        var descB = '';
+        if (_isectCtx.mode === 'sinastria' && _isectChartB) {
+            try {
+                var transitsB_sec = calculateTransitsToNatal(date, _isectChartB);
+                var subsetB = transitsB_sec.filter(function(t){ return t.tier === tier; });
+                descB = subsetB.map(function(t){ return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet); }).join(', ');
+            } catch(e) {}
+        }
+        var _sinTransitBlock = (_isectCtx.mode === 'sinastria')
+            ? (L
+                ? 'TRÁNSITOS sobre la carta natal de ' + _nameA + ': ' + (desc || 'ninguno') + '. TRÁNSITOS sobre la carta natal de ' + _nameB + ': ' + (descB || 'ninguno') + '.'
+                : 'TRANSITS on ' + _nameA + '\'s natal chart: ' + (desc || 'none') + '. TRANSITS on ' + _nameB + '\'s natal chart: ' + (descB || 'none') + '.')
+            : null;
+
         if (sectionType === 'transitosMayores') {
             sectionTitle = L?'Tránsitos Mayores (Lentos)':'Major Transits (Slow)';
-            prompt = L
-                ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos lentos activos') + '. Estos marcan ciclos largos y transformaciones profundas. Detallá: 1) Simbolismo de cada tránsito, 2) Casa natal y área de vida activada, 3) Lección o crecimiento, 4) Tiempo aproximado de influencia, 5) Cómo navegar.'
-                : 'Interpret the SLOW major transits (Jupiter, Saturn, Uranus, Neptune, Pluto) on my natal chart on ' + dateStr + ': ' + (desc || 'no active slow transits') + '. These mark long cycles and deep transformations. Detail: 1) Symbolism of each transit, 2) Natal house and life area activated, 3) Lesson or growth, 4) Approximate duration, 5) How to navigate.';
+            if (_sinTransitBlock) {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) el ' + dateStr + ' considerando AMBAS cartas natales. ' + _sinTransitBlock + ' Para cada tránsito significativo: 1) Qué carta natal afecta y a quién (' + _nameA + ' o ' + _nameB + '), 2) Simbolismo del tránsito, 3) Casa natal y área de vida activada, 4) Si hay DOBLES ACTIVACIONES (mismo planeta hace aspectos a ambas cartas), enfatizalas. 5) Cómo se manifiesta en el vínculo.' + _antiNatalSec
+                    : 'Interpret the SLOW major transits (Jupiter, Saturn, Uranus, Neptune, Pluto) on ' + dateStr + ' considering BOTH natal charts. ' + _sinTransitBlock + ' For each significant transit: 1) Which natal chart it affects and whom (' + _nameA + ' or ' + _nameB + '), 2) Symbolism, 3) Natal house and life area, 4) If DOUBLE ACTIVATIONS (same planet aspects both charts) — emphasize. 5) How it manifests in the bond.' + _antiNatalSec);
+            } else {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) el ' + dateStr + ': ' + (desc || 'sin tránsitos lentos activos') + '. Estos marcan ciclos largos y transformaciones profundas. Detallá: 1) Simbolismo de cada tránsito, 2) Casa natal y área de vida activada, 3) Lección o crecimiento, 4) Tiempo aproximado de influencia, 5) Cómo navegar.'
+                    : 'Interpret the SLOW major transits on ' + dateStr + ': ' + (desc || 'no active slow transits') + '. These mark long cycles and deep transformations. Detail: 1) Symbolism, 2) Natal house and life area, 3) Lesson, 4) Duration, 5) How to navigate.');
+            }
         } else if (sectionType === 'transitosPersonales') {
             sectionTitle = L?'Tránsitos Personales':'Personal Transits';
-            prompt = L
-                ? 'Interpretá los tránsitos de planetas PERSONALES (Sol, Venus, Marte) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos personales significativos') + '. Estos activan identidad, amor, deseo y acción. Detallá la energía del día y cómo aprovecharla concretamente.'
-                : 'Interpret the PERSONAL planet transits (Sun, Venus, Mars) on my natal chart on ' + dateStr + ': ' + (desc || 'no significant personal transits') + '. These activate identity, love, desire and action. Detail the energy of the day and how to leverage it concretely.';
+            if (_sinTransitBlock) {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos de planetas PERSONALES (Sol, Venus, Marte) el ' + dateStr + ' considerando AMBAS cartas natales. ' + _sinTransitBlock + ' Detallá cómo se vive el día emocional/afectivo/de acción para cada uno (' + _nameA + ' y ' + _nameB + ') y cómo se cruzan en el vínculo.' + _antiNatalSec
+                    : 'Interpret PERSONAL planet transits (Sun, Venus, Mars) on ' + dateStr + ' considering BOTH natal charts. ' + _sinTransitBlock + ' Detail how each one (' + _nameA + ' and ' + _nameB + ') experiences the emotional/affective/action day and how they intersect in the bond.' + _antiNatalSec);
+            } else {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos de planetas PERSONALES (Sol, Venus, Marte) el ' + dateStr + ': ' + (desc || 'sin tránsitos personales significativos') + '. Estos activan identidad, amor, deseo y acción. Detallá la energía del día y cómo aprovecharla concretamente.'
+                    : 'Interpret PERSONAL planet transits (Sun, Venus, Mars) on ' + dateStr + ': ' + (desc || 'no significant personal transits') + '. These activate identity, love, desire and action. Detail the energy of the day and how to leverage it concretely.');
+            }
         } else {
             sectionTitle = L?'Luna y Mercurio':'Moon & Mercury';
-            prompt = L
-                ? 'Interpretá los tránsitos RÁPIDOS (Luna y Mercurio) sobre mi carta natal el ' + dateStr + ': ' + (desc || 'sin tránsitos rápidos') + '. Estos activan emociones, comunicación y mente del momento. Dame el tono emocional y mental del día.'
-                : 'Interpret the FAST transits (Moon and Mercury) on my natal chart on ' + dateStr + ': ' + (desc || 'no fast transits') + '. These activate emotions, communication and mind of the moment. Give me the emotional and mental tone of the day.';
+            if (_sinTransitBlock) {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos RÁPIDOS (Luna y Mercurio) el ' + dateStr + ' considerando AMBAS cartas natales. ' + _sinTransitBlock + ' Estos activan emociones y comunicación del momento — dame el tono emocional y mental del día para cada uno y para el vínculo.' + _antiNatalSec
+                    : 'Interpret FAST transits (Moon and Mercury) on ' + dateStr + ' considering BOTH natal charts. ' + _sinTransitBlock + ' These activate emotions and communication — give me the emotional and mental tone of the day for each and for the bond.' + _antiNatalSec);
+            } else {
+                prompt = _isectRelPrefix + (L
+                    ? 'Interpretá los tránsitos RÁPIDOS (Luna y Mercurio) el ' + dateStr + ': ' + (desc || 'sin tránsitos rápidos') + '. Estos activan emociones, comunicación y mente del momento. Dame el tono emocional y mental del día.'
+                    : 'Interpret the FAST transits (Moon and Mercury) on ' + dateStr + ': ' + (desc || 'no fast transits') + '. These activate emotions, communication and mind of the moment. Give me the emotional and mental tone of the day.');
+            }
         }
     } else if (sectionType.indexOf('cycle:') === 0) {
         // sectionType formato: "cycle:<cycleType>|<label>|<desc>"
@@ -29357,9 +29609,9 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         var cycleLabel = parts[1] || '';
         var cycleDesc = parts[2] || '';
         sectionTitle = cycleLabel;
-        prompt = L
-            ? 'Interpretá específicamente este ciclo cósmico personal del ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detallá: 1) Qué significa este evento astrológico, 2) Cómo me afecta personalmente según mi carta natal, 3) Qué tema o ciclo se activa para mí, 4) Cómo aprovecharlo concretamente en los próximos días/semanas.'
-            : 'Specifically interpret this personal cosmic cycle on ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detail: 1) What this astrological event means, 2) How it affects me personally according to my natal chart, 3) What theme or cycle activates for me, 4) How to leverage it concretely in the coming days/weeks.';
+        prompt = _isectRelPrefix + (L
+            ? 'Interpretá específicamente este ciclo cósmico del ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detallá: 1) Qué significa este evento astrológico, 2) Cómo afecta según el contexto activo (carta natal personal o relacional), 3) Qué tema o ciclo se activa, 4) Cómo aprovecharlo concretamente en los próximos días/semanas.' + _antiNatalSec
+            : 'Specifically interpret this cosmic cycle on ' + dateStr + ': "' + cycleLabel + '" — ' + cycleDesc + '. Detail: 1) What this astrological event means, 2) How it affects given the active context (personal or relational chart), 3) What theme or cycle activates, 4) How to leverage it concretely in the coming days/weeks.' + _antiNatalSec);
     } else {
         return;
     }
@@ -29390,14 +29642,16 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
 };
 
 // ===== INTERPRET SINGLE TRANSIT ASPECT =====
-function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr) {
+function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr, targetChart) {
     var L = currentLang === 'es';
     var tName = planetNames[transitPlanet] || transitPlanet;
     var nName = planetNames[natalPlanet] || natalPlanet;
     var aName = aspectNames[aspectType] || aspectType;
 
     // v749av: si estamos en modo relacional, el tránsito es sobre la carta relacional, no la personal
+    // v749bm: targetChart 'A'|'B' (default 'A') — en sinastría sabemos si el natal target es Camilo o Shannon
     var _itaCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    var _itaTarget = (targetChart === 'B') ? 'B' : 'A';
     var _itaPrefix = '';
     var _natalLabel = L ? 'natal' : 'natal';
     var _carteLabel = L ? 'mi carta natal' : 'my natal chart';
@@ -29414,18 +29668,39 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
         _natalLabel = 'Davison';
         _carteLabel = L ? 'la carta Davison de la relación' : 'the Davison chart of the relationship';
     } else if (_itaCtx.mode === 'sinastria') {
+        // v749bm: en sinastría identificar el dueño del natal target
+        var _targetName = (_itaTarget === 'B' ? (_itaCtx.profileB && _itaCtx.profileB.name) : (_itaCtx.profileA && _itaCtx.profileA.name)) || _itaTarget;
+        var _otherName = (_itaTarget === 'B' ? (_itaCtx.profileA && _itaCtx.profileA.name) : (_itaCtx.profileB && _itaCtx.profileB.name)) || (_itaTarget === 'B' ? 'A' : 'B');
         _itaPrefix = L
-            ? 'CONTEXTO: SINASTRÍA entre ' + (_itaCtx.profileA.name||'A') + ' y ' + (_itaCtx.profileB.name||'B') + '. Considerá AMBAS cartas natales — cómo este tránsito afecta a cada perfil y al vínculo. '
-            : 'CONTEXT: SYNASTRY between ' + (_itaCtx.profileA.name||'A') + ' and ' + (_itaCtx.profileB.name||'B') + '. Consider BOTH natal charts — how this transit affects each profile and the relationship. ';
-        _natalLabel = L ? 'natal de ambos' : 'of both natals';
-        _carteLabel = L ? 'la sinastría de ambas cartas' : 'the synastry of both charts';
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_itaCtx.profileA.name||'A') + ' y ' + (_itaCtx.profileB.name||'B') + '. El tránsito que sigue afecta directamente la carta natal de ' + _targetName + '. Considerá AMBAS cartas — cómo afecta a ' + _targetName + ' Y cómo se manifiesta en el vínculo con ' + _otherName + '. '
+            : 'CONTEXT: SYNASTRY between ' + (_itaCtx.profileA.name||'A') + ' and ' + (_itaCtx.profileB.name||'B') + '. The following transit directly affects ' + _targetName + '\'s natal chart. Consider BOTH charts — how it affects ' + _targetName + ' AND how it manifests in the bond with ' + _otherName + '. ';
+        _natalLabel = L ? 'natal de ' + _targetName : 'natal of ' + _targetName;
+        _carteLabel = L ? 'la carta natal de ' + _targetName + ' (en el contexto de la sinastría con ' + _otherName + ')' : _targetName + '\'s natal chart (in the synastry context with ' + _otherName + ')';
+    }
+
+    // v749bm: asegurar cache de contexto relacional antes de interpretar
+    if (_itaCtx.mode !== 'natal' && typeof window._precomputeRelData === 'function') {
+        try {
+            var _cKey = (_itaCtx.profileA && _itaCtx.profileA.id) + '|' + (_itaCtx.profileB && _itaCtx.profileB.id) + '|' + _itaCtx.mode + '|' + currentLang;
+            if (!window._calRelPromptCache || window._calRelPromptCache.cacheKey !== _cKey) {
+                console.log('[v749bm] cache miss en interpretTransitAspect — regenerando');
+                window._precomputeRelData();
+            }
+        } catch(e) { console.warn('[v749bm] precompute en interpretTransitAspect:', e); }
     }
 
     // Keep personalDayModal open — interpretation overlays on top
 
+    // v749bm: prompt directivo enfocado en EL TRÁNSITO ESPECÍFICO de la fecha, no en lectura natal de sinastría
+    var _antiNatalDir = (_itaCtx.mode === 'sinastria')
+        ? (L
+            ? ' ⚠️ ENFOCATE en este TRÁNSITO ESPECÍFICO en la fecha indicada. NO hagas una lectura general de la sinastría natal — eso es solo contexto.'
+            : ' ⚠️ FOCUS on this SPECIFIC TRANSIT on the indicated date. Do NOT make a general natal synastry reading — that is only context.')
+        : '';
+
     var prompt = _itaPrefix + (L
-        ? 'Interpretá en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explicá: 1) Qué significa este aspecto en ' + _carteLabel + ', 2) Cómo afecta ' + (_itaCtx.mode !== 'natal' ? 'a la relación' : 'emocionalmente, profesionalmente y en relaciones') + ', 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que tener especial cuidado.'
-        : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explain: 1) What this aspect means in ' + _carteLabel + ', 2) How it affects ' + (_itaCtx.mode !== 'natal' ? 'the relationship' : 'emotionally, professionally and in relationships') + ', 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything to be especially careful about.');
+        ? 'Interpretá en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explicá: 1) Qué significa este aspecto en ' + _carteLabel + ', 2) Cómo afecta ' + (_itaCtx.mode !== 'natal' ? 'a la relación' : 'emocionalmente, profesionalmente y en relaciones') + ', 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que tener especial cuidado.' + _antiNatalDir
+        : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explain: 1) What this aspect means in ' + _carteLabel + ', 2) How it affects ' + (_itaCtx.mode !== 'natal' ? 'the relationship' : 'emotionally, professionally and in relationships') + ', 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything to be especially careful about.' + _antiNatalDir);
 
     var _title = tName + ' ' + aName + ' ' + nName;
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
@@ -29459,26 +29734,34 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
     var pSymbol = planetSymbols[planet] || '';
 
     // v749av: detectar modo relacional y usar chart correcto
+    // v749bm: en sinastría incluir AMBOS planetas natales (Camilo Y Shannon), no solo uno
     var _itpCtx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
     var _itpPrefix = '';
-    var _useChart = null;
-    if (_itpCtx.mode === 'compuesta' || _itpCtx.mode === 'davison') {
-        _useChart = _itpCtx.chartA;
-    } else if (_itpCtx.mode === 'sinastria') {
-        _useChart = _itpCtx.chartA; // primary
-    }
 
     // Keep personalDayModal open — interpretation overlays on top
 
     var natalInfo = '';
-    if (_useChart && _useChart.planets && _useChart.planets[planet]) {
-        // Modo relacional — usar el planeta del chart relacional
-        var _relChartLabel = _itpCtx.mode === 'compuesta' ? (L?'compuesto':'composite')
-                           : _itpCtx.mode === 'davison' ? 'Davison'
-                           : (L?'sinastría (carta A)':'synastry (chart A)');
-        natalInfo = L
-            ? '. El ' + pName + ' ' + _relChartLabel + ' está en ' + (_useChart.planets[planet].formatted || '?') + '.'
-            : '. The ' + _relChartLabel + ' ' + pName + ' is in ' + (_useChart.planets[planet].formatted || '?') + '.';
+    if (_itpCtx.mode === 'compuesta' || _itpCtx.mode === 'davison') {
+        // compuesta/davison: una sola carta relacional
+        var _relChart = _itpCtx.chartA;
+        if (_relChart && _relChart.planets && _relChart.planets[planet]) {
+            var _relChartLbl = _itpCtx.mode === 'compuesta' ? (L?'compuesto':'composite') : 'Davison';
+            natalInfo = L
+                ? '. El ' + pName + ' ' + _relChartLbl + ' está en ' + (_relChart.planets[planet].formatted || '?') + '.'
+                : '. The ' + _relChartLbl + ' ' + pName + ' is in ' + (_relChart.planets[planet].formatted || '?') + '.';
+        }
+    } else if (_itpCtx.mode === 'sinastria') {
+        // v749bm: AMBOS natales — para comparar cómo el tránsito afecta a cada uno
+        var _aChart = _itpCtx.chartA, _bChart = _itpCtx.chartB;
+        var _aName = (_itpCtx.profileA && _itpCtx.profileA.name) || 'A';
+        var _bName = (_itpCtx.profileB && _itpCtx.profileB.name) || 'B';
+        var _aP = _aChart && _aChart.planets && _aChart.planets[planet];
+        var _bP = _bChart && _bChart.planets && _bChart.planets[planet];
+        if (_aP || _bP) {
+            natalInfo = L ? '. ' : '. ';
+            if (_aP) natalInfo += (L?'El ':'The ') + pName + (L?' natal de ':' natal of ') + _aName + (L?' está en ':' is in ') + (_aP.formatted || '?') + '. ';
+            if (_bP) natalInfo += (L?'El ':'The ') + pName + (L?' natal de ':' natal of ') + _bName + (L?' está en ':' is in ') + (_bP.formatted || '?') + '.';
+        }
     } else {
         // Modo natal — usar el planeta del perfil activo
         var natal = getNatalData();
@@ -29505,9 +29788,21 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
             ? 'CONTEXTO: Carta DAVISON de ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpretá sobre la RELACIÓN, no carta personal. '
             : 'CONTEXT: DAVISON CHART of ' + (_itpCtx.profileA.name||'A') + ' + ' + (_itpCtx.profileB.name||'B') + '. Interpret on the RELATIONSHIP, not personal chart. ';
     } else if (_itpCtx.mode === 'sinastria') {
+        // v749bm: prefijo enfatiza AMBAS posiciones natales del planeta
         _itpPrefix = L
-            ? 'CONTEXTO: SINASTRÍA entre ' + (_itpCtx.profileA.name||'A') + ' y ' + (_itpCtx.profileB.name||'B') + '. Considerá AMBAS cartas, no solo mi carta personal. '
-            : 'CONTEXT: SYNASTRY between ' + (_itpCtx.profileA.name||'A') + ' and ' + (_itpCtx.profileB.name||'B') + '. Consider BOTH charts, not just my personal chart. ';
+            ? 'CONTEXTO: SINASTRÍA entre ' + (_itpCtx.profileA.name||'A') + ' y ' + (_itpCtx.profileB.name||'B') + '. El tránsito que sigue activa el ' + pName + ' natal de AMBOS. Analizá cómo el tránsito hace contacto con cada uno y qué emerge en el vínculo. '
+            : 'CONTEXT: SYNASTRY between ' + (_itpCtx.profileA.name||'A') + ' and ' + (_itpCtx.profileB.name||'B') + '. The following transit activates BOTH natal ' + pName + '. Analyze how the transit contacts each one and what emerges in the bond. ';
+    }
+
+    // v749bm: cache safety antes de interpretar
+    if (_itpCtx.mode !== 'natal' && typeof window._precomputeRelData === 'function') {
+        try {
+            var _cKeyItp = (_itpCtx.profileA && _itpCtx.profileA.id) + '|' + (_itpCtx.profileB && _itpCtx.profileB.id) + '|' + _itpCtx.mode + '|' + currentLang;
+            if (!window._calRelPromptCache || window._calRelPromptCache.cacheKey !== _cKeyItp) {
+                console.log('[v749bm] cache miss en interpretTransitPosition — regenerando');
+                window._precomputeRelData();
+            }
+        } catch(e) {}
     }
 
     var _carteWord = _itpCtx.mode === 'compuesta' ? (L?'la carta compuesta':'the composite chart')
@@ -29515,9 +29810,16 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
                    : _itpCtx.mode === 'sinastria' ? (L?'la sinastría':'the synastry')
                    : (L?'mi carta natal':'my natal chart');
 
+    // v749bm: directiva anti lectura natal (solo en sinastría)
+    var _antiNatalDirPos = (_itpCtx.mode === 'sinastria')
+        ? (L
+            ? ' ⚠️ ENFOCATE en cómo el tránsito DEL DÍA toca los dos natales mencionados. NO hagas una lectura general de la sinastría — el sujeto es ESTE TRÁNSITO en ESTA fecha.'
+            : ' ⚠️ FOCUS on how the DAY\'S transit touches both mentioned natals. Do NOT make a general synastry reading — the subject is THIS TRANSIT on THIS date.')
+        : '';
+
     var prompt = _itpPrefix + (L
-        ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpretá en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — energía fundamental, 2) Cómo afecta considerando ' + _carteWord + ', 3) Qué áreas de vida' + (_itpCtx.mode !== 'natal' ? ' de la relación' : '') + ' se activan, 4) Consejos prácticos, 5) Cuánto permanece ' + pName + ' en este signo.'
-        : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting that position means — fundamental energy, 2) How it affects considering ' + _carteWord + ', 3) What life areas' + (_itpCtx.mode !== 'natal' ? ' of the relationship' : '') + ' are activated, 4) Practical advice, 5) How long ' + pName + ' stays in this sign.');
+        ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpretá en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — energía fundamental, 2) Cómo afecta considerando ' + _carteWord + ', 3) Qué áreas de vida' + (_itpCtx.mode !== 'natal' ? ' de la relación' : '') + ' se activan, 4) Consejos prácticos, 5) Cuánto permanece ' + pName + ' en este signo.' + _antiNatalDirPos
+        : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting that position means — fundamental energy, 2) How it affects considering ' + _carteWord + ', 3) What life areas' + (_itpCtx.mode !== 'natal' ? ' of the relationship' : '') + ' are activated, 4) Practical advice, 5) How long ' + pName + ' stays in this sign.' + _antiNatalDirPos);
 
     var _title = pName + ' ' + (L ? 'en' : 'in') + ' ' + posFormatted;
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
