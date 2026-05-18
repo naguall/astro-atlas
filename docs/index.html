@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bg';</script>
+    <script>window.APP_VERSION = 'v749bh';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10329,11 +10329,13 @@ window._renderTextToImageBlob = async function(title, text) {
     });
 };
 
-// v749bg: helper de share con auto-imagen para textos largos.
+// v749bh: helper de share con auto-archivo .txt para textos largos.
 // Estrategia:
-//   - Texto <3500 chars → compartir como TEXTO (funciona en intent normal)
-//   - Texto >=3500 chars AND navigator.canShare con files → render a canvas → PNG → compartir como FILE (sin límite Android Intent)
+//   - Texto <3500 chars → compartir como TEXTO normal (cabe en intent)
+//   - Texto >=3500 chars AND navigator.canShare con files → mandar como archivo .TXT (universal, liviano, sin pixelación)
 //   - Fallback (si navigator.share files no soporta): texto + clipboard como antes
+// Por qué .txt y no imagen: WhatsApp re-comprime imágenes muy agresivo → pixelación ilegible.
+// .txt llega entero, recipient le da tap y se abre en cualquier lector.
 window.shareTextSafe = function(title, text) {
     var L = currentLang === 'es';
     var LONG_TEXT_THRESHOLD = 3500;
@@ -10408,55 +10410,44 @@ window.shareTextSafe = function(title, text) {
         return;
     }
 
-    // LARGO → intentar como IMAGEN
-    // Verificar si el navegador soporta compartir files (Web Share API Level 2)
-    var canShareFiles = false;
-    try {
-        // Test con un file dummy
-        var testFile = new File([new Blob(['test'], {type: 'image/png'})], 'test.png', {type: 'image/png'});
-        canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
-    } catch(_) { canShareFiles = false; }
+    // LARGO → intentar como archivo .TXT
+    // Construir contenido del .txt: título grande arriba + separador + cuerpo + footer
+    var txtHeader = '';
+    if (title) {
+        txtHeader = title + '\n' + new Array(Math.min(title.length, 60) + 1).join('=') + '\n\n';
+    }
+    var txtFooter = '\n\n— AstroAtlas 🌙\nhttps://bearman-ux.github.io/moon_tracker_complete/';
+    var txtContent = txtHeader + text + txtFooter;
 
-    if (!canShareFiles || !window._renderTextToImageBlob) {
-        // No soporta files → fallback a texto+clipboard
-        console.warn('[share] files no soportado, fallback a texto');
+    // Crear blob .txt (UTF-8 con BOM para que Windows/Android abran con encoding correcto)
+    var BOM = '﻿';
+    var blob = new Blob([BOM + txtContent], { type: 'text/plain;charset=utf-8' });
+    var fname = (title || 'astroatlas-interpretacion').replace(/[^\w\-]+/g, '_').slice(0, 60) + '.txt';
+    var file;
+    try {
+        file = new File([blob], fname, { type: 'text/plain' });
+    } catch(_) {
+        // Algunos navegadores viejos no soportan File constructor → fallback
         _shareAsText();
         return;
     }
 
-    // Toast "generando imagen"
-    _showToast(L ? '🖼️ Generando imagen…' : '🖼️ Generating image…', 'rgba(73,140,255,0.95)', 2500);
+    // Verificar si el navegador soporta compartir este file específico
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
+        console.warn('[share] canShare({files}) returned false, fallback a texto');
+        _shareAsText();
+        return;
+    }
 
-    // Render a imagen y compartir
-    window._renderTextToImageBlob(title, text).then(function(blob) {
-        if (!blob) {
-            console.warn('[share] blob nulo, fallback a texto');
-            _shareAsText();
-            return;
-        }
-        var fname = (title || 'astroatlas-interpretacion').replace(/[^\w\-]+/g, '_').slice(0, 60) + '.png';
-        var file = new File([blob], fname, { type: 'image/png' });
-
-        // Doble check: ¿este file específico se puede compartir?
-        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-            console.warn('[share] canShare({files:[file]}) returned false, fallback a texto');
-            _shareAsText();
-            return;
-        }
-
-        navigator.share({
-            files: [file],
-            title: title || 'AstroAtlas'
-        }).then(function() {
-            _showToast(L ? '✅ Imagen compartida' : '✅ Image shared', 'rgba(37,211,102,0.95)', 2500);
-        }).catch(function(e) {
-            if (e && e.name === 'AbortError') return; // user canceló
-            console.warn('[share] share files err:', e && e.message);
-            // Si falla el share de imagen, intentar el texto como respaldo
-            _shareAsText();
-        });
-    }).catch(function(err) {
-        console.warn('[share] render image failed:', err);
+    navigator.share({
+        files: [file],
+        title: title || 'AstroAtlas'
+    }).then(function() {
+        _showToast(L ? '✅ Archivo compartido' : '✅ File shared', 'rgba(37,211,102,0.95)', 2500);
+    }).catch(function(e) {
+        if (e && e.name === 'AbortError') return; // user canceló
+        console.warn('[share] share .txt err:', e && e.message);
+        // Si falla el share de file, intentar el texto como respaldo
         _shareAsText();
     });
 };
