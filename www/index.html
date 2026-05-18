@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749aq';</script>
+    <script>window.APP_VERSION = 'v749at';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -23390,7 +23390,12 @@ function switchProfile(id) {
 
 function deleteProfile(id) {
     const L = currentLang === 'es';
-    if (!confirm(L ? '¿Eliminar este perfil?' : 'Delete this profile?')) return;
+    // v749ar: confirmación más explícita con nombre del perfil
+    var allProfiles = getNatalProfiles();
+    var targetProfile = allProfiles.find(function(p){ return p.id === id; });
+    var displayName = targetProfile ? (targetProfile.name || targetProfile.cityName || id) : id;
+    if (!confirm(L ? '¿Eliminar el perfil "' + displayName + '"?\n\nEsto borra también su carta natal y todas las interpretaciones guardadas. No se puede deshacer.'
+                   : 'Delete profile "' + displayName + '"?\n\nThis also deletes its natal chart and all saved interpretations. Cannot be undone.')) return;
     let profiles = getNatalProfiles();
     profiles = profiles.filter(p => p.id !== id);
     localStorage.setItem('natalProfiles', JSON.stringify(profiles));
@@ -23402,6 +23407,17 @@ function deleteProfile(id) {
         if (k && k.startsWith('interp_' + id + '_')) keysToRemove.push(k);
     }
     keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+
+    // v749ar: si el perfil borrado era el secondary del modo relacional, resetear ese modo
+    if (window._calRelSecondProfileId === id) {
+        window._calRelMode = null;
+        window._calRelSecondProfileId = null;
+        window._calRelCompCache = null;
+        window._calRelDavCache = null;
+        localStorage.removeItem('calRelMode');
+        localStorage.removeItem('calRelSecondProfileId');
+    }
+
     if (getActiveProfileId() === id) {
         if (profiles.length > 0) {
             setActiveProfileId(profiles[0].id);
@@ -23493,6 +23509,8 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
             <button onclick="addNewProfile()" class="profile-action-btn" title="${currentLang==='es'?'Agregar perfil':'Add profile'}">＋</button>
             <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${currentLang==='es'?'Editar datos':'Edit data'}">✏️</button>
             <button onclick="shareNatalProfile()" class="profile-action-btn" title="${currentLang==='es'?'Compartir':'Share'}">📤</button>
+            <!-- v749ar: botón borrar perfil — wire-up de la función deleteProfile existente -->
+            <button onclick="deleteProfile(getActiveProfileId())" class="profile-action-btn" title="${currentLang==='es'?'Borrar perfil activo':'Delete active profile'}" style="color:#ff6b6b;">🗑️</button>
         </div>
         ${chartInfo}
         ${personasHTML}
@@ -35942,9 +35960,11 @@ function checkNotifications() {
         }
     }
 
-    // 7b. v735: Personal solstices/equinoxes notification (based on user's birthday)
+    // 7b. v735/v749as: Personal events notification — equinoccios/solsticios personales + retornos solar/lunar + medio cielo
     // Quarter the year from birthday: 0=spring eq, ~91=summer sol, ~182=autumn eq, ~273=winter sol
-    if (notifPrefs.personalSeasons !== false) { // default ON
+    // v749as: renombrado de personalSeasons → personalEvents (backwards-compatible: si personalSeasons === false sigue OFF)
+    var _personalEventsEnabled = (notifPrefs.personalEvents !== false) && (notifPrefs.personalSeasons !== false);
+    if (_personalEventsEnabled) { // default ON
         try {
             var natalForSeasons = (typeof getNatalData === 'function') ? getNatalData() : null;
             if (natalForSeasons && natalForSeasons.date) {
@@ -35982,6 +36002,63 @@ function checkNotifications() {
                 });
             }
         } catch(e) { console.warn('Personal seasons notification error:', e); }
+    }
+
+    // 7c. v749as: Retornos lunares + retorno solar + medio cielo solar — usa el mismo toggle personalEvents
+    if (_personalEventsEnabled) {
+        try {
+            var _natalForCycles = (typeof getNatalData === 'function') ? getNatalData() : null;
+            if (_natalForCycles && _natalForCycles.id && _natalForCycles.date) {
+                var _ncRaw = localStorage.getItem('natalChart_' + _natalForCycles.id);
+                var _natalChartForCycles = _ncRaw ? JSON.parse(_ncRaw) : null;
+                if (_natalChartForCycles && typeof calculateCosmicCyclesForMonth === 'function') {
+                    var _todayMidPE = new Date(now); _todayMidPE.setHours(0,0,0,0);
+                    // Calcular ciclos de este mes y próximo mes (para notificar 1 día antes de eventos cerca del cambio de mes)
+                    var _peMonths = [
+                        { y: now.getFullYear(), m: now.getMonth() },
+                        { y: (now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear()), m: ((now.getMonth()+1)%12) }
+                    ];
+                    var _peAllCycles = [];
+                    _peMonths.forEach(function(mm) {
+                        try {
+                            var cs = calculateCosmicCyclesForMonth(mm.y, mm.m, _natalChartForCycles, _natalForCycles.date);
+                            cs.forEach(function(c) { c._year = mm.y; c._month = mm.m; });
+                            _peAllCycles = _peAllCycles.concat(cs);
+                        } catch(_ce) {}
+                    });
+                    _peAllCycles.forEach(function(cy) {
+                        // Solo notificar tipos relevantes: solarReturn, lunarReturn, solarHalf
+                        if (cy.type !== 'solarReturn' && cy.type !== 'lunarReturn' && cy.type !== 'solarHalf') return;
+                        var _evtDate = cy.exactTime ? new Date(cy.exactTime) : new Date(cy._year, cy._month, cy.day, 12, 0, 0);
+                        var _evtDay = new Date(_evtDate); _evtDay.setHours(0,0,0,0);
+                        // Notificar SI: hoy es el día del evento (catchup) o evento dentro de las próximas 12h
+                        var _isToday = _evtDay.getTime() === _todayMidPE.getTime();
+                        var _hoursUntil = (_evtDate.getTime() - now.getTime()) / 3600000;
+                        var _imminent = _hoursUntil > 0 && _hoursUntil < 12;
+                        if (!_isToday && !_imminent) return;
+                        var _keySuffix = cy.type + '-' + cy._year + '-' + cy._month + '-' + cy.day + (_imminent ? '-12h' : '-day');
+                        var _notifKeyPE = 'notif-personalEvents-' + _keySuffix;
+                        if (localStorage.getItem(_notifKeyPE)) return; // already sent
+                        var _typeIcon = cy.type === 'solarReturn' ? '☉' : cy.type === 'lunarReturn' ? '☽' : '◑';
+                        var _typeLabel = cy.type === 'solarReturn' ? (L?'Retorno Solar':'Solar Return')
+                                       : cy.type === 'lunarReturn' ? (L?'Retorno Lunar':'Lunar Return')
+                                       : (L?'Medio Cielo Solar':'Solar Half-Return');
+                        var _timeStr = cy.exactTime ? _evtDate.toLocaleTimeString(L?'es':'en',{hour:'2-digit',minute:'2-digit'}) : '';
+                        var _bodyText = _imminent
+                            ? (L?'En ' + Math.round(_hoursUntil) + 'h: ':'In ' + Math.round(_hoursUntil) + 'h: ') + (cy.desc ? cy.desc.split('.')[0] + '.' : '')
+                            : (cy.desc ? cy.desc.split('.')[0] + '.' : '') + (_timeStr ? ' ' + (L?'a las ':'at ') + _timeStr : '');
+                        sendNotif(_typeIcon + ' ' + _typeLabel + (_timeStr && !_imminent ? ' — ' + _timeStr : ''), {
+                            body: _bodyText,
+                            tag: 'personal-' + _keySuffix,
+                            requireInteraction: true,
+                            data: { interpret: _typeLabel + ': ' + (cy.label || '') }
+                        });
+                        localStorage.setItem(_notifKeyPE, 'true');
+                        console.log('🌟 Personal cosmic event notif:', cy.type, cy.day, _imminent?'(12h before)':'(today)');
+                    });
+                }
+            }
+        } catch(e) { console.warn('Personal cosmic events notification error:', e); }
     }
 
     } catch(e) {
@@ -36075,7 +36152,8 @@ function _checkMsgSource(source, now, todayKey, notifPrefix) {
 }
 
 function handleNotifCategoryToggle(categoryId, enabled) {
-    var notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"lunarPhases":true,"eclipses":true,"retrogrades":true,"signChanges":true,"interPlanetaryAspects":true,"astronomicalEvents":true,"userEvents":true}');
+    // v749as: agregada categoría personalEvents (retornos lunares/solares + medio cielo + estaciones personales)
+    var notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"lunarPhases":true,"eclipses":true,"retrogrades":true,"signChanges":true,"interPlanetaryAspects":true,"astronomicalEvents":true,"personalEvents":true,"userEvents":true}');
     notifPrefs[categoryId] = enabled;
     localStorage.setItem('notifPrefs', JSON.stringify(notifPrefs));
     console.log('Notification preference updated:', categoryId, enabled);
@@ -36915,7 +36993,8 @@ function openPreferencesModal() {
     if (notifPermission==='denied') {
         notifContent += '<div style="padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;font-size:0.72em;color:#ff6b6b;margin-bottom:10px;">' + '⚠️ Bloqueadas en el navegador. Activa en Configuración del sitio.' + '</div>';
     }
-    var cats = [['notifLunar','lunarPhases',currentLang==='es'?'Fases Lunares':'Lunar Phases'],['notifEclipse','eclipses','Eclipses'],['notifRetro','retrogrades','Retrogrades'],['notifSigns','signChanges',currentLang==='es'?'Cambios Signo':'Sign Changes'],['notifAspects','interPlanetaryAspects',currentLang==='es'?'Aspectos':'Aspects'],['notifAstro','astronomicalEvents',currentLang==='es'?'Eventos Astro':'Astro Events'],['notifUser','userEvents',currentLang==='es'?'Mis Eventos':'My Events']];
+    // v749as: nueva categoría "Eventos Personales" — un solo toggle que cubre retornos solar/lunar/medio cielo + estaciones personales
+    var cats = [['notifLunar','lunarPhases',currentLang==='es'?'Fases Lunares':'Lunar Phases'],['notifEclipse','eclipses','Eclipses'],['notifRetro','retrogrades','Retrogrades'],['notifSigns','signChanges',currentLang==='es'?'Cambios Signo':'Sign Changes'],['notifAspects','interPlanetaryAspects',currentLang==='es'?'Aspectos':'Aspects'],['notifAstro','astronomicalEvents',currentLang==='es'?'Eventos Astro':'Astro Events'],['notifPersonal','personalEvents',currentLang==='es'?'🌟 Eventos Personales':'🌟 Personal Events'],['notifUser','userEvents',currentLang==='es'?'Mis Eventos':'My Events']];
     notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
     cats.forEach(function(c) {
         notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="' + c[0] + '" checked onchange="handleNotifCategoryToggle(\'' + c[1] + '\',this.checked);openPreferencesModal();" style="cursor:pointer;"><label for="' + c[0] + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;">' + c[2] + '</label></div>';
@@ -37021,6 +37100,33 @@ function openPreferencesModal() {
     personaContent += '<button onclick="resetAllAIChats();this.textContent=currentLang===\'es\'?\'✓ Chats reiniciados\':\'✓ Chats reset\';this.style.color=\'#4ecdc4\';setTimeout(()=>{this.textContent=currentLang===\'es\'?\'🗑 Reiniciar todos los chats\':\'🗑 Reset all chats\';this.style.color=\'#ff6b6b\';},2000);" style="width:100%;padding:8px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.3);border-radius:8px;color:#ff6b6b;font-size:0.75em;font-weight:600;cursor:pointer;">🗑 ' + (currentLang==='es'?'Reiniciar todos los chats':'Reset all chats') + '</button>';
     var activeP = getActivePersona();
     sectionsHtml += _s('🧠', (currentLang==='es'?'Personalidad':'Personality') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (activeP?activeP.icon+' '+(currentLang==='es'?activeP.name_es:activeP.name_en):'—') + ')</span>', '#7ec8ff', personaContent);
+
+    // v749at: Estilo de interpretación — Simple (sin grados/orbes) vs Detallado (con grados/orbes, default)
+    var _interpStyle = localStorage.getItem('prefInterpStyle') || 'detailed';
+    var _isSimple = _interpStyle === 'simple';
+    var styleContent = '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;line-height:1.5;">'
+        + (currentLang==='es'
+            ? 'Cómo querés que la IA te dé las interpretaciones astrológicas:'
+            : 'How you want the AI to give you astrological interpretations:') + '</div>';
+    styleContent += '<div style="display:flex;flex-direction:column;gap:6px;">';
+    // Botón Simple
+    styleContent += '<button onclick="localStorage.setItem(\'prefInterpStyle\',\'simple\');openPreferencesModal();" style="width:100%;padding:10px 12px;text-align:left;border-radius:8px;cursor:pointer;background:'
+        + (_isSimple ? 'linear-gradient(135deg,rgba(78,205,196,0.20),rgba(78,205,196,0.06))' : 'rgba(255,255,255,0.03)') + ';border:'
+        + (_isSimple ? '2px solid rgba(78,205,196,0.6)' : '1px solid rgba(255,255,255,0.1)') + ';color:'
+        + (_isSimple ? '#4ecdc4' : 'rgba(255,255,255,0.55)') + ';">'
+        + '<div style="font-size:0.82em;font-weight:700;">💬 ' + (currentLang==='es'?'Simple':'Simple') + (_isSimple?' ✓':'') + '</div>'
+        + '<div style="font-size:0.68em;margin-top:2px;opacity:0.75;">' + (currentLang==='es'?'Sin grados ni orbes — lenguaje accesible, enfocado en lo cualitativo y vivencial':'No degrees or orbs — accessible language, focused on the qualitative and experiential') + '</div>'
+        + '</button>';
+    // Botón Detallado
+    styleContent += '<button onclick="localStorage.setItem(\'prefInterpStyle\',\'detailed\');openPreferencesModal();" style="width:100%;padding:10px 12px;text-align:left;border-radius:8px;cursor:pointer;background:'
+        + (!_isSimple ? 'linear-gradient(135deg,rgba(201,168,64,0.20),rgba(201,168,64,0.06))' : 'rgba(255,255,255,0.03)') + ';border:'
+        + (!_isSimple ? '2px solid rgba(201,168,64,0.6)' : '1px solid rgba(255,255,255,0.1)') + ';color:'
+        + (!_isSimple ? '#c9a840' : 'rgba(255,255,255,0.55)') + ';">'
+        + '<div style="font-size:0.82em;font-weight:700;">🔬 ' + (currentLang==='es'?'Detallado':'Detailed') + (!_isSimple?' ✓':'') + '</div>'
+        + '<div style="font-size:0.68em;margin-top:2px;opacity:0.75;">' + (currentLang==='es'?'Con grados, orbes y precisión técnica — para quienes conocen astrología':'With degrees, orbs and technical precision — for those who know astrology') + '</div>'
+        + '</button>';
+    styleContent += '</div>';
+    sectionsHtml += _s('📝', (currentLang==='es'?'Estilo Interpretación':'Interpretation Style') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + (_isSimple ? (currentLang==='es'?'Simple':'Simple') : (currentLang==='es'?'Detallado':'Detailed')) + ')</span>', '#7ec8ff', styleContent);
 
     // ── Personalidad Sueños (independent) ──
     var dreamPersonaContent = '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Selecciona la personalidad que interpreta tus sueños (independiente de la principal):':'Select the personality that interprets your dreams (independent from the main one):') + '</div>';
@@ -45430,6 +45536,33 @@ function buildSystemPrompt(contextLevel) {
                 : '\n\n═══ MULTIPLE PROFILES ═══\nThere are ' + _profiles.length + ' natal chart profiles saved: ' + _profileList + '. The data you see corresponds to the ACTIVE profile. If the user asks for personal analysis and it\'s not clear for whom, ASK: "Which profile do you want the analysis for?" Never assume which profile without confirming.';
         }
     } catch(e) {}
+
+    // v749at: estilo de interpretación — Simple (omitir grados/orbes) o Detallado (con grados/orbes, default)
+    var _interpStylePref = localStorage.getItem('prefInterpStyle') || 'detailed';
+    if (_interpStylePref === 'simple') {
+        base += isEs
+            ? '\n\n═══ ESTILO DE INTERPRETACIÓN: SIMPLE ═══\n'
+              + 'El usuario eligió el estilo SIMPLE. Reglas estrictas:\n'
+              + '• NO menciones grados astronómicos (ej. NO digas "Saturno a 14° de Aries" — decí "Saturno en Aries").\n'
+              + '• NO menciones orbes (ej. NO digas "orbe de 1.2°" — solo decí si el aspecto es exacto/fuerte/cercano si hace falta).\n'
+              + '• NO uses notación técnica como "0°34\'" ni cifras numéricas decimales.\n'
+              + '• Usá lenguaje accesible, cualitativo y vivencial. Enfocate en el SIGNIFICADO, no en la precisión técnica.\n'
+              + '• Si necesitás describir intensidad de un aspecto, usá palabras: "exacto", "muy cerca", "se está formando", "se está separando", "fuerte", "sutil", etc.\n'
+              + '• Mantené el lenguaje rico simbólicamente pero accesible para alguien que no sabe leer una carta natal.'
+            : '\n\n═══ INTERPRETATION STYLE: SIMPLE ═══\n'
+              + 'The user chose the SIMPLE style. Strict rules:\n'
+              + '• DO NOT mention astronomical degrees (e.g., DO NOT say "Saturn at 14° Aries" — say "Saturn in Aries").\n'
+              + '• DO NOT mention orbs (e.g., DO NOT say "1.2° orb" — only say if the aspect is exact/strong/close if needed).\n'
+              + '• DO NOT use technical notation like "0°34\'" or decimal numbers.\n'
+              + '• Use accessible, qualitative, experiential language. Focus on MEANING, not technical precision.\n'
+              + '• If you need to describe aspect intensity, use words: "exact", "very close", "forming", "separating", "strong", "subtle", etc.\n'
+              + '• Keep the symbolically rich language but accessible to someone who can\'t read a natal chart.';
+    } else {
+        // 'detailed' — comportamiento default (con grados, orbes, precisión técnica)
+        base += isEs
+            ? '\n\n═══ ESTILO DE INTERPRETACIÓN: DETALLADO ═══\nEl usuario eligió el estilo DETALLADO. Podés (y deberías cuando aporte) usar grados, orbes, posiciones precisas y notación astrológica técnica.'
+            : '\n\n═══ INTERPRETATION STYLE: DETAILED ═══\nThe user chose the DETAILED style. You can (and should when relevant) use degrees, orbs, precise positions and technical astrological notation.';
+    }
 
     return base;
 }
