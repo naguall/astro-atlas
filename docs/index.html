@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749be';</script>
+    <script>window.APP_VERSION = 'v749bf';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -7557,6 +7557,9 @@ function updateModalTranslations() {
     var dayTitle = document.getElementById('dayOptionsTitle');
     if (dayTitle) dayTitle.textContent = L ? 'Opciones del Día' : 'Day Options';
     // Update data-i18n labels in day options
+    // v749bf: label dinámico según modo — "Activaciones Personales" en calendario personal,
+    // "Activaciones Relacionales" en calendario relacional (compuesta/davison/sinastría)
+    var _isRelCal = !!window._isRelationsCalendarActive;
     var i18nMap = {
         'dayOptAgenda': L ? 'Agenda / Eventos' : 'Agenda / Events',
         'dayOptAgendaDesc': L ? 'Citas, recordatorios, eventos' : 'Appointments, reminders, events',
@@ -7564,9 +7567,13 @@ function updateModalTranslations() {
         'dayOptAspectsDesc': L ? 'Conjunciones, trígonos, cuadraturas' : 'Conjunctions, trines, squares',
         'dayOptDiary': L ? 'Diarios y Reflexiones' : 'Diaries & Reflections',
         'dayOptDiaryDesc': L ? 'Reflexiones, emociones, sueños' : 'Reflections, emotions, dreams',
-        // v749ah: nueva opción "Activaciones Personales" (solo visible en calendario Personal)
-        'dayOptPersonalActivations': L ? 'Activaciones Personales' : 'Personal Activations',
-        'dayOptPersonalActivationsDesc': L ? 'Aspectos, tránsitos, retornos y ciclos' : 'Aspects, transits, returns and cycles'
+        // v749ah/bf: cambia entre "Personales" y "Relacionales" según contexto
+        'dayOptPersonalActivations': _isRelCal
+            ? (L ? 'Activaciones Relacionales' : 'Relational Activations')
+            : (L ? 'Activaciones Personales' : 'Personal Activations'),
+        'dayOptPersonalActivationsDesc': _isRelCal
+            ? (L ? 'Aspectos y tránsitos sobre la carta de la relación' : 'Aspects and transits over the relationship chart')
+            : (L ? 'Aspectos, tránsitos, retornos y ciclos' : 'Aspects, transits, returns and cycles')
     };
     Object.keys(i18nMap).forEach(function(key) {
         var els = document.querySelectorAll('[data-i18n="' + key + '"]');
@@ -28304,6 +28311,14 @@ function handlePersonalDayClick(year, month, day) {
         // v749ae/ah: activar opción "Activaciones Personales" como primera opción del menú
         var personalDetailsBtn = document.getElementById('personalDetailsOptionBtn');
         if (personalDetailsBtn) personalDetailsBtn.style.display = 'flex';
+
+        // v749bf: actualizar label dinámicamente según modo (Personal / Relacional)
+        var _isRel = !!window._isRelationsCalendarActive;
+        var _labelEl = document.querySelector('[data-i18n="dayOptPersonalActivations"]');
+        var _descEl = document.querySelector('[data-i18n="dayOptPersonalActivationsDesc"]');
+        if (_labelEl) _labelEl.textContent = _isRel ? (L?'Activaciones Relacionales':'Relational Activations') : (L?'Activaciones Personales':'Personal Activations');
+        if (_descEl) _descEl.textContent = _isRel ? (L?'Aspectos y tránsitos sobre la carta de la relación':'Aspects and transits over the relationship chart') : (L?'Aspectos, tránsitos, retornos y ciclos':'Aspects, transits, returns and cycles');
+
         modal.classList.add('show');
     } catch(e) {
         console.error('handlePersonalDayClick error:', e);
@@ -28433,8 +28448,28 @@ function showPersonalDayDetail(year, month, day) {
         _daysToBd = Math.round((_persDayBirthAnn - date) / 86400000);
     }
 
+    // v749bf: en modo relacional, header con MODO primero (Compuesta/Davison/Sinastría),
+    // después fecha gregoriana, después chips. Colores oficiales.
+    var _relModeHeaderHTML = '';
+    if (_relMode !== 'natal' && _relCtx.profileA && _relCtx.profileB) {
+        var _rmIcon = _relMode === 'compuesta' ? '⊕' : _relMode === 'davison' ? '✦' : '☌';
+        var _rmName = _relMode === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart')
+                    : _relMode === 'davison' ? (L?'Carta Davison':'Davison Chart')
+                    : (L?'Sinastría':'Synastry');
+        var _rmColor = _relMode === 'compuesta' ? '#2ecc71' : _relMode === 'davison' ? '#f1c40f' : '#c39bd3';
+        var _rmRgb = _relMode === 'compuesta' ? '46,204,113' : _relMode === 'davison' ? '241,196,15' : '155,89,182';
+        var _rmA = _relCtx.profileA.name || 'A';
+        var _rmB = _relCtx.profileB.name || 'B';
+        var _rmSep = _relMode === 'sinastria' ? ' ↔ ' : ' + ';
+        _relModeHeaderHTML = '<div style="padding:10px 12px;margin-bottom:10px;background:rgba(' + _rmRgb + ',0.10);border:1px solid rgba(' + _rmRgb + ',0.30);border-radius:10px;text-align:center;">'
+            + '<div style="font-family:Cinzel,serif;font-size:1.05em;color:' + _rmColor + ';font-weight:700;letter-spacing:1px;">' + _rmIcon + ' ' + _rmName + '</div>'
+            + '<div style="font-size:0.78em;color:#fff;margin-top:3px;">' + _rmA + _rmSep + _rmB + '</div>'
+            + '</div>';
+    }
+
     let html = `
         <div style="padding:16px;">
+            ${_relModeHeaderHTML}
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
                 <div style="flex:1;">
                     <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0 0 6px 0;">
@@ -28484,16 +28519,10 @@ function showPersonalDayDetail(year, month, day) {
                 <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;flex-shrink:0;margin-left:8px;">✕</button>
             </div>
 
-            <!-- v749an/ay: banner de modo relacional con colores oficiales (lila/verde/amarillo) -->
-            ${_relMode !== 'natal' ? (function() {
-                var _bColor = _relMode === 'compuesta' ? '#2ecc71' : _relMode === 'davison' ? '#f1c40f' : '#c39bd3';
-                var _bRgb = _relMode === 'compuesta' ? '46,204,113' : _relMode === 'davison' ? '241,196,15' : '155,89,182';
-                var _bIcon = _relMode === 'compuesta' ? '⊕' : _relMode === 'davison' ? '✦' : '☌';
-                return `<div style="margin-bottom:10px;padding:8px 12px;background:rgba(${_bRgb},0.10);border:1px solid rgba(${_bRgb},0.30);border-radius:8px;text-align:center;font-size:0.82em;color:${_bColor};">
-                ${_bIcon} ${_relCtx.label}
-                ${_doubleActPlanets.length > 0 ? `<div style="margin-top:4px;font-size:0.85em;color:#c39bd3;font-weight:700;">☌ ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}</div>` : ''}
-            </div>`;
-            })() : ''}
+            <!-- v749bf: banner relacional movido arriba como header. Acá solo mostramos el aviso de doble activación si aplica. -->
+            ${_relMode === 'sinastria' && _doubleActPlanets.length > 0 ? `<div style="margin-bottom:10px;padding:6px 10px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.40);border-radius:8px;text-align:center;font-size:0.82em;color:#c39bd3;font-weight:700;">
+                ☌ ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}
+            </div>` : ''}
 
             <!-- v749aj: botón "Interpretar el día" ahora ARRIBA, justo debajo de la fecha -->
             <div style="margin-bottom:14px;text-align:center;">
