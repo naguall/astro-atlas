@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749at';</script>
+    <script>window.APP_VERSION = 'v749au';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -34520,6 +34520,32 @@ if (typeof google !== 'undefined' && google.accounts) {
     });
 }
 
+// v749au: Setup notification channel high-importance al cargar la app (solo en Capacitor APK)
+// Esto garantiza que las notificaciones aparezcan como banner emergente con sonido en Android
+(function _setupHighImportanceChannel() {
+    function _tryChannelSetup() {
+        if (typeof window._setupAstroNotifChannel === 'function') {
+            window._setupAstroNotifChannel();
+        } else {
+            setTimeout(_tryChannelSetup, 500); // wait for sendNotif def to load
+        }
+    }
+    // Esperar a que Capacitor cargue (puede tardar un poco)
+    function _waitForCap() {
+        if (typeof window.Capacitor !== 'undefined') {
+            // Esperar también a que LocalNotifications plugin esté listo
+            setTimeout(_tryChannelSetup, 800);
+        } else {
+            // No Capacitor (PWA browser) → no necesita channel
+        }
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        _waitForCap();
+    } else {
+        window.addEventListener('DOMContentLoaded', _waitForCap);
+    }
+})();
+
 // v628: Pre-initialize Firebase (AstroConnect) on app startup so Social tab opens fast
 // Firebase SDK loads async — wait until firebase global exists, then init in background
 (function _preInitAstroConnect() {
@@ -34759,18 +34785,77 @@ if ('Notification' in window && Notification.permission === 'default') {
 
 // Store native Notification constructor to avoid recursion
 const _Notif = window.Notification;
+// v749au: setup notification channel high-importance para Capacitor Android — solo se crea una vez
+window._astroNotifChannelReady = false;
+window._setupAstroNotifChannel = function() {
+    if (window._astroNotifChannelReady) return Promise.resolve();
+    var isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (!isCap || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) return Promise.resolve();
+    var LN = window.Capacitor.Plugins.LocalNotifications;
+    return LN.createChannel({
+        id: 'astroatlas-high',
+        name: 'AstroAtlas — Eventos importantes',
+        description: 'Notificaciones astrológicas con banner emergente',
+        importance: 5, // IMPORTANCE_HIGH → heads-up banner + sonido
+        visibility: 1, // public on lock screen
+        lights: true,
+        lightColor: '#7ec8ff',
+        vibration: true,
+        sound: 'default'
+    }).then(function() {
+        window._astroNotifChannelReady = true;
+        console.log('🔔 [Capacitor] Channel astroatlas-high creado (IMPORTANCE_HIGH)');
+    }).catch(function(e) {
+        console.warn('🔔 [Capacitor] createChannel failed:', e);
+    });
+};
+
 function sendNotif(title, opts) {
     console.log('🔔 sendNotif called:', title);
     // Add tag so Android can replace instead of stacking notifications
     if (!opts.tag) { opts.tag = 'astro-atlas-' + (opts.body || '').substring(0, 20).replace(/\W/g, ''); }
-    // On mobile, MUST use ServiceWorker.showNotification - new Notification() silently fails
+
+    // v749au: En APK Capacitor, usar LocalNotifications NATIVO con channel high-importance
+    // para que aparezca como banner emergente + sonido (vs SW notification que va silenciosa a la barra)
+    var isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (isCap && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+        var LN = window.Capacitor.Plugins.LocalNotifications;
+        // Asegurar channel creado
+        window._setupAstroNotifChannel().then(function() {
+            try {
+                LN.schedule({
+                    notifications: [{
+                        title: title,
+                        body: opts.body || '',
+                        id: Math.floor(Math.random() * 2147483647),
+                        channelId: 'astroatlas-high',
+                        smallIcon: 'ic_stat_icon_config_sample',
+                        iconColor: '#7ec8ff',
+                        autoCancel: true,
+                        extra: opts.data || {}
+                    }]
+                });
+                console.log('🔔 [Capacitor] LocalNotification scheduled vía high-importance channel');
+                _syncAppBadge();
+            } catch(e) {
+                console.warn('🔔 [Capacitor] schedule failed, fallback to SW:', e);
+                _sendNotifViaSW(title, opts);
+            }
+        });
+        return;
+    }
+    // Web/PWA: usar ServiceWorker
+    _sendNotifViaSW(title, opts);
+}
+
+// Helper: enviar via ServiceWorker (path original — PWA browser)
+function _sendNotifViaSW(title, opts) {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function(reg) {
             console.log('🔔 Using SW showNotification');
             return reg.showNotification(title, opts);
         }).then(function() {
             console.log('🔔 SW notification shown:', title);
-            // Update app icon badge on home screen
             _syncAppBadge();
         }).catch(function(err) {
             console.log('🔔 SW failed:', err, '- trying native');
