@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749av';</script>
+    <script>window.APP_VERSION = 'v749az';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -566,9 +566,9 @@
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
         .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
-        /* v749an: doble activación sinastría — borde rosa pulsante */
-        .personal-day-cell.double-activation { border: 1.5px solid rgba(233,30,99,0.70) !important; box-shadow: 0 0 12px rgba(233,30,99,0.30), inset 0 0 8px rgba(233,30,99,0.10); }
-        .personal-day-cell.double-activation::after { content: '💞'; position: absolute; top: 2px; right: 3px; font-size: 0.6em; opacity: 0.85; pointer-events: none; }
+        /* v749an/ay: doble activación sinastría — borde lila (color oficial sinastría #c39bd3) */
+        .personal-day-cell.double-activation { border: 1.5px solid rgba(155,89,182,0.75) !important; box-shadow: 0 0 12px rgba(195,155,211,0.35), inset 0 0 8px rgba(195,155,211,0.12); }
+        .personal-day-cell.double-activation::after { content: '☌'; position: absolute; top: 2px; right: 3px; font-size: 0.65em; color: #c39bd3; opacity: 0.95; pointer-events: none; }
         .personal-day-cell.double-activation { position: relative; }
         .personal-day-num { font-weight: 700; color: #c39bd3; margin-bottom: 2px; }
         .personal-day-cell.today .personal-day-num { color: #64B5F6; }
@@ -22135,6 +22135,159 @@ window.getCalRelContext = function() {
     return { mode: 'natal', chartA: chartA, profileA: profileA, label: profileA.name };
 };
 
+// v749az: precompute LIMPIO del contexto relacional. Se calcula UNA SOLA VEZ al cambiar
+// modo o segundo perfil, y queda guardado en window._calRelPromptCache. El system prompt
+// lee este cache directo — sin recalcular, sin duplicar info natal.
+window._precomputeRelData = function() {
+    var ctx = getCalRelContext();
+    if (ctx.mode === 'natal') {
+        window._calRelPromptCache = null;
+        return;
+    }
+
+    var isEs = currentLang === 'es';
+    var pN = isEs
+        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith'};
+    var aspN = isEs
+        ? {conjunction:'Conjunción',sextile:'Sextil',square:'Cuadratura',trine:'Trígono',opposition:'Oposición',semisextile:'Semisextil',quincunx:'Quincuncio'}
+        : {conjunction:'Conjunction',sextile:'Sextile',square:'Square',trine:'Trine',opposition:'Opposition',semisextile:'Semisextile',quincunx:'Quincunx'};
+
+    function _fmtChart(chart, label) {
+        var out = '── ' + label + ' ──\n';
+        if (chart && chart.planets) {
+            out += (isEs?'PLANETAS:\n':'PLANETS:\n');
+            Object.entries(chart.planets).forEach(function(en){
+                var p = en[0], d = en[1];
+                if (!pN[p]) return;
+                var fmt = d.formatted || (d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + (d.minute||0) + "'");
+                var house = (chart.houses && typeof getHouseForLongitude === 'function') ? getHouseForLongitude(d.longitude, chart.houses.cusps) : '?';
+                out += '  ' + (pN[p]||p) + ': ' + fmt + (house !== '?' ? ' (' + (isEs?'Casa ':'House ') + house + ')' : '') + (d.isRetrograde ? ' ℞' : '') + '\n';
+            });
+        }
+        if (chart && chart.houses && chart.houses.cusps) {
+            var hNames = ['I(ASC)','II','III','IV(IC)','V','VI','VII(DESC)','VIII','IX','X(MC)','XI','XII'];
+            out += (isEs?'CASAS:\n':'HOUSES:\n');
+            chart.houses.cusps.forEach(function(c,i){
+                var inf = (typeof getZodiacSignWithDegree==='function') ? getZodiacSignWithDegree(c) : null;
+                if (inf) out += '  ' + hNames[i] + ': ' + inf.sign + ' ' + inf.degree + '°' + (inf.minute<10?'0':'') + inf.minute + "'\n";
+            });
+        }
+        return out;
+    }
+
+    var aName = (ctx.profileA && ctx.profileA.name) || 'A';
+    var bName = (ctx.profileB && ctx.profileB.name) || 'B';
+    var promptText = '';
+    var label = '';
+    var modeUpper = '';
+
+    if (ctx.mode === 'compuesta') {
+        modeUpper = isEs ? 'CARTA COMPUESTA' : 'COMPOSITE CHART';
+        label = aName + ' + ' + bName;
+        promptText = '═══ ⚠️ MODO: ' + modeUpper + ' — ' + label + ' ═══\n'
+                   + (isEs
+                       ? 'Esta es la única carta que debe usar el AI para interpretar. Es el midpoint planetario de ambas natales — la RELACIÓN como entidad propia.\n'
+                       : 'This is the only chart the AI must use to interpret. It is the planetary midpoint of both natals — the RELATIONSHIP as its own entity.\n')
+                   + '\n' + _fmtChart(ctx.chartA, modeUpper + ' ' + label) + '\n'
+                   + (isEs
+                       ? '📌 INSTRUCCIONES:\n'
+                         + '• "Sol natal", "Venus natal", "Luna natal" → SIEMPRE se refieren a los planetas de esta carta compuesta.\n'
+                         + '• NO menciones ni uses datos de las cartas individuales de ' + aName + ' o ' + bName + '.\n'
+                         + '• Interpretá TODO en términos de LA RELACIÓN como entidad propia.\n'
+                       : '📌 INSTRUCTIONS:\n'
+                         + '• "natal Sun", "natal Venus", "natal Moon" → ALWAYS refer to this composite chart\'s planets.\n'
+                         + '• Do NOT mention or use data from the individual charts of ' + aName + ' or ' + bName + '.\n'
+                         + '• Interpret EVERYTHING in terms of THE RELATIONSHIP as its own entity.\n');
+    } else if (ctx.mode === 'davison') {
+        modeUpper = isEs ? 'CARTA DAVISON' : 'DAVISON CHART';
+        label = aName + ' + ' + bName;
+        var davInfo = '';
+        if (ctx.davData) {
+            davInfo = (isEs?'\nDATOS NACIMIENTO DAVISON:\n  Fecha: ':'\nDAVISON BIRTH DATA:\n  Date: ') + ctx.davData.dateStr
+                    + (isEs?'\n  Hora: ':'\n  Time: ') + (ctx.davData.timeStr || '?')
+                    + (isEs?'\n  Lugar: ':'\n  Location: ') + (ctx.davData.cityName || '?') + '\n';
+        }
+        promptText = '═══ ⚠️ MODO: ' + modeUpper + ' — ' + label + ' ═══\n'
+                   + (isEs
+                       ? 'Esta es la única carta que debe usar el AI. Es la carta natal REAL al midpoint temporal y espacial de ambos nacimientos — un "tercer ser" que ES la relación.\n'
+                       : 'This is the only chart the AI must use. It is the REAL natal chart at the time/space midpoint of both births — a "third being" that IS the relationship.\n')
+                   + davInfo + '\n' + _fmtChart(ctx.chartA, modeUpper + ' ' + label) + '\n'
+                   + (isEs
+                       ? '📌 INSTRUCCIONES:\n'
+                         + '• Tratá esta carta como una carta natal real con su propia fecha, hora y lugar.\n'
+                         + '• "Sol natal", "Venus natal", etc. → SIEMPRE se refieren a esta carta Davison.\n'
+                         + '• NO uses datos de las natales individuales de ' + aName + ' o ' + bName + '.\n'
+                       : '📌 INSTRUCTIONS:\n'
+                         + '• Treat this as a real natal chart with its own date, time and location.\n'
+                         + '• "natal Sun", "natal Venus", etc. → ALWAYS refer to this Davison chart.\n'
+                         + '• Do NOT use data from the individual natals of ' + aName + ' or ' + bName + '.\n');
+    } else if (ctx.mode === 'sinastria') {
+        modeUpper = isEs ? 'SINASTRÍA' : 'SYNASTRY';
+        label = aName + ' ↔ ' + bName;
+        var synTxt = '';
+        var scoreTxt = '';
+        var overlayTxt = '';
+        try {
+            if (typeof calculateSynastryAspects === 'function') {
+                var sA = calculateSynastryAspects(ctx.chartA, ctx.chartB);
+                if (sA && sA.length > 0) {
+                    synTxt = (isEs?'\nASPECTOS SINASTRÍA (cruzados):\n':'\nSYNASTRY ASPECTS (cross):\n');
+                    sA.forEach(function(a){
+                        synTxt += '  ' + (pN[a.planet1]||a.planet1) + ' (' + aName + ') '
+                                + (aspN[a.type]||a.type) + ' '
+                                + (pN[a.planet2]||a.planet2) + ' (' + bName + ')'
+                                + ' — ' + (isEs?'orbe':'orb') + ' ' + (a.orb||'?') + '°'
+                                + (a.major ? ' [MAYOR]' : '') + '\n';
+                    });
+                    if (typeof calculateSynastryCompatibility === 'function') {
+                        scoreTxt = '\n' + (isEs?'PUNTAJE COMPATIBILIDAD':'COMPATIBILITY SCORE') + ': ' + calculateSynastryCompatibility(sA) + '%\n';
+                    }
+                }
+            }
+            if (typeof calculateHouseOverlay === 'function') {
+                var ovAB = calculateHouseOverlay(ctx.chartA.houses, ctx.chartB.planets);
+                var ovBA = calculateHouseOverlay(ctx.chartB.houses, ctx.chartA.planets);
+                if (ovAB && ovAB.length > 0) {
+                    overlayTxt += '\n' + (isEs?'PLANETAS DE ':'PLANETS OF ') + bName.toUpperCase() + (isEs?' EN CASAS DE ':' IN HOUSES OF ') + aName.toUpperCase() + ':\n';
+                    ovAB.forEach(function(o){ overlayTxt += '  ' + (pN[o.planet]||o.planet) + ' → ' + (isEs?'Casa ':'House ') + o.house + '\n'; });
+                }
+                if (ovBA && ovBA.length > 0) {
+                    overlayTxt += '\n' + (isEs?'PLANETAS DE ':'PLANETS OF ') + aName.toUpperCase() + (isEs?' EN CASAS DE ':' IN HOUSES OF ') + bName.toUpperCase() + ':\n';
+                    ovBA.forEach(function(o){ overlayTxt += '  ' + (pN[o.planet]||o.planet) + ' → ' + (isEs?'Casa ':'House ') + o.house + '\n'; });
+                }
+            }
+        } catch(_e) { console.warn('Sinastria precompute:', _e); }
+
+        promptText = '═══ ⚠️ MODO: ' + modeUpper + ' — ' + label + ' ═══\n'
+                   + (isEs
+                       ? 'La sinastría compara DOS cartas natales como sistema en interacción. NO se fusionan — se relacionan.\n'
+                       : 'Synastry compares TWO natal charts as a system in interaction. They do NOT merge — they relate.\n')
+                   + '\n' + _fmtChart(ctx.chartA, 'CARTA ' + aName)
+                   + '\n' + _fmtChart(ctx.chartB, 'CARTA ' + bName)
+                   + synTxt + scoreTxt + overlayTxt
+                   + (isEs
+                       ? '\n📌 INSTRUCCIONES:\n'
+                         + '• Considerá AMBAS cartas natales como sistema interactivo, no como una sola persona.\n'
+                         + '• Cuando hables de tránsitos, analizá cómo afectan a cada carta Y al vínculo.\n'
+                         + '• Usá los aspectos sinastría, el puntaje y los overlays para enmarcar todo.\n'
+                         + '• Mantené BALANCE entre ambos perfiles — no te enfoques solo en uno.\n'
+                       : '\n📌 INSTRUCTIONS:\n'
+                         + '• Consider BOTH natal charts as an interactive system, not as one person.\n'
+                         + '• When discussing transits, analyze how they affect each chart AND the bond.\n'
+                         + '• Use synastry aspects, score and overlays to frame everything.\n'
+                         + '• Maintain BALANCE between both profiles — do not focus only on one.\n');
+    }
+
+    window._calRelPromptCache = {
+        cacheKey: (ctx.profileA && ctx.profileA.id) + '|' + (ctx.profileB && ctx.profileB.id) + '|' + ctx.mode + '|' + currentLang,
+        mode: ctx.mode,
+        promptText: promptText,
+        timestamp: Date.now()
+    };
+    console.log('[v749az] Precomputed relData for', ctx.mode, '— ' + promptText.length + ' chars');
+};
+
 // Cambia de modo, persiste en localStorage, dispara re-render del calendario
 window.setCalRelMode = function(mode, secondProfileId) {
     window._calRelMode = mode;
@@ -22150,6 +22303,11 @@ window.setCalRelMode = function(mode, secondProfileId) {
     // Invalidar caches para forzar recálculo
     window._calRelCompCache = null;
     window._calRelDavCache = null;
+    window._calRelPromptCache = null;
+    // v749az: precomputar el contexto relacional UNA SOLA VEZ
+    if (mode !== 'natal' && typeof window._precomputeRelData === 'function') {
+        try { window._precomputeRelData(); } catch(e) { console.warn('precomputeRelData error:', e); }
+    }
     // v749ap: detectar si estamos renderizando dentro del calendario relacional vs personal,
     // y re-llamar con las opts correctas. Si el div natalTabRelCalendar está visible/poblado,
     // estamos en modo relacional.
@@ -22175,6 +22333,10 @@ if (!window._calRelModeInit) {
         if (savedMode && savedSec) {
             window._calRelMode = savedMode;
             window._calRelSecondProfileId = savedSec;
+            // v749az: regenerar el cache de prompt en arranque
+            if (typeof window._precomputeRelData === 'function') {
+                setTimeout(function(){ try { window._precomputeRelData(); } catch(_){} }, 600);
+            }
         }
     } catch(_){}
 }
@@ -22200,10 +22362,11 @@ window.buildCalRelSelector = function() {
 
     var html = '<div class="personal-natal-card" style="padding:8px 10px;margin-bottom:6px;">';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
-    // v749aq: solo 3 modos relacionales (Natal removido — no aplica en calendario de Relaciones)
-    html += pill('sinastria', '💞', (L?'Sinastría':'Synastry'), '#e91e63');
-    html += pill('compuesta', '💫', (L?'Compuesta':'Composite'), '#9b59b6');
-    html += pill('davison', '🌌', 'Davison', '#3498db');
+    // v749ay: colores oficiales que matchean los tabs estándalone:
+    //   Sinastría = lila #c39bd3, Compuesta = verde #2ecc71, Davison = amarillo #f1c40f
+    html += pill('sinastria', '☌', (L?'Sinastría':'Synastry'), '#c39bd3');
+    html += pill('compuesta', '⊕', (L?'Compuesta':'Composite'), '#2ecc71');
+    html += pill('davison', '✦', 'Davison', '#f1c40f');
     html += '</div>';
 
     // Selector de 2do perfil si no es natal
@@ -26897,12 +27060,15 @@ function renderPersonalCalendar(opts) {
         window._calRelChartB = null;
     }
 
-    // v749ap: header relacional cuando estamos en modo Sinastría/Compuesta/Davison
+    // v749ap/ay: header relacional cuando estamos en modo Sinastría/Compuesta/Davison
     var _relHeaderHTML = '';
     if (_isRelMode) {
         var _ctx = (typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
         if (_ctx.mode !== 'natal' && _ctx.profileA && _ctx.profileB) {
-            var _modeIcon = _ctx.mode === 'compuesta' ? '💫' : _ctx.mode === 'davison' ? '🌌' : '💞';
+            // v749ay: iconos y colores oficiales que matchean los tabs estándalone
+            var _modeIcon = _ctx.mode === 'compuesta' ? '⊕' : _ctx.mode === 'davison' ? '✦' : '☌';
+            var _modeColor = _ctx.mode === 'compuesta' ? '#2ecc71' : _ctx.mode === 'davison' ? '#f1c40f' : '#c39bd3';
+            var _modeBg = _ctx.mode === 'compuesta' ? '46,204,113' : _ctx.mode === 'davison' ? '241,196,15' : '155,89,182';
             var _modeName = _ctx.mode === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart')
                           : _ctx.mode === 'davison' ? (L?'Carta Davison':'Davison Chart')
                           : (L?'Sinastría':'Synastry');
@@ -26924,8 +27090,8 @@ function renderPersonalCalendar(opts) {
                 _modeInfo = L ? 'Tránsitos sobre AMBAS cartas. Días con 💞 = doble activación (mismo planeta hits ambas cartas).'
                               : 'Transits on BOTH charts. Days with 💞 = double activation (same planet hits both charts).';
             }
-            _relHeaderHTML = '<div class="personal-natal-card" style="padding:12px;margin-bottom:8px;">'
-                + '<div style="font-family:Cinzel,serif;font-size:1em;color:#c39bd3;text-align:center;margin-bottom:4px;">' + _modeIcon + ' ' + _modeName + '</div>'
+            _relHeaderHTML = '<div class="personal-natal-card" style="padding:12px;margin-bottom:8px;background:rgba(' + _modeBg + ',0.08);border:1px solid rgba(' + _modeBg + ',0.30);">'
+                + '<div style="font-family:Cinzel,serif;font-size:1em;color:' + _modeColor + ';text-align:center;margin-bottom:4px;">' + _modeIcon + ' ' + _modeName + '</div>'
                 + '<div style="text-align:center;font-size:0.9em;color:#fff;margin-bottom:6px;">' + _aName + _sep + _bName + '</div>'
                 + '<div style="font-size:0.75em;color:rgba(255,255,255,0.55);text-align:center;line-height:1.5;">' + _modeInfo + '</div>'
                 + '</div>';
@@ -28211,11 +28377,16 @@ function showPersonalDayDetail(year, month, day) {
                 <button onclick="var m=document.getElementById('personalDayModal');if(m)m.classList.remove('show');" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4em;cursor:pointer;flex-shrink:0;margin-left:8px;">✕</button>
             </div>
 
-            <!-- v749an: banner de modo relacional si no es natal -->
-            ${_relMode !== 'natal' ? `<div style="margin-bottom:10px;padding:8px 12px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;text-align:center;font-size:0.82em;color:#c39bd3;">
-                ${_relMode === 'compuesta' ? '💫' : _relMode === 'davison' ? '🌌' : '💞'} ${_relCtx.label}
-                ${_doubleActPlanets.length > 0 ? `<div style="margin-top:4px;font-size:0.85em;color:#e91e63;font-weight:700;">💞 ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}</div>` : ''}
-            </div>` : ''}
+            <!-- v749an/ay: banner de modo relacional con colores oficiales (lila/verde/amarillo) -->
+            ${_relMode !== 'natal' ? (function() {
+                var _bColor = _relMode === 'compuesta' ? '#2ecc71' : _relMode === 'davison' ? '#f1c40f' : '#c39bd3';
+                var _bRgb = _relMode === 'compuesta' ? '46,204,113' : _relMode === 'davison' ? '241,196,15' : '155,89,182';
+                var _bIcon = _relMode === 'compuesta' ? '⊕' : _relMode === 'davison' ? '✦' : '☌';
+                return `<div style="margin-bottom:10px;padding:8px 12px;background:rgba(${_bRgb},0.10);border:1px solid rgba(${_bRgb},0.30);border-radius:8px;text-align:center;font-size:0.82em;color:${_bColor};">
+                ${_bIcon} ${_relCtx.label}
+                ${_doubleActPlanets.length > 0 ? `<div style="margin-top:4px;font-size:0.85em;color:#c39bd3;font-weight:700;">☌ ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}</div>` : ''}
+            </div>`;
+            })() : ''}
 
             <!-- v749aj: botón "Interpretar el día" ahora ARRIBA, justo debajo de la fecha -->
             <div style="margin-bottom:14px;text-align:center;">
@@ -28397,10 +28568,10 @@ function showPersonalDayDetail(year, month, day) {
                     + '</div>';
                 }).join('') + '</div></div>' : ''}
 
-            <!-- v749an: en sinastría, sección extra con tránsitos sobre el SEGUNDO perfil (chart B) -->
+            <!-- v749an/ay: en sinastría, sección extra con tránsitos sobre Chart B (lila — color oficial sinastría) -->
             ${_relMode === 'sinastria' && transitsB.length > 0 ? `
-            <div style="margin-top:14px;padding-top:10px;border-top:2px dashed rgba(233,30,99,0.30);">
-                <div style="font-size:0.85em;font-weight:700;color:#e91e63;margin-bottom:8px;text-align:center;">💞 ${L?'Tránsitos sobre':'Transits on'} ${_relCtx.profileB && _relCtx.profileB.name ? _relCtx.profileB.name : (L?'su carta':'their chart')}</div>
+            <div style="margin-top:14px;padding-top:10px;border-top:2px dashed rgba(155,89,182,0.40);">
+                <div style="font-size:0.85em;font-weight:700;color:#c39bd3;margin-bottom:8px;text-align:center;">☌ ${L?'Tránsitos sobre':'Transits on'} ${_relCtx.profileB && _relCtx.profileB.name ? _relCtx.profileB.name : (L?'su carta':'their chart')}</div>
                 ${slowTransitsB.length > 0 ? '<div style="margin-bottom:10px;"><div style="font-size:0.72em;font-weight:700;color:#e74c3c;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🔴 ' + (L ? 'Mayores' : 'Major') + ' (' + slowTransitsB.length + ')</div>' + slowTransitsB.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
                     return '<div style="padding:5px 8px;border-left:3px solid ' + t.color + ';margin-bottom:3px;font-size:0.82em;color:rgba(255,255,255,0.75);">'
@@ -45617,7 +45788,20 @@ function resetAllAIChats() {
 
 function buildSystemPrompt(contextLevel) {
     const isEs = currentLang === 'es';
-    const fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
+    // v749az: si estamos en el calendario relacional Y hay cache precalculado,
+    // REEMPLAZAR el contexto natal completo por el contexto relacional limpio.
+    // Esto evita duplicación y evita que el AI mezcle la natal del usuario activo
+    // con la carta compuesta/davison/sinastría.
+    var fullCtx;
+    if (window._isRelationsCalendarActive && window._calRelPromptCache && window._calRelPromptCache.promptText) {
+        // Contexto LIMPIO: solo fecha/lugar + datos relacionales (sin natales individuales del usuario)
+        var now = new Date();
+        fullCtx = (isEs?'Fecha actual: ':'Current date: ') + now.toLocaleDateString(isEs?'es-CR':'en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n';
+        fullCtx += (isEs?'Hora: ':'Time: ') + now.toLocaleTimeString(isEs?'es-CR':'en-US') + '\n\n';
+        fullCtx += window._calRelPromptCache.promptText;
+    } else {
+        fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
+    }
     var persona = getActivePersona();
     var base = persona.buildPrompt(isEs, fullCtx);
 
@@ -45708,6 +45892,134 @@ function buildSystemPrompt(contextLevel) {
                 : '\n\n═══ MULTIPLE PROFILES ═══\nThere are ' + _profiles.length + ' natal chart profiles saved: ' + _profileList + '. The data you see corresponds to the ACTIVE profile. If the user asks for personal analysis and it\'s not clear for whom, ASK: "Which profile do you want the analysis for?" Never assume which profile without confirming.';
         }
     } catch(e) {}
+
+    // v749az: OVERRIDE ELIMINADO — ahora el fullCtx YA es limpio (contexto relacional sin natales).
+    // Mantenemos un bloque cortito sólo por si el cache no se generó por algún edge case.
+    if (false && window._isRelationsCalendarActive && typeof getCalRelContext === 'function') {
+        try {
+            var _relSpCtx = getCalRelContext();
+            var _pNombres = isEs
+                ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith'}
+                : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith'};
+            var _aspNms = isEs
+                ? {conjunction:'Conjunción',sextile:'Sextil',square:'Cuadratura',trine:'Trígono',opposition:'Oposición',semisextile:'Semisextil',quincunx:'Quincuncio'}
+                : {conjunction:'Conjunction',sextile:'Sextile',square:'Square',trine:'Trine',opposition:'Opposition',semisextile:'Semisextile',quincunx:'Quincunx'};
+
+            // Helper para formatear una carta como texto rico
+            function _formatRelChart(chart, label) {
+                var out = '── ' + label + ' ──\n';
+                if (chart && chart.planets) {
+                    out += (isEs?'PLANETAS:\n':'PLANETS:\n');
+                    Object.entries(chart.planets).forEach(function(en){
+                        var p = en[0], d = en[1];
+                        if (!_pNombres[p]) return;
+                        var fmt = d.formatted || (d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + (d.minute||0) + "'");
+                        var house = (chart.houses && typeof getHouseForLongitude === 'function') ? getHouseForLongitude(d.longitude, chart.houses.cusps) : '?';
+                        out += '  ' + (_pNombres[p]||p) + ': ' + fmt + (house !== '?' ? ' (' + (isEs?'Casa ':'House ') + house + ')' : '') + (d.isRetrograde ? ' ℞' : '') + '\n';
+                    });
+                }
+                if (chart && chart.houses && chart.houses.cusps) {
+                    var hNames = ['I(ASC)','II','III','IV(IC)','V','VI','VII(DESC)','VIII','IX','X(MC)','XI','XII'];
+                    out += (isEs?'CASAS (Cúspides):\n':'HOUSES (Cusps):\n');
+                    chart.houses.cusps.forEach(function(c,i){
+                        var inf = (typeof getZodiacSignWithDegree==='function') ? getZodiacSignWithDegree(c) : null;
+                        if (inf) out += '  ' + hNames[i] + ': ' + inf.sign + ' ' + inf.degree + '°' + (inf.minute<10?'0':'') + inf.minute + "'\n";
+                    });
+                }
+                return out;
+            }
+
+            if (_relSpCtx.mode === 'compuesta') {
+                var _chrt = _relSpCtx.chartA;
+                base += isEs
+                    ? '\n\n═══ ⚠️ OVERRIDE RELACIONAL — CARTA COMPUESTA — MÁXIMA PRIORIDAD ═══\n'
+                      + 'El usuario está interpretando la CARTA COMPUESTA de ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B') + '. La compuesta es el midpoint planetario de ambas cartas — la RELACIÓN como entidad propia.\n\n'
+                      + '🚫 PROHIBIDO: NO uses los datos natales del perfil activo arriba. Están DESACTIVADOS para esta interpretación.\n\n'
+                      + '✅ DATOS DE LA CARTA COMPUESTA (basate SOLO en estos):\n'
+                      + _formatRelChart(_chrt, 'CARTA COMPUESTA ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B'))
+                      + '\n📌 Cuando digas "Sol natal" / "Venus natal" / etc., te referís al Sol/Venus de ESTA carta compuesta. Interpretá todo en términos de la RELACIÓN como entidad — no de la persona del perfil activo. Mantené foco continuo durante toda la respuesta.'
+                    : '\n\n═══ ⚠️ RELATIONAL OVERRIDE — COMPOSITE CHART — MAXIMUM PRIORITY ═══\n'
+                      + 'The user is interpreting the COMPOSITE CHART of ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B') + '. The composite is the planetary midpoint of both charts — the RELATIONSHIP as its own entity.\n\n'
+                      + '🚫 FORBIDDEN: Do NOT use the active profile natal data above. Deactivated for this interpretation.\n\n'
+                      + '✅ COMPOSITE CHART DATA (use ONLY this):\n'
+                      + _formatRelChart(_chrt, 'COMPOSITE CHART ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B'))
+                      + '\n📌 When you say "natal Sun" / "natal Venus" / etc., you refer to the Sun/Venus of THIS composite chart. Interpret everything in terms of the RELATIONSHIP as entity — not the active profile person. Maintain continuous focus throughout the response.';
+            } else if (_relSpCtx.mode === 'davison') {
+                var _chrt = _relSpCtx.chartA;
+                var _davDataTxt = '';
+                if (_relSpCtx.davData) {
+                    _davDataTxt = (isEs?'\nDATOS NACIMIENTO DAVISON:\n  Fecha: ':'\nDAVISON BIRTH DATA:\n  Date: ') + _relSpCtx.davData.dateStr
+                                + (isEs?'\n  Hora: ':'\n  Time: ') + (_relSpCtx.davData.timeStr || '?')
+                                + (isEs?'\n  Lugar: ':'\n  Location: ') + (_relSpCtx.davData.cityName || '?') + '\n';
+                }
+                base += isEs
+                    ? '\n\n═══ ⚠️ OVERRIDE RELACIONAL — CARTA DAVISON — MÁXIMA PRIORIDAD ═══\n'
+                      + 'El usuario está interpretando la CARTA DAVISON de ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B') + '. La Davison es la carta natal REAL al midpoint temporal y espacial de ambos nacimientos — un "tercer ser" que ES la relación.\n\n'
+                      + '🚫 PROHIBIDO: NO uses los datos natales del perfil activo arriba. Están DESACTIVADOS para esta interpretación.\n\n'
+                      + '✅ DATOS DE LA CARTA DAVISON (basate SOLO en estos):\n' + _davDataTxt
+                      + _formatRelChart(_chrt, 'CARTA DAVISON ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B'))
+                      + '\n📌 Tratá esta carta como una natal real. Cuando digas "Sol natal" te referís al Sol Davison. Interpretá todo en términos de la RELACIÓN como ser real con su propia fecha y lugar. Mantené foco continuo durante toda la respuesta.'
+                    : '\n\n═══ ⚠️ RELATIONAL OVERRIDE — DAVISON CHART — MAXIMUM PRIORITY ═══\n'
+                      + 'The user is interpreting the DAVISON CHART of ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B') + '. Davison is the REAL natal chart at the time/space midpoint of both births — a "third being" that IS the relationship.\n\n'
+                      + '🚫 FORBIDDEN: Do NOT use the active profile natal data above. Deactivated.\n\n'
+                      + '✅ DAVISON CHART DATA (use ONLY this):\n' + _davDataTxt
+                      + _formatRelChart(_chrt, 'DAVISON CHART ' + (_relSpCtx.profileA.name||'A') + ' + ' + (_relSpCtx.profileB.name||'B'))
+                      + '\n📌 Treat this as a real natal chart. When you say "natal Sun" you mean Davison Sun. Interpret everything as the RELATIONSHIP as a real being with its own date and place. Maintain continuous focus throughout the response.';
+            } else if (_relSpCtx.mode === 'sinastria') {
+                // SINASTRÍA: incluir AMBAS cartas + synAspects + score + overlay
+                var _synAspTxt = '';
+                var _scoreTxt = '';
+                var _overlayTxt = '';
+                try {
+                    if (typeof calculateSynastryAspects === 'function') {
+                        var _synA = calculateSynastryAspects(_relSpCtx.chartA, _relSpCtx.chartB);
+                        if (_synA && _synA.length > 0) {
+                            _synAspTxt = (isEs?'\nASPECTOS SINASTRÍA (cruzados):\n':'\nSYNASTRY ASPECTS (cross):\n');
+                            _synA.forEach(function(a){
+                                _synAspTxt += '  ' + (_pNombres[a.planet1]||a.planet1) + ' (' + (_relSpCtx.profileA.name||'A') + ') '
+                                           + (_aspNms[a.type]||a.type) + ' '
+                                           + (_pNombres[a.planet2]||a.planet2) + ' (' + (_relSpCtx.profileB.name||'B') + ')'
+                                           + ' — ' + (isEs?'orbe':'orb') + ' ' + (a.orb || '?') + '°'
+                                           + (a.major ? ' [MAYOR]' : '') + '\n';
+                            });
+                            if (typeof calculateSynastryCompatibility === 'function') {
+                                var _scr = calculateSynastryCompatibility(_synA);
+                                _scoreTxt = '\n' + (isEs?'PUNTAJE COMPATIBILIDAD':'COMPATIBILITY SCORE') + ': ' + _scr + '%\n';
+                            }
+                        }
+                    }
+                    if (typeof calculateHouseOverlay === 'function') {
+                        var _ovAB = calculateHouseOverlay(_relSpCtx.chartA.houses, _relSpCtx.chartB.planets);
+                        var _ovBA = calculateHouseOverlay(_relSpCtx.chartB.houses, _relSpCtx.chartA.planets);
+                        if (_ovAB && _ovAB.length > 0) {
+                            _overlayTxt += '\n' + (isEs?'PLANETAS DE ':'PLANETS OF ') + (_relSpCtx.profileB.name||'B').toUpperCase() + (isEs?' EN CASAS DE ':' IN HOUSES OF ') + (_relSpCtx.profileA.name||'A').toUpperCase() + ':\n';
+                            _ovAB.forEach(function(o){ _overlayTxt += '  ' + (_pNombres[o.planet]||o.planet) + ' → ' + (isEs?'Casa ':'House ') + o.house + '\n'; });
+                        }
+                        if (_ovBA && _ovBA.length > 0) {
+                            _overlayTxt += '\n' + (isEs?'PLANETAS DE ':'PLANETS OF ') + (_relSpCtx.profileA.name||'A').toUpperCase() + (isEs?' EN CASAS DE ':' IN HOUSES OF ') + (_relSpCtx.profileB.name||'B').toUpperCase() + ':\n';
+                            _ovBA.forEach(function(o){ _overlayTxt += '  ' + (_pNombres[o.planet]||o.planet) + ' → ' + (isEs?'Casa ':'House ') + o.house + '\n'; });
+                        }
+                    }
+                } catch(_eSyn) { console.warn('Synastry calc in prompt:', _eSyn); }
+
+                base += isEs
+                    ? '\n\n═══ ⚠️ OVERRIDE RELACIONAL — SINASTRÍA — MÁXIMA PRIORIDAD ═══\n'
+                      + 'El usuario está en SINASTRÍA entre ' + (_relSpCtx.profileA.name||'A') + ' y ' + (_relSpCtx.profileB.name||'B') + '. Considerá AMBAS cartas natales como un sistema en interacción.\n\n'
+                      + '✅ DATOS COMPLETOS DE LA SINASTRÍA:\n'
+                      + _formatRelChart(_relSpCtx.chartA, 'CARTA ' + (_relSpCtx.profileA.name||'A'))
+                      + _formatRelChart(_relSpCtx.chartB, 'CARTA ' + (_relSpCtx.profileB.name||'B'))
+                      + _synAspTxt + _scoreTxt + _overlayTxt
+                      + '\n📌 NO te enfoques solo en mi perfil — la sinastría es el VÍNCULO entre AMBAS personas. Cuando interpretes tránsitos, analizá cómo afectan a cada carta natal Y al vínculo. Usá los aspectos sinastría, el puntaje y las superposiciones de casa para enmarcar todo. Mantené balance entre ambos perfiles durante toda la respuesta.'
+                    : '\n\n═══ ⚠️ RELATIONAL OVERRIDE — SYNASTRY — MAXIMUM PRIORITY ═══\n'
+                      + 'The user is in SYNASTRY between ' + (_relSpCtx.profileA.name||'A') + ' and ' + (_relSpCtx.profileB.name||'B') + '. Consider BOTH natal charts as a system in interaction.\n\n'
+                      + '✅ FULL SYNASTRY DATA:\n'
+                      + _formatRelChart(_relSpCtx.chartA, 'CHART ' + (_relSpCtx.profileA.name||'A'))
+                      + _formatRelChart(_relSpCtx.chartB, 'CHART ' + (_relSpCtx.profileB.name||'B'))
+                      + _synAspTxt + _scoreTxt + _overlayTxt
+                      + '\n📌 Do NOT focus only on my profile — synastry is the BOND between BOTH. When interpreting transits, analyze how they affect each natal chart AND the bond. Use synastry aspects, score, and house overlays to frame everything. Maintain balance between both profiles throughout the response.';
+            }
+        } catch(_relOvErr) { console.warn('Relational override error:', _relOvErr); }
+    }
 
     // v749at: estilo de interpretación — Simple (omitir grados/orbes) o Detallado (con grados/orbes, default)
     var _interpStylePref = localStorage.getItem('prefInterpStyle') || 'detailed';
