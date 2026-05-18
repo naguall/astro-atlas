@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bd';</script>
+    <script>window.APP_VERSION = 'v749be';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10061,10 +10061,52 @@ function setSavedReadings(readings) {
     }
     if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
 }
+
+// v749be: traer readings de TODOS los perfiles, con badge del nombre del perfil dueño
+function getSavedReadingsAllProfiles() {
+    var profilesList = [];
+    try { profilesList = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(_){}
+    var profileName = function(pid) {
+        var p = profilesList.find(function(x){ return x.id === pid; });
+        return p ? (p.name || p.cityName || pid) : pid;
+    };
+    var seen = {};
+    var all = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || (!k.startsWith('moonsync_saved_readings_') && k !== 'moonsync_readings_emgbak')) continue;
+        try {
+            var arr = JSON.parse(localStorage.getItem(k) || '[]');
+            // Extraer profileId del key (formato: moonsync_saved_readings_<pid>)
+            var pidFromKey = k.startsWith('moonsync_saved_readings_') ? k.substring('moonsync_saved_readings_'.length) : null;
+            arr.forEach(function(r) {
+                if (r && r.id && !seen[r.id]) {
+                    seen[r.id] = true;
+                    // Determinar el perfil "dueño" de esta reading
+                    var ownerPid = r.profileId || pidFromKey || 'default';
+                    r._ownerProfileId = ownerPid;
+                    r._ownerProfileName = profileName(ownerPid);
+                    all.push(r);
+                }
+            });
+        } catch(_e){}
+    }
+    // Sort by date desc
+    all.sort(function(a, b) { return new Date(b.date||0) - new Date(a.date||0); });
+    return all;
+}
 function saveReading(title, textContent, htmlContent) {
     // Show rename dialog instead of saving immediately
     _showSaveDialog(title, function(finalTitle) {
         var readings = getSavedReadings();
+        // v749be: incluir metadata del modo relacional si aplica (para identificación)
+        var _relCtxMeta = null;
+        if (window._isRelationsCalendarActive && window._calRelMode && window._calRelMode !== 'natal') {
+            _relCtxMeta = {
+                mode: window._calRelMode,
+                secondProfileId: window._calRelSecondProfileId
+            };
+        }
         readings.unshift({
             id: Date.now().toString(36) + Math.random().toString(36).substr(2,4),
             title: finalTitle,
@@ -10072,7 +10114,8 @@ function saveReading(title, textContent, htmlContent) {
             html: htmlContent,
             date: new Date().toISOString(),
             profileId: getActiveProfileId() || 'default',
-            starred: false
+            starred: false,
+            relMode: _relCtxMeta // null si es natal, {mode, secondProfileId} si es relacional
         });
         if (readings.length > 100) readings = readings.slice(0, 100);
         setSavedReadings(readings);
@@ -10286,7 +10329,9 @@ function openSavedReadingsModal(tab) {
     }
     diaryEntries.sort(function(a, b) { return b.date.localeCompare(a.date); });
 
-    var readings = getSavedReadings();
+    // v749be: toggle "Ver TODAS (todos los perfiles)" para readings
+    var showAllReadings = window._showAllReadings === true;
+    var readings = showAllReadings ? getSavedReadingsAllProfiles() : getSavedReadings();
     var html = '';
 
     // Tab buttons
@@ -10383,10 +10428,19 @@ function openSavedReadingsModal(tab) {
     else
 
     if (lecturasActive) {
+        // v749be: toggle Ver TODAS los perfiles
+        html += '<div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(126,200,255,0.05);border:1px solid rgba(126,200,255,0.2);border-radius:8px;">';
+        html += '<span style="font-size:0.78em;color:rgba(255,255,255,0.6);flex:1;">' + (showAllReadings ? (L?'📚 Mostrando interpretaciones de TODOS los perfiles':'📚 Showing interpretations from ALL profiles') : (L?'📚 Solo del perfil activo':'📚 Active profile only')) + '</span>';
+        html += '<label style="position:relative;display:inline-block;width:42px;height:22px;flex-shrink:0;cursor:pointer;"><input type="checkbox" ' + (showAllReadings?'checked':'') + ' onchange="window._showAllReadings=this.checked;openSavedReadingsModal(\'lecturas\');" style="opacity:0;width:0;height:0;"><span style="position:absolute;top:0;left:0;right:0;bottom:0;background:' + (showAllReadings?'rgba(126,200,255,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:22px;transition:0.2s;"><span style="position:absolute;height:16px;width:16px;left:' + (showAllReadings?'23px':'3px') + ';top:3px;background:white;border-radius:50%;transition:0.2s;display:block;"></span></span></label>';
+        html += '<span style="font-size:0.78em;color:' + (showAllReadings?'#7ec8ff':'rgba(255,255,255,0.4)') + ';font-weight:600;">' + (L?'Ver TODAS':'Show ALL') + '</span>';
+        html += '</div>';
+
         if (readings.length === 0) {
             html += '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);">'
                 + '<div style="font-size:3em;margin-bottom:15px;">📚</div>'
-                + '<p style="font-size:1.1em;margin-bottom:8px;">' + (L ? 'No tienes lecturas guardadas aún' : 'No saved readings yet') + '</p></div>';
+                + '<p style="font-size:1.1em;margin-bottom:8px;">' + (L ? 'No tienes lecturas guardadas aún' : 'No saved readings yet') + '</p>'
+                + (!showAllReadings ? '<p style="font-size:0.85em;margin-top:14px;color:rgba(126,200,255,0.7);">' + (L?'¿No ves una que guardaste? Activá "Ver TODAS" arriba — puede estar en otro perfil.':'Don\'t see one you saved? Enable "Show ALL" above — it may be on another profile.') + '</p>' : '')
+                + '</div>';
         } else {
             html += '<div style="margin-bottom:12px;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">';
             html += '<button onclick="exportAllReadings()" style="padding:6px 14px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar texto' : '📥 Export text') + '</button>';
@@ -10396,9 +10450,13 @@ function openSavedReadingsModal(tab) {
                 var d = new Date(r.date);
                 var dateStr = d.toLocaleDateString(L ? 'es' : 'en', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
                 var preview = r.text.substring(0, 120).replace(/\n/g,' ') + (r.text.length > 120 ? '...' : '');
+                // v749be: badge del perfil dueño cuando estamos mostrando todos
+                var profileBadge = (showAllReadings && r._ownerProfileName)
+                    ? '<span style="display:inline-block;padding:1px 7px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);border-radius:8px;color:#c39bd3;font-size:0.7em;margin-left:6px;">👤 ' + r._ownerProfileName + '</span>'
+                    : '';
                 html += '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,64,0.15);border-radius:10px;padding:14px;margin-bottom:10px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
-                html += '<div style="flex:1;"><div style="font-weight:700;color:#c9a840;font-size:0.95em;">' + (r.starred ? '⭐ ' : '') + r.title + '</div>';
+                html += '<div style="flex:1;"><div style="font-weight:700;color:#c9a840;font-size:0.95em;">' + (r.starred ? '⭐ ' : '') + r.title + profileBadge + '</div>';
                 html += '<div style="color:rgba(255,255,255,0.35);font-size:0.75em;margin-top:3px;">' + dateStr + '</div></div>';
                 html += '<div style="display:flex;gap:4px;flex-shrink:0;">';
                 html += '<button onclick="toggleStarReading(\'' + r.id + '\');openSavedReadingsModal(\'lecturas\');" style="background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:2px 4px;">' + (r.starred ? '⭐' : '☆') + '</button>';
