@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ba';</script>
+    <script>window.APP_VERSION = 'v749bd';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10130,53 +10130,84 @@ function toggleStarReading(id) {
     readings.forEach(function(r) { if (r.id === id) r.starred = !r.starred; });
     setSavedReadings(readings);
 }
-// v749am: helper global de share — SIEMPRE copia al portapapeles primero (backup contra truncación
-// de Android Intent / WhatsApp / WebView) y luego abre navigator.share. Así el texto completo está
-// disponible para pegar si el receptor cortó el mensaje del share intent.
+// v749bc: helper de share REFACTORIZADO — toast SIEMPRE visible.
+// Antes: el toast solo aparecía si clipboard.writeText() resolvía (y a veces fallaba silencioso).
+// Ahora: muestro el toast PRIMERO (siempre), intento clipboard en paralelo (textarea fallback robusto),
+// y dejo el toast con el mensaje correcto según el resultado.
 window.shareTextSafe = function(title, text) {
     var L = currentLang === 'es';
-    var copied = false;
 
-    // 1) SIEMPRE copiar al portapapeles primero (esto NUNCA trunca, da el texto completo)
-    function _toastCopiado() {
+    // 1) MOSTRAR TOAST INMEDIATO (no esperar a clipboard)
+    function _showToast(msg, color, duration) {
         try {
+            // Quitar toast anterior si existe
+            var prev = document.getElementById('_shareToast');
+            if (prev) try { document.body.removeChild(prev); } catch(_){}
             var t = document.createElement('div');
-            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(37,211,102,0.95);color:#fff;padding:10px 18px;border-radius:8px;font-size:0.85em;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-            t.textContent = L ? '✓ Texto copiado — pegá si se corta' : '✓ Text copied — paste if cut';
+            t.id = '_shareToast';
+            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + (color || 'rgba(37,211,102,0.95)') + ';color:#fff;padding:12px 20px;border-radius:8px;font-size:0.88em;font-weight:600;z-index:999999;box-shadow:0 4px 16px rgba(0,0,0,0.5);max-width:90vw;text-align:center;line-height:1.4;';
+            t.textContent = msg;
             document.body.appendChild(t);
-            setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 2200);
-            setTimeout(function() { try { document.body.removeChild(t); } catch(_){} }, 2700);
+            var dur = duration || 3500;
+            setTimeout(function() { if (t.parentNode) { t.style.opacity = '0'; t.style.transition = 'opacity 0.4s'; } }, dur - 400);
+            setTimeout(function() { try { if (t.parentNode) document.body.removeChild(t); } catch(_){} }, dur);
         } catch(_){}
     }
 
+    // 2) Toast INICIAL — siempre visible
+    var initialMsg = L
+        ? '📋 ' + (text.length > 1000 ? 'Texto largo copiado — si WhatsApp lo corta, pegá manualmente' : 'Texto copiado — pegá si se corta')
+        : '📋 ' + (text.length > 1000 ? 'Long text copied — if WhatsApp cuts it, paste manually' : 'Text copied — paste if cut');
+    _showToast(initialMsg, 'rgba(37,211,102,0.95)');
+
+    // 3) Copiar al portapapeles — múltiples estrategias en paralelo
+    var copySucceeded = false;
+
+    // Estrategia A: Clipboard API (moderna)
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
-            copied = true; _toastCopiado();
-        }).catch(function() {
-            // textarea fallback
+            copySucceeded = true;
+        }).catch(function(err) {
+            console.warn('[share] clipboard.writeText failed:', err && err.message);
+            // Estrategia B: textarea + execCommand (fallback legacy)
             try {
                 var ta = document.createElement('textarea');
-                ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy'); document.body.removeChild(ta);
-                copied = true; _toastCopiado();
-            } catch(_){}
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
+                document.body.appendChild(ta);
+                ta.focus(); ta.select();
+                var ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (ok) copySucceeded = true;
+                else console.warn('[share] execCommand copy returned false');
+            } catch(e2) { console.warn('[share] textarea fallback failed:', e2); }
         });
     } else {
+        // No clipboard API → directo a textarea
         try {
-            var ta2 = document.createElement('textarea');
-            ta2.value = text; ta2.style.position = 'fixed'; ta2.style.opacity = '0';
-            document.body.appendChild(ta2); ta2.select();
-            document.execCommand('copy'); document.body.removeChild(ta2);
-            copied = true; _toastCopiado();
-        } catch(_){}
+            var ta3 = document.createElement('textarea');
+            ta3.value = text;
+            ta3.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
+            document.body.appendChild(ta3);
+            ta3.focus(); ta3.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta3);
+            copySucceeded = true;
+        } catch(e3) { console.warn('[share] textarea direct failed:', e3); }
     }
 
-    // 2) Abrir share intent nativo si está disponible (puede truncar, pero el clipboard tiene todo)
+    // 4) Abrir share intent nativo (en paralelo, no esperamos al clipboard)
     if (navigator.share) {
-        try { navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(){}); } catch(_){}
-    } else if (!copied) {
-        alert(L ? 'Texto copiado al portapapeles. Pégalo en WhatsApp u otra app.' : 'Text copied to clipboard. Paste it in WhatsApp or another app.');
+        try {
+            navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(e) {
+                if (e && e.name !== 'AbortError') console.warn('[share] navigator.share err:', e);
+            });
+        } catch(_){}
+    } else if (!navigator.share) {
+        // Sin share nativo → instruir al user que ya está en clipboard
+        setTimeout(function() {
+            _showToast(L ? '📋 Texto en portapapeles. Pegá en WhatsApp.' : '📋 Text in clipboard. Paste in WhatsApp.', 'rgba(37,211,102,0.95)', 4500);
+        }, 100);
     }
 };
 
@@ -11414,23 +11445,41 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         };
 
         var personalKey = getGeminiKey();
-        var useStreaming = !!personalKey; // Streaming only with personal key (proxy may not support it)
+        // v749bd: Plan C — proxy PRIMERO, key personal como FALLBACK cuando 429.
+        // Lógica:
+        //   1) Si hay AI_PROXY_URL → usar proxy (default, comparte cuota con beta)
+        //   2) Si hay personalKey pero NO hay proxy → usar key personal directo
+        //   3) Si proxy da 429 → fallback automático a key personal (si existe)
+        // Esto evita gastar tu cuota personal por default, pero te protege cuando el proxy se satura.
         var apiUrl;
-        if (personalKey) {
-            apiUrl = useStreaming
-                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey
-                : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
-        } else {
+        var usingProxy = false;
+        var useStreaming = false;
+        if (AI_PROXY_URL) {
             apiUrl = AI_PROXY_URL;
+            usingProxy = true;
+            useStreaming = false; // proxy no soporta SSE streaming
+        } else if (personalKey) {
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+            useStreaming = true;
         }
 
         var response;
+        var _fellbackToPersonal = false;
         for (var _retry = 0; _retry < 5; _retry++) {
             response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
+            // v749bd: si el proxy hit 429 y hay key personal disponible, hacer FALLBACK
+            if (response.status === 429 && usingProxy && personalKey && !_fellbackToPersonal) {
+                console.warn('[AI] Proxy 429 → fallback a key personal');
+                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                usingProxy = false;
+                useStreaming = true;
+                _fellbackToPersonal = true;
+                continue; // reintenta inmediatamente con key personal (sin esperar backoff)
+            }
             if (response.status === 429 && _retry < 4) {
                 await new Promise(function(r) { setTimeout(r, Math.min(3000 * (_retry + 1), 15000)); });
                 continue;
