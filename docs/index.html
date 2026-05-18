@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bm';</script>
+    <script>window.APP_VERSION = 'v749bp';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -13096,10 +13096,20 @@ function interpretDream() {
         ? '\n\n═══ DOBLE PERSPECTIVA OBLIGATORIA ═══\nSIEMPRE muestra DOS perspectivas: CONSCIENTE (lo visible) e INCONSCIENTE/SOMBRA (lo reprimido/proyectado). Analiza ejes zodiacales y el reflejo del opuesto si aplica. Busca comprensión y transmutación de la sombra.'
         : '\n\n═══ MANDATORY DUAL PERSPECTIVE ═══\nALWAYS show TWO perspectives: CONSCIOUS (visible) and UNCONSCIOUS/SHADOW (repressed/projected). Analyze zodiacal axes and the opposite reflection if applicable. Seek understanding and shadow transmutation.';
 
-    // ── Anti-hallucination rule for dreams ──
+    // ── Anti-hallucination rule for dreams (v749bp: reforzada — decir o preguntar, nunca inventar)
     systemPrompt += L
-        ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato astrológico específico (grado, casa, aspecto), NO LO INVENTES. Es mejor decir "No tengo ese dato disponible" que dar información incorrecta. Si los datos de la carta natal no están cargados, avisa al usuario. La credibilidad de esta app depende de la precisión.'
-        : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific astrological data point (degree, house, aspect), DO NOT INVENT IT. It is better to say "I don\'t have that data available" than to give incorrect information. If natal chart data is not loaded, tell the user. This app\'s credibility depends on accuracy.';
+        ? '\n\n═══ ⚠️ REGLA CRÍTICA: NUNCA INVENTAR, NUNCA ASUMIR — DECIR O PREGUNTAR ═══\n'
+          + 'Si te falta cualquier dato (astrológico, biográfico, de fechas, de otro perfil), debés hacer UNA de estas tres cosas:\n'
+          + '  (a) DECIRLO claramente: "No tengo este dato en mi contexto".\n'
+          + '  (b) PREGUNTAR al usuario.\n'
+          + '  (c) OMITIRLO.\n\n'
+          + '🚫 PROHIBIDO: inventar, asumir, decir "probablemente / seguramente / es común que" como camuflaje, rellenar con generalidades, o contradecirte entre párrafos. La credibilidad de la app depende de esto.'
+        : '\n\n═══ ⚠️ CRITICAL RULE: NEVER INVENT, NEVER ASSUME — SAY OR ASK ═══\n'
+          + 'If any data point is missing (astrological, biographical, dates, another profile), you must do ONE of three things:\n'
+          + '  (a) SAY IT clearly: "I don\'t have this data in my context".\n'
+          + '  (b) ASK the user.\n'
+          + '  (c) OMIT it.\n\n'
+          + '🚫 FORBIDDEN: inventing, assuming, saying "probably / likely / it is common that" as camouflage, filling with generalities, or contradicting yourself across paragraphs. The app\'s credibility depends on this.';
 
     // ── Multi-profile awareness for dreams ──
     try {
@@ -22364,14 +22374,20 @@ window._ensureSynOverlayModal = function() {
 // Construye HTML de tabla unificada Planetas + Casas (3 columnas: item / personA / personB).
 // Cada fila tiene onclick que abre interpretación AI del planeta/casa específico.
 // v749bj: filas compactas — glifos zodiacales, nowrap, padding tight para que entren en una línea
+// v749bn: cambiado a abreviaturas de palabras (más legibles que glifos) + agregados asteroides
 window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     var L = currentLang === 'es';
+    // v749bn: abreviaturas medianas de planetas — más legibles que glifos, caben en columna estrecha
     var pN = L
-        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo N.',lilith:'Lilith'}
-        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'N. Node',lilith:'Lilith'};
-    var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
-    var zodGlyphs = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
-    function _glyph(longitude) { return zodGlyphs[Math.floor((longitude||0)/30) % 12]; }
+        ? {sun:'Sol',moon:'Luna',mercury:'Merc',venus:'Ven',mars:'Mar',jupiter:'Júp',saturn:'Sat',uranus:'Ura',neptune:'Nep',pluto:'Plu',chiron:'Quir',northnode:'N.Norte',lilith:'Lil',ceres:'Cer',pallas:'Pal',juno:'Juno',vesta:'Ves'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mer',venus:'Ven',mars:'Mar',jupiter:'Jup',saturn:'Sat',uranus:'Ura',neptune:'Nep',pluto:'Plu',chiron:'Chir',northnode:'N.Node',lilith:'Lil',ceres:'Cer',pallas:'Pal',juno:'Juno',vesta:'Ves'};
+    // v749bn: incluir asteroides (Ceres, Pallas, Juno, Vesta) + Lilith después de los planetas tradicionales
+    var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith','ceres','pallas','juno','vesta'];
+    // v749bn: abreviaturas de signos en 3 letras — Spanish + English
+    var signAbbr = L
+        ? ['Ari','Tau','Gém','Cán','Leo','Vir','Lib','Esc','Sag','Cap','Acu','Pis']
+        : ['Ari','Tau','Gem','Cnc','Leo','Vir','Lib','Sco','Sag','Cap','Aqu','Pis'];
+    function _sign(longitude) { return signAbbr[Math.floor((longitude||0)/30) % 12]; }
 
     var tableStyle = 'width:100%;border-collapse:collapse;font-size:0.82em;margin-top:4px;table-layout:fixed;';
     var thStyle = 'text-align:left;padding:6px 5px;color:rgba(255,255,255,0.5);font-size:0.74em;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
@@ -22401,9 +22417,9 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
         var rowBg = sameSign ? 'background:rgba(46,204,113,0.08);' : '';
         var dataParts = [p, (inf1?inf1.sign:''), (inf1?inf1.degree:''), (h1||''), (inf2?inf2.sign:''), (inf2?inf2.degree:''), (h2||''), name1, name2];
         var dataStr = dataParts.join('|').replace(/'/g, "\\'");
-        // v749bj: glifo + grado + casa (compacto: "♑ 7° H2")
-        var v1 = inf1 ? _glyph(d1.longitude) + ' ' + inf1.degree + '°' + (h1?' H'+h1:'') : '—';
-        var v2 = inf2 ? _glyph(d2.longitude) + ' ' + inf2.degree + '°' + (h2?' H'+h2:'') : '—';
+        // v749bn: abreviatura + grado + casa (compacto: "Cap 7° H2")
+        var v1 = inf1 ? _sign(d1.longitude) + ' ' + inf1.degree + '°' + (h1?' H'+h1:'') : '—';
+        var v2 = inf2 ? _sign(d2.longitude) + ' ' + inf2.degree + '°' + (h2?' H'+h2:'') : '—';
         html += '<tr ' + (rowBg?'style="'+rowBg+'"':'') + ' onclick="window.showSynastryPlanetCompare(\'' + dataStr + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSign?'rgba(46,204,113,0.08)':'') + '\'">';
         html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + (pN[p]||p) + '</td>';
         html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + v1 + '</td>';
@@ -22436,18 +22452,24 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
             var label = houseLabels[hi] + (houseAng[hi] ? ' ' + houseAng[hi].replace(/[()]/g,'') : '');
             html += '<tr ' + (rowBgH?'style="'+rowBgH+'"':'') + ' onclick="window.showSynastryHouseCompare(\'' + hData + '\')" onmouseover="this.style.background=\'rgba(201,168,64,0.10)\'" onmouseout="this.style.background=\'' + (sameSignH?'rgba(46,204,113,0.08)':'') + '\'">';
             html += '<td style="' + tdStyle + 'font-weight:600;color:rgba(255,255,255,0.85);">' + label + '</td>';
-            html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + _glyph(c1) + ' ' + hinf1.degree + '°</td>';
-            html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + _glyph(c2) + ' ' + hinf2.degree + '°</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(255,213,79,0.92);">' + _sign(c1) + ' ' + hinf1.degree + '°</td>';
+            html += '<td style="' + tdStyle + 'color:rgba(195,155,211,0.92);">' + _sign(c2) + ' ' + hinf2.degree + '°</td>';
             html += '</tr>';
         }
         html += '</tbody></table>';
     }
 
-    // Leyenda glifos + mismo signo
-    html += '<div style="margin-top:8px;font-size:0.7em;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
-          + '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>' + (L?'mismo signo':'same sign') + '</span>'
-          + '<span style="opacity:0.8;">♈Ari ♉Tau ♊Gém ♋Cán ♌Leo ♍Vir</span>'
-          + '<span style="opacity:0.8;">♎Lib ♏Esc ♐Sag ♑Cap ♒Acu ♓Pis</span>'
+    // v749bn: Leyenda — mapeo de abreviaturas a nombres completos (planetas y signos)
+    var _legSigns = L
+        ? 'Ari=Aries · Tau=Tauro · Gém=Géminis · Cán=Cáncer · Leo · Vir=Virgo · Lib=Libra · Esc=Escorpio · Sag=Sagitario · Cap=Capricornio · Acu=Acuario · Pis=Piscis'
+        : 'Ari=Aries · Tau=Taurus · Gem=Gemini · Cnc=Cancer · Leo · Vir=Virgo · Lib=Libra · Sco=Scorpio · Sag=Sagittarius · Cap=Capricorn · Aqu=Aquarius · Pis=Pisces';
+    var _legPlanets = L
+        ? 'Merc=Mercurio · Ven=Venus · Mar=Marte · Júp=Júpiter · Sat=Saturno · Ura=Urano · Nep=Neptuno · Plu=Plutón · Quir=Quirón · N.Norte=Nodo Norte · Lil=Lilith · Cer=Ceres · Pal=Pallas · Ves=Vesta'
+        : 'Mer=Mercury · Ven=Venus · Mar=Mars · Jup=Jupiter · Sat=Saturn · Ura=Uranus · Nep=Neptune · Plu=Pluto · Chir=Chiron · N.Node=North Node · Lil=Lilith · Cer=Ceres · Pal=Pallas · Ves=Vesta';
+    html += '<div style="margin-top:10px;font-size:0.7em;color:rgba(255,255,255,0.45);line-height:1.5;">'
+          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;"></span>' + (L?'mismo signo':'same sign') + '</div>'
+          + '<div style="opacity:0.85;"><strong>' + (L?'Signos':'Signs') + ':</strong> ' + _legSigns + '</div>'
+          + '<div style="opacity:0.85;margin-top:3px;"><strong>' + (L?'Planetas':'Planets') + ':</strong> ' + _legPlanets + '</div>'
           + '</div>';
 
     return html;
@@ -29356,12 +29378,14 @@ function interpretCalendarDay(year, month, day) {
                 + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileA.name||'A') + ': ' + (transitDesc || 'ninguno significativo') + '\n'
                 + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc + '\n' : '')
                 + '\n📌 INSTRUCCIONES CRÍTICAS:\n'
-                + '1. Para cada tránsito importante del día listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién, y qué activa esa combinación específica.\n'
-                + '2. Si hay DOBLES ACTIVACIONES (el mismo planeta tránsito hace aspecto a planetas de AMBAS personas el mismo día), resaltalas como momentos clave.\n'
-                + '3. Dale peso EQUILIBRADO a ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + ' — no centres todo en una sola.\n'
-                + '4. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
-                + '5. Estructura: a) Tránsitos clave del día y a quién afectan, b) Cómo se manifiestan en la dinámica relacional HOY, c) Consejos prácticos para ESTE DÍA, d) Advertencias si hay aspectos duros o dobles activaciones tensas.\n'
-                + '6. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.';
+                + '1. Para cada tránsito importante listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién (' + (_ctx.profileA.name||'A') + ' o ' + (_ctx.profileB.name||'B') + '), y qué activa esa combinación específica.\n'
+                + '2. ⚠️ REGLA ESTRICTA SOBRE "DOBLES ACTIVACIONES": Solo decir "para ambos" o "doble activación" cuando el MISMO tránsito (mismo planeta, mismo aspecto) aparezca EXPLÍCITAMENTE en AMBAS listas (la de ' + (_ctx.profileA.name||'A') + ' Y la de ' + (_ctx.profileB.name||'B') + '). Si lo decís, DEBÉS citar la posición natal de CADA UNO con planeta + signo + grado (ej: "Quirón en Aries 28° de ' + (_ctx.profileA.name||'A') + ' Y Quirón en Géminis 7° de ' + (_ctx.profileB.name||'B') + ' — ambos reciben la conjunción de tránsito"). Si los planetas natales están en signos diferentes o muy distantes, NO es una doble activación real — interpretá cada uno por separado.\n'
+                + '3. Si un tránsito SOLO aparece en la lista de uno de los dos, decilo claramente: "este tránsito afecta a ' + (_ctx.profileA.name||'A') + ' pero no a ' + (_ctx.profileB.name||'B') + '" — NO inventes simetría que no esté en los datos.\n'
+                + '4. Dale peso EQUILIBRADO a ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + ' — no centres todo en una sola.\n'
+                + '5. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
+                + '6. Estructura: a) Tránsitos clave del día y a quién afectan (especifica nombre), b) Dobles activaciones REALES con posiciones natales citadas, c) Tránsitos asimétricos (a una sola carta), d) Manifestación en la dinámica relacional HOY, e) Consejos prácticos para ESTE DÍA, f) Advertencias.\n'
+                + '7. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.\n'
+                + '8. PROHIBIDO usar lenguaje vago tipo "para ambos" sin citar las posiciones exactas. Si no podés citar las dos posiciones natales con signo y grado, NO digas que es doble activación.';
         } else {
             // compuesta / davison: una sola "carta" relacional
             prompt = _relPrefix
@@ -29382,12 +29406,14 @@ function interpretCalendarDay(year, month, day) {
                 + 'TODAY\'S TRANSITS on ' + (_ctx.profileA.name||'A') + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
                 + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + (_ctx.profileB.name||'B') + '\'s natal chart: ' + transitsBDesc + '\n' : '')
                 + '\n📌 CRITICAL INSTRUCTIONS:\n'
-                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom, and what does that specific combination activate.\n'
-                + '2. If there are DOUBLE ACTIVATIONS (same transit planet aspects planets of BOTH people on the same day), highlight them as key moments.\n'
-                + '3. Give BALANCED weight to ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + ' — do not focus on just one.\n'
-                + '4. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
-                + '5. Structure: a) Key transits and who they affect, b) Manifestation in the relational dynamic TODAY, c) Practical advice for THIS DAY, d) Warnings.\n'
-                + '6. If NO significant transits, say "today is a quiet day energetically for the bond" — do NOT invent a natal reading to fill space.';
+                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom (' + (_ctx.profileA.name||'A') + ' or ' + (_ctx.profileB.name||'B') + '), and what does that specific combination activate.\n'
+                + '2. ⚠️ STRICT RULE ON "DOUBLE ACTIVATIONS": Only say "for both" or "double activation" when the SAME transit (same planet, same aspect) appears EXPLICITLY in BOTH lists (' + (_ctx.profileA.name||'A') + '\'s AND ' + (_ctx.profileB.name||'B') + '\'s). When you do, you MUST cite each natal position with planet + sign + degree. If natal planets are in different signs or far apart, it is NOT a real double activation — interpret each separately.\n'
+                + '3. If a transit only appears in one list, say so clearly: "this transit affects ' + (_ctx.profileA.name||'A') + ' but not ' + (_ctx.profileB.name||'B') + '" — do NOT invent symmetries not in the data.\n'
+                + '4. Give BALANCED weight to both — do not focus on just one.\n'
+                + '5. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
+                + '6. Structure: a) Key transits and whom they affect (specify name), b) REAL double activations with both natal positions cited, c) Asymmetric transits (only one chart), d) Today\'s relational manifestation, e) Practical advice for THIS DAY, f) Warnings.\n'
+                + '7. If NO significant transits, say "today is a quiet day energetically for the bond" — do NOT invent a natal reading to fill space.\n'
+                + '8. PROHIBITED: vague language like "for both" without citing exact positions. If you cannot cite both natal positions with sign and degree, do NOT call it a double activation.';
         } else {
             prompt = _relPrefix
                 + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general reading of the relational chart. '
@@ -46787,14 +46813,63 @@ function buildSystemPrompt(contextLevel) {
         }
     } catch(e) {}
 
+    // v749bp: regla anti-alucinación REFORZADA y GLOBAL.
+    // Antes la regla decía "es mejor omitir que inventar" — eso permitía generalizaciones vagas.
+    // Ahora obliga a DECIR EXPLÍCITAMENTE "no tengo este dato" o PREGUNTAR al usuario.
     if (_hasChartData) {
         base += isEs
-            ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto), NO LO INVENTES. Es mejor omitir un detalle que inventarlo.\n\nIMPORTANTE: Los datos de la carta natal del usuario YA ESTÁN incluidos arriba en la sección "DATOS DEL USUARIO Y LA APP". DEBES usarlos para personalizar TODAS tus interpretaciones. Relaciona los aspectos del día con las posiciones natales, casas y aspectos natales del usuario. Tienes acceso completo a su carta — NO digas que no tienes acceso o que la carta está incompleta.'
-            : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect), DO NOT INVENT IT. It is better to omit a detail than to invent it.\n\nIMPORTANT: The user\'s natal chart data IS ALREADY included above in the "USER AND APP DATA" section. You MUST use it to personalize ALL your interpretations. Relate today\'s aspects to the user\'s natal positions, houses and natal aspects. You have full access to their chart — DO NOT say you don\'t have access or that the chart is incomplete.';
+            ? '\n\n═══ ⚠️ REGLA CRÍTICA: NUNCA INVENTAR, NUNCA ASUMIR — DECIR O PREGUNTAR ═══\n'
+              + 'Esta regla es ABSOLUTA y aplica a TODO lo que digás. Si te falta un dato (un grado, un signo, una posición, un aspecto, una casa, una hora, una fecha, un planeta de alguien, una activación), debés hacer UNA de estas tres cosas — NUNCA otra:\n\n'
+              + '  (a) DECIRLO: "No tengo el dato de [X] en mi contexto" o "No puedo verificar [Y] con los datos disponibles".\n'
+              + '  (b) PREGUNTARLE al usuario: "¿Sabés cuál es [X]?" o "¿Podés confirmarme [Y]?"\n'
+              + '  (c) OMITIRLO completamente y NO mencionarlo en ninguna forma.\n\n'
+              + '🚫 PROHIBIDO ABSOLUTO:\n'
+              + '• Inventar grados, signos, casas, aspectos, posiciones, fechas, horas.\n'
+              + '• Asumir simetrías ("para ambos", "los dos", "igual en cada uno") sin tener el dato EXACTO de cada parte citado en tu contexto.\n'
+              + '• Decir "probablemente", "seguramente", "se podría suponer", "es común que" como camuflaje de algo que no sabés. Si no lo sabés, decilo (a) o preguntá (b).\n'
+              + '• Rellenar con generalidades astrológicas cuando no podés ser específico. Mejor decir "no tengo este dato" que dar relleno genérico.\n'
+              + '• Contradecirte: si en un párrafo decís "Sol en Capricornio" y dos párrafos después decís "Sol en Escorpio", eso es invención. Citá UNA vez el dato verificado y mantenelo.\n\n'
+              + '✅ CONTEXTO DE DATOS:\n'
+              + 'Los datos disponibles ya están en "DATOS DEL USUARIO Y LA APP" arriba. Usá SOLO eso. Si algo no aparece ahí, no lo tenés — aplicá (a), (b) o (c).\n\n'
+              + 'EJEMPLOS:\n'
+              + '  ✗ MAL: "El Quirón de ambos está activado por el tránsito" (sin citar posiciones)\n'
+              + '  ✓ BIEN: "Tu Quirón está en Aries 28° y el de [X] en Géminis 7°. El tránsito de Quirón hoy está en Aries — toca tu Quirón, no el de [X]."\n'
+              + '  ✗ MAL: "Es probable que su Luna esté en agua, como la tuya"\n'
+              + '  ✓ BIEN: "No tengo la posición de la Luna de [X] en mi contexto. ¿Podés decirme en qué signo está?"'
+            : '\n\n═══ ⚠️ CRITICAL RULE: NEVER INVENT, NEVER ASSUME — SAY OR ASK ═══\n'
+              + 'This rule is ABSOLUTE and applies to EVERYTHING you say. If a data point is missing (a degree, sign, position, aspect, house, time, date, someone\'s planet, an activation), you must do ONE of three things — NEVER anything else:\n\n'
+              + '  (a) SAY IT: "I don\'t have data for [X] in my context" or "I cannot verify [Y] with available data".\n'
+              + '  (b) ASK the user: "Do you know [X]?" or "Can you confirm [Y]?"\n'
+              + '  (c) OMIT it completely and do NOT mention it in any form.\n\n'
+              + '🚫 ABSOLUTELY FORBIDDEN:\n'
+              + '• Inventing degrees, signs, houses, aspects, positions, dates, times.\n'
+              + '• Assuming symmetries ("for both", "the two", "same in each") without having the EXACT data of each party cited in your context.\n'
+              + '• Saying "probably", "likely", "one could assume", "it is common that" as camouflage for not knowing. If you don\'t know, say (a) or ask (b).\n'
+              + '• Filling with astrological generalities when you cannot be specific. Better to say "I don\'t have this data" than provide generic filler.\n'
+              + '• Contradicting yourself: if in one paragraph you say "Sun in Capricorn" and two paragraphs later "Sun in Scorpio", that is invention. Cite a verified datum ONCE and stick to it.\n\n'
+              + '✅ DATA CONTEXT:\n'
+              + 'Available data is already in "USER AND APP DATA" above. Use ONLY that. If something is not there, you do not have it — apply (a), (b), or (c).\n\n'
+              + 'EXAMPLES:\n'
+              + '  ✗ BAD: "Both of your Chirons are activated by the transit" (no positions cited)\n'
+              + '  ✓ GOOD: "Your Chiron is in Aries 28° and [X]\'s in Gemini 7°. Today\'s transit Chiron is in Aries — it touches yours, not [X]\'s."\n'
+              + '  ✗ BAD: "Their Moon is likely in water, like yours"\n'
+              + '  ✓ GOOD: "I don\'t have [X]\'s Moon position in my context. Can you tell me what sign it\'s in?"';
     } else {
         base += isEs
-            ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto, posición planetaria), NO LO INVENTES. La carta natal del usuario NO está disponible en este momento. Puedes dar una interpretación general del aspecto, pero indica que para una lectura personalizada necesitan guardar sus datos de nacimiento en Preferencias.'
-            : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect, planetary position), DO NOT INVENT IT. The user\'s natal chart is NOT available right now. You can give a general interpretation of the aspect, but note that for a personalized reading they need to save their birth data in Preferences.';
+            ? '\n\n═══ ⚠️ REGLA CRÍTICA: NUNCA INVENTAR, NUNCA ASUMIR — DECIR O PREGUNTAR ═══\n'
+              + 'No hay carta natal cargada en este momento. Si te falta un dato astrológico específico (grado, casa, aspecto, posición planetaria), debés:\n'
+              + '  (a) DECIRLO: "No tengo este dato — para una lectura precisa necesito tu carta natal".\n'
+              + '  (b) PREGUNTAR al usuario por la info que necesitás.\n'
+              + '  (c) OMITIRLO completamente.\n\n'
+              + '🚫 PROHIBIDO: inventar datos, asumir posiciones, decir "probablemente", "seguramente", "es común que" como camuflaje. NUNCA generalices con relleno astrológico cuando no sabés algo específico.\n\n'
+              + 'Para una lectura personalizada, indicale al usuario que guarde sus datos de nacimiento en Preferencias.'
+            : '\n\n═══ ⚠️ CRITICAL RULE: NEVER INVENT, NEVER ASSUME — SAY OR ASK ═══\n'
+              + 'No natal chart is loaded right now. If a specific astrological data point (degree, house, aspect, planet position) is missing, you must:\n'
+              + '  (a) SAY IT: "I don\'t have this data — for a precise reading I need your natal chart".\n'
+              + '  (b) ASK the user for the info you need.\n'
+              + '  (c) OMIT it completely.\n\n'
+              + '🚫 FORBIDDEN: inventing data, assuming positions, saying "probably", "likely", "it is common that" as camouflage. NEVER generalize with astrological filler when you don\'t know something specific.\n\n'
+              + 'For a personalized reading, tell the user to save their birth data in Preferences.';
     }
 
     // ── Multi-profile awareness ──
