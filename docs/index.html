@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bf';</script>
+    <script>window.APP_VERSION = 'v749bg';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -10180,17 +10180,167 @@ function toggleStarReading(id) {
     readings.forEach(function(r) { if (r.id === id) r.starred = !r.starred; });
     setSavedReadings(readings);
 }
-// v749bc: helper de share REFACTORIZADO — toast SIEMPRE visible.
-// Antes: el toast solo aparecía si clipboard.writeText() resolvía (y a veces fallaba silencioso).
-// Ahora: muestro el toast PRIMERO (siempre), intento clipboard en paralelo (textarea fallback robusto),
-// y dejo el toast con el mensaje correcto según el resultado.
+// v749bg: helper que renderiza texto largo a canvas → PNG → File para compartir como imagen.
+// Resuelve el límite ~4KB del Android Share Intent que cortaba texto largos al mandar a WhatsApp.
+window._renderTextToImageBlob = async function(title, text) {
+    // Configuración
+    var W = 1080; // ancho fijo (mismo que íconos PWA, se ve bien en cualquier pantalla)
+    var FONT_SIZE = 28;
+    var TITLE_SIZE = 38;
+    var LINE_HEIGHT = 40;
+    var PADDING = 60;
+    var BG_COLOR = '#0a0316';        // dark navy
+    var BG_GRADIENT_END = '#02020F'; // casi negro
+    var TEXT_COLOR = '#e8eaf6';      // off-white
+    var TITLE_COLOR = '#c9a840';     // gold
+    var BOLD_COLOR = '#7ec8ff';      // cyan para bold
+    var ITALIC_COLOR = '#c39bd3';    // lila para italic
+    var FOOTER_COLOR = '#c9a840';
+
+    // Pre-render: medir cuántas líneas vamos a necesitar
+    var canvas = document.createElement('canvas');
+    canvas.width = W;
+    var ctx = canvas.getContext('2d');
+    ctx.font = FONT_SIZE + 'px -apple-system, system-ui, sans-serif';
+    var maxLineWidth = W - PADDING * 2;
+
+    // Procesar markdown básico (**bold**, *italic*) y wrap líneas
+    function wrapTextWithMarkdown(text, maxWidth) {
+        var lines = [];
+        var paragraphs = text.split('\n');
+        paragraphs.forEach(function(para) {
+            if (para.trim() === '') { lines.push({segments: [], blank: true}); return; }
+            // Tokenizar por **bold** y *italic*
+            var tokens = [];
+            var i = 0;
+            while (i < para.length) {
+                if (para.substr(i, 2) === '**') {
+                    var end = para.indexOf('**', i + 2);
+                    if (end > -1) { tokens.push({text: para.substring(i+2, end), style: 'bold'}); i = end + 2; continue; }
+                }
+                if (para[i] === '*' && para[i+1] !== '*') {
+                    var end2 = para.indexOf('*', i + 1);
+                    if (end2 > -1) { tokens.push({text: para.substring(i+1, end2), style: 'italic'}); i = end2 + 1; continue; }
+                }
+                // Plain text — hasta el próximo marker
+                var nextStar = para.indexOf('*', i);
+                if (nextStar === -1) nextStar = para.length;
+                tokens.push({text: para.substring(i, nextStar), style: 'normal'});
+                i = nextStar;
+            }
+            // Wrap por líneas
+            var currentLine = [];
+            var currentWidth = 0;
+            tokens.forEach(function(token) {
+                var words = token.text.split(/(\s+)/);
+                words.forEach(function(word) {
+                    if (!word) return;
+                    ctx.font = (token.style === 'bold' ? 'bold ' : '') + (token.style === 'italic' ? 'italic ' : '') + FONT_SIZE + 'px -apple-system, system-ui, sans-serif';
+                    var wWidth = ctx.measureText(word).width;
+                    if (currentWidth + wWidth > maxWidth && currentLine.length > 0) {
+                        lines.push({segments: currentLine, blank: false});
+                        currentLine = [];
+                        currentWidth = 0;
+                    }
+                    currentLine.push({text: word, style: token.style});
+                    currentWidth += wWidth;
+                });
+            });
+            if (currentLine.length > 0) lines.push({segments: currentLine, blank: false});
+        });
+        return lines;
+    }
+
+    var titleLines = title ? wrapTextWithMarkdown(title, maxLineWidth) : [];
+    var bodyLines = wrapTextWithMarkdown(text, maxLineWidth);
+
+    // Calcular altura total
+    var titleH = titleLines.length * (TITLE_SIZE + 10) + 30;
+    var bodyH = bodyLines.length * LINE_HEIGHT;
+    var footerH = 60;
+    var H = PADDING + titleH + bodyH + footerH + PADDING;
+
+    // Re-crear canvas con altura correcta
+    canvas.height = H;
+    ctx = canvas.getContext('2d');
+
+    // Fondo gradient dark
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, BG_COLOR);
+    grad.addColorStop(1, BG_GRADIENT_END);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Borde sutil
+    ctx.strokeStyle = 'rgba(201,168,64,0.3)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, W - 40, H - 40);
+
+    // Title
+    var y = PADDING;
+    if (titleLines.length > 0) {
+        ctx.fillStyle = TITLE_COLOR;
+        ctx.font = 'bold ' + TITLE_SIZE + 'px Georgia, serif';
+        titleLines.forEach(function(line) {
+            var x = PADDING;
+            line.segments.forEach(function(seg) {
+                ctx.fillText(seg.text, x, y);
+                x += ctx.measureText(seg.text).width;
+            });
+            y += TITLE_SIZE + 10;
+        });
+        // Línea separadora
+        y += 5;
+        ctx.strokeStyle = 'rgba(201,168,64,0.5)';
+        ctx.beginPath();
+        ctx.moveTo(PADDING, y);
+        ctx.lineTo(W - PADDING, y);
+        ctx.stroke();
+        y += 30;
+    }
+
+    // Body con markdown styles
+    bodyLines.forEach(function(line) {
+        if (line.blank) { y += LINE_HEIGHT * 0.5; return; }
+        var x = PADDING;
+        line.segments.forEach(function(seg) {
+            var color = seg.style === 'bold' ? BOLD_COLOR : seg.style === 'italic' ? ITALIC_COLOR : TEXT_COLOR;
+            var fontWeight = seg.style === 'bold' ? 'bold ' : '';
+            var fontStyle = seg.style === 'italic' ? 'italic ' : '';
+            ctx.fillStyle = color;
+            ctx.font = fontWeight + fontStyle + FONT_SIZE + 'px -apple-system, system-ui, sans-serif';
+            ctx.fillText(seg.text, x, y);
+            x += ctx.measureText(seg.text).width;
+        });
+        y += LINE_HEIGHT;
+    });
+
+    // Footer
+    y = H - PADDING / 2;
+    ctx.fillStyle = FOOTER_COLOR;
+    ctx.font = 'italic 22px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('— AstroAtlas 🌙', W / 2, y);
+    ctx.textAlign = 'left';
+
+    // Blob PNG
+    return new Promise(function(resolve) {
+        canvas.toBlob(function(blob) { resolve(blob); }, 'image/png', 0.95);
+    });
+};
+
+// v749bg: helper de share con auto-imagen para textos largos.
+// Estrategia:
+//   - Texto <3500 chars → compartir como TEXTO (funciona en intent normal)
+//   - Texto >=3500 chars AND navigator.canShare con files → render a canvas → PNG → compartir como FILE (sin límite Android Intent)
+//   - Fallback (si navigator.share files no soporta): texto + clipboard como antes
 window.shareTextSafe = function(title, text) {
     var L = currentLang === 'es';
+    var LONG_TEXT_THRESHOLD = 3500;
 
-    // 1) MOSTRAR TOAST INMEDIATO (no esperar a clipboard)
+    // Helper toast reutilizable
     function _showToast(msg, color, duration) {
         try {
-            // Quitar toast anterior si existe
             var prev = document.getElementById('_shareToast');
             if (prev) try { document.body.removeChild(prev); } catch(_){}
             var t = document.createElement('div');
@@ -10204,61 +10354,111 @@ window.shareTextSafe = function(title, text) {
         } catch(_){}
     }
 
-    // 2) Toast INICIAL — siempre visible
-    var initialMsg = L
-        ? '📋 ' + (text.length > 1000 ? 'Texto largo copiado — si WhatsApp lo corta, pegá manualmente' : 'Texto copiado — pegá si se corta')
-        : '📋 ' + (text.length > 1000 ? 'Long text copied — if WhatsApp cuts it, paste manually' : 'Text copied — paste if cut');
-    _showToast(initialMsg, 'rgba(37,211,102,0.95)');
+    // Fallback clásico: texto + clipboard + share intent (para textos cortos o cuando files no soporta)
+    function _shareAsText() {
+        var initialMsg = L
+            ? '📋 ' + (text.length > 1000 ? 'Texto largo copiado — si se corta, pegá manualmente' : 'Texto copiado — pegá si se corta')
+            : '📋 ' + (text.length > 1000 ? 'Long text copied — if cut, paste manually' : 'Text copied — paste if cut');
+        _showToast(initialMsg, 'rgba(37,211,102,0.95)');
 
-    // 3) Copiar al portapapeles — múltiples estrategias en paralelo
-    var copySucceeded = false;
-
-    // Estrategia A: Clipboard API (moderna)
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-            copySucceeded = true;
-        }).catch(function(err) {
-            console.warn('[share] clipboard.writeText failed:', err && err.message);
-            // Estrategia B: textarea + execCommand (fallback legacy)
-            try {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
-                document.body.appendChild(ta);
-                ta.focus(); ta.select();
-                var ok = document.execCommand('copy');
-                document.body.removeChild(ta);
-                if (ok) copySucceeded = true;
-                else console.warn('[share] execCommand copy returned false');
-            } catch(e2) { console.warn('[share] textarea fallback failed:', e2); }
-        });
-    } else {
-        // No clipboard API → directo a textarea
-        try {
-            var ta3 = document.createElement('textarea');
-            ta3.value = text;
-            ta3.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
-            document.body.appendChild(ta3);
-            ta3.focus(); ta3.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta3);
-            copySucceeded = true;
-        } catch(e3) { console.warn('[share] textarea direct failed:', e3); }
-    }
-
-    // 4) Abrir share intent nativo (en paralelo, no esperamos al clipboard)
-    if (navigator.share) {
-        try {
-            navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(e) {
-                if (e && e.name !== 'AbortError') console.warn('[share] navigator.share err:', e);
+        // Copiar al portapapeles
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(function(err) {
+                console.warn('[share] clipboard.writeText failed:', err && err.message);
+                try {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
+                    document.body.appendChild(ta);
+                    ta.focus(); ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                } catch(e2) { console.warn('[share] textarea fallback failed:', e2); }
             });
-        } catch(_){}
-    } else if (!navigator.share) {
-        // Sin share nativo → instruir al user que ya está en clipboard
-        setTimeout(function() {
-            _showToast(L ? '📋 Texto en portapapeles. Pegá en WhatsApp.' : '📋 Text in clipboard. Paste in WhatsApp.', 'rgba(37,211,102,0.95)', 4500);
-        }, 100);
+        } else {
+            try {
+                var ta3 = document.createElement('textarea');
+                ta3.value = text;
+                ta3.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px;';
+                document.body.appendChild(ta3);
+                ta3.focus(); ta3.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta3);
+            } catch(e3) { console.warn('[share] textarea direct failed:', e3); }
+        }
+
+        // Share intent nativo
+        if (navigator.share) {
+            try {
+                navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(e) {
+                    if (e && e.name !== 'AbortError') console.warn('[share] navigator.share err:', e);
+                });
+            } catch(_){}
+        } else {
+            setTimeout(function() {
+                _showToast(L ? '📋 Texto en portapapeles. Pegá en WhatsApp.' : '📋 Text in clipboard. Paste in WhatsApp.', 'rgba(37,211,102,0.95)', 4500);
+            }, 100);
+        }
     }
+
+    // DECISIÓN: ¿es texto corto o largo?
+    if (!text || text.length < LONG_TEXT_THRESHOLD) {
+        // CORTO → texto normal
+        _shareAsText();
+        return;
+    }
+
+    // LARGO → intentar como IMAGEN
+    // Verificar si el navegador soporta compartir files (Web Share API Level 2)
+    var canShareFiles = false;
+    try {
+        // Test con un file dummy
+        var testFile = new File([new Blob(['test'], {type: 'image/png'})], 'test.png', {type: 'image/png'});
+        canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
+    } catch(_) { canShareFiles = false; }
+
+    if (!canShareFiles || !window._renderTextToImageBlob) {
+        // No soporta files → fallback a texto+clipboard
+        console.warn('[share] files no soportado, fallback a texto');
+        _shareAsText();
+        return;
+    }
+
+    // Toast "generando imagen"
+    _showToast(L ? '🖼️ Generando imagen…' : '🖼️ Generating image…', 'rgba(73,140,255,0.95)', 2500);
+
+    // Render a imagen y compartir
+    window._renderTextToImageBlob(title, text).then(function(blob) {
+        if (!blob) {
+            console.warn('[share] blob nulo, fallback a texto');
+            _shareAsText();
+            return;
+        }
+        var fname = (title || 'astroatlas-interpretacion').replace(/[^\w\-]+/g, '_').slice(0, 60) + '.png';
+        var file = new File([blob], fname, { type: 'image/png' });
+
+        // Doble check: ¿este file específico se puede compartir?
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+            console.warn('[share] canShare({files:[file]}) returned false, fallback a texto');
+            _shareAsText();
+            return;
+        }
+
+        navigator.share({
+            files: [file],
+            title: title || 'AstroAtlas'
+        }).then(function() {
+            _showToast(L ? '✅ Imagen compartida' : '✅ Image shared', 'rgba(37,211,102,0.95)', 2500);
+        }).catch(function(e) {
+            if (e && e.name === 'AbortError') return; // user canceló
+            console.warn('[share] share files err:', e && e.message);
+            // Si falla el share de imagen, intentar el texto como respaldo
+            _shareAsText();
+        });
+    }).catch(function(err) {
+        console.warn('[share] render image failed:', err);
+        _shareAsText();
+    });
 };
 
 // v749am: comparte UN bloque del chat de interpretación (initial response o un mensaje específico).
