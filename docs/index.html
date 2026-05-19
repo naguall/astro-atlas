@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cc';</script>
+    <script>window.APP_VERSION = 'v749cd';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -34477,6 +34477,27 @@ function goToCurrentCycle() {
         var target = _getTarget();
         if (!target) return;
 
+        // v749cd: primera vez que el usuario abre el curso → preguntar si activar quiz diario
+        // El quiz viene OFF por default desde v749cd. Aquí se ofrece activarlo.
+        if (!localStorage.getItem('astroCourseQuizPromptShown')) {
+            localStorage.setItem('astroCourseQuizPromptShown', 'true');
+            var _quizMsg = isES
+                ? '🎓 ¡Bienvenido al Curso de Astrología!\n\n¿Querés activar el Quiz Diario para reforzar lo aprendido?\n\n• Te llega una notificación 1 vez al día con 5 preguntas\n• Podés cambiar la frecuencia y hora en Ajustes\n• Podés desactivarlo cuando quieras\n\nPodés activarlo después en Ajustes → Quiz Diario.'
+                : '🎓 Welcome to the Astrology Course!\n\nWould you like to enable the Daily Quiz to reinforce what you learn?\n\n• You get one notification per day with 5 questions\n• You can change frequency and time in Settings\n• Disable anytime\n\nYou can also enable it later in Settings → Daily Quiz.';
+            if (confirm(_quizMsg)) {
+                try {
+                    var _qp = _getDailyQuizPrefs();
+                    _qp.enabled = true;
+                    _saveDailyQuizPrefs(_qp);
+                    localStorage.removeItem('dailyQuiz_explicitlyDisabled');
+                    console.log('[v749cd] Daily quiz enabled via course onboarding');
+                } catch(_eq) { console.warn('Quiz enable error:', _eq); }
+            } else {
+                localStorage.setItem('dailyQuiz_explicitlyDisabled', 'true');
+                console.log('[v749cd] Daily quiz kept disabled — user declined at course onboarding');
+            }
+        }
+
         var overall = _getOverallProgress();
 
         var html = '<div style="padding:14px 12px 8px;">' +
@@ -36438,7 +36459,8 @@ function getLunarPhaseEnrichment(phaseDate) {
 // ═══════════════════════════════════════════════════════
 
 function _getDailyQuizPrefs() {
-    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":true,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
+    // v749cd: quiz OFF por default — se activa via prompt cuando el user usa el curso de astrología por primera vez
+    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
 }
 function _saveDailyQuizPrefs(p) { localStorage.setItem('dailyQuizPrefs', JSON.stringify(p)); }
 
@@ -38495,6 +38517,11 @@ function openPreferencesModal() {
         notifContent += '<div style="padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;font-size:0.72em;color:#ff6b6b;margin-bottom:10px;">' + '⚠️ Bloqueadas en el navegador. Activa en Configuración del sitio.' + '</div>';
     }
     // v749as: nueva categoría "Eventos Personales" — un solo toggle que cubre retornos solar/lunar/medio cielo + estaciones personales
+    // v749cd FIX: cargar notifPrefs desde localStorage (antes se usaba undefined → "notifPrefs is not defined")
+    var notifPrefs;
+    try {
+        notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{}');
+    } catch(_eNp) { notifPrefs = {}; }
     var cats = [['notifLunar','lunarPhases',currentLang==='es'?'Fases Lunares':'Lunar Phases'],['notifEclipse','eclipses','Eclipses'],['notifRetro','retrogrades','Retrogrades'],['notifSigns','signChanges',currentLang==='es'?'Cambios Signo':'Sign Changes'],['notifAspects','interPlanetaryAspects',currentLang==='es'?'Aspectos':'Aspects'],['notifAstro','astronomicalEvents',currentLang==='es'?'Eventos Astro':'Astro Events'],['notifPersonal','personalEvents',currentLang==='es'?'🌟 Eventos Personales':'🌟 Personal Events'],['notifUser','userEvents',currentLang==='es'?'Mis Eventos':'My Events']];
     notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
     cats.forEach(function(c) {
