@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ca';</script>
+    <script>window.APP_VERSION = 'v749cc';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -24237,6 +24237,25 @@ function setActiveProfileId(id) {
     localStorage.setItem('activeProfileId', id);
 }
 
+// v749cb: "Perfil principal" = dueño del teléfono. Es estable (no cambia cuando navegás a otra carta).
+// Default: el primer perfil creado (legacy fallback). El usuario puede cambiarlo desde ajustes/notificaciones.
+function getMainProfileId() {
+    var stored = localStorage.getItem('mainProfileId');
+    var profiles;
+    try { profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]'); } catch(e) { profiles = []; }
+    if (stored && profiles.some(function(p) { return p.id === stored; })) return stored;
+    // Fallback: primer perfil con fecha (asumido como dueño original del teléfono)
+    var fallback = profiles.find(function(p) { return p && p.date; });
+    return fallback ? fallback.id : null;
+}
+window.getMainProfileId = getMainProfileId;
+
+function setMainProfileId(id) {
+    if (!id) localStorage.removeItem('mainProfileId');
+    else localStorage.setItem('mainProfileId', id);
+}
+window.setMainProfileId = setMainProfileId;
+
 function getNatalData() {
     const profiles = getNatalProfiles();
     if (profiles.length === 0) return null;
@@ -37424,6 +37443,7 @@ function checkNotifications() {
                     var _psYearLen = Math.round((_psNextBdate - _psBdate) / 86400000);
                     var _psQ = _psYearLen / 4;
                     var _profileName = _prof.name || (L?'Perfil sin nombre':'Unnamed profile');
+                    // v749cc: removido concepto de "principal" — usamos el nombre del perfil sin sufijo
                     var _psSeasons = [
                         { offset: 0,                       key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox' },
                         { offset: Math.round(_psQ),         key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',     en: 'Personal Summer Solstice' },
@@ -37468,6 +37488,7 @@ function checkNotifications() {
                     var _natalChartForCycles = _ncRaw ? JSON.parse(_ncRaw) : null;
                     if (!_natalChartForCycles || typeof calculateCosmicCyclesForMonth !== 'function') return;
                     var _profName = _prof.name || (L?'Perfil sin nombre':'Unnamed');
+                    // v749cc: removido concepto de "principal" — usamos nombre del perfil sin sufijo
                     var _todayMidPE = new Date(now); _todayMidPE.setHours(0,0,0,0);
                     var _peMonths = [
                         { y: now.getFullYear(), m: now.getMonth() },
@@ -37512,7 +37533,7 @@ function checkNotifications() {
                         var _bodyText = _imminent
                             ? (L?'En ' + Math.round(_hoursUntil) + 'h: ':'In ' + Math.round(_hoursUntil) + 'h: ') + (cy.desc ? cy.desc.split('.')[0] + '.' : '')
                             : (cy.desc ? cy.desc.split('.')[0] + '.' : '') + (_timeStr ? ' ' + (L?'a las ':'at ') + _timeStr : '');
-                        // v749ca: nombre del perfil en título Y body
+                        // v749ca/cc: nombre del perfil en título Y body (sin distinción de principal)
                         var _fullTitle = _typeIcon + ' ' + _typeLabel + ' — ' + _profName + (_timeStr && !_imminent ? ' (' + _timeStr + ')' : '');
                         sendNotif(_fullTitle, {
                             body: _bodyText,
@@ -37635,6 +37656,9 @@ window.handleProfileNotifToggle = function(profileId, enabled) {
     localStorage.setItem('profileNotifs', JSON.stringify(pn));
     console.log('[v749ca] Profile notification toggle:', profileId, enabled);
 };
+
+// v749cc: removidos `markAsMainProfile` y `applyProfileNotifQuickAction` —
+// el usuario optó por UI simple (solo lista con toggles, sin concepto de "principal")
 
 // ══════════════════════════════════════════════════
 // PERSONAL MESSAGES EDITOR (in-app, localStorage)
@@ -38479,7 +38503,8 @@ function openPreferencesModal() {
     });
     notifContent += '</div>';
 
-    // v749ca: sub-sección de perfiles para Eventos Personales — toggle individual por perfil
+    // v749ca/cc: sub-sección de perfiles para Eventos Personales — lista simple con toggles
+    // v749cc: removido concepto de "principal" — solo nombres de perfiles con checkbox
     var _personalToggleOn = (notifPrefs.personalEvents !== false);
     if (_personalToggleOn) {
         try {
@@ -38487,14 +38512,17 @@ function openPreferencesModal() {
             if (_allProfsUi.length > 0) {
                 var _profileNotifsUi = JSON.parse(localStorage.getItem('profileNotifs') || '{}');
                 notifContent += '<div style="margin-top:12px;padding:10px;background:rgba(255,213,79,0.04);border:1px solid rgba(255,213,79,0.18);border-radius:8px;">';
-                notifContent += '<div style="font-size:0.74em;font-weight:700;color:#ffd54f;margin-bottom:8px;">🌟 ' + (currentLang==='es'?'Perfiles incluidos en Eventos Personales':'Profiles included in Personal Events') + '</div>';
-                notifContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.5);margin-bottom:8px;">' + (currentLang==='es'?'Cada perfil notifica sus retornos lunares, solar, estaciones personales etc. — desactivá los que no querés.':'Each profile notifies its lunar returns, solar return, personal seasons etc. — disable the ones you don\'t want.') + '</div>';
+                notifContent += '<div style="font-size:0.74em;font-weight:700;color:#ffd54f;margin-bottom:6px;">🌟 ' + (currentLang==='es'?'Perfiles incluidos en Eventos Personales':'Profiles included in Personal Events') + '</div>';
+                notifContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.5);margin-bottom:8px;">' + (currentLang==='es'?'Activá los perfiles cuyos eventos personales querés recibir como notificación.':'Enable profiles whose personal events you want to receive as notifications.') + '</div>';
                 notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
                 _allProfsUi.forEach(function(_pn) {
                     var _enabled = _profileNotifsUi[_pn.id] !== false;
                     var _nm = _pn.name || (currentLang==='es'?'Sin nombre':'Unnamed');
                     var _safeName = _nm.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                    notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,213,79,0.15);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="prof-' + _pn.id + '"' + (_enabled?' checked':'') + ' onchange="handleProfileNotifToggle(\'' + _pn.id + '\',this.checked)" style="cursor:pointer;"><label for="prof-' + _pn.id + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;" title="' + _safeName + '">' + _nm + '</label></div>';
+                    notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,213,79,0.15);border-radius:6px;display:flex;align-items:center;gap:5px;">';
+                    notifContent += '<input type="checkbox" id="prof-' + _pn.id + '"' + (_enabled?' checked':'') + ' onchange="handleProfileNotifToggle(\'' + _pn.id + '\',this.checked)" style="cursor:pointer;">';
+                    notifContent += '<label for="prof-' + _pn.id + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;flex:1;" title="' + _safeName + '">' + _nm + '</label>';
+                    notifContent += '</div>';
                 });
                 notifContent += '</div>';
                 notifContent += '</div>';
