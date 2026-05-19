@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bv';</script>
+    <script>window.APP_VERSION = 'v749bw';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -20380,7 +20380,8 @@ function showBannerAspectDetail(text, dateStrArg) {
     // Check for existing chat
     var existingChat = getInterpChat(chatId);
 
-    titleEl.textContent = text;
+    // v749bw: título descriptivo con modo + fecha para que al compartir se vea el contexto
+    titleEl.textContent = text + (typeof window._getShareModeSuffix === 'function' ? window._getShareModeSuffix(dateStrArg) : '');
     var html = '<div style="border-bottom:2px solid #c9a840;padding-bottom:12px;margin-bottom:15px;">';
     html += '<div style="font-size:0.95em;color:rgba(255,255,255,0.8);line-height:1.5;">' + text + '</div>';
     html += '</div>';
@@ -22317,7 +22318,8 @@ window.showSynastryAspectDetail = function(dataStr) {
     var bodyEl = document.getElementById('synOverlayBody') || document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
 
-    titleEl.textContent = p1Name + ' ' + sym + ' ' + p2Name;
+    // v749bw: sinastría aspect detail — agregar nombres de perfiles al título para share
+    titleEl.textContent = p1Name + ' ' + sym + ' ' + p2Name + (currentLang==='es'?' — Sinastría ':' — Synastry ') + person1 + ' ↔ ' + person2;
 
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid ' + color + ';">';
     html += '<div style="font-size:2.5em;margin-bottom:6px;">' + pSym1 + ' <span style="color:' + color + ';">' + sym + '</span> ' + pSym2 + '</div>';
@@ -22373,7 +22375,8 @@ window.showSynastryHouseDetail = function(dataStr) {
     var bodyEl = document.getElementById('synOverlayBody') || document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
 
-    titleEl.textContent = pName + ' ' + (currentLang==='es'?'en Casa':'in House') + ' ' + house;
+    // v749bw: agregar nombres de perfiles al título para share descriptivo
+    titleEl.textContent = pName + ' ' + (currentLang==='es'?'en Casa':'in House') + ' ' + house + (currentLang==='es'?' — Sinastría ':' — Synastry ') + person1 + ' ↔ ' + person2;
 
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid #64B5F6;">';
     html += '<div style="font-size:2.5em;margin-bottom:6px;">' + pSym + '</div>';
@@ -22421,6 +22424,29 @@ window._ensureSynOverlayModal = function() {
         document.body.appendChild(m);
     }
     return m;
+};
+
+// v749bw: helper global para construir sufijo de modo en títulos de share.
+// Detecta automáticamente si estamos en sinastría/compuesta/davison/natal y devuelve un sufijo descriptivo.
+// Uso: title + window._getShareModeSuffix() — opcional: pasar dateStr para incluir fecha.
+window._getShareModeSuffix = function(dateStr) {
+    var L = currentLang === 'es';
+    var suffix = '';
+    try {
+        if (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') {
+            var ctx = getCalRelContext();
+            var aName = (ctx.profileA && ctx.profileA.name) || 'A';
+            var bName = (ctx.profileB && ctx.profileB.name) || 'B';
+            if (ctx.mode === 'compuesta')      suffix = (L?' — Carta Compuesta ':' — Composite Chart ') + aName + ' + ' + bName;
+            else if (ctx.mode === 'davison')   suffix = (L?' — Carta Davison ':' — Davison Chart ') + aName + ' + ' + bName;
+            else if (ctx.mode === 'sinastria') suffix = (L?' — Sinastría ':' — Synastry ') + aName + ' ↔ ' + bName;
+            else                                suffix = L ? ' — Calendario Personal' : ' — Personal Calendar';
+        } else {
+            suffix = L ? ' — Calendario Personal' : ' — Personal Calendar';
+        }
+    } catch(_e) { suffix = ''; }
+    if (dateStr) suffix += ' · ' + dateStr;
+    return suffix;
 };
 
 // Construye HTML de tabla unificada Planetas + Casas (3 columnas: item / personA / personB).
@@ -22545,7 +22571,8 @@ window.showSynastryPlanetCompare = function(dataStr) {
     var bodyEl = document.getElementById('synOverlayBody');
     if (!modal || !titleEl || !bodyEl) return;
 
-    titleEl.textContent = pName + ' — ' + (L?'comparación':'comparison');
+    // v749bw: título descriptivo con nombres de los perfiles para share
+    titleEl.textContent = pName + ' — ' + (L?'Sinastría ':'Synastry ') + name1 + ' ↔ ' + name2;
 
     var v1 = sign1 + ' ' + deg1 + '°' + (h1?' H'+h1:'');
     var v2 = sign2 + ' ' + deg2 + '°' + (h2?' H'+h2:'');
@@ -22606,7 +22633,8 @@ window.showSynastryHouseCompare = function(dataStr) {
     var bodyEl = document.getElementById('synOverlayBody');
     if (!modal || !titleEl || !bodyEl) return;
 
-    titleEl.textContent = (L?'Casa ':'House ') + label + ' — ' + (L?'comparación':'comparison');
+    // v749bw: título descriptivo con nombres de los perfiles para share
+    titleEl.textContent = (L?'Casa ':'House ') + label + ' — ' + (L?'Sinastría ':'Synastry ') + name1 + ' ↔ ' + name2;
 
     var html = '<div style="text-align:center;padding:14px 0;border-bottom:2px solid rgba(195,155,211,0.5);">';
     html += '<div style="font-size:1.1em;font-weight:700;color:#c9a840;margin-bottom:2px;">' + (L?'Casa ':'House ') + label + '</div>';
@@ -29828,7 +29856,8 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr,
         ? 'Interpretá en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explicá: 1) Qué significa este aspecto en ' + _carteLabel + ', 2) Cómo afecta ' + (_itaCtx.mode !== 'natal' ? 'a la relación' : 'emocionalmente, profesionalmente y en relaciones') + ', 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que tener especial cuidado.' + _antiNatalDir
         : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to ' + nName + ' ' + _natalLabel + ' (' + dateStr + '). Explain: 1) What this aspect means in ' + _carteLabel + ', 2) How it affects ' + (_itaCtx.mode !== 'natal' ? 'the relationship' : 'emotionally, professionally and in relationships') + ', 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything to be especially careful about.' + _antiNatalDir);
 
-    var _title = tName + ' ' + aName + ' ' + nName;
+    // v749bw: agregar modo + fecha al título para que al compartir se vea el contexto
+    var _title = tName + ' ' + aName + ' ' + nName + (typeof window._getShareModeSuffix === 'function' ? window._getShareModeSuffix(dateStr) : '');
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="font-size:2em;">✨</div>'
         + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
@@ -29947,7 +29976,8 @@ function interpretTransitPosition(planet, posFormatted, dateStr) {
         ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpretá en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — energía fundamental, 2) Cómo afecta considerando ' + _carteWord + ', 3) Qué áreas de vida' + (_itpCtx.mode !== 'natal' ? ' de la relación' : '') + ' se activan, 4) Consejos prácticos, 5) Cuánto permanece ' + pName + ' en este signo.' + _antiNatalDirPos
         : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting that position means — fundamental energy, 2) How it affects considering ' + _carteWord + ', 3) What life areas' + (_itpCtx.mode !== 'natal' ? ' of the relationship' : '') + ' are activated, 4) Practical advice, 5) How long ' + pName + ' stays in this sign.' + _antiNatalDirPos);
 
-    var _title = pName + ' ' + (L ? 'en' : 'in') + ' ' + posFormatted;
+    // v749bw: agregar modo + fecha al título para share descriptivo
+    var _title = pName + ' ' + (L ? 'en' : 'in') + ' ' + posFormatted + (typeof window._getShareModeSuffix === 'function' ? window._getShareModeSuffix(dateStr) : '');
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="font-size:2.5em;">' + pSymbol + '</div>'
         + '<div style="font-weight:700;color:#7ec8ff;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
