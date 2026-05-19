@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749by';</script>
+    <script>window.APP_VERSION = 'v749ca';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -22433,6 +22433,7 @@ window._ensureSynOverlayModal = function() {
 // v749bw: helper global para construir sufijo de modo en títulos de share.
 // Detecta automáticamente si estamos en sinastría/compuesta/davison/natal y devuelve un sufijo descriptivo.
 // Uso: title + window._getShareModeSuffix() — opcional: pasar dateStr para incluir fecha.
+// v749bz: en Davison se incluye fecha+lugar de "nacimiento" de la relación.
 window._getShareModeSuffix = function(dateStr) {
     var L = currentLang === 'es';
     var suffix = '';
@@ -22442,7 +22443,16 @@ window._getShareModeSuffix = function(dateStr) {
             var aName = (ctx.profileA && ctx.profileA.name) || 'A';
             var bName = (ctx.profileB && ctx.profileB.name) || 'B';
             if (ctx.mode === 'compuesta')      suffix = (L?' — Carta Compuesta ':' — Composite Chart ') + aName + ' + ' + bName;
-            else if (ctx.mode === 'davison')   suffix = (L?' — Carta Davison ':' — Davison Chart ') + aName + ' + ' + bName;
+            else if (ctx.mode === 'davison') {
+                suffix = (L?' — Carta Davison ':' — Davison Chart ') + aName + ' + ' + bName;
+                if (ctx.davData && ctx.davData.dateStr) {
+                    var _di = (L?' [nacida ':' [born ') + ctx.davData.dateStr;
+                    if (ctx.davData.timeStr) _di += ' ' + ctx.davData.timeStr;
+                    if (ctx.davData.cityName) _di += ', ' + ctx.davData.cityName;
+                    _di += ']';
+                    suffix += _di;
+                }
+            }
             else if (ctx.mode === 'sinastria') suffix = (L?' — Sinastría ':' — Synastry ') + aName + ' ↔ ' + bName;
             else                                suffix = L ? ' — Calendario Personal' : ' — Personal Calendar';
         } else {
@@ -29451,6 +29461,47 @@ function interpretCalendarDay(year, month, day) {
         }).join(', ');
     }
 
+    // v749bz: eventos GENERALES del día — afectan a todos por igual pero pueden activar puntos
+    // de la carta relacional. Antes solo se incluían en interpretPersonalSection('aspectosDelDia'),
+    // ahora también en interpretCalendarDay para que la lectura sea completa.
+    var _dayEventsList = [];
+    try {
+        var _evMoon = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(date) : null;
+        if (_evMoon) {
+            var _moonName = _evMoon.type === 'full' ? (L?'Luna Llena':'Full Moon')
+                          : _evMoon.type === 'new' ? (L?'Luna Nueva':'New Moon')
+                          : (_evMoon.name || '');
+            _dayEventsList.push(_moonName + (_evMoon.sign ? (L?' en '+_evMoon.sign:' in '+_evMoon.sign) : ''));
+        }
+        var _evEcl = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
+        if (_evEcl) {
+            _dayEventsList.push(_evEcl.type === 'solar' ? (L?'Eclipse Solar':'Solar Eclipse') : (L?'Eclipse Lunar':'Lunar Eclipse'));
+        }
+        var _evStel = (typeof getStellium === 'function') ? getStellium(date) : null;
+        if (_evStel && _evStel.sign) {
+            _dayEventsList.push((L?'Stellium en ':'Stellium in ') + _evStel.sign + (_evStel.planets ? ' (' + _evStel.planets.join(', ') + ')' : ''));
+        }
+        var _evSc = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
+        _evSc.forEach(function(sc) {
+            _dayEventsList.push((planetNames[sc.planet]||sc.planet) + ' → ' + sc.toSign + (sc.time ? ' (' + sc.time + ')' : ''));
+        });
+        var _evRet = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
+        _evRet.forEach(function(r) {
+            _dayEventsList.push((planetNames[r.planet]||r.planet) + (r.isStart ? (L?' inicia retrógrado':' starts retrograde') : (L?' se pone directo':' goes direct')) + (r.sign ? (L?' en ':' in ') + r.sign : ''));
+        });
+        var _evIpa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
+        _evIpa.forEach(function(a) {
+            _dayEventsList.push((planetNames[a.planet1]||a.planet1) + ' ' + (a.symbol||a.aspect||'') + ' ' + (planetNames[a.planet2]||a.planet2) + (a.signs ? ' (' + a.signs + ')' : ''));
+        });
+        var _evPat = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+        _evPat.forEach(function(pat) {
+            if (pat.type !== 'stellium') {
+                _dayEventsList.push(pat.name + (pat.planets ? ' (' + pat.planets.join(', ') + ')' : ''));
+            }
+        });
+    } catch(_eEv) { console.warn('[v749bz] day events build error:', _eEv && _eEv.message); }
+    var _dayEventsDesc = _dayEventsList.length ? _dayEventsList.join('; ') : '';
+
     // v749bi: en sinastría, etiquetar los tránsitos sobre la carta A con el NOMBRE de profileA (no "Sinastría: A↔B")
     // El AI antes se confundía y se enfocaba sólo en B porque era la única tabla con dueño claro.
     var _firstTransitLabel;
@@ -29476,6 +29527,7 @@ function interpretCalendarDay(year, month, day) {
                 + 'La sinastría natal (aspectos cruzados, overlays de casas, puntaje) que aparece en tu contexto es BACKGROUND/MARCO de referencia — NO la repitas como si fuera la lectura del día.\n\n'
                 + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileA.name||'A') + ': ' + (transitDesc || 'ninguno significativo') + '\n'
                 + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc + '\n' : '')
+                + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre el vínculo): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCCIONES CRÍTICAS:\n'
                 + '1. Para cada tránsito importante listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién (' + (_ctx.profileA.name||'A') + ' o ' + (_ctx.profileB.name||'B') + '), y qué activa esa combinación específica.\n'
                 + '2. ⚠️ REGLA ESTRICTA SOBRE "DOBLES ACTIVACIONES": Solo decir "para ambos" o "doble activación" cuando el MISMO tránsito (mismo planeta, mismo aspecto) aparezca EXPLÍCITAMENTE en AMBAS listas (la de ' + (_ctx.profileA.name||'A') + ' Y la de ' + (_ctx.profileB.name||'B') + '). Si lo decís, DEBÉS citar la posición natal de CADA UNO con planeta + signo + grado (ej: "Quirón en Aries 28° de ' + (_ctx.profileA.name||'A') + ' Y Quirón en Géminis 7° de ' + (_ctx.profileB.name||'B') + ' — ambos reciben la conjunción de tránsito"). Si los planetas natales están en signos diferentes o muy distantes, NO es una doble activación real — interpretá cada uno por separado.\n'
@@ -29494,6 +29546,7 @@ function interpretCalendarDay(year, month, day) {
                 + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — Esta es la ' + _modoCarta + ' de ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + '. '
                 + 'El SUJETO es LA RELACIÓN como entidad propia (midpoints planetarios). NO es la carta de ' + (_ctx.profileA.name||'A') + ' ni la de ' + (_ctx.profileB.name||'B') + ' individualmente.\n\n'
                 + 'TRÁNSITOS DEL DÍA sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo') + '\n'
+                + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre la relación): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCCIONES:\n'
                 + '1. COMENZÁ el texto con: "Esta es la interpretación de la ' + _modoCarta.toLowerCase() + ' de ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + ' para [fecha]."\n'
                 + '2. Hablá de "LA RELACIÓN", "el vínculo", "el sistema relacional", "esta unión" — NO uses "vos"/"tu" ni te dirijas a una persona individual.\n'
@@ -29511,6 +29564,7 @@ function interpretCalendarDay(year, month, day) {
                 + 'The natal synastry (cross aspects, house overlays, score) in your context is BACKGROUND — do NOT repeat it as if it were today\'s reading.\n\n'
                 + 'TODAY\'S TRANSITS on ' + (_ctx.profileA.name||'A') + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
                 + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + (_ctx.profileB.name||'B') + '\'s natal chart: ' + transitsBDesc + '\n' : '')
+                + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the bond): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 CRITICAL INSTRUCTIONS:\n'
                 + '1. For each important transit listed above: which transit planet aspects which natal planet of whom (' + (_ctx.profileA.name||'A') + ' or ' + (_ctx.profileB.name||'B') + '), and what does that specific combination activate.\n'
                 + '2. ⚠️ STRICT RULE ON "DOUBLE ACTIVATIONS": Only say "for both" or "double activation" when the SAME transit (same planet, same aspect) appears EXPLICITLY in BOTH lists (' + (_ctx.profileA.name||'A') + '\'s AND ' + (_ctx.profileB.name||'B') + '\'s). When you do, you MUST cite each natal position with planet + sign + degree. If natal planets are in different signs or far apart, it is NOT a real double activation — interpret each separately.\n'
@@ -29528,6 +29582,7 @@ function interpretCalendarDay(year, month, day) {
                 + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — This is the ' + _modoCartaEn + ' of ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + '. '
                 + 'The SUBJECT is THE RELATIONSHIP as its own entity (planetary midpoints). It is NOT ' + (_ctx.profileA.name||'A') + '\'s chart nor ' + (_ctx.profileB.name||'B') + '\'s chart individually.\n\n'
                 + 'TODAY\'S TRANSITS on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant') + '\n'
+                + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the relationship): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCTIONS:\n'
                 + '1. START the text with: "This is the interpretation of the ' + _modoCartaEn.toLowerCase() + ' of ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + ' for [date]."\n'
                 + '2. Speak of "THE RELATIONSHIP", "the bond", "the relational system", "this union" — DO NOT use "you" nor address one person individually.\n'
@@ -29560,12 +29615,21 @@ function interpretCalendarDay(year, month, day) {
         } catch(e) { console.warn('[v749bi] precompute on interpret error:', e); }
     }
 
-    // v749bu: título descriptivo según modo — visible al compartir a WhatsApp etc.
+    // v749bu/bz: título descriptivo según modo — visible al compartir a WhatsApp etc.
+    // En Davison se agrega la fecha + lugar de "nacimiento" de la relación (carta natal real al midpoint).
     var _titleSuffix = '';
     if (_ctx.mode === 'compuesta') {
         _titleSuffix = (L?' — Carta Compuesta de ':' — Composite Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
     } else if (_ctx.mode === 'davison') {
         _titleSuffix = (L?' — Carta Davison de ':' — Davison Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
+        // v749bz: agregar fecha de nacimiento de la relación (Davison es carta natal real al midpoint)
+        if (_ctx.davData && _ctx.davData.dateStr) {
+            var _davInfo = (L?' [nacida ':' [born ') + _ctx.davData.dateStr;
+            if (_ctx.davData.timeStr) _davInfo += ' ' + _ctx.davData.timeStr;
+            if (_ctx.davData.cityName) _davInfo += ', ' + _ctx.davData.cityName;
+            _davInfo += ']';
+            _titleSuffix += _davInfo;
+        }
     } else if (_ctx.mode === 'sinastria') {
         _titleSuffix = (L?' — Sinastría ':' — Synastry ') + (_ctx.profileA.name||'A') + ' ↔ ' + (_ctx.profileB.name||'B');
     } else {
@@ -37337,60 +37401,74 @@ function checkNotifications() {
         }
     }
 
-    // 7b. v735/v749as: Personal events notification — equinoccios/solsticios personales + retornos solar/lunar + medio cielo
+    // 7b. v735/v749as/v749ca: Personal events notification — equinoccios/solsticios personales + retornos
     // Quarter the year from birthday: 0=spring eq, ~91=summer sol, ~182=autumn eq, ~273=winter sol
-    // v749as: renombrado de personalSeasons → personalEvents (backwards-compatible: si personalSeasons === false sigue OFF)
+    // v749as: renombrado de personalSeasons → personalEvents (backwards-compatible)
+    // v749ca: ahora ITERA TODOS LOS PERFILES (no solo el activo) — y permite desactivar perfiles individuales
     var _personalEventsEnabled = (notifPrefs.personalEvents !== false) && (notifPrefs.personalSeasons !== false);
+    var _profileNotifs = JSON.parse(localStorage.getItem('profileNotifs') || '{}'); // {profile_id: bool} — default true
+    function _isProfileNotifEnabled(pid) {
+        return _profileNotifs[pid] !== false; // default ON
+    }
     if (_personalEventsEnabled) { // default ON
         try {
-            var natalForSeasons = (typeof getNatalData === 'function') ? getNatalData() : null;
-            if (natalForSeasons && natalForSeasons.date) {
-                var [_psY, _psM, _psD] = natalForSeasons.date.split('-').map(Number);
-                var _psYear = now.getFullYear();
-                var _psBdate = new Date(_psYear, _psM - 1, _psD);
-                var _psNextBdate = new Date(_psYear + 1, _psM - 1, _psD);
-                var _psYearLen = Math.round((_psNextBdate - _psBdate) / 86400000);
-                var _psQ = _psYearLen / 4;
-                var _psSeasons = [
-                    { offset: 0,                       key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox' },
-                    { offset: Math.round(_psQ),         key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',     en: 'Personal Summer Solstice' },
-                    { offset: Math.round(_psQ * 2),     key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño',     en: 'Personal Autumn Equinox' },
-                    { offset: Math.round(_psQ * 3),     key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno',  en: 'Personal Winter Solstice' }
-                ];
-                _psSeasons.forEach(function(s) {
-                    var _seasonDate = new Date(_psBdate.getTime() + s.offset * 86400000);
-                    _seasonDate.setHours(0, 0, 0, 0);
-                    var _todayMid = new Date(now); _todayMid.setHours(0,0,0,0);
-                    if (_seasonDate.getTime() === _todayMid.getTime()) {
-                        var _psNotifKey = 'notif-personalSeason-' + s.key + '-' + _psYear;
-                        if (!localStorage.getItem(_psNotifKey)) {
-                            var _psTitle = s.icon + ' ' + (L ? s.es : s.en);
-                            sendNotif(_psTitle, {
-                                body: L ? 'Hoy comienza tu nueva estación personal — momento clave del ciclo desde tu cumpleaños.'
-                                       : 'Your new personal season begins today — key moment in the cycle from your birthday.',
-                                tag: 'personal-season-' + s.key + '-' + _psYear,
-                                requireInteraction: true,
-                                data: { interpret: (L ? s.es : s.en) }
-                            });
-                            localStorage.setItem(_psNotifKey, 'true');
-                            console.log('🌱☀️🍂❄️ Personal season:', s.key);
+            var _allProfilesForEvents = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+            _allProfilesForEvents.forEach(function(_prof) {
+                if (!_prof || !_prof.date || !_isProfileNotifEnabled(_prof.id)) return;
+                try {
+                    var _psParts = _prof.date.split('-').map(Number);
+                    var _psM = _psParts[1], _psD = _psParts[2];
+                    var _psYear = now.getFullYear();
+                    var _psBdate = new Date(_psYear, _psM - 1, _psD);
+                    var _psNextBdate = new Date(_psYear + 1, _psM - 1, _psD);
+                    var _psYearLen = Math.round((_psNextBdate - _psBdate) / 86400000);
+                    var _psQ = _psYearLen / 4;
+                    var _profileName = _prof.name || (L?'Perfil sin nombre':'Unnamed profile');
+                    var _psSeasons = [
+                        { offset: 0,                       key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox' },
+                        { offset: Math.round(_psQ),         key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano',     en: 'Personal Summer Solstice' },
+                        { offset: Math.round(_psQ * 2),     key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño',     en: 'Personal Autumn Equinox' },
+                        { offset: Math.round(_psQ * 3),     key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno',  en: 'Personal Winter Solstice' }
+                    ];
+                    _psSeasons.forEach(function(s) {
+                        var _seasonDate = new Date(_psBdate.getTime() + s.offset * 86400000);
+                        _seasonDate.setHours(0, 0, 0, 0);
+                        var _todayMid = new Date(now); _todayMid.setHours(0,0,0,0);
+                        if (_seasonDate.getTime() === _todayMid.getTime()) {
+                            // v749ca: key incluye profile_id para no colisionar entre perfiles
+                            var _psNotifKey = 'notif-personalSeason-' + _prof.id + '-' + s.key + '-' + _psYear;
+                            if (!localStorage.getItem(_psNotifKey)) {
+                                var _psTitle = s.icon + ' ' + (L ? s.es : s.en) + ' — ' + _profileName;
+                                sendNotif(_psTitle, {
+                                    body: (L ? 'Hoy comienza la nueva estación personal de ' + _profileName + ' — momento clave del ciclo desde su cumpleaños.'
+                                            : 'Today begins ' + _profileName + '\'s new personal season — key moment in the cycle from their birthday.'),
+                                    tag: 'personal-season-' + _prof.id + '-' + s.key + '-' + _psYear,
+                                    requireInteraction: true,
+                                    data: { interpret: (L ? s.es : s.en) + ' — ' + _profileName, profileId: _prof.id }
+                                });
+                                localStorage.setItem(_psNotifKey, 'true');
+                                console.log('🌱☀️🍂❄️ Personal season:', s.key, 'for', _profileName);
+                            }
                         }
-                    }
-                });
-            }
+                    });
+                } catch(_pPerErr) { console.warn('Personal seasons for profile', _prof.id, ':', _pPerErr); }
+            });
         } catch(e) { console.warn('Personal seasons notification error:', e); }
     }
 
-    // 7c. v749as: Retornos lunares + retorno solar + medio cielo solar — usa el mismo toggle personalEvents
+    // 7c. v749as/v749ca: Retornos lunares + retorno solar + medio cielo + retornos planetarios — todos los perfiles
+    // v749ca: ahora itera TODOS los perfiles (no solo activo). Cada notificación incluye el nombre del perfil.
     if (_personalEventsEnabled) {
         try {
-            var _natalForCycles = (typeof getNatalData === 'function') ? getNatalData() : null;
-            if (_natalForCycles && _natalForCycles.id && _natalForCycles.date) {
-                var _ncRaw = localStorage.getItem('natalChart_' + _natalForCycles.id);
-                var _natalChartForCycles = _ncRaw ? JSON.parse(_ncRaw) : null;
-                if (_natalChartForCycles && typeof calculateCosmicCyclesForMonth === 'function') {
+            var _allProfilesForCycles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+            _allProfilesForCycles.forEach(function(_prof) {
+                if (!_prof || !_prof.id || !_prof.date || !_isProfileNotifEnabled(_prof.id)) return;
+                try {
+                    var _ncRaw = localStorage.getItem('natalChart_' + _prof.id);
+                    var _natalChartForCycles = _ncRaw ? JSON.parse(_ncRaw) : null;
+                    if (!_natalChartForCycles || typeof calculateCosmicCyclesForMonth !== 'function') return;
+                    var _profName = _prof.name || (L?'Perfil sin nombre':'Unnamed');
                     var _todayMidPE = new Date(now); _todayMidPE.setHours(0,0,0,0);
-                    // Calcular ciclos de este mes y próximo mes (para notificar 1 día antes de eventos cerca del cambio de mes)
                     var _peMonths = [
                         { y: now.getFullYear(), m: now.getMonth() },
                         { y: (now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear()), m: ((now.getMonth()+1)%12) }
@@ -37398,43 +37476,55 @@ function checkNotifications() {
                     var _peAllCycles = [];
                     _peMonths.forEach(function(mm) {
                         try {
-                            var cs = calculateCosmicCyclesForMonth(mm.y, mm.m, _natalChartForCycles, _natalForCycles.date);
+                            var cs = calculateCosmicCyclesForMonth(mm.y, mm.m, _natalChartForCycles, _prof.date);
                             cs.forEach(function(c) { c._year = mm.y; c._month = mm.m; });
                             _peAllCycles = _peAllCycles.concat(cs);
                         } catch(_ce) {}
                     });
                     _peAllCycles.forEach(function(cy) {
-                        // Solo notificar tipos relevantes: solarReturn, lunarReturn, solarHalf
-                        if (cy.type !== 'solarReturn' && cy.type !== 'lunarReturn' && cy.type !== 'solarHalf') return;
+                        // Tipos relevantes: solarReturn, lunarReturn, solarHalf, y retornos planetarios si existen
+                        var _validTypes = ['solarReturn','lunarReturn','solarHalf','mercuryReturn','venusReturn','marsReturn'];
+                        if (_validTypes.indexOf(cy.type) < 0) return;
                         var _evtDate = cy.exactTime ? new Date(cy.exactTime) : new Date(cy._year, cy._month, cy.day, 12, 0, 0);
                         var _evtDay = new Date(_evtDate); _evtDay.setHours(0,0,0,0);
-                        // Notificar SI: hoy es el día del evento (catchup) o evento dentro de las próximas 12h
                         var _isToday = _evtDay.getTime() === _todayMidPE.getTime();
                         var _hoursUntil = (_evtDate.getTime() - now.getTime()) / 3600000;
                         var _imminent = _hoursUntil > 0 && _hoursUntil < 12;
                         if (!_isToday && !_imminent) return;
-                        var _keySuffix = cy.type + '-' + cy._year + '-' + cy._month + '-' + cy.day + (_imminent ? '-12h' : '-day');
+                        var _keySuffix = _prof.id + '-' + cy.type + '-' + cy._year + '-' + cy._month + '-' + cy.day + (_imminent ? '-12h' : '-day');
                         var _notifKeyPE = 'notif-personalEvents-' + _keySuffix;
-                        if (localStorage.getItem(_notifKeyPE)) return; // already sent
-                        var _typeIcon = cy.type === 'solarReturn' ? '☉' : cy.type === 'lunarReturn' ? '☽' : '◑';
+                        if (localStorage.getItem(_notifKeyPE)) return;
+                        var _typeIcon = cy.type === 'solarReturn' ? '☉'
+                                      : cy.type === 'lunarReturn' ? '☽'
+                                      : cy.type === 'solarHalf' ? '◑'
+                                      : cy.type === 'mercuryReturn' ? '☿'
+                                      : cy.type === 'venusReturn' ? '♀'
+                                      : cy.type === 'marsReturn' ? '♂'
+                                      : '✦';
                         var _typeLabel = cy.type === 'solarReturn' ? (L?'Retorno Solar':'Solar Return')
                                        : cy.type === 'lunarReturn' ? (L?'Retorno Lunar':'Lunar Return')
-                                       : (L?'Medio Cielo Solar':'Solar Half-Return');
+                                       : cy.type === 'solarHalf' ? (L?'Medio Cielo Solar':'Solar Half-Return')
+                                       : cy.type === 'mercuryReturn' ? (L?'Retorno de Mercurio':'Mercury Return')
+                                       : cy.type === 'venusReturn' ? (L?'Retorno de Venus':'Venus Return')
+                                       : cy.type === 'marsReturn' ? (L?'Retorno de Marte':'Mars Return')
+                                       : (L?'Ciclo personal':'Personal cycle');
                         var _timeStr = cy.exactTime ? _evtDate.toLocaleTimeString(L?'es':'en',{hour:'2-digit',minute:'2-digit'}) : '';
                         var _bodyText = _imminent
                             ? (L?'En ' + Math.round(_hoursUntil) + 'h: ':'In ' + Math.round(_hoursUntil) + 'h: ') + (cy.desc ? cy.desc.split('.')[0] + '.' : '')
                             : (cy.desc ? cy.desc.split('.')[0] + '.' : '') + (_timeStr ? ' ' + (L?'a las ':'at ') + _timeStr : '');
-                        sendNotif(_typeIcon + ' ' + _typeLabel + (_timeStr && !_imminent ? ' — ' + _timeStr : ''), {
+                        // v749ca: nombre del perfil en título Y body
+                        var _fullTitle = _typeIcon + ' ' + _typeLabel + ' — ' + _profName + (_timeStr && !_imminent ? ' (' + _timeStr + ')' : '');
+                        sendNotif(_fullTitle, {
                             body: _bodyText,
                             tag: 'personal-' + _keySuffix,
                             requireInteraction: true,
-                            data: { interpret: _typeLabel + ': ' + (cy.label || '') }
+                            data: { interpret: _typeLabel + ' — ' + _profName + ': ' + (cy.label || ''), profileId: _prof.id }
                         });
                         localStorage.setItem(_notifKeyPE, 'true');
-                        console.log('🌟 Personal cosmic event notif:', cy.type, cy.day, _imminent?'(12h before)':'(today)');
+                        console.log('🌟 Personal cosmic event notif:', cy.type, cy.day, 'for', _profName);
                     });
-                }
-            }
+                } catch(_pCycErr) { console.warn('Cosmic cycles for profile', _prof.id, ':', _pCycErr); }
+            });
         } catch(e) { console.warn('Personal cosmic events notification error:', e); }
     }
 
@@ -37535,6 +37625,16 @@ function handleNotifCategoryToggle(categoryId, enabled) {
     localStorage.setItem('notifPrefs', JSON.stringify(notifPrefs));
     console.log('Notification preference updated:', categoryId, enabled);
 }
+
+// v749ca: toggle individual por perfil para "Eventos Personales"
+// Default: TODOS los perfiles ON. Si el usuario desactiva, se guarda explícitamente como false.
+window.handleProfileNotifToggle = function(profileId, enabled) {
+    var pn = {};
+    try { pn = JSON.parse(localStorage.getItem('profileNotifs') || '{}'); } catch(e) {}
+    pn[profileId] = !!enabled;
+    localStorage.setItem('profileNotifs', JSON.stringify(pn));
+    console.log('[v749ca] Profile notification toggle:', profileId, enabled);
+};
 
 // ══════════════════════════════════════════════════
 // PERSONAL MESSAGES EDITOR (in-app, localStorage)
@@ -38374,9 +38474,33 @@ function openPreferencesModal() {
     var cats = [['notifLunar','lunarPhases',currentLang==='es'?'Fases Lunares':'Lunar Phases'],['notifEclipse','eclipses','Eclipses'],['notifRetro','retrogrades','Retrogrades'],['notifSigns','signChanges',currentLang==='es'?'Cambios Signo':'Sign Changes'],['notifAspects','interPlanetaryAspects',currentLang==='es'?'Aspectos':'Aspects'],['notifAstro','astronomicalEvents',currentLang==='es'?'Eventos Astro':'Astro Events'],['notifPersonal','personalEvents',currentLang==='es'?'🌟 Eventos Personales':'🌟 Personal Events'],['notifUser','userEvents',currentLang==='es'?'Mis Eventos':'My Events']];
     notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
     cats.forEach(function(c) {
-        notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="' + c[0] + '" checked onchange="handleNotifCategoryToggle(\'' + c[1] + '\',this.checked);openPreferencesModal();" style="cursor:pointer;"><label for="' + c[0] + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;">' + c[2] + '</label></div>';
+        var _catChecked = (notifPrefs[c[1]] !== false);
+        notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="' + c[0] + '"' + (_catChecked?' checked':'') + ' onchange="handleNotifCategoryToggle(\'' + c[1] + '\',this.checked);openPreferencesModal();" style="cursor:pointer;"><label for="' + c[0] + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;">' + c[2] + '</label></div>';
     });
     notifContent += '</div>';
+
+    // v749ca: sub-sección de perfiles para Eventos Personales — toggle individual por perfil
+    var _personalToggleOn = (notifPrefs.personalEvents !== false);
+    if (_personalToggleOn) {
+        try {
+            var _allProfsUi = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+            if (_allProfsUi.length > 0) {
+                var _profileNotifsUi = JSON.parse(localStorage.getItem('profileNotifs') || '{}');
+                notifContent += '<div style="margin-top:12px;padding:10px;background:rgba(255,213,79,0.04);border:1px solid rgba(255,213,79,0.18);border-radius:8px;">';
+                notifContent += '<div style="font-size:0.74em;font-weight:700;color:#ffd54f;margin-bottom:8px;">🌟 ' + (currentLang==='es'?'Perfiles incluidos en Eventos Personales':'Profiles included in Personal Events') + '</div>';
+                notifContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.5);margin-bottom:8px;">' + (currentLang==='es'?'Cada perfil notifica sus retornos lunares, solar, estaciones personales etc. — desactivá los que no querés.':'Each profile notifies its lunar returns, solar return, personal seasons etc. — disable the ones you don\'t want.') + '</div>';
+                notifContent += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
+                _allProfsUi.forEach(function(_pn) {
+                    var _enabled = _profileNotifsUi[_pn.id] !== false;
+                    var _nm = _pn.name || (currentLang==='es'?'Sin nombre':'Unnamed');
+                    var _safeName = _nm.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,213,79,0.15);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="prof-' + _pn.id + '"' + (_enabled?' checked':'') + ' onchange="handleProfileNotifToggle(\'' + _pn.id + '\',this.checked)" style="cursor:pointer;"><label for="prof-' + _pn.id + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;" title="' + _safeName + '">' + _nm + '</label></div>';
+                });
+                notifContent += '</div>';
+                notifContent += '</div>';
+            }
+        } catch(_pe) { console.warn('profile notifs ui:', _pe); }
+    }
     // v631: Botón diagnóstico de notificaciones
     notifContent += '<button onclick="showNotifDiagnostic()" style="margin-top:10px;width:100%;padding:8px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.3);border-radius:6px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">🔍 ' + (currentLang==='es'?'Diagnóstico de notificaciones':'Notifications diagnostic') + '</button>';
     sectionsHtml += _s(notifEnabled?'🔔':'🔕', currentLang==='es'?'Notificaciones':'Notifications', '#7ec8ff', notifContent);
