@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749br';</script>
+    <script>window.APP_VERSION = 'v749bs';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -22384,10 +22384,10 @@ window._ensureSynOverlayModal = function() {
 // v749bn: cambiado a abreviaturas de palabras (más legibles que glifos) + agregados asteroides
 window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     var L = currentLang === 'es';
-    // v749bn: abreviaturas medianas de planetas — más legibles que glifos, caben en columna estrecha
+    // v749bs: nombres COMPLETOS de planetas en la izquierda (pedido del usuario) — caben con columna 28%
     var pN = L
-        ? {sun:'Sol',moon:'Luna',mercury:'Merc',venus:'Ven',mars:'Mar',jupiter:'Júp',saturn:'Sat',uranus:'Ura',neptune:'Nep',pluto:'Plu',chiron:'Quir',northnode:'N.Norte',lilith:'Lil',ceres:'Cer',pallas:'Pal',juno:'Juno',vesta:'Ves'}
-        : {sun:'Sun',moon:'Moon',mercury:'Mer',venus:'Ven',mars:'Mar',jupiter:'Jup',saturn:'Sat',uranus:'Ura',neptune:'Nep',pluto:'Plu',chiron:'Chir',northnode:'N.Node',lilith:'Lil',ceres:'Cer',pallas:'Pal',juno:'Juno',vesta:'Ves'};
+        ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón',chiron:'Quirón',northnode:'Nodo Norte',lilith:'Lilith',ceres:'Ceres',pallas:'Pallas',juno:'Juno',vesta:'Vesta'}
+        : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto',chiron:'Chiron',northnode:'North Node',lilith:'Lilith',ceres:'Ceres',pallas:'Pallas',juno:'Juno',vesta:'Vesta'};
     // v749bn: incluir asteroides (Ceres, Pallas, Juno, Vesta) + Lilith después de los planetas tradicionales
     var planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith','ceres','pallas','juno','vesta'];
     // v749bn: abreviaturas de signos en 3 letras — Spanish + English
@@ -22404,9 +22404,10 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     var html = '';
 
     // ───── PLANETAS ─────
-    html += '<div style="' + headerSec + '">' + (L?'Planetas (tap fila para interpretar)':'Planets (tap row to interpret)') + '</div>';
+    // v749bs: header simplificado + columna planeta ampliada a 28% para nombres completos (Mercurio, Nodo Norte, etc.)
+    html += '<div style="' + headerSec + '">' + (L?'Planetas — tap para interpretar':'Planets — tap to interpret') + '</div>';
     html += '<table style="' + tableStyle + '">';
-    html += '<colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>';
+    html += '<colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>';
     html += '<thead><tr>';
     html += '<th style="' + thStyle + '"></th>';
     html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
@@ -22439,9 +22440,10 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
     if (nc1.houses && nc2.houses && nc1.houses.cusps && nc2.houses.cusps) {
         var houseLabels = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
         var houseAng = {0:'(ASC)', 3:'(IC)', 6:'(DESC)', 9:'(MC)'};
-        html += '<div style="' + headerSec + '">' + (L?'Casas — Cúspides (tap fila para interpretar)':'Houses — Cusps (tap row to interpret)') + '</div>';
+        // v749bs: header simplificado + mismas anchuras que tabla de planetas
+        html += '<div style="' + headerSec + '">' + (L?'Casas-Cúspides — tap para interpretar':'Houses-Cusps — tap to interpret') + '</div>';
         html += '<table style="' + tableStyle + '">';
-        html += '<colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>';
+        html += '<colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>';
         html += '<thead><tr>';
         html += '<th style="' + thStyle + '"></th>';
         html += '<th style="' + thStyle + 'color:rgba(201,168,64,0.85);">' + name1 + '</th>';
@@ -22466,17 +22468,13 @@ window.buildSynastryCompareTableHTML = function(nc1, nc2, name1, name2) {
         html += '</tbody></table>';
     }
 
-    // v749bn: Leyenda — mapeo de abreviaturas a nombres completos (planetas y signos)
+    // v749bs: leyenda — sólo signos abreviados ya que planetas están en nombre completo
     var _legSigns = L
         ? 'Ari=Aries · Tau=Tauro · Gém=Géminis · Cán=Cáncer · Leo · Vir=Virgo · Lib=Libra · Esc=Escorpio · Sag=Sagitario · Cap=Capricornio · Acu=Acuario · Pis=Piscis'
         : 'Ari=Aries · Tau=Taurus · Gem=Gemini · Cnc=Cancer · Leo · Vir=Virgo · Lib=Libra · Sco=Scorpio · Sag=Sagittarius · Cap=Capricorn · Aqu=Aquarius · Pis=Pisces';
-    var _legPlanets = L
-        ? 'Merc=Mercurio · Ven=Venus · Mar=Marte · Júp=Júpiter · Sat=Saturno · Ura=Urano · Nep=Neptuno · Plu=Plutón · Quir=Quirón · N.Norte=Nodo Norte · Lil=Lilith · Cer=Ceres · Pal=Pallas · Ves=Vesta'
-        : 'Mer=Mercury · Ven=Venus · Mar=Mars · Jup=Jupiter · Sat=Saturn · Ura=Uranus · Nep=Neptune · Plu=Pluto · Chir=Chiron · N.Node=North Node · Lil=Lilith · Cer=Ceres · Pal=Pallas · Ves=Vesta';
     html += '<div style="margin-top:10px;font-size:0.7em;color:rgba(255,255,255,0.45);line-height:1.5;">'
           + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="display:inline-block;width:10px;height:10px;background:rgba(46,204,113,0.5);border-radius:2px;"></span>' + (L?'mismo signo':'same sign') + '</div>'
           + '<div style="opacity:0.85;"><strong>' + (L?'Signos':'Signs') + ':</strong> ' + _legSigns + '</div>'
-          + '<div style="opacity:0.85;margin-top:3px;"><strong>' + (L?'Planetas':'Planets') + ':</strong> ' + _legPlanets + '</div>'
           + '</div>';
 
     return html;
