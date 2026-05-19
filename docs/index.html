@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bq';</script>
+    <script>window.APP_VERSION = 'v749br';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -47021,25 +47021,37 @@ function buildSystemPrompt(contextLevel) {
     }
 
     // v749at: estilo de interpretación — Simple (omitir grados/orbes) o Detallado (con grados/orbes, default)
+    // v749br: clarificar que en modo Simple los datos SÍ están en contexto — solo no se EXPONEN.
+    // Antes el AI confundía "no menciones grados" con "no tengo grados" y aplicaba mal la regla anti-alucinación.
     var _interpStylePref = localStorage.getItem('prefInterpStyle') || 'detailed';
     if (_interpStylePref === 'simple') {
         base += isEs
             ? '\n\n═══ ESTILO DE INTERPRETACIÓN: SIMPLE ═══\n'
-              + 'El usuario eligió el estilo SIMPLE. Reglas estrictas:\n'
-              + '• NO menciones grados astronómicos (ej. NO digas "Saturno a 14° de Aries" — decí "Saturno en Aries").\n'
-              + '• NO menciones orbes (ej. NO digas "orbe de 1.2°" — solo decí si el aspecto es exacto/fuerte/cercano si hace falta).\n'
-              + '• NO uses notación técnica como "0°34\'" ni cifras numéricas decimales.\n'
+              + '⚠️ IMPORTANTE — DISTINCIÓN CRÍTICA:\n'
+              + 'TENÉS ACCESO COMPLETO a todos los grados, orbes, posiciones precisas y notación técnica — están en la sección "DATOS DEL USUARIO Y LA APP" arriba. Usalos INTERNAMENTE para informar tu interpretación con precisión.\n'
+              + 'Lo que cambia en modo Simple es que NO los EXPONÉS al usuario en tu respuesta. Es una preferencia ESTÉTICA de comunicación, NO una falta de datos.\n\n'
+              + '🚫 NUNCA digas "no tengo el grado de X" o "no tengo orbe disponible" — eso sería FALSO, sí los tenés. Si no querés exponerlos, simplemente no los menciones, pero NO digas que no los tenés.\n\n'
+              + 'Reglas estrictas para Simple:\n'
+              + '• NO menciones grados astronómicos en el output (ej. NO digas "Saturno a 14° de Aries" — decí "Saturno en Aries"). PERO usá ese 14° internamente para juzgar fuerza del aspecto.\n'
+              + '• NO menciones orbes numéricos (ej. NO digas "orbe de 1.2°" — decí "aspecto cerrado/fuerte" o "exacto").\n'
+              + '• NO uses notación técnica como "0°34\'" ni cifras decimales en el output.\n'
               + '• Usá lenguaje accesible, cualitativo y vivencial. Enfocate en el SIGNIFICADO, no en la precisión técnica.\n'
-              + '• Si necesitás describir intensidad de un aspecto, usá palabras: "exacto", "muy cerca", "se está formando", "se está separando", "fuerte", "sutil", etc.\n'
-              + '• Mantené el lenguaje rico simbólicamente pero accesible para alguien que no sabe leer una carta natal.'
+              + '• Si necesitás describir intensidad de un aspecto, usá palabras: "exacto", "muy cerca", "se está formando", "se está separando", "fuerte", "sutil", etc. — son traducciones de los grados, no ausencia de ellos.\n'
+              + '• Mantené el lenguaje rico simbólicamente pero accesible para alguien que no sabe leer una carta natal.\n'
+              + '• La regla anti-alucinación sigue vigente, pero aplica solo cuando un dato GENUINAMENTE no está en tu contexto, NO cuando elegís no exponerlo.'
             : '\n\n═══ INTERPRETATION STYLE: SIMPLE ═══\n'
-              + 'The user chose the SIMPLE style. Strict rules:\n'
-              + '• DO NOT mention astronomical degrees (e.g., DO NOT say "Saturn at 14° Aries" — say "Saturn in Aries").\n'
-              + '• DO NOT mention orbs (e.g., DO NOT say "1.2° orb" — only say if the aspect is exact/strong/close if needed).\n'
-              + '• DO NOT use technical notation like "0°34\'" or decimal numbers.\n'
+              + '⚠️ IMPORTANT — CRITICAL DISTINCTION:\n'
+              + 'You HAVE FULL ACCESS to all degrees, orbs, precise positions and technical notation — they are in the "USER AND APP DATA" section above. Use them INTERNALLY to inform your interpretation with precision.\n'
+              + 'What changes in Simple mode is that you do NOT EXPOSE them to the user in your response. It is an AESTHETIC preference of communication, NOT a data shortage.\n\n'
+              + '🚫 NEVER say "I don\'t have X\'s degree" or "I don\'t have orb available" — that would be FALSE, you do have them. If you don\'t want to expose them, simply don\'t mention them, but do NOT say you don\'t have them.\n\n'
+              + 'Strict rules for Simple:\n'
+              + '• DO NOT mention astronomical degrees in the output (e.g., DO NOT say "Saturn at 14° Aries" — say "Saturn in Aries"). BUT use that 14° internally to judge aspect strength.\n'
+              + '• DO NOT mention numeric orbs (e.g., DO NOT say "1.2° orb" — say "tight/strong aspect" or "exact").\n'
+              + '• DO NOT use technical notation like "0°34\'" or decimal numbers in the output.\n'
               + '• Use accessible, qualitative, experiential language. Focus on MEANING, not technical precision.\n'
-              + '• If you need to describe aspect intensity, use words: "exact", "very close", "forming", "separating", "strong", "subtle", etc.\n'
-              + '• Keep the symbolically rich language but accessible to someone who can\'t read a natal chart.';
+              + '• If you need to describe aspect intensity, use words: "exact", "very close", "forming", "separating", "strong", "subtle", etc. — these are translations of the degrees, not their absence.\n'
+              + '• Keep the symbolically rich language but accessible to someone who can\'t read a natal chart.\n'
+              + '• The anti-hallucination rule still applies, but only when a data point is GENUINELY not in your context, NOT when you choose not to expose it.';
     } else {
         // 'detailed' — comportamiento default (con grados, orbes, precisión técnica)
         base += isEs
