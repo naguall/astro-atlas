@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bu';</script>
+    <script>window.APP_VERSION = 'v749bv';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29389,8 +29389,25 @@ function interpretCalendarDay(year, month, day) {
     }
 
     var transits = calculateTransitsToNatal(date, transitChart);
+    // v749bv: helper que formatea cada tránsito CON GRADO NATAL Y ORBE — antes el formato era
+    // "Sol oposición ASC" sin grado, así dos cartas con ASC en el mismo signo producían listas
+    // idénticas en texto aunque tuvieran orbes muy distintos → el AI decía "son idénticos".
+    function _fmtTransitForPrompt(t, label) {
+        var tpName = planetNames[t.transitPlanet] || t.transitPlanet;
+        var aspName = aspectNames[t.type] || t.type;
+        var npName = planetNames[t.natalPlanet] || t.natalPlanet;
+        var natalSign = '';
+        if (typeof t.natalLon === 'number' && typeof getZodiacSignWithDegree === 'function') {
+            try {
+                var _inf = getZodiacSignWithDegree(t.natalLon);
+                natalSign = _inf ? (' en ' + _inf.sign + ' ' + _inf.degree + '°') : '';
+            } catch(_e) {}
+        }
+        var orbStr = (t.orb !== undefined && t.orb !== null) ? (' [orbe ' + t.orb + '°]') : '';
+        return tpName + ' ' + aspName + ' ' + (label || 'natal') + ' ' + npName + natalSign + orbStr;
+    }
     var transitDesc = transits.map(function(t) {
-        return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (_isRel ? 'rel' : 'natal') + ' ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+        return _fmtTransitForPrompt(t, _isRel ? 'rel' : 'natal');
     }).join(', ');
 
     // Sinastría: tránsitos sobre Chart B también
@@ -29398,7 +29415,7 @@ function interpretCalendarDay(year, month, day) {
     if (_ctx.mode === 'sinastria' && _ctx.chartB) {
         var transitsB = calculateTransitsToNatal(date, _ctx.chartB);
         transitsBDesc = transitsB.map(function(t) {
-            return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+            return _fmtTransitForPrompt(t, 'natal');
         }).join(', ');
     }
 
@@ -29435,7 +29452,8 @@ function interpretCalendarDay(year, month, day) {
                 + '5. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
                 + '6. Estructura: a) Tránsitos clave del día y a quién afectan (especifica nombre), b) Dobles activaciones REALES con posiciones natales citadas, c) Tránsitos asimétricos (a una sola carta), d) Manifestación en la dinámica relacional HOY, e) Consejos prácticos para ESTE DÍA, f) Advertencias.\n'
                 + '7. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.\n'
-                + '8. PROHIBIDO usar lenguaje vago tipo "para ambos" sin citar las posiciones exactas. Si no podés citar las dos posiciones natales con signo y grado, NO digas que es doble activación.';
+                + '8. PROHIBIDO usar lenguaje vago tipo "para ambos" sin citar las posiciones exactas. Si no podés citar las dos posiciones natales con signo y grado, NO digas que es doble activación.\n'
+                + '9. ⚠️ INVIOLABILIDAD DE LA LISTA: USÁ ÚNICAMENTE los tránsitos listados arriba. Cada tránsito aparece con su grado natal y orbe. NO inventes aspectos adicionales (a antípodas, ángulos opuestos, etc.). Si un aspecto NO está en una lista, NO existe para esa persona. Una oposición a ASC implica conjunción al DESC — pero NO es "conjunción al ASC" — son aspectos distintos. Confiá ÚNICAMENTE en la lista textual.';
         } else {
             // compuesta / davison: una sola "carta" relacional
             prompt = _relPrefix
@@ -29445,7 +29463,8 @@ function interpretCalendarDay(year, month, day) {
                 + '\n📌 INSTRUCCIONES:\n'
                 + '1. Interpretá cada tránsito importante del día y cómo se manifiesta en el vínculo.\n'
                 + '2. Estructura: a) Tránsitos clave, b) Energía general del día para la relación, c) Consejos prácticos para HOY, d) Advertencias.\n'
-                + '3. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo" — NO repitas la carta relacional natal.';
+                + '3. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo" — NO repitas la carta relacional natal.\n'
+                + '4. ⚠️ INVIOLABILIDAD DE LA LISTA: USÁ ÚNICAMENTE los tránsitos listados (cada uno trae grado natal y orbe). NO inventes aspectos adicionales. Una oposición a ASC NO implica conjunción a ASC simultánea — es solo UN aspecto. Confiá ÚNICAMENTE en la lista.';
         }
     } else {
         if (_ctx.mode === 'sinastria') {
@@ -29463,7 +29482,8 @@ function interpretCalendarDay(year, month, day) {
                 + '5. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
                 + '6. Structure: a) Key transits and whom they affect (specify name), b) REAL double activations with both natal positions cited, c) Asymmetric transits (only one chart), d) Today\'s relational manifestation, e) Practical advice for THIS DAY, f) Warnings.\n'
                 + '7. If NO significant transits, say "today is a quiet day energetically for the bond" — do NOT invent a natal reading to fill space.\n'
-                + '8. PROHIBITED: vague language like "for both" without citing exact positions. If you cannot cite both natal positions with sign and degree, do NOT call it a double activation.';
+                + '8. PROHIBITED: vague language like "for both" without citing exact positions. If you cannot cite both natal positions with sign and degree, do NOT call it a double activation.\n'
+                + '9. ⚠️ LIST INVIOLABILITY: USE ONLY the transits listed above (each comes with natal degree and orb). Do NOT invent additional aspects (to antipodes, opposite angles, etc.). An opposition to ASC means conjunction to DESC — NOT "conjunction to ASC". Trust ONLY the textual list.';
         } else {
             prompt = _relPrefix
                 + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general reading of the relational chart. '
@@ -29472,7 +29492,8 @@ function interpretCalendarDay(year, month, day) {
                 + '\n📌 INSTRUCTIONS:\n'
                 + '1. Interpret each important transit and how it manifests in the bond.\n'
                 + '2. Structure: a) Key transits, b) General energy of the day, c) Practical advice for TODAY, d) Warnings.\n'
-                + '3. If NO significant transits, say so — do NOT repeat the natal relational chart.';
+                + '3. If NO significant transits, say so — do NOT repeat the natal relational chart.\n'
+                + '4. ⚠️ LIST INVIOLABILITY: USE ONLY listed transits (each has natal degree and orb). Do NOT invent additional aspects. Trust ONLY the list.';
         }
     }
 
@@ -29639,14 +29660,24 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         var subset = transits.filter(function(t){ return t.tier === tier; });
         var _nameA = (_isectCtx.profileA && _isectCtx.profileA.name) || 'A';
         var _nameB = (_isectCtx.profileB && _isectCtx.profileB.name) || 'B';
-        var desc = subset.map(function(t){ return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet); }).join(', ');
+        // v749bv: helper que incluye grado natal + orbe en cada tránsito
+        function _fmtT(t) {
+            var s = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet);
+            if (typeof t.natalLon === 'number' && typeof getZodiacSignWithDegree === 'function') {
+                try { var _i = getZodiacSignWithDegree(t.natalLon); if (_i) s += ' en ' + _i.sign + ' ' + _i.degree + '°'; } catch(_e) {}
+            }
+            if (t.orb !== undefined && t.orb !== null) s += ' [orbe ' + t.orb + '°]';
+            return s;
+        }
+        // v749bv: usar _fmtT para incluir grado natal y orbe en cada tránsito
+        var desc = subset.map(_fmtT).join(', ');
         // v749bm: en sinastría también incluir tránsitos sobre la carta B
         var descB = '';
         if (_isectCtx.mode === 'sinastria' && _isectChartB) {
             try {
                 var transitsB_sec = calculateTransitsToNatal(date, _isectChartB);
                 var subsetB = transitsB_sec.filter(function(t){ return t.tier === tier; });
-                descB = subsetB.map(function(t){ return (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' natal ' + (planetNames[t.natalPlanet]||t.natalPlanet); }).join(', ');
+                descB = subsetB.map(_fmtT).join(', ');
             } catch(e) {}
         }
         var _sinTransitBlock = (_isectCtx.mode === 'sinastria')
