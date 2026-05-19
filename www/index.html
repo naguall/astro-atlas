@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bs';</script>
+    <script>window.APP_VERSION = 'v749bu';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -11721,29 +11721,64 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
 
         var response;
         var _fellbackToPersonal = false;
+        // v749bt: handle TODOS los errores transitorios server-side (429 rate-limit + 5xx server errors)
+        // con retry exponencial y fallback a key personal. Hasta 5 intentos.
         for (var _retry = 0; _retry < 5; _retry++) {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            // v749bd: si el proxy hit 429 y hay key personal disponible, hacer FALLBACK
-            if (response.status === 429 && usingProxy && personalKey && !_fellbackToPersonal) {
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+            } catch(_netErr) {
+                // network error (offline, DNS fail, etc.) — retry con backoff
+                console.warn('[AI] Network error (retry ' + (_retry+1) + '/5):', _netErr && _netErr.message);
+                if (_retry < 4) { await new Promise(function(r) { setTimeout(r, Math.min(2000 * (_retry + 1), 10000)); }); continue; }
+                throw _netErr;
+            }
+            var _status = response.status;
+            // v749bd: si el proxy hit 429 y hay key personal disponible, hacer FALLBACK INMEDIATO
+            if (_status === 429 && usingProxy && personalKey && !_fellbackToPersonal) {
                 console.warn('[AI] Proxy 429 → fallback a key personal');
                 apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
                 usingProxy = false;
                 useStreaming = true;
                 _fellbackToPersonal = true;
-                continue; // reintenta inmediatamente con key personal (sin esperar backoff)
+                continue;
             }
-            if (response.status === 429 && _retry < 4) {
-                await new Promise(function(r) { setTimeout(r, Math.min(3000 * (_retry + 1), 15000)); });
+            // v749bt: 503/502/504 (server overload / gateway / timeout) también dispara fallback a key personal si existe
+            if ((_status === 503 || _status === 502 || _status === 504) && usingProxy && personalKey && !_fellbackToPersonal) {
+                console.warn('[AI] Proxy ' + _status + ' (server overload) → fallback a key personal');
+                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                usingProxy = false;
+                useStreaming = true;
+                _fellbackToPersonal = true;
+                continue;
+            }
+            // v749bt: 429 / 5xx con retry exponencial (sin fallback porque ya cambiamos o no hay key personal)
+            if ((_status === 429 || _status === 503 || _status === 502 || _status === 504) && _retry < 4) {
+                var _waitMs = Math.min(3000 * (_retry + 1), 15000);
+                console.warn('[AI] Status ' + _status + ' — retry ' + (_retry+1) + '/5 en ' + _waitMs + 'ms');
+                await new Promise(function(r) { setTimeout(r, _waitMs); });
                 continue;
             }
             break;
         }
 
-        if (!response.ok) throw new Error('API error: ' + response.status);
+        // v749bt: mensaje user-friendly específico según status
+        if (!response.ok) {
+            var _errMsg;
+            if (response.status === 503 || response.status === 502 || response.status === 504) {
+                _errMsg = L ? 'El servicio de AI está saturado en este momento. Intentá de nuevo en unos segundos.' : 'AI service is overloaded right now. Try again in a few seconds.';
+            } else if (response.status === 429) {
+                _errMsg = L ? 'Demasiadas consultas. Esperá un momento e intentá de nuevo.' : 'Too many requests. Wait a moment and try again.';
+            } else if (response.status === 401 || response.status === 403) {
+                _errMsg = L ? 'Problema con la autenticación de la API. Revisá tu API key en Preferencias.' : 'API authentication issue. Check your API key in Preferences.';
+            } else {
+                _errMsg = (L ? 'Error de servidor: ' : 'Server error: ') + response.status;
+            }
+            throw new Error(_errMsg);
+        }
 
         // Streaming response — show text as it arrives
         if (useStreaming && response.body) {
@@ -11897,7 +11932,15 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             }
         }
     } catch(err) {
-        div.innerHTML = '<p style="color:#ff6b6b;font-size:0.85em;text-align:center;">' + (L ? 'Error al obtener la interpretación: ' : 'Error getting interpretation: ') + err.message + '</p>';
+        // v749bt: mensaje user-friendly + botón de retry — guarda el prompt para que clic en retry vuelva a intentar
+        var _retryKey = '_retryPrompt_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+        window[_retryKey] = { prompt: specificPrompt, target: targetDivId, title: readingTitle, storage: storageKey };
+        var _errHtml = '<div style="padding:14px;text-align:center;">'
+                     + '<div style="color:#ff6b6b;font-size:0.92em;font-weight:600;margin-bottom:6px;">' + (L?'⚠️ No se pudo generar la interpretación':'⚠️ Could not generate interpretation') + '</div>'
+                     + '<div style="color:rgba(255,255,255,0.65);font-size:0.82em;line-height:1.5;margin-bottom:12px;">' + (err && err.message ? err.message : (L?'Error desconocido':'Unknown error')) + '</div>'
+                     + '<button onclick="(function(){var d=window[\'' + _retryKey + '\'];if(d&&typeof fetchAIInterpretation===\'function\')fetchAIInterpretation(d.prompt,d.target,d.title,d.storage);})()" style="padding:8px 18px;background:rgba(201,168,64,0.18);border:1px solid rgba(201,168,64,0.4);border-radius:8px;color:#c9a840;font-size:0.86em;font-weight:600;cursor:pointer;">' + (L?'🔄 Reintentar':'🔄 Retry') + '</button>'
+                     + '</div>';
+        div.innerHTML = _errHtml;
         return;
     }
     } // end if !cachedHtml
@@ -15797,8 +15840,10 @@ function closeRetrogradeModal() {
 
 // Translate meanings from Spanish to English
 function translateMeaning(spanishText) {
+    // v749bt: defensive — si meaning es undefined/null/falsy, devolver '' para no mostrar literal "undefined"
+    if (spanishText == null || spanishText === undefined) return '';
     if (currentLang === 'es') return spanishText;
-    
+
     // Dictionary of energetic meanings (non-deterministic)
     const translations = {
         // Venus sign changes
@@ -29452,7 +29497,18 @@ function interpretCalendarDay(year, month, day) {
         } catch(e) { console.warn('[v749bi] precompute on interpret error:', e); }
     }
 
-    var _title = L ? 'Interpretación del Día' : 'Day Interpretation';
+    // v749bu: título descriptivo según modo — visible al compartir a WhatsApp etc.
+    var _titleSuffix = '';
+    if (_ctx.mode === 'compuesta') {
+        _titleSuffix = (L?' — Carta Compuesta de ':' — Composite Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
+    } else if (_ctx.mode === 'davison') {
+        _titleSuffix = (L?' — Carta Davison de ':' — Davison Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
+    } else if (_ctx.mode === 'sinastria') {
+        _titleSuffix = (L?' — Sinastría ':' — Synastry ') + (_ctx.profileA.name||'A') + ' ↔ ' + (_ctx.profileB.name||'B');
+    } else {
+        _titleSuffix = L ? ' — Calendario Personal (Tránsitos)' : ' — Personal Calendar (Transits)';
+    }
+    var _title = (L ? 'Interpretación del Día' : 'Day Interpretation') + _titleSuffix + ' · ' + dateStr;
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="font-size:2em;">✨</div>'
         + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
@@ -29646,6 +29702,14 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
     } else {
         return;
     }
+
+    // v749bu: enriquecer título con modo + fecha para que al compartir se sepa qué tipo de interpretación es
+    var _sufSec = '';
+    if (_isectCtx.mode === 'compuesta') _sufSec = (L?' — Carta Compuesta ':' — Composite ') + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B');
+    else if (_isectCtx.mode === 'davison') _sufSec = (L?' — Carta Davison ':' — Davison ') + (_isectCtx.profileA.name||'A') + ' + ' + (_isectCtx.profileB.name||'B');
+    else if (_isectCtx.mode === 'sinastria') _sufSec = (L?' — Sinastría ':' — Synastry ') + (_isectCtx.profileA.name||'A') + ' ↔ ' + (_isectCtx.profileB.name||'B');
+    else _sufSec = L ? ' — Calendario Personal' : ' — Personal Calendar';
+    sectionTitle = sectionTitle + _sufSec + ' · ' + dateStr;
 
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="font-size:2em;">✨</div>'
@@ -46818,47 +46882,67 @@ function buildSystemPrompt(contextLevel) {
         }
     } catch(e) {}
 
-    // v749bp: regla anti-alucinación REFORZADA y GLOBAL.
-    // Antes la regla decía "es mejor omitir que inventar" — eso permitía generalizaciones vagas.
-    // Ahora obliga a DECIR EXPLÍCITAMENTE "no tengo este dato" o PREGUNTAR al usuario.
+    // v749bp/bt: regla anti-alucinación con distinción crítica entre DATOS DEL USUARIO y CONOCIMIENTO GENERAL.
+    // v749bp era demasiado estricto — trataba conocimiento simbólico astrológico como "dato faltante",
+    // causando que el AI dijera "no tengo posiciones" en lugar de usar su conocimiento general.
     if (_hasChartData) {
         base += isEs
-            ? '\n\n═══ ⚠️ REGLA CRÍTICA: NUNCA INVENTAR, NUNCA ASUMIR — DECIR O PREGUNTAR ═══\n'
-              + 'Esta regla es ABSOLUTA y aplica a TODO lo que digás. Si te falta un dato (un grado, un signo, una posición, un aspecto, una casa, una hora, una fecha, un planeta de alguien, una activación), debés hacer UNA de estas tres cosas — NUNCA otra:\n\n'
-              + '  (a) DECIRLO: "No tengo el dato de [X] en mi contexto" o "No puedo verificar [Y] con los datos disponibles".\n'
-              + '  (b) PREGUNTARLE al usuario: "¿Sabés cuál es [X]?" o "¿Podés confirmarme [Y]?"\n'
-              + '  (c) OMITIRLO completamente y NO mencionarlo en ninguna forma.\n\n'
-              + '🚫 PROHIBIDO ABSOLUTO:\n'
-              + '• Inventar grados, signos, casas, aspectos, posiciones, fechas, horas.\n'
-              + '• Asumir simetrías ("para ambos", "los dos", "igual en cada uno") sin tener el dato EXACTO de cada parte citado en tu contexto.\n'
-              + '• Decir "probablemente", "seguramente", "se podría suponer", "es común que" como camuflaje de algo que no sabés. Si no lo sabés, decilo (a) o preguntá (b).\n'
-              + '• Rellenar con generalidades astrológicas cuando no podés ser específico. Mejor decir "no tengo este dato" que dar relleno genérico.\n'
-              + '• Contradecirte: si en un párrafo decís "Sol en Capricornio" y dos párrafos después decís "Sol en Escorpio", eso es invención. Citá UNA vez el dato verificado y mantenelo.\n\n'
-              + '✅ CONTEXTO DE DATOS:\n'
-              + 'Los datos disponibles ya están en "DATOS DEL USUARIO Y LA APP" arriba. Usá SOLO eso. Si algo no aparece ahí, no lo tenés — aplicá (a), (b) o (c).\n\n'
+            ? '\n\n═══ ⚠️ REGLA CRÍTICA: DOS TIPOS DE INFORMACIÓN — TRATAR DIFERENTE ═══\n'
+              + 'DISTINCIÓN CRÍTICA, leerla con atención:\n\n'
+              + '🅰️ DATOS DEL USUARIO Y DATOS NUMÉRICOS ESPECÍFICOS — NUNCA INVENTAR\n'
+              + 'Esto incluye: carta natal del usuario (signos, grados, casas, aspectos natales), perfiles guardados, fechas concretas, edad, nombre, posiciones específicas (ej. "Sol natal en Leo 9°"), datos personales.\n'
+              + 'Para ESTOS datos:\n'
+              + '  (a) Si están en tu contexto ("DATOS DEL USUARIO Y LA APP" arriba) → usalos con precisión y citalos textualmente cuando aporte.\n'
+              + '  (b) Si NO están → decí explícitamente "No tengo este dato en mi contexto" o PREGUNTÁ al usuario.\n'
+              + '  (c) NUNCA inventés grados, signos, casas o posiciones del usuario que no estén ahí.\n\n'
+              + '🅱️ CONOCIMIENTO ASTROLÓGICO SIMBÓLICO GENERAL — USALO LIBREMENTE\n'
+              + 'Esto incluye: qué significa cada planeta arquetípicamente, qué representa cada signo, qué simboliza un trígono/cuadratura/conjunción/oposición, mitología astrológica, arquetipos junguianos, ejes zodiacales, conceptos como "consciencia/sombra", "fuego/agua/aire/tierra", etc.\n'
+              + 'Esto es el CONOCIMIENTO QUE TENÉS ENTRENADO. NO es "información faltante". Es conocimiento general de astrología.\n'
+              + '  ✓ Cuando el usuario pregunta sobre "Mercurio trígono Plutón" en general, podés interpretarlo simbólicamente sin necesitar las posiciones específicas.\n'
+              + '  ✓ Cuando se pregunta por una transición, signo o aspecto, podés explicar su SIMBOLISMO sin necesitar coordenadas exactas.\n'
+              + '  🚫 NUNCA digás "no tengo las posiciones planetarias para tal fecha" si el usuario solo está pidiendo el SIGNIFICADO del aspecto.\n\n'
+              + '═══ CÓMO COMBINARLOS ═══\n'
+              + 'Si te dan SOLO el nombre del aspecto (ej. "Mercurio trígono Plutón hoy"), usá conocimiento simbólico (🅱️) para explicar el significado. No necesitás posiciones.\n'
+              + 'Si te dan posiciones específicas Y la carta del usuario, integralos: el aspecto del día (🅱️) aterriza en la carta del usuario (🅰️) generando interpretación personalizada.\n'
+              + 'Si el usuario te pide algo específico de su carta y no tenés el dato → aplicá 🅰️ regla (a)/(b)/(c).\n\n'
+              + '🚫 PROHIBIDO en TODOS los casos:\n'
+              + '• Asumir simetrías ("para ambos", "igual en cada uno") sin tener el dato exacto de cada parte.\n'
+              + '• Contradecirte: si en un párrafo decís "Sol en Capricornio" y dos párrafos después "Sol en Escorpio", eso es invención. Citá una vez y mantenelo.\n'
+              + '• Decir "no tengo este dato" cuando lo que falta es solo CONOCIMIENTO GENERAL (lo tenés entrenado).\n'
+              + '• Inventar grados/casas/posiciones del usuario que no están en tu contexto.\n\n'
               + 'EJEMPLOS:\n'
-              + '  ✗ MAL: "El Quirón de ambos está activado por el tránsito" (sin citar posiciones)\n'
-              + '  ✓ BIEN: "Tu Quirón está en Aries 28° y el de [X] en Géminis 7°. El tránsito de Quirón hoy está en Aries — toca tu Quirón, no el de [X]."\n'
-              + '  ✗ MAL: "Es probable que su Luna esté en agua, como la tuya"\n'
-              + '  ✓ BIEN: "No tengo la posición de la Luna de [X] en mi contexto. ¿Podés decirme en qué signo está?"'
-            : '\n\n═══ ⚠️ CRITICAL RULE: NEVER INVENT, NEVER ASSUME — SAY OR ASK ═══\n'
-              + 'This rule is ABSOLUTE and applies to EVERYTHING you say. If a data point is missing (a degree, sign, position, aspect, house, time, date, someone\'s planet, an activation), you must do ONE of three things — NEVER anything else:\n\n'
-              + '  (a) SAY IT: "I don\'t have data for [X] in my context" or "I cannot verify [Y] with available data".\n'
-              + '  (b) ASK the user: "Do you know [X]?" or "Can you confirm [Y]?"\n'
-              + '  (c) OMIT it completely and do NOT mention it in any form.\n\n'
-              + '🚫 ABSOLUTELY FORBIDDEN:\n'
-              + '• Inventing degrees, signs, houses, aspects, positions, dates, times.\n'
-              + '• Assuming symmetries ("for both", "the two", "same in each") without having the EXACT data of each party cited in your context.\n'
-              + '• Saying "probably", "likely", "one could assume", "it is common that" as camouflage for not knowing. If you don\'t know, say (a) or ask (b).\n'
-              + '• Filling with astrological generalities when you cannot be specific. Better to say "I don\'t have this data" than provide generic filler.\n'
-              + '• Contradicting yourself: if in one paragraph you say "Sun in Capricorn" and two paragraphs later "Sun in Scorpio", that is invention. Cite a verified datum ONCE and stick to it.\n\n'
-              + '✅ DATA CONTEXT:\n'
-              + 'Available data is already in "USER AND APP DATA" above. Use ONLY that. If something is not there, you do not have it — apply (a), (b), or (c).\n\n'
+              + '  ✓ BIEN (general): Usuario pide "interpretá Mercurio trígono Plutón hoy" → "Este aspecto activa la mente profunda y la capacidad de penetrar verdades ocultas..." (simbolismo, no necesitás posiciones).\n'
+              + '  ✓ BIEN (personalizado con datos): "Tu Plutón natal está en Libra 7° (Casa 10). Mercurio trígono Plutón hoy ilumina tu propósito público a través de la comunicación profunda."\n'
+              + '  ✗ MAL: "No tengo las posiciones planetarias para el 19 de mayo" cuando el usuario solo te pidió el significado simbólico.\n'
+              + '  ✗ MAL: "El Quirón de ambos está activado" sin citar posiciones de cada uno (eso sí requiere data específica del usuario).'
+            : '\n\n═══ ⚠️ CRITICAL RULE: TWO TYPES OF INFORMATION — HANDLE DIFFERENTLY ═══\n'
+              + 'CRITICAL DISTINCTION, read carefully:\n\n'
+              + '🅰️ USER DATA AND SPECIFIC NUMERIC DATA — NEVER INVENT\n'
+              + 'Includes: user\'s natal chart (signs, degrees, houses, natal aspects), saved profiles, concrete dates, age, name, specific positions (e.g. "natal Sun in Leo 9°"), personal data.\n'
+              + 'For THIS data:\n'
+              + '  (a) If in your context ("USER AND APP DATA" above) → use precisely, cite verbatim when relevant.\n'
+              + '  (b) If NOT there → say "I don\'t have this data" or ASK the user.\n'
+              + '  (c) NEVER invent degrees, signs, houses, or positions of the user that are not there.\n\n'
+              + '🅱️ GENERAL SYMBOLIC ASTROLOGICAL KNOWLEDGE — USE FREELY\n'
+              + 'Includes: archetypal meaning of planets, sign symbolism, what aspects (trine/square/conjunction/opposition) represent, astrological mythology, Jungian archetypes, zodiacal axes, concepts like "consciousness/shadow", "fire/water/air/earth", etc.\n'
+              + 'This is YOUR TRAINED KNOWLEDGE. It is NOT "missing information". It is general astrology.\n'
+              + '  ✓ When asked about "Mercury trine Pluto" in general, interpret symbolically without needing specific positions.\n'
+              + '  ✓ When asked about an aspect/sign/transition, explain SYMBOLISM without needing coordinates.\n'
+              + '  🚫 NEVER say "I don\'t have the planetary positions for that date" if the user is only asking for the MEANING of the aspect.\n\n'
+              + '═══ HOW TO COMBINE THEM ═══\n'
+              + 'If given ONLY the aspect name (e.g. "Mercury trine Pluto today"), use symbolic knowledge (🅱️). No positions needed.\n'
+              + 'If given specific positions AND user chart, integrate: today\'s aspect (🅱️) lands in user\'s chart (🅰️) for personalized interpretation.\n'
+              + 'If user asks for something specific in their chart and you don\'t have it → apply 🅰️ rule (a)/(b)/(c).\n\n'
+              + '🚫 ALWAYS FORBIDDEN:\n'
+              + '• Assuming symmetries ("for both", "same in each") without having exact data of each party.\n'
+              + '• Contradicting yourself: if in one paragraph you say "Sun in Capricorn" and later "Sun in Scorpio", that is invention.\n'
+              + '• Saying "I don\'t have this data" when what is missing is just GENERAL KNOWLEDGE (you have it trained).\n'
+              + '• Inventing degrees/houses/positions of the user not in your context.\n\n'
               + 'EXAMPLES:\n'
-              + '  ✗ BAD: "Both of your Chirons are activated by the transit" (no positions cited)\n'
-              + '  ✓ GOOD: "Your Chiron is in Aries 28° and [X]\'s in Gemini 7°. Today\'s transit Chiron is in Aries — it touches yours, not [X]\'s."\n'
-              + '  ✗ BAD: "Their Moon is likely in water, like yours"\n'
-              + '  ✓ GOOD: "I don\'t have [X]\'s Moon position in my context. Can you tell me what sign it\'s in?"';
+              + '  ✓ GOOD (general): User asks "interpret Mercury trine Pluto today" → "This aspect activates the deep mind, the ability to penetrate hidden truths..." (symbolism, no positions needed).\n'
+              + '  ✓ GOOD (personalized): "Your natal Pluto is in Libra 7° (House 10). Mercury trine Pluto today illuminates your public purpose through deep communication."\n'
+              + '  ✗ BAD: "I don\'t have planetary positions for May 19" when user only asked for symbolic meaning.\n'
+              + '  ✗ BAD: "Both their Chirons are activated" without citing positions of each.';
     } else {
         base += isEs
             ? '\n\n═══ ⚠️ REGLA CRÍTICA: NUNCA INVENTAR, NUNCA ASUMIR — DECIR O PREGUNTAR ═══\n'
