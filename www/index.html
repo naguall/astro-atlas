@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bp';</script>
+    <script>window.APP_VERSION = 'v749bq';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -12186,9 +12186,16 @@ async function sendInterpChatMessage(chatId, readingKey) {
     try {
         // Use active persona + add context of original interpretation (light context for speed)
         var systemPrompt = buildSystemPrompt('light');
+        // v749bq: incluir el PROMPT ORIGINAL en el contexto del follow-up.
+        // Antes solo se incluía la respuesta inicial del AI — sin el prompt, el AI perdía
+        // datos críticos (ej. tránsitos del día listados en specificPrompt) al continuar.
+        var initialPromptCtx = chat.initialPrompt || '';
+        if (initialPromptCtx) {
+            systemPrompt += '\n\n' + (L ? 'PREGUNTA ORIGINAL DEL USUARIO (con los datos que se interpretaron):\n' : 'ORIGINAL USER QUESTION (with the data interpreted):\n') + '"' + initialPromptCtx + '"';
+        }
         var initialCtx = data ? data.text : (chat.initialResponse || '');
         if (initialCtx) {
-            systemPrompt += '\n\n' + (L ? 'INTERPRETACIÓN INICIAL QUE DISTE (contexto para seguimiento):\n' : 'INITIAL INTERPRETATION YOU GAVE (context for follow-up):\n') + '"' + initialCtx + '"';
+            systemPrompt += '\n\n' + (L ? 'INTERPRETACIÓN INICIAL QUE DISTE (puede haber quedado truncada — si el usuario pide continuar, usá la PREGUNTA ORIGINAL de arriba para retomar exactamente donde quedó, con los mismos datos):\n' : 'INITIAL INTERPRETATION YOU GAVE (may have been truncated — if user asks to continue, use the ORIGINAL QUESTION above to resume with the same data):\n') + '"' + initialCtx + '"';
         }
 
         // Build contents with previous chat messages
