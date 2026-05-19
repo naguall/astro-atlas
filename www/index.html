@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749bw';</script>
+    <script>window.APP_VERSION = 'v749bx';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -21682,14 +21682,18 @@ var _transitsCacheSize = 0;
 function calculateTransitsToNatal(transitDate, natalChart) {
     // v749z: cache key incluye identidad del natalChart — antes solo fecha → al cambiar perfil
     // devolvía los tránsitos del perfil ANTERIOR (mismo día = mismo cache).
+    // v749bx: BUG GORDO ENCONTRADO en vivo — usaba 'chart.houses.asc' pero la propiedad real
+    // es 'chart.houses.ascendant'. El catch silencioso hacía que TODOS los charts compartieran
+    // el mismo cache key (vacío) → el segundo chart recibía los tránsitos del primero.
+    // Causa raíz del "datos idénticos para ambos perfiles" en sinastría.
     var _natalId = '';
     try {
         if (natalChart && natalChart.planets && natalChart.planets.sun) {
             _natalId = '|' + natalChart.planets.sun.longitude.toFixed(2)
                      + '|' + (natalChart.planets.moon ? natalChart.planets.moon.longitude.toFixed(2) : '')
-                     + '|' + (natalChart.houses ? natalChart.houses.asc.toFixed(2) : '');
+                     + '|' + (natalChart.houses && natalChart.houses.ascendant !== undefined ? natalChart.houses.ascendant.toFixed(2) : '');
         }
-    } catch(_eCk) {}
+    } catch(_eCk) { console.warn('[calculateTransitsToNatal] cache key error:', _eCk && _eCk.message); }
     var _cacheKey = transitDate.toDateString() + _natalId;
     if (_transitsCache[_cacheKey]) return _transitsCache[_cacheKey];
     if (_transitsCacheSize > 90) { _transitsCache = {}; _transitsCacheSize = 0; }
