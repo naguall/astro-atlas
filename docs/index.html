@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cd';</script>
+    <script>window.APP_VERSION = 'v749ce';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -11697,7 +11697,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ role: 'user', parts: [{ text: specificPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
+            // v749ce: bump maxOutputTokens 8192 → 16384 para reducir truncamientos en interpretaciones largas
+            generationConfig: { temperature: 0.8, maxOutputTokens: 16384 }
         };
 
         var personalKey = getGeminiKey();
@@ -11746,17 +11747,17 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                 _fellbackToPersonal = true;
                 continue;
             }
-            // v749bt: 503/502/504 (server overload / gateway / timeout) también dispara fallback a key personal si existe
-            if ((_status === 503 || _status === 502 || _status === 504) && usingProxy && personalKey && !_fellbackToPersonal) {
-                console.warn('[AI] Proxy ' + _status + ' (server overload) → fallback a key personal');
+            // v749bt/v749ce: 500/502/503/504 (server overload / gateway / timeout / internal) → fallback a key personal si existe
+            if ((_status === 500 || _status === 502 || _status === 503 || _status === 504) && usingProxy && personalKey && !_fellbackToPersonal) {
+                console.warn('[AI] Proxy ' + _status + ' (server error) → fallback a key personal');
                 apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
                 usingProxy = false;
                 useStreaming = true;
                 _fellbackToPersonal = true;
                 continue;
             }
-            // v749bt: 429 / 5xx con retry exponencial (sin fallback porque ya cambiamos o no hay key personal)
-            if ((_status === 429 || _status === 503 || _status === 502 || _status === 504) && _retry < 4) {
+            // v749bt/v749ce: 429 / 5xx con retry exponencial (sin fallback porque ya cambiamos o no hay key personal)
+            if ((_status === 429 || _status === 500 || _status === 502 || _status === 503 || _status === 504) && _retry < 4) {
                 var _waitMs = Math.min(3000 * (_retry + 1), 15000);
                 console.warn('[AI] Status ' + _status + ' — retry ' + (_retry+1) + '/5 en ' + _waitMs + 'ms');
                 await new Promise(function(r) { setTimeout(r, _waitMs); });
@@ -11765,15 +11766,17 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             break;
         }
 
-        // v749bt: mensaje user-friendly específico según status
+        // v749bt/v749ce: mensaje user-friendly específico según status
         if (!response.ok) {
             var _errMsg;
-            if (response.status === 503 || response.status === 502 || response.status === 504) {
-                _errMsg = L ? 'El servicio de AI está saturado en este momento. Intentá de nuevo en unos segundos.' : 'AI service is overloaded right now. Try again in a few seconds.';
+            if (response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504) {
+                _errMsg = L ? 'El servicio de AI está saturado o tuvo un error temporal. Intentá de nuevo en unos segundos.' : 'AI service is overloaded or had a temporary error. Try again in a few seconds.';
             } else if (response.status === 429) {
                 _errMsg = L ? 'Demasiadas consultas. Esperá un momento e intentá de nuevo.' : 'Too many requests. Wait a moment and try again.';
             } else if (response.status === 401 || response.status === 403) {
                 _errMsg = L ? 'Problema con la autenticación de la API. Revisá tu API key en Preferencias.' : 'API authentication issue. Check your API key in Preferences.';
+            } else if (response.status === 400) {
+                _errMsg = L ? 'La consulta tiene un problema de formato o es demasiado grande. Probá con un prompt más corto.' : 'The query has a format issue or is too large. Try with a shorter prompt.';
             } else {
                 _errMsg = (L ? 'Error de servidor: ' : 'Server error: ') + response.status;
             }
@@ -11790,6 +11793,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             var decoder = new TextDecoder();
             var buffer = '';
             text = '';
+            var _streamFinishReason = ''; // v749ce: capturar finishReason del streaming para detectar truncamientos
             while (true) {
                 var chunk = await reader.read();
                 if (chunk.done) break;
@@ -11803,17 +11807,20 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     if (jsonStr === '[DONE]') continue;
                     try {
                         var parsed = JSON.parse(jsonStr);
-                        if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts) {
-                            var newText = parsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
-                            text += newText;
-                            _streamDiv.innerHTML = '<p>' + text
-                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                                .replace(/\n\n/g, '</p><p>')
-                                .replace(/\n/g, '<br>') + '</p>';
-                            // Auto-scroll the container
-                            var scrollParent = div.closest('[style*="overflow"]') || div.parentElement;
-                            if (scrollParent) scrollParent.scrollTop = scrollParent.scrollHeight;
+                        if (parsed.candidates && parsed.candidates[0]) {
+                            if (parsed.candidates[0].finishReason) _streamFinishReason = parsed.candidates[0].finishReason;
+                            if (parsed.candidates[0].content && parsed.candidates[0].content.parts) {
+                                var newText = parsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                                text += newText;
+                                _streamDiv.innerHTML = '<p>' + text
+                                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                                    .replace(/\n\n/g, '</p><p>')
+                                    .replace(/\n/g, '<br>') + '</p>';
+                                // Auto-scroll the container
+                                var scrollParent = div.closest('[style*="overflow"]') || div.parentElement;
+                                if (scrollParent) scrollParent.scrollTop = scrollParent.scrollHeight;
+                            }
                         }
                     } catch(parseErr) { /* skip malformed chunk */ }
                 }
@@ -11832,17 +11839,39 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     if (_fjson === '[DONE]') continue;
                     try {
                         var _fparsed = JSON.parse(_fjson);
-                        if (_fparsed.candidates && _fparsed.candidates[0] && _fparsed.candidates[0].content && _fparsed.candidates[0].content.parts) {
-                            var _fnewText = _fparsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
-                            text += _fnewText;
-                            _streamDiv.innerHTML = '<p>' + text
-                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                                .replace(/\n\n/g, '</p><p>')
-                                .replace(/\n/g, '<br>') + '</p>';
+                        if (_fparsed.candidates && _fparsed.candidates[0]) {
+                            if (_fparsed.candidates[0].finishReason) _streamFinishReason = _fparsed.candidates[0].finishReason;
+                            if (_fparsed.candidates[0].content && _fparsed.candidates[0].content.parts) {
+                                var _fnewText = _fparsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                                text += _fnewText;
+                                _streamDiv.innerHTML = '<p>' + text
+                                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                                    .replace(/\n\n/g, '</p><p>')
+                                    .replace(/\n/g, '<br>') + '</p>';
+                            }
                         }
                     } catch(parseErr) { /* última línea incompleta → no se puede recuperar */ }
                 }
+            }
+            // v749ce: si la respuesta quedó truncada (finishReason no es STOP), avisar al usuario
+            // y ofrecer botón "Continuar" que pide al AI seguir desde donde quedó.
+            if (_streamFinishReason && _streamFinishReason !== 'STOP' && _streamFinishReason !== 'FINISH_REASON_UNSPECIFIED') {
+                console.warn('[AI streaming] Respuesta truncada por', _streamFinishReason, '— ' + text.length + ' chars');
+                var _truncReason = _streamFinishReason === 'MAX_TOKENS'
+                    ? (L?'se llegó al límite de tokens':'token limit reached')
+                    : _streamFinishReason === 'SAFETY' ? (L?'filtro de contenido':'content filter')
+                    : _streamFinishReason === 'RECITATION' ? (L?'filtro de recitación':'recitation filter')
+                    : _streamFinishReason;
+                var _contKey = '_continuePrompt_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+                window[_contKey] = { prompt: specificPrompt, target: targetDivId, title: readingTitle, storage: storageKey, previousText: text };
+                var _truncBanner = document.createElement('div');
+                _truncBanner.style.cssText = 'margin-top:12px;padding:10px 12px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.35);border-radius:8px;text-align:center;';
+                _truncBanner.innerHTML = '<div style="color:#ffc107;font-size:0.82em;margin-bottom:6px;">⚠️ '
+                    + (L?'Respuesta truncada':'Response truncated') + ' (' + _truncReason + ')</div>'
+                    + '<button onclick="(function(){var d=window[\'' + _contKey + '\'];if(!d)return;var contP=(currentLang===\'es\'?\'Continuá desde donde te quedaste. La respuesta anterior fue: \\n\\n\':\'Continue from where you left off. Previous response was: \\n\\n\')+d.previousText+(currentLang===\'es\'?\'\\n\\nSeguí desde la última frase, sin repetir lo ya dicho.\':\'\\n\\nResume from the last sentence, do not repeat what was already said.\');fetchAIInterpretation(contP,d.target,d.title,d.storage);})()" style="padding:6px 14px;background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.5);border-radius:6px;color:#ffc107;font-size:0.82em;font-weight:600;cursor:pointer;">'
+                    + (L?'🔄 Continuar':'🔄 Continue') + '</button>';
+                _streamDiv.appendChild(_truncBanner);
             }
         } else {
             // Non-streaming fallback (proxy or no streaming support)
@@ -12049,7 +12078,8 @@ async function expandAIReading(readingKey, btn) {
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ role: 'user', parts: [{ text: data.prompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
+            // v749ce: bump maxOutputTokens 8192 → 16384
+            generationConfig: { temperature: 0.8, maxOutputTokens: 16384 }
         };
 
         var apiUrl;
@@ -12250,7 +12280,8 @@ async function sendInterpChatMessage(chatId, readingKey) {
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: contents,
-            generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
+            // v749ce: bump maxOutputTokens 8192 → 16384
+            generationConfig: { temperature: 0.8, maxOutputTokens: 16384 }
         };
 
         var apiUrl;
@@ -20488,11 +20519,21 @@ function showAllAspectsInterpretation() {
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
+    // v749ce: Calendarios Lunar/Solar/Gregoriano son GENERALES — sin carta natal de perfiles.
+    // Interpretación arquetípica/colectiva del cielo del día.
     var prompt = L
-        ? 'Interpreta los siguientes aspectos astrológicos de hoy EN CONJUNTO, como un panorama energético del día, y cómo me afectan según mi carta natal:\n' + allTexts.join('\n')
-        : 'Interpret the following astrological aspects of today AS A WHOLE, as an energetic overview of the day, and how they affect me based on my natal chart:\n' + allTexts.join('\n');
+        ? 'Interpretá los siguientes aspectos y eventos astrológicos del cielo de hoy EN CONJUNTO como un panorama energético del día, en sentido COLECTIVO y ARQUETÍPICO. Esta es una lectura GENERAL del cielo — NO la cruces con ninguna carta natal personal:\n' + allTexts.join('\n')
+        : 'Interpret the following astrological aspects and events of today\'s sky AS A WHOLE as an energetic overview of the day, in a COLLECTIVE and ARCHETYPAL sense. This is a GENERAL sky reading — do NOT cross-reference with any personal natal chart:\n' + allTexts.join('\n');
     var readingTitle = L ? 'Aspectos de Hoy — ' + today.toLocaleDateString('es',{day:'numeric',month:'short'}) : 'Today\'s Aspects — ' + today.toLocaleDateString('en',{day:'numeric',month:'short'});
-    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }, 100);
+    setTimeout(function() {
+        window._isGeneralAstroCalendar = true;
+        window._generalAstroCalendarDate = today.getTime();
+        try { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }
+        finally {
+            // Limpiar flag tras un tick (buildSystemPrompt corre sincrónico dentro de fetchAIInterpretation antes del primer await)
+            setTimeout(function(){ window._isGeneralAstroCalendar = false; window._generalAstroCalendarDate = null; }, 800);
+        }
+    }, 100);
 }
 window.showAllAspectsInterpretation = showAllAspectsInterpretation;
 
@@ -20634,28 +20675,35 @@ function showDayInterpretation(aspectsText, dateLabel, dateMs) {
         }
     } catch(_dcErr) { console.error('[showDayInterpretation] dayContext error:', _dcErr); }
 
+    // v749ce: Calendarios Lunar/Solar/Gregoriano son GENERALES — sin carta natal de perfiles.
+    // Interpretación arquetípica/colectiva del cielo del día seleccionado.
     var prompt;
     if (_isToday) {
         prompt = L
-            ? 'Interpreta los siguientes aspectos astrológicos de ' + dateLabel + ' EN CONJUNTO, como un panorama energético del día, y cómo me afectan según mi carta natal:\n' + aspectsText
-            : 'Interpret the following astrological aspects of ' + dateLabel + ' AS A WHOLE, as an energetic overview of the day, and how they affect me based on my natal chart:\n' + aspectsText;
+            ? 'Interpretá los siguientes aspectos y eventos del cielo de ' + dateLabel + ' EN CONJUNTO como panorama energético del día, en sentido COLECTIVO y ARQUETÍPICO. Esta es una lectura GENERAL del cielo — NO uses cartas natales personales:\n' + aspectsText
+            : 'Interpret the following sky aspects and events of ' + dateLabel + ' AS A WHOLE as an energetic overview of the day, in a COLLECTIVE and ARCHETYPAL sense. This is a GENERAL sky reading — do NOT use personal natal charts:\n' + aspectsText;
     } else {
         prompt = L
-            ? 'CONTEXTO CRÍTICO — IMPORTANTE leer antes de responder:\n\n' +
-              'La fecha que te pido interpretar es ' + dateLabel + ', NO el día de hoy. ' +
-              'Aunque el system prompt te dé información de tránsitos del día actual, IGNORA esos tránsitos para esta consulta y usa los datos específicos del ' + dateLabel + ' que te paso a continuación.\n\n' +
+            ? 'CONTEXTO — LEER ANTES DE RESPONDER:\n\n' +
+              'La fecha a interpretar es ' + dateLabel + ' (puede ser pasada o futura). USÁ los datos específicos que te paso abajo, no los tránsitos del día actual.\n\n' +
               _dayContext + '\n' +
               'EVENTOS Y ASPECTOS DEL ' + dateLabel + ':\n' + aspectsText + '\n\n' +
-              'Interpretá los aspectos astrológicos de ' + dateLabel + ' EN CONJUNTO, como un panorama energético de ESE día específico, y cómo me afectan según mi carta natal. NO interpretés el día de hoy. Si hay un evento personal (solsticio/equinoccio personal del usuario), tenelo en cuenta como un punto cardinal de la rueda personal del año.'
-            : 'CRITICAL CONTEXT — IMPORTANT to read before responding:\n\n' +
-              'The date you are asked to interpret is ' + dateLabel + ', NOT today. ' +
-              'Although the system prompt gives you transit information for the current day, IGNORE those transits for this query and use the specific data for ' + dateLabel + ' provided below.\n\n' +
+              'Interpretá ESTOS aspectos en CONJUNTO como un panorama energético del cielo del ' + dateLabel + ', en sentido COLECTIVO y ARQUETÍPICO. Esta es una lectura GENERAL del cielo — NO uses cartas natales personales ni perfiles guardados. NO menciones nombres de perfiles ni digas "tu Sol natal" o "tu carta".'
+            : 'CONTEXT — READ BEFORE RESPONDING:\n\n' +
+              'The date to interpret is ' + dateLabel + ' (may be past or future). USE the specific data below, not today\'s transits.\n\n' +
               _dayContext + '\n' +
               'EVENTS AND ASPECTS ON ' + dateLabel + ':\n' + aspectsText + '\n\n' +
-              'Interpret the astrological aspects of ' + dateLabel + ' AS A WHOLE, as an energetic overview of THAT specific day, and how they affect me based on my natal chart. Do NOT interpret today. If there is a personal event (user\'s personal solstice/equinox), consider it as a cardinal point of the personal wheel of the year.';
+              'Interpret THESE aspects AS A WHOLE as the energetic overview of the sky on ' + dateLabel + ', in a COLLECTIVE and ARCHETYPAL sense. This is a GENERAL sky reading — do NOT use personal natal charts or saved profiles. Do NOT mention profile names or say "your natal Sun" or "your chart".';
     }
     var readingTitle = L ? 'Aspectos — ' + dateLabel : 'Aspects — ' + dateLabel;
-    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }, 100);
+    setTimeout(function() {
+        window._isGeneralAstroCalendar = true;
+        window._generalAstroCalendarDate = _dayDate.getTime();
+        try { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }
+        finally {
+            setTimeout(function(){ window._isGeneralAstroCalendar = false; window._generalAstroCalendarDate = null; }, 800);
+        }
+    }, 100);
 }
 window.showDayInterpretation = showDayInterpretation;
 
@@ -24140,7 +24188,8 @@ function sendReturnInterpRequest(history, container, cacheKey) {
     var body = {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: history,
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.85 }
+        // v749ce: bump maxOutputTokens 8192 → 16384
+        generationConfig: { maxOutputTokens: 16384, temperature: 0.85 }
     };
 
     fetch(apiUrl, {
@@ -47065,6 +47114,73 @@ function buildSystemPrompt(contextLevel) {
         fullCtx = (isEs?'Fecha actual: ':'Current date: ') + now.toLocaleDateString(isEs?'es-CR':'en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n';
         fullCtx += (isEs?'Hora: ':'Time: ') + now.toLocaleTimeString(isEs?'es-CR':'en-US') + '\n\n';
         fullCtx += window._calRelPromptCache.promptText;
+    } else if (window._isGeneralAstroCalendar) {
+        // v749ce: Calendario General de Astrología (Lunar/Solar/Gregoriano)
+        // SIN cartas natales de ningún perfil — solo el cielo del día seleccionado.
+        // El AI debe interpretar la energía colectiva/arquetípica del día.
+        var _gaDate = window._generalAstroCalendarDate;
+        if (typeof _gaDate === 'number') _gaDate = new Date(_gaDate);
+        if (!(_gaDate instanceof Date) || isNaN(_gaDate.getTime())) _gaDate = new Date();
+        fullCtx = (isEs?'INTERPRETACIÓN GENERAL DEL CIELO — sin carta natal\n':'GENERAL SKY INTERPRETATION — no natal chart\n');
+        fullCtx += (isEs?'Fecha a interpretar: ':'Date to interpret: ') + _gaDate.toLocaleDateString(isEs?'es-CR':'en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n\n';
+        try {
+            var _gaPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+            var _gaPN = isEs
+                ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón'}
+                : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
+            fullCtx += (isEs?'POSICIONES PLANETARIAS DEL DÍA:\n':'PLANETARY POSITIONS FOR THE DAY:\n');
+            _gaPlanets.forEach(function(p){
+                try {
+                    var _lon = (typeof getPlanetPosition === 'function') ? getPlanetPosition(p, _gaDate) : null;
+                    if (_lon == null || isNaN(_lon)) return;
+                    var _inf = (typeof getZodiacSignWithDegree === 'function') ? getZodiacSignWithDegree(_lon) : null;
+                    if (_inf) {
+                        fullCtx += '  ' + (_gaPN[p]||p) + ': ' + _inf.sign + ' ' + _inf.degree + '°' + ((_inf.minute||0)<10?'0':'') + (_inf.minute||0) + "'\n";
+                    }
+                } catch(_eGAp) {}
+            });
+            // Aspectos interplanetarios + eventos del día (Luna llena/nueva, eclipses, retrógrados, cambios de signo)
+            try {
+                var _ia = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(_gaDate) : [];
+                if (_ia && _ia.length) {
+                    fullCtx += (isEs?'\nASPECTOS INTERPLANETARIOS DEL DÍA:\n':'\nINTERPLANETARY ASPECTS OF THE DAY:\n');
+                    _ia.forEach(function(a){ fullCtx += '  ' + (_gaPN[a.planet1]||a.planet1) + ' ' + (a.symbol||a.aspect||'') + ' ' + (_gaPN[a.planet2]||a.planet2) + '\n'; });
+                }
+            } catch(_eIA) {}
+            try {
+                var _me = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(_gaDate) : null;
+                if (_me) fullCtx += '\n' + (isEs?'EVENTO LUNAR: ':'LUNAR EVENT: ') + (_me.type==='full'?(isEs?'Luna Llena':'Full Moon'):_me.type==='new'?(isEs?'Luna Nueva':'New Moon'):(_me.name||'')) + '\n';
+                var _ec = (typeof getEclipseInfo === 'function') ? getEclipseInfo(_gaDate) : null;
+                if (_ec) fullCtx += (isEs?'ECLIPSE: ':'ECLIPSE: ') + (_ec.type||'') + '\n';
+                var _rg = (typeof getRetrogrades === 'function') ? getRetrogrades(_gaDate) : [];
+                if (_rg && _rg.length) {
+                    fullCtx += (isEs?'\nRETRÓGRADOS:\n':'\nRETROGRADES:\n');
+                    _rg.forEach(function(r){ fullCtx += '  ' + (_gaPN[r.planet]||r.planet) + (r.isStart?(isEs?' inicia retrógrado':' starts retrograde'):(isEs?' se pone directo':' goes direct')) + (r.sign?(isEs?' en ':' in ')+r.sign:'') + '\n'; });
+                }
+                var _sc = (typeof getSignChanges === 'function') ? getSignChanges(_gaDate) : [];
+                if (_sc && _sc.length) {
+                    fullCtx += (isEs?'\nCAMBIOS DE SIGNO:\n':'\nSIGN CHANGES:\n');
+                    _sc.forEach(function(s){ fullCtx += '  ' + (_gaPN[s.planet]||s.planet) + ' → ' + s.toSign + '\n'; });
+                }
+            } catch(_eEvt) {}
+        } catch(_eGA) {}
+        fullCtx += '\n' + (isEs
+            ? '⚠️ MODO INTERPRETACIÓN GENERAL DEL CIELO — REGLAS:\n'
+              + '• Esta interpretación es COLECTIVA y ARQUETÍPICA del cielo del día.\n'
+              + '• NO uses ni menciones cartas natales de ningún perfil guardado (ni Camilo, ni Shannon, ni ningún otro nombre).\n'
+              + '• NO digas "tu Sol natal", "tu carta", "tu Plutón", "afecta tu Casa N", "tu Mercurio personal", etc.\n'
+              + '• Habla SOLO de la energía del día — qué arquetipos están activos, qué se mueve en el campo colectivo, cómo cualquier persona puede sintonizar con esto.\n'
+              + '• Si hay aspectos importantes (cuadraturas, oposiciones, conjunciones), explicá su simbolismo arquetípico general.\n'
+              + '• Si querés aterrizarlo, hacelo en consejos UNIVERSALES (no personalizados): "es un día para X", "la energía invita a Y", "se favorece Z".\n'
+              + '• Tenés las posiciones planetarias del día arriba — USALAS con precisión, no digas que "no tenés datos".'
+            : '⚠️ GENERAL SKY INTERPRETATION MODE — RULES:\n'
+              + '• This interpretation is COLLECTIVE and ARCHETYPAL of the day\'s sky.\n'
+              + '• Do NOT use or mention any saved profile natal chart (no Camilo, no Shannon, no other names).\n'
+              + '• Do NOT say "your natal Sun", "your chart", "your Pluto", "affects your House N", "your personal Mercury", etc.\n'
+              + '• Speak ONLY about the day\'s energy — which archetypes are active, what moves in the collective field, how anyone can attune to this.\n'
+              + '• If there are major aspects (squares, oppositions, conjunctions), explain their general archetypal symbolism.\n'
+              + '• To ground it, give UNIVERSAL advice (not personalized): "it\'s a day for X", "the energy invites Y", "Z is favored".\n'
+              + '• You have today\'s planetary positions above — USE them precisely, do not say "I don\'t have data".');
     } else {
         fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
     }
@@ -47139,7 +47255,22 @@ function buildSystemPrompt(contextLevel) {
     // v749bp/bt: regla anti-alucinación con distinción crítica entre DATOS DEL USUARIO y CONOCIMIENTO GENERAL.
     // v749bp era demasiado estricto — trataba conocimiento simbólico astrológico como "dato faltante",
     // causando que el AI dijera "no tengo posiciones" en lugar de usar su conocimiento general.
-    if (_hasChartData) {
+    // v749ce: en modo Calendario General Astro no se aplica la regla de carta natal — el AI no debe usar perfiles natales.
+    if (window._isGeneralAstroCalendar) {
+        base += isEs
+            ? '\n\n═══ ⚠️ REGLA: GENERAL DEL CIELO — SIN CARTA NATAL ═══\n'
+              + '• Esta interpretación es del cielo del día (calendario Lunar/Solar/Gregoriano). NO uses NI menciones ninguna carta natal de perfiles guardados.\n'
+              + '• Las posiciones planetarias y eventos del día ya están en tu contexto arriba — USALAS con precisión.\n'
+              + '• Hablás de arquetipos colectivos, no de "tu carta" o "tu Sol natal".\n'
+              + '• Si te piden algo personalizado, decí: "Para una lectura sobre tu carta natal, abrí Calendario Personal" — no inventes datos personales.\n'
+              + '• PROHIBIDO mencionar nombres de perfiles (Camilo, Shannon, etc.) o decir "tu Plutón está en…", "tu Casa N", "afecta tu carta".'
+            : '\n\n═══ ⚠️ RULE: GENERAL SKY — NO NATAL CHART ═══\n'
+              + '• This is a sky interpretation for the day (Lunar/Solar/Gregorian calendar). Do NOT use or mention any saved profile natal chart.\n'
+              + '• Planetary positions and events of the day are already in your context above — USE them precisely.\n'
+              + '• Speak of collective archetypes, not "your chart" or "your natal Sun".\n'
+              + '• If asked for something personal, say: "For a reading on your natal chart, open Personal Calendar" — do not invent personal data.\n'
+              + '• FORBIDDEN: mentioning profile names (Camilo, Shannon, etc.) or saying "your Pluto is in…", "your House N", "affects your chart".';
+    } else if (_hasChartData) {
         base += isEs
             ? '\n\n═══ ⚠️ REGLA CRÍTICA: DOS TIPOS DE INFORMACIÓN — TRATAR DIFERENTE ═══\n'
               + 'DISTINCIÓN CRÍTICA, leerla con atención:\n\n'
@@ -47216,9 +47347,10 @@ function buildSystemPrompt(contextLevel) {
     }
 
     // ── Multi-profile awareness ──
+    // v749ce: en modo Calendario General Astro NO mencionar perfiles
     try {
         var _profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
-        if (_profiles.length > 1) {
+        if (_profiles.length > 1 && !window._isGeneralAstroCalendar) {
             var _profileList = _profiles.map(function(p, i) {
                 return (i+1) + '. ' + (p.name || 'Sin nombre') + ' (' + (p.date || '?') + ')' + (p.id === localStorage.getItem('activeProfileId') ? ' [ACTIVO]' : '');
             }).join(', ');
