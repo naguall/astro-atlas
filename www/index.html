@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ce';</script>
+    <script>window.APP_VERSION = 'v749cg';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -11682,6 +11682,9 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             .replace(/\n/g, '<br>');
     }
 
+    // v749cf: tracking del finishReason de la respuesta (común para streaming y proxy)
+    // para decidir si cachear o no, y mostrar banner de truncamiento si aplica.
+    var _finalFinishReason = '';
     if (!cachedHtml) {
     div.innerHTML = '<div style="text-align:center;padding:15px;"><div style="display:inline-block;width:24px;height:24px;border:3px solid rgba(201,168,64,0.3);border-top-color:#c9a840;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:8px;font-size:0.8em;color:rgba(255,255,255,0.4);">' + (L ? 'Consultando las estrellas...' : 'Consulting the stars...') + '</div></div>';
 
@@ -11854,6 +11857,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     } catch(parseErr) { /* última línea incompleta → no se puede recuperar */ }
                 }
             }
+            // v749cf: propagar finishReason al scope outer para gating de cache
+            _finalFinishReason = _streamFinishReason || '';
             // v749ce: si la respuesta quedó truncada (finishReason no es STOP), avisar al usuario
             // y ofrecer botón "Continuar" que pide al AI seguir desde donde quedó.
             if (_streamFinishReason && _streamFinishReason !== 'STOP' && _streamFinishReason !== 'FINISH_REASON_UNSPECIFIED') {
@@ -11908,6 +11913,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                         var _dec2 = new TextDecoder();
                         var _buf2 = '';
                         text = ''; // reset — descartamos la respuesta truncada del proxy
+                        var _retryFR = ''; // v749cf: capturar finishReason del retry
                         function _fmt2(t){ return '<p>' + t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>') + '</p>'; }
                         while (true) {
                             var _ck2 = await _rdr2.read();
@@ -11922,9 +11928,12 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                                 if (_js2 === '[DONE]') continue;
                                 try {
                                     var _pp2 = JSON.parse(_js2);
-                                    if (_pp2.candidates && _pp2.candidates[0] && _pp2.candidates[0].content && _pp2.candidates[0].content.parts) {
-                                        text += _pp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
-                                        _sDiv2.innerHTML = _fmt2(text);
+                                    if (_pp2.candidates && _pp2.candidates[0]) {
+                                        if (_pp2.candidates[0].finishReason) _retryFR = _pp2.candidates[0].finishReason;
+                                        if (_pp2.candidates[0].content && _pp2.candidates[0].content.parts) {
+                                            text += _pp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+                                            _sDiv2.innerHTML = _fmt2(text);
+                                        }
                                     }
                                 } catch(_) {}
                             }
@@ -11940,14 +11949,19 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                                 if (_fjs2 === '[DONE]') continue;
                                 try {
                                     var _fp2 = JSON.parse(_fjs2);
-                                    if (_fp2.candidates && _fp2.candidates[0] && _fp2.candidates[0].content && _fp2.candidates[0].content.parts) {
-                                        text += _fp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
-                                        _sDiv2.innerHTML = _fmt2(text);
+                                    if (_fp2.candidates && _fp2.candidates[0]) {
+                                        if (_fp2.candidates[0].finishReason) _retryFR = _fp2.candidates[0].finishReason;
+                                        if (_fp2.candidates[0].content && _fp2.candidates[0].content.parts) {
+                                            text += _fp2.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+                                            _sDiv2.innerHTML = _fmt2(text);
+                                        }
                                     }
                                 } catch(_) {}
                             }
                         }
-                        console.log('[AI] Reintento streaming OK — chars:', text.length);
+                        // v749cf: si el retry capturó un finishReason, propagarlo (overridea el del proxy)
+                        if (_retryFR) _finishReason = _retryFR;
+                        console.log('[AI] Reintento streaming OK — chars:', text.length, '— finishReason:', _retryFR||'STOP');
                     } else {
                         console.warn('[AI] Reintento streaming respondió', _streamResp2.status);
                     }
@@ -11959,6 +11973,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                 // No hay key personal o ya fellback — al menos avisar al user
                 console.warn('[AI] Respuesta truncada por', _finishReason, '— sin key personal para reintento');
             }
+            // v749cf: propagar finishReason del path no-streaming al scope outer
+            _finalFinishReason = _finishReason || '';
         }
     } catch(err) {
         // v749bt: mensaje user-friendly + botón de retry — guarda el prompt para que clic en retry vuelva a intentar
@@ -11990,21 +12006,61 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             for (var ci = 0; ci < chatSrc.length; ci++) { chatHash = ((chatHash << 5) - chatHash) + chatSrc.charCodeAt(ci); chatHash |= 0; }
             var chatId = 'ic_' + Math.abs(chatHash).toString(36);
             window[readingKey] = { title: _readingTitle, text: text, html: '<p>' + formattedHtml + '</p>', prompt: specificPrompt };
-            // Cache initial AI response so reopening loads instantly from memory
+            // v749cf — NO cachear respuestas que parezcan truncadas / dañadas.
+            // Heurística:
+            //   • finishReason no es STOP/UNSPECIFIED (MAX_TOKENS, SAFETY, RECITATION, OTHER…)
+            //   • text muy corto Y termina mid-frase (sin signo de cierre) → probable corte por red
+            //   • text vacío
+            // Si está truncada, no se cachea — para que la próxima vez se llame al AI fresh.
+            var _looksTruncated = false;
+            if (!text || text.trim().length === 0) _looksTruncated = true;
+            else if (_finalFinishReason && _finalFinishReason !== 'STOP' && _finalFinishReason !== 'FINISH_REASON_UNSPECIFIED') _looksTruncated = true;
+            else if (text.length < 250) {
+                // Respuestas muy cortas — chequear si terminan mid-frase
+                var _lastCharT = text.trim().slice(-1);
+                if (['.','!','?','»','"',')',']','*'].indexOf(_lastCharT) === -1) _looksTruncated = true;
+            }
+            // Cache initial AI response so reopening loads instantly from memory — pero solo si NO está truncada
             var _existChat = getInterpChat(chatId);
-            if (!_existChat) {
-                saveInterpChat(chatId, { initialResponse: text, messages: [], profileId: getActiveProfileId() || 'default', title: _readingTitle, initialPrompt: specificPrompt, createdAt: new Date().toISOString() });
-                _existChat = getInterpChat(chatId);
-            } else if (!_existChat.initialResponse) {
-                _existChat.initialResponse = text;
-                saveInterpChat(chatId, _existChat);
+            if (!_looksTruncated) {
+                if (!_existChat) {
+                    saveInterpChat(chatId, { initialResponse: text, messages: [], profileId: getActiveProfileId() || 'default', title: _readingTitle, initialPrompt: specificPrompt, createdAt: new Date().toISOString() });
+                    _existChat = getInterpChat(chatId);
+                } else if (!_existChat.initialResponse) {
+                    _existChat.initialResponse = text;
+                    saveInterpChat(chatId, _existChat);
+                }
+            } else {
+                console.warn('[AI] Respuesta luce truncada (finishReason=' + _finalFinishReason + ', len=' + (text && text.length) + ') — NO cacheando para evitar servir versión rota en próximos opens');
             }
             // Unified chat format: AI response as first message, then chat history, then sticky input+buttons
             var chatHtml = '<div style="display:flex;flex-direction:column;max-height:60vh;">';
             // Scrollable messages area
             chatHtml += '<div id="interpChatMessages_' + chatId + '" style="flex:1;overflow-y:auto;min-height:80px;max-height:45vh;padding-bottom:8px;">';
-            // v749am: initial AI response — botón 📤 chiquito en la esquina superior derecha de la bubble
-            chatHtml += '<div style="margin-bottom:8px;text-align:left;position:relative;"><div style="display:inline-block;max-width:92%;padding:10px 14px;padding-right:36px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);position:relative;"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div><button onclick="shareMessageFromChat(\'' + chatId + '\', \'initial\')" title="' + (L?'Compartir este bloque':'Share this block') + '" style="position:absolute;top:6px;right:6px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">📤</button></div></div>';
+            // v749cf: detectar respuestas truncadas servidas desde cache viejo (pre-v749cf, donde se cacheaba todo)
+            var _cachedLooksTruncated = false;
+            if (cachedHtml) {
+                var _ct = text ? text.trim() : '';
+                if (!_ct) _cachedLooksTruncated = true;
+                else if (_ct.length < 250) {
+                    var _lc = _ct.slice(-1);
+                    if (['.','!','?','»','"',')',']','*'].indexOf(_lc) === -1) _cachedLooksTruncated = true;
+                }
+            }
+            // v749cf: clave global para botón Regenerar (siempre disponible)
+            var _regenKey = '_regenPrompt_' + chatId;
+            window[_regenKey] = { prompt: specificPrompt, target: targetDivId, title: readingTitle, storage: storageKey, chatId: chatId };
+            // v749am: initial AI response — botones 📤 + 🔄 en la esquina superior derecha de la bubble (v749cf: añadido Regenerar siempre)
+            chatHtml += '<div style="margin-bottom:8px;text-align:left;position:relative;"><div style="display:inline-block;max-width:92%;padding:10px 14px;padding-right:64px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);position:relative;"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div>'
+                + '<button onclick="shareMessageFromChat(\'' + chatId + '\', \'initial\')" title="' + (L?'Compartir este bloque':'Share this block') + '" style="position:absolute;top:6px;right:34px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">📤</button>'
+                + '<button onclick="(function(){var d=window[\'' + _regenKey + '\'];if(!d)return;try{var c=getInterpChat(d.chatId);if(c){c.initialResponse=null;saveInterpChat(d.chatId,c);}}catch(_){}var t=document.getElementById(d.target);if(t)t.innerHTML=\'\';fetchAIInterpretation(d.prompt,d.target,d.title,d.storage);})()" title="' + (L?'Regenerar la interpretación (ignora cache)':'Regenerate the interpretation (ignore cache)') + '" style="position:absolute;top:6px;right:6px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">🔄</button>'
+                + '</div></div>';
+            // v749cf: si la respuesta del cache se ve truncada, mostrar banner sugiriendo regenerar
+            if (_cachedLooksTruncated) {
+                chatHtml += '<div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.35);border-radius:8px;text-align:center;">'
+                    + '<div style="color:#ffc107;font-size:0.78em;margin-bottom:6px;">⚠️ ' + (L?'Esta respuesta podría estar incompleta. Tocá 🔄 arriba para regenerarla.':'This response may be incomplete. Tap 🔄 above to regenerate.') + '</div>'
+                    + '</div>';
+            }
             // Existing chat messages (if reopening) — cada uno con su botón 📤
             if (_existChat && _existChat.messages) {
                 _existChat.messages.forEach(function(msg, _mIdx) {
