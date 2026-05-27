@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cm';</script>
+    <script>window.APP_VERSION = 'v749cn';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -12333,14 +12333,24 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             //   • finishReason no es STOP/UNSPECIFIED (MAX_TOKENS, SAFETY, RECITATION, OTHER…)
             //   • text muy corto Y termina mid-frase (sin signo de cierre) → probable corte por red
             //   • text vacío
+            //   • v749cn: NO termina con la marca de cierre "FIN"/"END" — señal explícita de truncamiento
+            //     (el system prompt obliga al AI a cerrar con "✦ ⊹ FIN ⊹ ✦" / "✦ ⊹ END ⊹ ✦").
             // Si está truncada, no se cachea — para que la próxima vez se llame al AI fresh.
             var _looksTruncated = false;
             if (!text || text.trim().length === 0) _looksTruncated = true;
             else if (_finalFinishReason && _finalFinishReason !== 'STOP' && _finalFinishReason !== 'FINISH_REASON_UNSPECIFIED') _looksTruncated = true;
-            else if (text.length < 250) {
-                // Respuestas muy cortas — chequear si terminan mid-frase
-                var _lastCharT = text.trim().slice(-1);
-                if (['.','!','?','»','"',')',']','*'].indexOf(_lastCharT) === -1) _looksTruncated = true;
+            else {
+                // v749cn: chequear marca de cierre en los últimos 200 chars (tolera espacios/newlines)
+                var _tail = text.slice(-200).toUpperCase();
+                if (_tail.indexOf('FIN') === -1 && _tail.indexOf('END') === -1) {
+                    _looksTruncated = true;
+                    console.warn('[AI] Sin marca de cierre FIN/END detectada — respuesta posiblemente truncada');
+                }
+                // También chequear final mid-frase (defensa adicional)
+                if (text.length < 250) {
+                    var _lastCharT = text.trim().slice(-1);
+                    if (['.','!','?','»','"',')',']','*'].indexOf(_lastCharT) === -1) _looksTruncated = true;
+                }
             }
             // Cache initial AI response so reopening loads instantly from memory — pero solo si NO está truncada
             var _existChat = getInterpChat(chatId);
@@ -12359,14 +12369,24 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             var chatHtml = '<div style="display:flex;flex-direction:column;max-height:60vh;">';
             // Scrollable messages area
             chatHtml += '<div id="interpChatMessages_' + chatId + '" style="flex:1;overflow-y:auto;min-height:80px;max-height:45vh;padding-bottom:8px;">';
-            // v749cf: detectar respuestas truncadas servidas desde cache viejo (pre-v749cf, donde se cacheaba todo)
+            // v749cf/cn: detectar respuestas truncadas servidas desde cache viejo (pre-v749cf, donde se cacheaba todo).
+            // v749cn: además del check de "termina mid-frase", chequear marca de cierre FIN/END
+            //         (presente solo en respuestas generadas con system prompt v749cn+).
             var _cachedLooksTruncated = false;
             if (cachedHtml) {
                 var _ct = text ? text.trim() : '';
                 if (!_ct) _cachedLooksTruncated = true;
-                else if (_ct.length < 250) {
-                    var _lc = _ct.slice(-1);
-                    if (['.','!','?','»','"',')',']','*'].indexOf(_lc) === -1) _cachedLooksTruncated = true;
+                else {
+                    var _ctTail = _ct.slice(-200).toUpperCase();
+                    var _hasMark = (_ctTail.indexOf('FIN') !== -1 || _ctTail.indexOf('END') !== -1);
+                    if (!_hasMark) {
+                        // Sin marca de cierre — para responses anteriores a v749cn esto es esperado,
+                        // así que solo marcamos como truncado si ADEMÁS termina mid-frase O es muy corto.
+                        if (_ct.length < 250) {
+                            var _lc = _ct.slice(-1);
+                            if (['.','!','?','»','"',')',']','*'].indexOf(_lc) === -1) _cachedLooksTruncated = true;
+                        }
+                    }
                 }
             }
             // v749cf: clave global para botón Regenerar (siempre disponible)
@@ -30355,21 +30375,47 @@ function interpretCalendarDay(year, month, day) {
         + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
         + '<div id="calDayInterpDiv"></div>';
 
-    // Use overlay modal (z-index 1400) so personalDayModal stays visible underneath
+    // Use overlay modal (z-index 10010) so personalDayModal stays visible underneath
+    // v749cn: SIEMPRE re-asegurar la estructura interna del modal. Antes el modal se creaba
+    // 1 sola vez y se asumía que el inner stayed intacto — pero si otro flow (showSynastryPlanetCompare,
+    // showCompositePlanetDetail, etc.) reescribió la innerHTML para algo distinto, los IDs
+    // `compPlanetDetailTitle` y `compPlanetDetailBody` desaparecían. Resultado: la 2da llamada a
+    // interpretCalendarDay tiraba un null-pointer al setear textContent y el modal nunca se mostraba.
     var detailModal = document.getElementById('compositePlanetDetailModal');
     if (!detailModal) {
         detailModal = document.createElement('div');
         detailModal.id = 'compositePlanetDetailModal';
         detailModal.className = 'modal';
-        detailModal.style.zIndex = '10010';
         detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         document.body.appendChild(detailModal);
     }
-    document.getElementById('compPlanetDetailTitle').textContent = _title;
-    document.getElementById('compPlanetDetailBody').innerHTML = bodyHtml;
-    detailModal.classList.add('show');
-    setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
+    // v749cn: forzar estructura + z-index + handler en CADA llamada
+    detailModal.style.zIndex = '10010';
+    detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
+    // Sólo reescribir innerHTML si la estructura esperada no existe (evita destruir contenido en curso de otra interpretación)
+    if (!document.getElementById('compPlanetDetailTitle') || !document.getElementById('compPlanetDetailBody') || !detailModal.contains(document.getElementById('compPlanetDetailBody'))) {
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
+    }
+    try {
+        var _ttlEl = document.getElementById('compPlanetDetailTitle');
+        var _bodyEl = document.getElementById('compPlanetDetailBody');
+        if (_ttlEl) _ttlEl.textContent = _title;
+        if (_bodyEl) _bodyEl.innerHTML = bodyHtml;
+        else throw new Error('compPlanetDetailBody no encontrado');
+        detailModal.classList.add('show');
+        // v749cn: scroll al tope (por si quedó scrolleado de una interpretación anterior)
+        var _mc = detailModal.querySelector('.modal-content');
+        if (_mc) _mc.scrollTop = 0;
+        setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
+    } catch(_eIntDay) {
+        console.error('[interpretCalendarDay] error abriendo modal:', _eIntDay);
+        // Reescribir estructura desde cero y reintentar 1 vez
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
+        document.getElementById('compPlanetDetailTitle').textContent = _title;
+        document.getElementById('compPlanetDetailBody').innerHTML = bodyHtml;
+        detailModal.classList.add('show');
+        setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
+    }
 }
 
 // ===== v749aj: INTERPRET A SINGLE SECTION of Activaciones Personales =====
@@ -47999,8 +48045,8 @@ function buildSystemPrompt(contextLevel) {
 
     // ── Formatting instructions for ALL interpretations ──
     base += isEs
-        ? '\n\n═══ FORMATO DE RESPUESTA OBLIGATORIO ═══\nTodas tus interpretaciones DEBEN seguir este formato:\n1. Organiza por SECCIONES TEMÁTICAS claras usando encabezados con **negrita** (ej: **Capa Simbólica**, **Capa Astrológica**, **Capa Psicológica**, **Síntesis**).\n2. Deja UNA LÍNEA EN BLANCO entre cada sección/tema.\n3. Usa **negrita** para conceptos clave, nombres de planetas, signos, aspectos y términos importantes.\n4. Cada sección debe ser un párrafo coherente, NO listas con viñetas.\n5. La última sección siempre debe ser una **Síntesis** o **Mensaje Final** que integre todo.\nEsto es OBLIGATORIO en TODAS las respuestas.'
-        : '\n\n═══ MANDATORY RESPONSE FORMAT ═══\nAll your interpretations MUST follow this format:\n1. Organize by clear THEMATIC SECTIONS using **bold** headers (e.g.: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**).\n2. Leave ONE BLANK LINE between each section/theme.\n3. Use **bold** for key concepts, planet names, signs, aspects, and important terms.\n4. Each section should be a coherent paragraph, NOT bullet lists.\n5. The last section should always be a **Synthesis** or **Final Message** that integrates everything.\nThis is MANDATORY in ALL responses.';
+        ? '\n\n═══ FORMATO DE RESPUESTA OBLIGATORIO ═══\nTodas tus interpretaciones DEBEN seguir este formato:\n1. Organiza por SECCIONES TEMÁTICAS claras usando encabezados con **negrita** (ej: **Capa Simbólica**, **Capa Astrológica**, **Capa Psicológica**, **Síntesis**).\n2. Deja UNA LÍNEA EN BLANCO entre cada sección/tema.\n3. Usa **negrita** para conceptos clave, nombres de planetas, signos, aspectos y términos importantes.\n4. Cada sección debe ser un párrafo coherente, NO listas con viñetas.\n5. La última sección siempre debe ser una **Síntesis** o **Mensaje Final** que integre todo.\n6. ⚠️ MARCA DE CIERRE OBLIGATORIA: Terminá SIEMPRE tu respuesta con una última línea EXACTAMENTE igual a:\n\n✦ ⊹ FIN ⊹ ✦\n\nEsta marca confirma que la lectura llegó hasta el final. Si la marca falta, el usuario sabrá que la respuesta se cortó. NO la omitas NUNCA, ni siquiera en respuestas cortas o cuando solo escribís un saludo. Va siempre al final, en su propia línea, sin texto adicional después.\nEsto es OBLIGATORIO en TODAS las respuestas.'
+        : '\n\n═══ MANDATORY RESPONSE FORMAT ═══\nAll your interpretations MUST follow this format:\n1. Organize by clear THEMATIC SECTIONS using **bold** headers (e.g.: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**).\n2. Leave ONE BLANK LINE between each section/theme.\n3. Use **bold** for key concepts, planet names, signs, aspects, and important terms.\n4. Each section should be a coherent paragraph, NOT bullet lists.\n5. The last section should always be a **Synthesis** or **Final Message** that integrates everything.\n6. ⚠️ MANDATORY CLOSING MARK: ALWAYS end your response with a final line EXACTLY equal to:\n\n✦ ⊹ END ⊹ ✦\n\nThis mark confirms the reading reached the end. If the mark is missing, the user knows the response got cut off. NEVER omit it, even in short replies or simple greetings. It always goes at the end, on its own line, with no additional text after.\nThis is MANDATORY in ALL responses.';
 
     // ── CRITICAL: DO NOT HALLUCINATE — ask when unsure ──
     // v638: Improved instruction — tell AI to USE the chart data that IS present, only warn if truly missing
