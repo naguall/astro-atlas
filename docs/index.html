@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749ck';</script>
+    <script>window.APP_VERSION = 'v749cl';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -7739,6 +7739,13 @@ function openAutoBackupDB() {
     });
 }
 
+// v749cl: máximo de versiones que se mantienen en historial local (IndexedDB)
+var AUTOBACKUP_MAX_VERSIONS = 15;
+// v749cl: separación mínima entre versiones consecutivas (no crear 1 nueva versión cada 3s).
+// Cada cambio invoca scheduleAutoBackup, pero solo se promueve a "nueva versión histórica"
+// si pasaron al menos 30 minutos desde la última versión guardada.
+var AUTOBACKUP_MIN_GAP_MS = 30 * 60 * 1000;
+
 function autoBackupToIndexedDB() {
     try {
         // v675: Save ALL localStorage keys — previous version only saved specific keys
@@ -7764,13 +7771,117 @@ function autoBackupToIndexedDB() {
         }
 
         openAutoBackupDB().then(function(db) {
+            // v749cl: HISTORIAL DE VERSIONES.
+            // Antes: una sola key "latest" que se sobreescribía cada vez → no podías volver a una versión anterior.
+            // Ahora:
+            //   1) "latest" se sigue actualizando siempre (compatibilidad con autoRestoreFromIndexedDB).
+            //   2) Además mantenemos hasta AUTOBACKUP_MAX_VERSIONS snapshots con key = ISO timestamp.
+            //   3) Solo creamos un snapshot histórico nuevo si pasaron AUTOBACKUP_MIN_GAP_MS desde el último
+            //      (evita inflar la DB con 1 versión cada 3s ante una ráfaga de cambios).
             var tx = db.transaction(AUTOBACKUP_STORE, 'readwrite');
-            tx.objectStore(AUTOBACKUP_STORE).put(backup, AUTOBACKUP_KEY);
-            tx.oncomplete = function() { console.log('[AutoBackup] Saved ALL localStorage (' + meaningfulKeys.length + ' keys):', backup._date); };
+            var store = tx.objectStore(AUTOBACKUP_STORE);
+
+            // 1) actualizar "latest" siempre
+            store.put(backup, AUTOBACKUP_KEY);
+
+            // 2) decidir si crear nueva versión histórica
+            var keysReq = store.getAllKeys();
+            keysReq.onsuccess = function(ev) {
+                try {
+                    var allKeys = ev.target.result || [];
+                    var historyKeys = allKeys.filter(function(k){ return k !== AUTOBACKUP_KEY && k !== 'latest'; });
+                    historyKeys.sort(); // ISO timestamps ordenan correctamente como strings
+                    var lastTs = historyKeys.length ? historyKeys[historyKeys.length - 1] : null;
+                    var lastMs = lastTs ? Date.parse(lastTs) : 0;
+                    var nowMs = Date.now();
+                    var shouldSnapshot = !lastTs || (nowMs - lastMs) > AUTOBACKUP_MIN_GAP_MS;
+                    if (shouldSnapshot) {
+                        var snapKey = backup._date; // ISO timestamp
+                        var tx2 = db.transaction(AUTOBACKUP_STORE, 'readwrite');
+                        var store2 = tx2.objectStore(AUTOBACKUP_STORE);
+                        store2.put(backup, snapKey);
+                        // 3) podar versiones viejas
+                        var keepFrom = historyKeys.length + 1 - AUTOBACKUP_MAX_VERSIONS;
+                        if (keepFrom > 0) {
+                            var toDelete = historyKeys.slice(0, keepFrom);
+                            toDelete.forEach(function(oldKey){ store2.delete(oldKey); });
+                            console.log('[AutoBackup] Pruned ' + toDelete.length + ' versiones viejas');
+                        }
+                        tx2.oncomplete = function() { console.log('[AutoBackup] Nueva versión histórica creada:', snapKey, '— total snapshots:', Math.min(historyKeys.length + 1, AUTOBACKUP_MAX_VERSIONS)); };
+                    } else {
+                        console.log('[AutoBackup] latest actualizado, sin crear versión nueva (gap < 30min)');
+                    }
+                } catch(_eHist) { console.warn('[AutoBackup] historial error:', _eHist); }
+            };
             tx.onerror = function(e) { console.warn('[AutoBackup] Save error:', e.target.error); };
         }).catch(function(e) { console.warn('[AutoBackup] DB open error:', e); });
     } catch(e) { console.warn('[AutoBackup] Error:', e); }
 }
+
+// v749cl: lista todas las versiones disponibles en IndexedDB (más reciente primero).
+// Devuelve Promise<Array<{key, date, count}>>
+window.listLocalBackupVersions = function() {
+    return openAutoBackupDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+            var tx = db.transaction(AUTOBACKUP_STORE, 'readonly');
+            var store = tx.objectStore(AUTOBACKUP_STORE);
+            var req = store.getAllKeys();
+            req.onsuccess = function(ev) {
+                var keys = (ev.target.result || []).filter(function(k){ return k !== AUTOBACKUP_KEY && k !== 'latest'; });
+                keys.sort().reverse(); // más recientes arriba
+                if (!keys.length) { resolve([]); return; }
+                // Para cada key, leer el backup completo y devolver metadata
+                var results = [];
+                var pending = keys.length;
+                keys.forEach(function(k, idx) {
+                    var r = store.get(k);
+                    r.onsuccess = function(ev2) {
+                        var b = ev2.target.result;
+                        results[idx] = b ? { key: k, date: b._date, count: b._count, version: b._version, allKeys: b.allKeys } : null;
+                        if (--pending === 0) resolve(results.filter(Boolean));
+                    };
+                    r.onerror = function() { if (--pending === 0) resolve(results.filter(Boolean)); };
+                });
+            };
+            req.onerror = function(e) { reject(e.target.error); };
+        });
+    });
+};
+
+// v749cl: restaura una versión histórica específica al localStorage actual.
+// Modo "overwrite" (default): reemplaza TODAS las keys con las del backup elegido.
+// Hace backup de la versión actual ANTES de restaurar (snapshot pre-restore).
+window.restoreLocalBackupVersion = function(versionKey) {
+    var L = currentLang === 'es';
+    if (!versionKey) return Promise.reject(new Error('versionKey requerido'));
+    return openAutoBackupDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+            var tx = db.transaction(AUTOBACKUP_STORE, 'readonly');
+            var req = tx.objectStore(AUTOBACKUP_STORE).get(versionKey);
+            req.onsuccess = function(ev) {
+                var backup = ev.target.result;
+                if (!backup || !backup.allKeys) { reject(new Error(L?'Versión no encontrada':'Version not found')); return; }
+                // 1) snapshot pre-restore (por si el usuario se arrepiente)
+                try { autoBackupToIndexedDB(); } catch(_e1) {}
+                // 2) limpiar localStorage actual (excepto app_version) y restaurar
+                var preserveKeys = ['app_version'];
+                var keysToClear = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && preserveKeys.indexOf(k) === -1) keysToClear.push(k);
+                }
+                keysToClear.forEach(function(k){ localStorage.removeItem(k); });
+                Object.keys(backup.allKeys).forEach(function(k) {
+                    if (preserveKeys.indexOf(k) !== -1) return;
+                    localStorage.setItem(k, backup.allKeys[k]);
+                });
+                console.log('[AutoBackup] Restaurada versión', versionKey, '—', Object.keys(backup.allKeys).length, 'keys');
+                resolve(true);
+            };
+            req.onerror = function(e) { reject(e.target.error); };
+        });
+    });
+};
 
 function autoRestoreFromIndexedDB() {
     return openAutoBackupDB().then(function(db) {
@@ -8036,10 +8147,22 @@ function gdriveSignOut() {
     showToast(currentLang === 'es' ? '☁️ Google Drive desconectado' : '☁️ Google Drive disconnected');
 }
 
+// v749cl: máximo de archivos de backup que mantenemos en Google Drive appDataFolder
+var GDRIVE_MAX_VERSIONS = 14;
+// Prefix que identifica nuestros archivos de backup en Drive (para listar/limpiar)
+var GDRIVE_BACKUP_PREFIX = 'moonsync_backup_';
+// Formato del filename versionado: moonsync_backup_2026-05-27T18-42-00.json
+function _driveBackupFilename(isoDate) {
+    return GDRIVE_BACKUP_PREFIX + isoDate.replace(/:/g, '-').replace(/\..*/, '') + '.json';
+}
+
 // Save ALL localStorage to Drive appdata as JSON
+// v749cl: ahora cada backup crea un archivo NUEVO con timestamp en el nombre.
+// Mantiene los últimos GDRIVE_MAX_VERSIONS y borra los más viejos.
+// El archivo legacy "moonsync_backup.json" se sigue actualizando como "latest" por compat.
 function driveBackupData(token) {
     var backup = {
-        _version: 'moonsync_gdrive_v1',
+        _version: 'moonsync_gdrive_v2',
         _date: new Date().toISOString(),
         _count: localStorage.length,
         allKeys: {}
@@ -8056,34 +8179,53 @@ function driveBackupData(token) {
         return Promise.resolve();
     }
     var jsonStr = JSON.stringify(backup);
-    // First: find existing file ID
-    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
-        headers: { 'Authorization': 'Bearer ' + token }
-    }).then(function(r) { return r.json(); }).then(function(list) {
-        var fileId = (list.files && list.files.length > 0) ? list.files[0].id : null;
-        var blob = new Blob([jsonStr], {type: 'application/json'});
-        var formData = new FormData();
-        var metadata = { name: GDRIVE_BACKUP_FILENAME, parents: fileId ? undefined : ['appDataFolder'] };
-        if (fileId) { delete metadata.parents; }
-        formData.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-        formData.append('file', blob);
-        var url = fileId
-            ? 'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=multipart'
-            : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-        var method = fileId ? 'PATCH' : 'POST';
-        return fetch(url, {
-            method: method,
-            headers: { 'Authorization': 'Bearer ' + token },
-            body: formData
-        });
+    var versionedName = _driveBackupFilename(backup._date);
+
+    // 1) Crear archivo VERSIONADO nuevo
+    var versionedBlob = new Blob([jsonStr], {type: 'application/json'});
+    var versionedFD = new FormData();
+    versionedFD.append('metadata', new Blob([JSON.stringify({ name: versionedName, parents: ['appDataFolder'] })], {type: 'application/json'}));
+    versionedFD.append('file', versionedBlob);
+
+    return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: versionedFD
     }).then(function(r) {
         if (!r.ok) { return r.text().then(function(t) { throw new Error('Drive API error: ' + t); }); }
         return r.json();
-    }).then(function(result) {
+    }).then(function(versionedResult) {
+        console.log('[Drive] Versioned backup created:', versionedName, versionedResult.id);
+
+        // 2) En paralelo: actualizar también el archivo "latest" (legacy moonsync_backup.json)
+        //    para que driveRestoreData siga funcionando con la lógica existente.
+        return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r) { return r.json(); }).then(function(list) {
+            var fileId = (list.files && list.files.length > 0) ? list.files[0].id : null;
+            var latestBlob = new Blob([jsonStr], {type: 'application/json'});
+            var latestFD = new FormData();
+            var metadata = { name: GDRIVE_BACKUP_FILENAME };
+            if (!fileId) metadata.parents = ['appDataFolder'];
+            latestFD.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+            latestFD.append('file', latestBlob);
+            var url = fileId
+                ? 'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=multipart'
+                : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+            return fetch(url, {
+                method: fileId ? 'PATCH' : 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: latestFD
+            });
+        }).then(function(){
+            // 3) Limpiar versiones viejas (mantener solo las últimas GDRIVE_MAX_VERSIONS)
+            return _drivePruneOldBackups(token);
+        });
+    }).then(function() {
         var now = new Date().toISOString();
         localStorage.setItem('gdriveLastBackup', now);
         localStorage.setItem('gdriveLastBackupDay', now.slice(0,10));
-        console.log('✅ Drive backup saved:', result.id);
+        console.log('✅ Drive backup saved (versioned):', versionedName);
         showToast(currentLang === 'es' ? '✅ Backup guardado en Google Drive' : '✅ Backup saved to Google Drive');
     }).catch(function(e) {
         console.error('[Drive] Backup error:', e);
@@ -8097,6 +8239,71 @@ function driveBackupData(token) {
         throw e;
     });
 }
+
+// v749cl: borrar archivos de backup viejos en Drive (mantener solo los últimos GDRIVE_MAX_VERSIONS)
+function _drivePruneOldBackups(token) {
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=200&fields=files(id,name,modifiedTime)&q=name+contains+%27' + GDRIVE_BACKUP_PREFIX + '%27', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r){ return r.json(); }).then(function(list) {
+        var files = (list && list.files) || [];
+        // Filtrar solo los versionados (excluir moonsync_backup.json legacy)
+        files = files.filter(function(f){ return f.name && f.name.indexOf(GDRIVE_BACKUP_PREFIX) === 0 && f.name !== GDRIVE_BACKUP_FILENAME; });
+        // Ordenar por modifiedTime DESC
+        files.sort(function(a,b){ return (b.modifiedTime || '').localeCompare(a.modifiedTime || ''); });
+        var toDelete = files.slice(GDRIVE_MAX_VERSIONS);
+        if (toDelete.length === 0) return Promise.resolve();
+        console.log('[Drive] Podando ' + toDelete.length + ' backups viejos');
+        return Promise.all(toDelete.map(function(f) {
+            return fetch('https://www.googleapis.com/drive/v3/files/' + f.id, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            }).catch(function(e){ console.warn('[Drive] Error borrando', f.name, e); });
+        }));
+    }).catch(function(e){ console.warn('[Drive] Error podando:', e); });
+}
+
+// v749cl: listar todas las versiones de backup en Drive (más reciente primero)
+window.listDriveBackupVersions = function() {
+    if (!gdriveIsConnected()) return Promise.reject(new Error('Drive no conectado'));
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=200&fields=files(id,name,modifiedTime,size)&q=name+contains+%27' + GDRIVE_BACKUP_PREFIX + '%27', {
+        headers: { 'Authorization': 'Bearer ' + gdriveAccessToken }
+    }).then(function(r){ return r.json(); }).then(function(list) {
+        var files = (list && list.files) || [];
+        files = files.filter(function(f){ return f.name && f.name.indexOf(GDRIVE_BACKUP_PREFIX) === 0; });
+        files.sort(function(a,b){ return (b.modifiedTime || '').localeCompare(a.modifiedTime || ''); });
+        return files.map(function(f){
+            return { id: f.id, name: f.name, modifiedTime: f.modifiedTime, size: f.size, isLatest: (f.name === GDRIVE_BACKUP_FILENAME) };
+        });
+    });
+};
+
+// v749cl: restaurar una versión específica de Drive por fileId
+window.restoreDriveBackupVersion = function(fileId) {
+    if (!gdriveIsConnected()) return Promise.reject(new Error('Drive no conectado'));
+    var L = currentLang === 'es';
+    showToast(L ? '☁️ Restaurando versión seleccionada...' : '☁️ Restoring selected version...');
+    return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+        headers: { 'Authorization': 'Bearer ' + gdriveAccessToken }
+    }).then(function(r){ return r.json(); }).then(function(backup) {
+        if (!backup || !backup.allKeys) { throw new Error(L?'Backup vacío o inválido':'Empty or invalid backup'); }
+        // Hacer snapshot pre-restore local
+        try { autoBackupToIndexedDB(); } catch(_) {}
+        // Reemplazar localStorage
+        var preserve = ['app_version'];
+        var keysToClear = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && preserve.indexOf(k) === -1) keysToClear.push(k);
+        }
+        keysToClear.forEach(function(k){ localStorage.removeItem(k); });
+        Object.keys(backup.allKeys).forEach(function(k) {
+            if (preserve.indexOf(k) !== -1) return;
+            localStorage.setItem(k, backup.allKeys[k]);
+        });
+        showToast(L ? '✅ Versión restaurada. Recargando...' : '✅ Version restored. Reloading...');
+        setTimeout(function(){ location.reload(); }, 1500);
+    });
+};
 
 // Restore ALL localStorage from Drive appdata backup
 function driveRestoreData(token) {
@@ -8161,6 +8368,120 @@ function driveRestoreNow() {
     }
     driveRestoreData(gdriveAccessToken);
 }
+
+// v749cl: Modal con historial de versiones (local IndexedDB + Drive si está conectado)
+window.openBackupVersionsModal = function() {
+    var L = currentLang === 'es';
+    var modal = document.getElementById('backupVersionsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'backupVersionsModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '10060';
+        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" style="max-width:520px;max-height:85vh;overflow-y:auto;">'
+            + '<div class="modal-header"><h2 style="color:#c39bd3;margin-bottom:0;flex:1;">🕒 ' + (L?'Historial de Versiones':'Version History') + '</h2><button class="modal-close" onclick="document.getElementById(\'backupVersionsModal\').classList.remove(\'show\')">&times;</button></div>'
+            + '<div id="backupVersionsBody" style="padding:8px 4px;"></div>'
+            + '</div>';
+        document.body.appendChild(modal);
+    }
+    var body = document.getElementById('backupVersionsBody');
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">' + (L?'Cargando...':'Loading...') + '</div>';
+    modal.classList.add('show');
+
+    var localPromise = (typeof listLocalBackupVersions === 'function') ? listLocalBackupVersions() : Promise.resolve([]);
+    var drivePromise = gdriveIsConnected() ? listDriveBackupVersions().catch(function(){ return []; }) : Promise.resolve([]);
+
+    Promise.all([localPromise, drivePromise]).then(function(results) {
+        var localVers = results[0] || [];
+        var driveVers = results[1] || [];
+        var html = '';
+
+        html += '<div style="font-size:0.8em;color:rgba(255,255,255,0.55);padding:0 12px 12px;line-height:1.5;">'
+            + (L
+                ? 'Cada backup guarda una "foto" completa de tus datos: perfiles, cartas natales, interpretaciones guardadas, diarios, eventos, sueños, preferencias. <b>Podés volver a cualquier versión</b> tocando el botón Restaurar.'
+                : 'Each backup is a full snapshot of your data: profiles, natal charts, saved readings, diaries, events, dreams, preferences. <b>You can restore any version</b> by tapping Restore.')
+            + '</div>';
+
+        // ───── Local versions ─────
+        html += '<div style="font-size:0.78em;font-weight:700;color:#c39bd3;padding:6px 12px;letter-spacing:0.5px;text-transform:uppercase;">'
+            + '📱 ' + (L?'Versiones locales (este dispositivo)':'Local versions (this device)') + ' · ' + localVers.length
+            + '</div>';
+
+        if (!localVers.length) {
+            html += '<div style="font-size:0.78em;font-style:italic;color:rgba(255,255,255,0.4);padding:6px 12px 12px;">'
+                + (L?'Aún no hay versiones guardadas. Se crearán automáticamente a medida que uses la app.':'No versions yet. They will be created automatically as you use the app.')
+                + '</div>';
+        } else {
+            localVers.forEach(function(v) {
+                var d = new Date(v.date);
+                var dateStr = d.toLocaleString(L?'es-AR':'en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                var keyStr = (v.key || '').replace(/'/g, "\\'");
+                html += '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin:0 8px 6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;">'
+                    + '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;color:rgba(255,255,255,0.85);font-weight:600;">' + dateStr + '</div>'
+                    + '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);">' + (v.count || 0) + ' ' + (L?'campos':'items') + '</div></div>'
+                    + '<button onclick="_doRestoreLocalVersion(\'' + keyStr + '\')" style="padding:6px 12px;background:linear-gradient(135deg,rgba(102,187,106,0.2),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.5);border-radius:6px;color:#66bb6a;font-size:0.78em;font-weight:600;cursor:pointer;">↺ ' + (L?'Restaurar':'Restore') + '</button>'
+                    + '</div>';
+            });
+        }
+
+        // ───── Drive versions ─────
+        html += '<div style="font-size:0.78em;font-weight:700;color:#7baaf7;padding:14px 12px 6px;letter-spacing:0.5px;text-transform:uppercase;">'
+            + '☁️ ' + (L?'Versiones en Google Drive':'Google Drive versions') + (gdriveIsConnected() ? (' · ' + driveVers.length) : '')
+            + '</div>';
+
+        if (!gdriveIsConnected()) {
+            html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.45);padding:6px 12px 12px;line-height:1.5;">'
+                + (L
+                    ? 'Conectá Google Drive en Preferencias para tener backups en la nube accesibles desde cualquier dispositivo con tu misma cuenta de Google.'
+                    : 'Connect Google Drive in Preferences to keep cloud backups accessible from any device with your same Google account.')
+                + '</div>';
+        } else if (!driveVers.length) {
+            html += '<div style="font-size:0.78em;font-style:italic;color:rgba(255,255,255,0.4);padding:6px 12px 12px;">'
+                + (L?'No hay backups en Drive todavía. Tocá "Guardar ahora" en la sección de Drive para crear el primero.':'No Drive backups yet. Tap "Save now" in the Drive section to create the first one.')
+                + '</div>';
+        } else {
+            driveVers.forEach(function(f) {
+                var d = f.modifiedTime ? new Date(f.modifiedTime) : null;
+                var dateStr = d ? d.toLocaleString(L?'es-AR':'en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : f.name;
+                var sizeKb = f.size ? Math.round(parseInt(f.size)/1024) + ' KB' : '';
+                var latestBadge = f.isLatest ? ' <span style="font-size:0.65em;background:rgba(66,133,244,0.2);border:1px solid rgba(66,133,244,0.4);padding:1px 6px;border-radius:4px;color:#7baaf7;margin-left:4px;">' + (L?'última':'latest') + '</span>' : '';
+                html += '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin:0 8px 6px;background:rgba(66,133,244,0.04);border:1px solid rgba(66,133,244,0.2);border-radius:8px;">'
+                    + '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;color:rgba(255,255,255,0.85);font-weight:600;">' + dateStr + latestBadge + '</div>'
+                    + '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);">' + sizeKb + '</div></div>'
+                    + '<button onclick="_doRestoreDriveVersion(\'' + f.id + '\')" style="padding:6px 12px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.5);border-radius:6px;color:#7baaf7;font-size:0.78em;font-weight:600;cursor:pointer;">↺ ' + (L?'Restaurar':'Restore') + '</button>'
+                    + '</div>';
+            });
+        }
+
+        body.innerHTML = html;
+    }).catch(function(e) {
+        body.innerHTML = '<div style="color:#ff6b6b;padding:14px;font-size:0.85em;">' + (L?'Error cargando versiones':'Error loading versions') + ': ' + (e && e.message ? e.message : '') + '</div>';
+    });
+};
+
+window._doRestoreLocalVersion = function(key) {
+    var L = currentLang === 'es';
+    if (!confirm(L
+        ? '¿Restaurar esta versión? Tus datos actuales serán REEMPLAZADOS por los de esta versión.\n\n(Se hace un snapshot de la versión actual antes — podés volver a ella desde el mismo historial.)'
+        : 'Restore this version? Your current data will be REPLACED with this version.\n\n(A snapshot of the current version is taken first — you can return to it from the same history.)')) return;
+    restoreLocalBackupVersion(key).then(function() {
+        showToast(L ? '✅ Versión restaurada. Recargando...' : '✅ Version restored. Reloading...');
+        setTimeout(function(){ location.reload(); }, 1500);
+    }).catch(function(e) {
+        alert((L?'Error: ':'Error: ') + (e && e.message ? e.message : ''));
+    });
+};
+
+window._doRestoreDriveVersion = function(fileId) {
+    var L = currentLang === 'es';
+    if (!confirm(L
+        ? '¿Restaurar esta versión de Drive? Tus datos actuales serán REEMPLAZADOS por los de esta versión.\n\n(Se hace un snapshot local antes.)'
+        : 'Restore this Drive version? Your current data will be REPLACED.\n\n(A local snapshot is taken first.)')) return;
+    restoreDriveBackupVersion(fileId).catch(function(e) {
+        alert((L?'Error: ':'Error: ') + (e && e.message ? e.message : ''));
+    });
+};
 // ── End Google Drive Backup ──────────────────────────────────────
 
 function handleGcalTokenResponse(response) {
@@ -39288,10 +39609,12 @@ function openPreferencesModal() {
         '</div>' +
 
         // Local file export/import
-        '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
             '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar archivo':'Export file') + '</button>' +
             '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + 'Restaurar archivo' + '</button>' +
         '</div>' +
+        // v749cl: Botón "Ver historial de versiones" — abre modal con todas las versiones disponibles
+        '<button onclick="openBackupVersionsModal()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(155,89,182,0.15),rgba(102,126,234,0.06));border:1px solid rgba(155,89,182,0.35);border-radius:8px;color:#c39bd3;font-size:0.82em;font-weight:600;cursor:pointer;margin-bottom:12px;">🕒 ' + (currentLang==='es'?'Historial de versiones (volver a una versión anterior)':'Version history (revert to an earlier version)') + '</button>' +
 
         // Google Drive section
         '<hr style="border-color:rgba(255,255,255,0.07);margin:0 0 12px 0;" />' +
