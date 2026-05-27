@@ -27,7 +27,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cg';</script>
+    <script>window.APP_VERSION = 'v749cj';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -12146,6 +12146,7 @@ async function expandAIReading(readingKey, btn) {
             apiUrl = AI_PROXY_URL;
         }
 
+        // v749ch: retry exponencial para 429/5xx (antes solo 429)
         var response;
         for (var _retry = 0; _retry < 5; _retry++) {
             response = await fetch(apiUrl, {
@@ -12153,7 +12154,8 @@ async function expandAIReading(readingKey, btn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
-            if (response.status === 429 && _retry < 4) {
+            var _st = response.status;
+            if ((_st === 429 || _st === 500 || _st === 502 || _st === 503 || _st === 504) && _retry < 4) {
                 btn.innerHTML = (L ? 'Esperando...' : 'Waiting...');
                 await new Promise(function(r) { setTimeout(r, Math.min(3000 * (_retry + 1), 15000)); });
                 btn.innerHTML = (L ? 'Reintentando...' : 'Retrying...');
@@ -12162,7 +12164,17 @@ async function expandAIReading(readingKey, btn) {
             break;
         }
 
-        if (!response.ok) throw new Error('API error: ' + response.status);
+        if (!response.ok) {
+            var _expMsg;
+            if (response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504) {
+                _expMsg = L ? 'AI saturado. Intentá de nuevo.' : 'AI overloaded. Try again.';
+            } else if (response.status === 429) {
+                _expMsg = L ? 'Demasiadas consultas.' : 'Too many requests.';
+            } else {
+                _expMsg = (L ? 'Error: ' : 'Error: ') + response.status;
+            }
+            throw new Error(_expMsg);
+        }
 
         var result = await response.json();
         var text = '';
@@ -12340,22 +12352,69 @@ async function sendInterpChatMessage(chatId, readingKey) {
             generationConfig: { temperature: 0.8, maxOutputTokens: 16384 }
         };
 
-        var apiUrl;
+        // v749ch: estrategia idéntica a fetchAIInterpretation — proxy default, fallback a key personal en 5xx/429
         var personalKey = getGeminiKey();
-        if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
-        } else {
+        var apiUrl;
+        var _usingProxy = false;
+        if (AI_PROXY_URL) {
             apiUrl = AI_PROXY_URL;
             requestBody._stream = true;
+            _usingProxy = true;
+        } else if (personalKey) {
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+        } else {
+            apiUrl = AI_PROXY_URL; // safety fallback
+            requestBody._stream = true;
+            _usingProxy = true;
         }
 
-        var response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+        // v749ch: retry exponencial + fallback proxy→personal key en 5xx/429.
+        // Antes: solo un fetch, si fallaba con 503 → throw "API error: 503".
+        var response;
+        var _fellback = false;
+        for (var _retryS = 0; _retryS < 5; _retryS++) {
+            try {
+                response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+            } catch(_netE) {
+                if (_retryS < 4) { await new Promise(function(r){setTimeout(r,Math.min(2000*(_retryS+1),10000));}); continue; }
+                throw _netE;
+            }
+            var _st = response.status;
+            // 5xx/429 + proxy + personal key disponible → fallback
+            if ((_st === 429 || _st === 500 || _st === 502 || _st === 503 || _st === 504) && _usingProxy && personalKey && !_fellback) {
+                console.warn('[AI follow-up] Proxy ' + _st + ' → fallback a key personal streaming');
+                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                _usingProxy = false;
+                _fellback = true;
+                delete requestBody._stream;
+                continue;
+            }
+            // 5xx/429 con retry exponencial
+            if ((_st === 429 || _st === 500 || _st === 502 || _st === 503 || _st === 504) && _retryS < 4) {
+                await new Promise(function(r){setTimeout(r,Math.min(3000*(_retryS+1),15000));});
+                continue;
+            }
+            break;
+        }
 
         // Remove typing indicator
         var typingEl = document.getElementById('interpTyping_' + chatId);
         if (typingEl) typingEl.remove();
 
-        if (!response.ok) throw new Error('API error: ' + response.status);
+        if (!response.ok) {
+            // v749ch: mensaje user-friendly según status
+            var _emsg;
+            if (response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504) {
+                _emsg = L ? 'El servicio de AI está saturado. Intentá de nuevo en unos segundos.' : 'AI service overloaded. Try again in a few seconds.';
+            } else if (response.status === 429) {
+                _emsg = L ? 'Demasiadas consultas. Esperá un momento.' : 'Too many requests. Wait a moment.';
+            } else if (response.status === 400) {
+                _emsg = L ? 'La consulta es muy grande o tiene formato inválido.' : 'Query too large or invalid format.';
+            } else {
+                _emsg = (L ? 'Error de servidor: ' : 'Server error: ') + response.status;
+            }
+            throw new Error(_emsg);
+        }
 
         var aiText = '';
         var _respId = 'interpFollowUp_' + chatId + '_' + Date.now();
@@ -22161,7 +22220,15 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
 
     var totalR2 = R_p2Mid + 25;
     var vb2 = (cx-totalR2)+' '+(cy-totalR2)+' '+(totalR2*2)+' '+(totalR2*2);
-    container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb2+'" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">'+svg+'</svg>';
+    // v749ci: biwheel (sinastría/compuesta/davison) clickeable para zoom
+    var _Lsyn = currentLang === 'es';
+    var _svgSyn = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb2+'" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">'+svg+'</svg>';
+    var _zKeySyn = '_wheelZoom_synastry_' + Date.now();
+    window[_zKeySyn] = { svg: _svgSyn, title: (_Lsyn?'Biwheel':'Biwheel') + ': ' + (name1||'P1') + ' / ' + (name2||'P2') };
+    container.innerHTML = '<div style="position:relative;cursor:zoom-in;" onclick="_openChartZoom(\'' + _zKeySyn + '\')" title="' + (_Lsyn?'Tocá para agrandar':'Tap to enlarge') + '">'
+        + _svgSyn
+        + '<div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);border-radius:14px;padding:3px 9px;font-size:0.7em;color:rgba(255,255,255,0.9);pointer-events:none;backdrop-filter:blur(4px);">🔍 ' + (_Lsyn?'Agrandar':'Enlarge') + '</div>'
+        + '</div>';
 }
 
 // Open synastry modal for two profiles
@@ -22169,6 +22236,11 @@ window.openSynastryView = function(profileId) {
     var L = currentLang === 'es';
     var natal = getNatalData();
     if (!natal) return;
+    // v749cj: bloquear mismo perfil dos veces
+    if (profileId === natal.id) {
+        alert(L ? 'No se puede hacer sinastría con el mismo perfil. Elegí otro perfil en "Con:".' : 'Cannot make synastry with the same profile. Pick another profile in "With:".');
+        return;
+    }
     var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
     var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
     // Auto-calculate natal chart for second profile if missing
@@ -22939,8 +23011,21 @@ window.getCalRelContext = function() {
         return { mode: 'natal', label: profileA.name || 'Natal', chartA: chartA, profileA: profileA };
     }
 
+    // v749cj: si secundario === activo (perfil A), buscar OTRO perfil válido o caer en natal
+    if (window._calRelSecondProfileId === profileA.id) {
+        var _altB = profiles.find(function(p){ return p.id !== profileA.id; });
+        if (_altB) {
+            console.warn('[v749cj] getCalRelContext detectó secundario===activo → autocorrigiendo a', _altB.id);
+            window._calRelSecondProfileId = _altB.id;
+            try { localStorage.setItem('calRelSecondProfileId', _altB.id); } catch(_){}
+        } else {
+            window._calRelSecondProfileId = null;
+            return { mode: 'natal', label: profileA.name, chartA: chartA, profileA: profileA };
+        }
+    }
+
     var profileB = profiles.find(function(p){ return p.id === window._calRelSecondProfileId; });
-    if (!profileB) return { mode: 'natal', label: profileA.name, chartA: chartA, profileA: profileA };
+    if (!profileB || profileB.id === profileA.id) return { mode: 'natal', label: profileA.name, chartA: chartA, profileA: profileA };
 
     var chartB = null;
     try {
@@ -23153,6 +23238,22 @@ window.setCalRelMode = function(mode, secondProfileId) {
         localStorage.removeItem('calRelMode');
         localStorage.removeItem('calRelSecondProfileId');
     } else {
+        // v749cj: VALIDAR que el secondProfileId no sea igual al activo (causa carta "X + X")
+        var _activeIdSet = localStorage.getItem('activeProfileId');
+        if (secondProfileId && secondProfileId === _activeIdSet) {
+            // Intentar elegir otro perfil válido
+            try {
+                var _allProf = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+                var _altProf = _allProf.find(function(p){ return p.id !== _activeIdSet; });
+                if (_altProf) {
+                    console.warn('[v749cj] setCalRelMode: secondProfileId === activeId → cambiando a', _altProf.id);
+                    secondProfileId = _altProf.id;
+                } else {
+                    console.warn('[v749cj] setCalRelMode: no hay otro perfil disponible — abortando');
+                    return;
+                }
+            } catch(_eVal) { console.warn('[v749cj] setCalRelMode validación:', _eVal); }
+        }
         if (secondProfileId) window._calRelSecondProfileId = secondProfileId;
         localStorage.setItem('calRelMode', mode);
         if (window._calRelSecondProfileId) localStorage.setItem('calRelSecondProfileId', window._calRelSecondProfileId);
@@ -23416,6 +23517,11 @@ window.openCompositeView = function(profileId) {
     var L = currentLang === 'es';
     var natal = getNatalData();
     if (!natal) return;
+    // v749cj: bloquear mismo perfil dos veces (causa Compuesta "X + X" sin sentido)
+    if (profileId === natal.id) {
+        alert(L ? 'No se puede hacer carta compuesta con el mismo perfil. Elegí otro perfil en "Con:".' : 'Cannot make composite chart with the same profile. Pick another profile in "With:".');
+        return;
+    }
     var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
     var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
     // Auto-calculate natal chart for second profile if missing
@@ -23536,6 +23642,11 @@ window.openDavisonView = function(profileId) {
     var L = currentLang === 'es';
     var natal = getNatalData();
     if (!natal) return;
+    // v749cj: bloquear mismo perfil dos veces
+    if (profileId === natal.id) {
+        alert(L ? 'No se puede hacer carta Davison con el mismo perfil. Elegí otro perfil en "Con:".' : 'Cannot make Davison chart with the same profile. Pick another profile in "With:".');
+        return;
+    }
     var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
     var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
     // Auto-calculate natal chart for second profile if missing
@@ -24408,6 +24519,37 @@ function addNewProfile() {
 
 function switchProfile(id) {
     setActiveProfileId(id);
+    // v749cj: si el secundario relacional coincide con el nuevo activo, resetearlo.
+    // Antes: si elegías Camilo como secundario y luego cambiabas el activo a Camilo,
+    // quedaba activo=Camilo, secundario=Camilo → la carta compuesta/davison/sinastría
+    // se renderizaba como "Camilo + Camilo" (mismo perfil contra sí mismo).
+    if (window._calRelSecondProfileId === id) {
+        // Buscar otro perfil disponible (que no sea el nuevo activo)
+        try {
+            var _profiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+            var _otherProfile = _profiles.find(function(p){ return p.id !== id; });
+            if (_otherProfile) {
+                window._calRelSecondProfileId = _otherProfile.id;
+                localStorage.setItem('calRelSecondProfileId', _otherProfile.id);
+                console.log('[v749cj] switchProfile detectó secundario igual al nuevo activo → cambiado a', _otherProfile.id);
+            } else {
+                // No hay otro perfil disponible → desactivar modo relacional
+                window._calRelSecondProfileId = null;
+                window._calRelMode = null;
+                localStorage.removeItem('calRelMode');
+                localStorage.removeItem('calRelSecondProfileId');
+                console.log('[v749cj] switchProfile: no hay otro perfil disponible → reset modo relacional a natal');
+            }
+        } catch(_eRelSwap) { console.warn('[v749cj] error reseteando secundario:', _eRelSwap); }
+        // Invalidar caches relacionales (cambiaron los perfiles)
+        window._calRelCompCache = null;
+        window._calRelDavCache = null;
+        window._calRelPromptCache = null;
+        // Re-precomputar contexto relacional si seguimos en modo no-natal
+        if (window._calRelMode && window._calRelMode !== 'natal' && typeof window._precomputeRelData === 'function') {
+            try { window._precomputeRelData(); } catch(_eRecomp) {}
+        }
+    }
     const profile = getNatalData();
     if (profile) {
         // Load cached chart for this profile
@@ -24744,7 +24886,35 @@ function renderPersonalSetupForm() {
                 value="${existing?.name || ''}" style="margin-bottom:12px;" />
 
             <label>${L ? 'Fecha de nacimiento' : 'Birth date'}</label>
-            <input type="date" id="natalBirthDate" value="${existing?.date || ''}" />
+            ${(function() {
+                // v749ci: día/mes/año en 3 dropdowns claros en la MISMA fila para que el año sea obvio
+                // (antes era <input type="date"> donde había que tocar el header del año en el picker — no era evidente).
+                var _exDate = (existing && existing.date) || '';
+                var _exParts = _exDate.split('-'); // [YYYY, MM, DD]
+                var _exY = _exParts[0] ? parseInt(_exParts[0], 10) : '';
+                var _exM = _exParts[1] ? parseInt(_exParts[1], 10) : '';
+                var _exD = _exParts[2] ? parseInt(_exParts[2], 10) : '';
+                var _months = L
+                    ? ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+                    : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                var _curYear = new Date().getFullYear();
+                var _dayOpts = '<option value="">' + (L?'Día':'Day') + '</option>';
+                for (var _di = 1; _di <= 31; _di++) _dayOpts += '<option value="' + _di + '"' + (_exD===_di?' selected':'') + '>' + _di + '</option>';
+                var _monOpts = '<option value="">' + (L?'Mes':'Month') + '</option>';
+                for (var _mi = 1; _mi <= 12; _mi++) _monOpts += '<option value="' + _mi + '"' + (_exM===_mi?' selected':'') + '>' + _months[_mi-1] + '</option>';
+                var _yrOpts = '<option value="">' + (L?'Año':'Year') + '</option>';
+                for (var _yi = _curYear; _yi >= 1900; _yi--) _yrOpts += '<option value="' + _yi + '"' + (_exY===_yi?' selected':'') + '>' + _yi + '</option>';
+                // v749ci: hidden input mantiene el formato ISO YYYY-MM-DD para compatibilidad con saveNatalForm
+                return '<div style="display:flex;gap:8px;margin-bottom:4px;">'
+                    + '<select id="natalBirthDay" style="flex:1;min-width:0;" onchange="_updateNatalDateISO()">' + _dayOpts + '</select>'
+                    + '<select id="natalBirthMonth" style="flex:1.5;min-width:0;" onchange="_updateNatalDateISO()">' + _monOpts + '</select>'
+                    + '<select id="natalBirthYear" style="flex:1.2;min-width:0;" onchange="_updateNatalDateISO()">' + _yrOpts + '</select>'
+                    + '</div>'
+                    + '<input type="hidden" id="natalBirthDate" value="' + (_exDate || '') + '" />'
+                    + '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-top:-2px;margin-bottom:10px;">'
+                    + (L ? '☝️ Tocá cada campo para abrir su lista — el año baja hasta 1900.' : '☝️ Tap each field to open its list — year goes back to 1900.')
+                    + '</div>';
+            })()}
 
             <label>${L ? 'Hora de nacimiento' : 'Birth time'}</label>
             <span>${buildTimePicker('natalBirthTime', existing?.time || '')}</span>
@@ -24817,8 +24987,30 @@ function selectNatalCity(index) {
     if (input) input.blur();
 }
 
+// v749ci: helper para combinar día/mes/año dropdowns en formato ISO YYYY-MM-DD
+window._updateNatalDateISO = function() {
+    var d = document.getElementById('natalBirthDay');
+    var m = document.getElementById('natalBirthMonth');
+    var y = document.getElementById('natalBirthYear');
+    var iso = document.getElementById('natalBirthDate');
+    if (!d || !m || !y || !iso) return;
+    var dv = parseInt(d.value, 10);
+    var mv = parseInt(m.value, 10);
+    var yv = parseInt(y.value, 10);
+    if (isNaN(dv) || isNaN(mv) || isNaN(yv)) { iso.value = ''; return; }
+    // Validar día según mes (ej. 30 feb → ajustar)
+    var maxDay = new Date(yv, mv, 0).getDate();
+    if (dv > maxDay) {
+        dv = maxDay;
+        d.value = String(maxDay);
+    }
+    iso.value = yv + '-' + (mv<10?'0':'') + mv + '-' + (dv<10?'0':'') + dv;
+};
+
 function saveNatalForm() {
     const L = currentLang === 'es';
+    // v749ci: asegurar que el ISO se calculó si los dropdowns están presentes
+    if (typeof window._updateNatalDateISO === 'function') window._updateNatalDateISO();
     const date = document.getElementById('natalBirthDate')?.value;
     const time = document.getElementById('natalBirthTime')?.value || '12:00';
     const cityName = document.getElementById('natalBirthCity')?.value;
@@ -26197,10 +26389,51 @@ function drawNatalWheel(canvasId, transitDate) {
 
         var totalR = transitDate ? (R_signOuter + 55) : R_signOuter + 15;
         var vb = (cx - totalR) + ' ' + (cy - totalR) + ' ' + (totalR*2) + ' ' + (totalR*2);
-        container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">' + svg + '</svg>';
+        // v749ci: rueda CLICKEABLE para abrir en pantalla completa (modal con pinch-to-zoom).
+        // Antes en teléfono se veía muy chica y no se distinguían los grados/glifos.
+        var _L = currentLang === 'es';
+        var _svgHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">' + svg + '</svg>';
+        var _zoomTitle = transitDate ? (_L?'Tránsitos sobre la Carta Natal':'Transits over Natal Chart') : (_L?'Carta Natal':'Natal Chart');
+        // Guardar el SVG en window para que el handler lo recupere
+        var _wheelKey = '_wheelZoom_' + (canvasId || 'natalWheelCanvas');
+        window[_wheelKey] = { svg: _svgHTML, title: _zoomTitle };
+        container.innerHTML = '<div style="position:relative;cursor:zoom-in;" onclick="_openChartZoom(\'' + _wheelKey + '\')" title="' + (_L?'Tocá para agrandar':'Tap to enlarge') + '">'
+            + _svgHTML
+            + '<div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);border-radius:14px;padding:3px 9px;font-size:0.7em;color:rgba(255,255,255,0.9);pointer-events:none;backdrop-filter:blur(4px);">🔍 ' + (_L?'Agrandar':'Enlarge') + '</div>'
+            + '</div>';
 
     } catch(e) { console.error('Wheel chart error:', e); }
 }
+
+// v749ci: abre un modal fullscreen con SVG ampliado + pinch-to-zoom nativo.
+// Se invoca desde cualquier rueda clickeable (natal, compuesta, davison, sinastría, biwheel).
+window._openChartZoom = function(stateKey) {
+    var st = window[stateKey];
+    if (!st || !st.svg) return;
+    var L = currentLang === 'es';
+    var modal = document.getElementById('chartZoomModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'chartZoomModal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:stretch;justify-content:stretch;';
+        modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+        document.body.appendChild(modal);
+    }
+    // SVG con overflow:visible para permitir pinch-zoom (CSS transform + touch-action)
+    modal.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(15,17,55,0.85);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">'
+        + '<div style="font-family:\'Cinzel\',serif;font-size:0.95em;color:#c9a840;">' + (st.title || (L?'Carta':'Chart')) + '</div>'
+        + '<button onclick="document.getElementById(\'chartZoomModal\').style.display=\'none\';" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.6em;cursor:pointer;padding:0 8px;line-height:1;">×</button>'
+        + '</div>'
+        + '<div id="chartZoomContent" style="flex:1;overflow:auto;touch-action:pinch-zoom pan-x pan-y;display:flex;align-items:center;justify-content:center;padding:10px;">'
+        + '<div style="min-width:90vw;max-width:none;transform-origin:center center;">'
+        + st.svg.replace(/max-width:700px/g, 'max-width:none').replace(/style="width:100%;/, 'style="width:90vw;height:auto;max-width:none;')
+        + '</div>'
+        + '</div>'
+        + '<div style="text-align:center;font-size:0.72em;color:rgba(255,255,255,0.35);padding:8px;background:rgba(15,17,55,0.6);flex-shrink:0;">'
+        + (L ? 'Usá pellizco (pinch) para hacer zoom · Tocá fuera para cerrar' : 'Pinch to zoom · Tap outside to close')
+        + '</div>';
+    modal.style.display = 'flex';
+};
 
 // ===== ASPECT GRID (Triangular Matrix) =====
 var aspectGridVisible = false;
@@ -27116,7 +27349,12 @@ function interpretCartoLine(planet, type) {
     document.getElementById('natalDetailTitle').textContent = _title;
     document.getElementById('natalDetailBody').innerHTML = bodyHtml;
     modal.classList.add('show');
-    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
+    // v749ch: cartografía es contexto natal puro — sin tránsitos del día
+    setTimeout(function() {
+        window._isPureNatalInterpretation = true;
+        try { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }
+        finally { setTimeout(function(){ window._isPureNatalInterpretation = false; }, 800); }
+    }, 100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -28259,7 +28497,19 @@ function renderPersonalCalendar(opts) {
               : (L?'Davison de la relación':'Davison chart of the relationship'))
             + '. ' + (L ? 'Hacé click en cualquier día para ver el detalle.' : 'Click any day to see details.') + '</div>'
             + '</div>';
+        // v749ch: Botón "Interpretar el mes en 2 quincenas" para calendario relacional
+        var _monthLblRel = monthNames[month] + ' ' + year;
+        calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:0;">'
+            + '<div onclick="interpretMonthByFortnights(' + year + ',' + month + ')" style="text-align:center;color:#c39bd3;cursor:pointer;padding:12px 14px;background:linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06));border:1px solid rgba(155,89,182,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.22),rgba(102,126,234,0.12))\'" onmouseout="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06))\'">'
+            + '✦ ' + (L ? 'Interpretar ' + _monthLblRel + ' (relación, en 2 quincenas)' : 'Interpret ' + _monthLblRel + ' (relationship, in 2 fortnights)')
+            + '</div></div>';
     } else {
+        // v749ch: Botón "Interpretar el mes en 2 quincenas" también en modo personal natal
+        var _monthLblPers = monthNames[month] + ' ' + year;
+        calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:0;">'
+            + '<div onclick="interpretMonthByFortnights(' + year + ',' + month + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:12px 14px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">'
+            + '✦ ' + (L ? 'Interpretar ' + _monthLblPers + ' (en 2 quincenas)' : 'Interpret ' + _monthLblPers + ' (in 2 fortnights)')
+            + '</div></div>';
         calendarHTML += yearEventsHTML;
     }
     calendarHTML += _isRelMode ? '</div><!-- close relCalCalendarGrid -->' : '</div><!-- close natalCalendarGrid -->';
@@ -28366,9 +28616,9 @@ function openNatalInterpretationModal() {
     } catch(e) { return; }
     if (!natalChart) return;
 
-    var today = new Date();
-    var todayTransits = calculateTransitsToNatal(today, natalChart);
-
+    // v749ch: interpretación de carta natal PURA — sin tránsitos del día.
+    // Antes incluía "TRÁNSITOS HOY" + pedía "natal Y los tránsitos de hoy" → AI mezclaba
+    // lectura natal con lectura del día. Ahora solo natal.
     var text = (L ? 'CARTA NATAL' : 'NATAL CHART') + ' — ' + (natal.name || natal.cityName) + '\n';
     text += (L ? 'Nacimiento: ' : 'Birth: ') + natal.date + ', ' + natal.time + ' — ' + natal.cityName + '\n';
     text += 'Lat: ' + natal.lat + ', Lon: ' + natal.lon + '\n';
@@ -28388,15 +28638,8 @@ function openNatalInterpretationModal() {
             text += (L ? 'Casa ' : 'House ') + (i + 1) + ': ' + c.toFixed(2) + '°\n';
         });
     }
-
-    text += '\n--- ' + (L ? 'TRÁNSITOS HOY' : 'TRANSITS TODAY') + ' (' + today.toISOString().split('T')[0] + ') ---\n';
-    if (todayTransits.length > 0) {
-        todayTransits.forEach(function(tr) {
-            text += (planetNames[tr.transitPlanet] || tr.transitPlanet) + ' ' + tr.symbol + ' natal ' + (planetNames[tr.natalPlanet] || tr.natalPlanet) + ' (' + (L ? 'orbe' : 'orb') + ': ' + tr.orb + '°)\n';
-        });
-    } else {
-        text += L ? 'Sin aspectos exactos hoy.\n' : 'No exact aspects today.\n';
-    }
+    // v749ch: NO incluir aspectos natales tampoco — solo planetas/casas. Aspectos van en sección Aspectos Natales aparte.
+    // Y CRÍTICO: NO incluir "TRÁNSITOS HOY" — esto es carta natal pura.
 
     // Open in natalDetailModal with AI interpretation — unified chat format
     var modal = document.getElementById('natalDetailModal');
@@ -28413,11 +28656,17 @@ function openNatalInterpretationModal() {
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
+    // v749ch: prompt EXPLÍCITAMENTE pide solo natal — sin tránsitos
     var prompt = L
-        ? 'Interpreta mi carta natal completa y los tránsitos de hoy. Explica cómo las posiciones planetarias natales y los tránsitos actuales me afectan. Aquí están los datos:\n' + text
-        : 'Interpret my complete natal chart and today\'s transits. Explain how the natal planetary positions and current transits affect me. Here is the data:\n' + text;
+        ? 'Interpretá ESTA CARTA NATAL como un retrato psicológico/arquetípico de la persona — SIN mencionar tránsitos del día actual, SIN hablar de la fecha de hoy, SIN incluir lectura del momento presente. Solo la carta natal pura como mapa del ser:\n\n' + text
+        : 'Interpret THIS NATAL CHART as a psychological/archetypal portrait of the person — DO NOT mention current transits, DO NOT talk about today\'s date, DO NOT include present-moment reading. Only the natal chart itself as a map of being:\n\n' + text;
     var readingTitle = L ? 'Carta Natal — ' + (natal.name || natal.cityName) : 'Natal Chart — ' + (natal.name || natal.cityName);
-    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }, 100);
+    setTimeout(function() {
+        // v749ch: setear flag pure natal para que buildSystemPrompt arme contexto sin tránsitos
+        window._isPureNatalInterpretation = true;
+        try { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle); }
+        finally { setTimeout(function(){ window._isPureNatalInterpretation = false; }, 800); }
+    }, 100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -30702,28 +30951,47 @@ function interpretMonthByFortnights(year, month) {
         }).join('\n');
     }
 
-    // Carta natal context (si está guardada)
+    // Carta natal context (si está guardada) — solo se usa en modo natal/personal.
+    // v749ch: en modo relacional (sinastria/compuesta/davison) el system prompt ya inyecta el contexto relacional
+    // a través de window._isRelationsCalendarActive — no duplicamos acá.
     var natalCtx = '';
-    try {
-        var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
-        if (ns) {
-            if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
-            if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
-            if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
-        }
-    } catch(_eN) {}
+    var _relMode = (window._isRelationsCalendarActive && window._calRelMode && window._calRelMode !== 'natal') ? window._calRelMode : null;
+    if (!_relMode) {
+        try {
+            var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+            if (ns) {
+                if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+                if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+                if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+            }
+        } catch(_eN) {}
+    }
 
     function buildPrompt(q, fromDay, toDay, events) {
         var range = String(fromDay).padStart(2,'0') + '–' + String(toDay).padStart(2,'0') + ' ' + monthNamesL[month] + ' ' + year;
+        // v749ch: prefix relacional explícito en el prompt + directiva para que el AI lea sobre la relación
+        var _relPrefix = '';
+        if (_relMode) {
+            var _rmLabel = _relMode === 'sinastria' ? (L?'SINASTRÍA':'SYNASTRY')
+                          : _relMode === 'compuesta' ? (L?'CARTA COMPUESTA':'COMPOSITE CHART')
+                          : (L?'CARTA DAVISON':'DAVISON CHART');
+            _relPrefix = L
+                ? 'CONTEXTO: Este mes se interpreta sobre la ' + _rmLabel + ' de la relación (ver contexto relacional arriba). NO sobre una carta natal individual — sobre el vínculo como entidad. '
+                : 'CONTEXT: This month is interpreted on the ' + _rmLabel + ' of the relationship (see relational context above). NOT on an individual natal chart — on the bond as an entity. ';
+        }
         if (L) {
-            return 'Interpreta la ' + (q===1?'PRIMERA QUINCENA':'SEGUNDA QUINCENA') + ' (' + range + ') como un panorama astrológico integrado. '
-                 + 'Da una visión narrativa de las energías dominantes, los temas centrales que se activan, los días clave y consejos prácticos.\n\n'
+            return _relPrefix + 'Interpretá la ' + (q===1?'PRIMERA QUINCENA':'SEGUNDA QUINCENA') + ' (' + range + ') como un panorama astrológico integrado'
+                 + (_relMode?' sobre la relación':'') + '. '
+                 + 'Da una visión narrativa de las energías dominantes, los temas centrales que se activan, los días clave y consejos prácticos'
+                 + (_relMode?' para el vínculo':'') + '.\n\n'
                  + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
                  + 'EVENTOS DEL PERÍODO:\n' + (events.length ? eventsToText(events) : '(sin eventos mayores en este período — describe igual la energía general)') + '\n\n'
                  + 'Mantenelo conciso, claro y aplicable al día a día. No listes evento por evento; tejé una narrativa.';
         } else {
-            return 'Interpret the ' + (q===1?'FIRST FORTNIGHT':'SECOND FORTNIGHT') + ' (' + range + ') as an integrated astrological landscape. '
-                 + 'Give a narrative view of the dominant energies, the central themes activated, the key days and practical advice.\n\n'
+            return _relPrefix + 'Interpret the ' + (q===1?'FIRST FORTNIGHT':'SECOND FORTNIGHT') + ' (' + range + ') as an integrated astrological landscape'
+                 + (_relMode?' on the relationship':'') + '. '
+                 + 'Give a narrative view of the dominant energies, central themes, key days and practical advice'
+                 + (_relMode?' for the bond':'') + '.\n\n'
                  + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
                  + 'EVENTS OF THE PERIOD:\n' + (events.length ? eventsToText(events) : '(no major events in this period — describe general energy anyway)') + '\n\n'
                  + 'Keep it concise, clear and applicable to daily life. Don\'t list event by event; weave a narrative.';
@@ -35690,12 +35958,10 @@ function goToCurrentCycle() {
                 var el = document.querySelector(step.sel);
                 if (!el) { _showStep(idx + 1); return; }
 
-                // v631 Bug #2: Do NOT auto-switch modes during HEADER tour.
-                // Previously each step auto-triggered switchToXMode(), and the last step
-                // (#currentDayInfo) forced switchToLunarMode — so after highlighting Solar,
-                // tapping felt like it opened Lunar. Now header tour only highlights buttons
-                // without switching modes. Sub-tours (lunar/solar/gregorian) still run when
-                // the user actually enters that mode.
+                // v749ci: REVERTIDO v631 — el header tour AHORA SÍ cambia de modo al highlightear cada tab,
+                // para que el usuario vea el contenido real de cada sección mientras se explica.
+                // Después del último step (social) volvemos a Lunar y arrancamos el subtour de Lunar
+                // (manejado en _finishWalkthrough).
                 var _modeActivateMap = {
                     '#lunarModeBtn': 'switchToLunarMode',
                     '#solarModeBtn': 'switchToSolarMode',
@@ -35703,8 +35969,11 @@ function goToCurrentCycle() {
                     '#personalModeBtn': 'switchToPersonalMode',
                     '#socialModeBtn': 'switchToSocialMode'
                 };
-                if (screen !== 'header' && _modeActivateMap[step.sel] && typeof window[_modeActivateMap[step.sel]] === 'function') {
-                    window[_modeActivateMap[step.sel]]();
+                if (_modeActivateMap[step.sel] && typeof window[_modeActivateMap[step.sel]] === 'function') {
+                    try { window[_modeActivateMap[step.sel]](); } catch(_eSwitch) { console.warn('[tour] error switching mode:', _eSwitch); }
+                    // v749ci: tras el switch, el highlighted element puede haber cambiado — re-query
+                    var _freshTabEl = document.querySelector(step.sel);
+                    if (_freshTabEl) el = _freshTabEl;
                 }
 
                 // v626: Social subtab activation — switch social tab matching this step
@@ -35863,6 +36132,20 @@ function goToCurrentCycle() {
                     if (clickBlocker.parentNode) clickBlocker.remove();
                     if (tooltip.parentNode) tooltip.remove();
                 }, 350);
+                // v749ci: si terminamos el header tour, volvemos a Lunar mode y arrancamos el subtour de Lunar
+                // — esto cumple el pedido "después de social regrese a lunar y muestre el tour de lunar con sus partes".
+                if (screen === 'header') {
+                    setTimeout(function() {
+                        try {
+                            if (typeof window.switchToLunarMode === 'function') window.switchToLunarMode();
+                        } catch(_eRetLun) {}
+                        // Marcar Lunar walkthrough como no-visto para forzar que arranque (si ya estaba marcado, lo limpiamos)
+                        try { if (_wkShown['lunar']) { delete _wkShown['lunar']; _saveWk(); } } catch(_eClear) {}
+                        setTimeout(function() {
+                            try { _runWalkthrough('lunar'); } catch(_eLunRun) { console.warn('[tour] error starting lunar sub-tour:', _eLunRun); }
+                        }, 700);
+                    }, 400);
+                }
             }
 
             // Click blocker prevents all interaction — no accidental taps
@@ -41563,24 +41846,63 @@ function _getComments(communityId, postId, callback) {
 }
 
 // ── Chat System ──
+// v749ch: mejor manejo de errores — antes "Error al abrir el chat" no decía POR QUÉ.
+// Causas comunes:
+//   - _socialUser null → no estás logueado
+//   - _db null → Firestore no inicializó
+//   - otherUid inválido → el perfil destino no tiene uid de Firebase
+//   - chatRef.set() falló por reglas de seguridad o desconexión → ahora esperamos a que termine antes de callback
 function _getOrCreateChat(otherUid, callback) {
-    if (!_db || !_socialUser) return;
+    var _isEs = (typeof L === 'function') ? L() : (currentLang === 'es');
+    if (!_db) {
+        console.error('[chat] _db no inicializado');
+        alert(_isEs ? 'Sistema social no inicializado. Recargá la app.' : 'Social system not initialized. Reload the app.');
+        return;
+    }
+    if (!_socialUser || !_socialUser.uid) {
+        console.error('[chat] _socialUser no logueado');
+        alert(_isEs ? 'Necesitás iniciar sesión social para chatear. Abrí Social → Perfil para registrarte.' : 'You need to sign in to chat. Open Social → Profile to register.');
+        return;
+    }
+    if (!otherUid || typeof otherUid !== 'string') {
+        console.error('[chat] otherUid inválido:', otherUid);
+        alert(_isEs ? 'Este perfil no tiene chat habilitado (uid faltante).' : 'This profile does not have chat enabled (missing uid).');
+        return;
+    }
     var myUid = _socialUser.uid;
+    if (myUid === otherUid) {
+        alert(_isEs ? 'No podés chatear contigo mismo.' : 'You cannot chat with yourself.');
+        return;
+    }
     var chatId = myUid < otherUid ? myUid + '_' + otherUid : otherUid + '_' + myUid;
     var chatRef = _db.collection('chats').doc(chatId);
     chatRef.get().then(function(doc) {
-        if (!doc.exists) {
-            chatRef.set({
-                participants: [myUid, otherUid],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: '',
-                lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+        if (doc.exists) {
+            callback(chatId);
+            return;
         }
-        callback(chatId);
+        // v749ch: esperar a que .set() termine antes de hacer callback (antes se llamaba inmediato y a veces el chat aún no existía)
+        return chatRef.set({
+            participants: [myUid, otherUid],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessage: '',
+            lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+            callback(chatId);
+        });
     }).catch(function(e) {
-        console.error('Error creating/getting chat:', e);
-        alert(L() ? 'Error al abrir el chat. Intenta de nuevo.' : 'Error opening chat. Please try again.');
+        console.error('[chat] Error en _getOrCreateChat:', e && (e.code || ''), e && e.message, e);
+        var _msg;
+        if (e && e.code === 'permission-denied') {
+            _msg = _isEs ? 'Permisos insuficientes para abrir el chat (reglas de Firestore).' : 'Insufficient permissions to open chat (Firestore rules).';
+        } else if (e && e.code === 'unavailable') {
+            _msg = _isEs ? 'Sin conexión a Firestore. Verificá tu conexión a internet.' : 'No connection to Firestore. Check your internet.';
+        } else if (e && e.message) {
+            _msg = (_isEs ? 'Error al abrir el chat: ' : 'Error opening chat: ') + e.message;
+        } else {
+            _msg = _isEs ? 'Error al abrir el chat. Intentá de nuevo.' : 'Error opening chat. Please try again.';
+        }
+        alert(_msg);
     });
 }
 
