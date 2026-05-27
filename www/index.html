@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cl';</script>
+    <script>window.APP_VERSION = 'v749cm';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29804,27 +29804,40 @@ function showPersonalDayDetail(year, month, day) {
     let html = `
         <div style="padding:16px;">
             ${_relModeHeaderHTML}
+            <!-- v749cm: header del día UNIFICADO — fecha + chips usan el mismo tono crema neutro
+                 para no saturar la página de colores. Excepciones: cumpleaños (lila) y nombres de perfiles
+                 en sinastría (mantienen acento sutil). -->
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
                 <div style="flex:1;">
-                    <h3 style="font-family:'Cinzel',serif;font-size:1em;color:#c39bd3;margin:0 0 6px 0;">
+                    <h3 style="font-family:'Cinzel',serif;font-size:1em;color:rgba(255,235,200,0.92);margin:0 0 8px 0;letter-spacing:0.5px;">
                         ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
                     </h3>
-                    <!-- v749aj: chips con día lunar / solar / signo / día personal / días al cumple -->
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:0.7em;color:rgba(255,255,255,0.75);">
-                        ${_lunarDayNum ? `<span style="padding:2px 7px;background:rgba(126,200,255,0.12);border:1px solid rgba(126,200,255,0.3);border-radius:10px;color:#7ec8ff;">☽ ${L?'Día Lunar':'Lunar Day'} ${_lunarDayNum}</span>` : ''}
-                        ${_solarSignData ? `<span style="padding:2px 7px;background:${_solarSignData.color}1a;border:1px solid ${_solarSignData.color}50;border-radius:10px;color:${_solarSignData.color};">${_solarSignData.symbol||'☉'} ${_solarSignData.name} · ${_solarSignData.dayInSign}/${_solarSignData.totalDays}</span>` : ''}
-                        <!-- v749ak: formato día personal = X/Y donde Y son los días RESTANTES al cumple
-                             (no el total 365). Si es el día del cumple, mostrar "🎂 ¡Hoy!".
-                             v749aq: en modo sinastría, mostrar chips para AMBOS perfiles A y B. -->
+                    <!-- v749cm: chips UNIFICADOS — mismo color crema-dorado sutil para todos.
+                         El acento de color queda reservado para casos especiales (cumple, perfil B en sinastría). -->
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:0.7em;">
                         ${(function() {
-                            // Chip del perfil A (siempre)
-                            var nameA = (_relMode === 'sinastria' && _relCtx.profileA) ? (_relCtx.profileA.name || 'A') : '';
-                            var aChip = _daysToBd === 0
-                                ? `<span style="padding:2px 7px;background:rgba(179,157,219,0.18);border:1px solid rgba(179,157,219,0.4);border-radius:10px;color:#b39ddb;font-weight:700;">🎂 ${L?'¡Cumple':'Bday'} ${nameA||''} ${L?'hoy!':'today!'}</span>`
-                                : `<span style="padding:2px 7px;background:rgba(232,200,74,0.12);border:1px solid rgba(232,200,74,0.3);border-radius:10px;color:#e8c84a;">${nameA ? '👤 '+nameA+' · ' : ''}${L?'Día Pers':'Day'} ${_persDayNum}/${_daysToBd}</span>`;
+                            // v749cm: estilo único para chips informativos (color discreto, no saturado)
+                            var unifBg = 'rgba(255,235,200,0.06)';
+                            var unifBd = 'rgba(255,235,200,0.18)';
+                            var unifCol = 'rgba(255,235,200,0.78)';
+                            var chipStyle = 'padding:2px 8px;background:' + unifBg + ';border:1px solid ' + unifBd + ';border-radius:10px;color:' + unifCol + ';';
 
-                            // Chip del perfil B (SOLO en sinastría)
-                            var bChip = '';
+                            var chips = '';
+                            // Día Lunar
+                            if (_lunarDayNum) chips += '<span style="' + chipStyle + '">☽ ' + (L?'Día Lunar':'Lunar Day') + ' ' + _lunarDayNum + '</span>';
+                            // Signo Solar + día en signo
+                            if (_solarSignData) chips += '<span style="' + chipStyle + '">' + (_solarSignData.symbol||'☉') + ' ' + _solarSignData.name + ' · ' + _solarSignData.dayInSign + '/' + _solarSignData.totalDays + '</span>';
+
+                            // Chip Día Personal del perfil A
+                            var nameA = (_relMode === 'sinastria' && _relCtx.profileA) ? (_relCtx.profileA.name || 'A') : '';
+                            if (_daysToBd === 0) {
+                                // Cumpleaños mantiene acento sutil (lila) porque ES un evento especial
+                                chips += '<span style="padding:2px 8px;background:rgba(179,157,219,0.14);border:1px solid rgba(179,157,219,0.35);border-radius:10px;color:#b39ddb;font-weight:700;">🎂 ' + (L?'¡Cumple':'Bday') + (nameA?' '+nameA:'') + ' ' + (L?'hoy!':'today!') + '</span>';
+                            } else {
+                                chips += '<span style="' + chipStyle + '">' + (nameA ? '👤 '+nameA+' · ' : '👤 ') + (L?'Día Pers':'Day') + ' ' + _persDayNum + '/' + _daysToBd + '</span>';
+                            }
+
+                            // Chip del perfil B (SOLO en sinastría) — mantiene tono rosado sutil para distinguir
                             if (_relMode === 'sinastria' && _relCtx.profileB && _relCtx.profileB.date) {
                                 try {
                                     var pbParts = _relCtx.profileB.date.split('-').map(Number);
@@ -29841,12 +29854,14 @@ function showPersonalDayDetail(year, month, day) {
                                         pbDaysToBd = Math.round((pbBirthAnn - date) / 86400000);
                                     }
                                     var nameB = _relCtx.profileB.name || 'B';
-                                    bChip = pbDaysToBd === 0
-                                        ? `<span style="padding:2px 7px;background:rgba(233,30,99,0.18);border:1px solid rgba(233,30,99,0.4);border-radius:10px;color:#e91e63;font-weight:700;">🎂 ${L?'¡Cumple':'Bday'} ${nameB} ${L?'hoy!':'today!'}</span>`
-                                        : `<span style="padding:2px 7px;background:rgba(233,30,99,0.12);border:1px solid rgba(233,30,99,0.3);border-radius:10px;color:#e91e63;">👤 ${nameB} · ${L?'Día Pers':'Day'} ${pbDayNum}/${pbDaysToBd}</span>`;
+                                    if (pbDaysToBd === 0) {
+                                        chips += '<span style="padding:2px 8px;background:rgba(233,30,99,0.14);border:1px solid rgba(233,30,99,0.35);border-radius:10px;color:#e91e63;font-weight:700;">🎂 ' + (L?'¡Cumple':'Bday') + ' ' + nameB + ' ' + (L?'hoy!':'today!') + '</span>';
+                                    } else {
+                                        chips += '<span style="padding:2px 8px;background:rgba(233,30,99,0.08);border:1px solid rgba(233,30,99,0.25);border-radius:10px;color:rgba(244,143,177,0.85);">👤 ' + nameB + ' · ' + (L?'Día Pers':'Day') + ' ' + pbDayNum + '/' + pbDaysToBd + '</span>';
+                                    }
                                 } catch(e) { /* skip B chip on error */ }
                             }
-                            return aChip + bChip;
+                            return chips;
                         })()}
                     </div>
                 </div>
@@ -29858,9 +29873,10 @@ function showPersonalDayDetail(year, month, day) {
                 ☌ ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}
             </div>` : ''}
 
-            <!-- v749aj: botón "Interpretar el día" ahora ARRIBA, justo debajo de la fecha -->
-            <div style="margin-bottom:14px;text-align:center;">
-                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:10px 18px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.88em;font-weight:700;cursor:pointer;width:100%;max-width:400px;">
+            <!-- v749cm: botón "Interpretar el día completo" — ACCIÓN PRIMARIA, claramente la más prominente.
+                 Más grande, gradient más vivido, font más grande, sombra dorada, animación sutil. -->
+            <div style="margin-bottom:16px;text-align:center;">
+                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:14px 22px;background:linear-gradient(135deg,rgba(201,168,64,0.55),rgba(255,149,0,0.42));border:1.5px solid rgba(255,213,79,0.7);border-radius:14px;color:#fff;font-size:1.02em;font-weight:700;cursor:pointer;width:100%;max-width:420px;box-shadow:0 4px 16px rgba(201,168,64,0.30),0 0 24px rgba(255,213,79,0.15);letter-spacing:0.5px;font-family:'Cinzel',serif;">
                     ✨ ${L ? 'Interpretar el día completo' : 'Interpret full day'}
                 </button>
             </div>
@@ -45441,7 +45457,11 @@ window._ttsHighlightChunk = function(idx) {
         var cur = document.getElementById(p.spanIds[idx]);
         if (cur) {
             cur.classList.add('tts-active');
-            // Scroll the nearest scroll container so the active chunk is always visible
+            // v749cm: Scroll para que el chunk activo quede SIEMPRE arriba del ttsPlayerBar.
+            // Antes: el player bar (position:fixed) tapaba la parte inferior del scroll container,
+            // entonces "visible" en términos de scroll era engañoso — el chunk podía estar
+            // detrás del player. Ahora calculamos un "safe bottom" = top del player bar y
+            // tratamos cualquier chunk que cruce esa línea como NO VISIBLE.
             try {
                 var scrollEl = cur.parentElement;
                 while (scrollEl && scrollEl !== document.body) {
@@ -45452,12 +45472,50 @@ window._ttsHighlightChunk = function(idx) {
                 if (scrollEl && scrollEl !== document.body) {
                     var curRect = cur.getBoundingClientRect();
                     var contRect = scrollEl.getBoundingClientRect();
-                    var topOk = curRect.top >= contRect.top + 4;
-                    var botOk = curRect.bottom <= contRect.bottom - 4;
+
+                    // v749cm: detectar la barra de TTS para no esconder el texto detrás
+                    var safeBottom = contRect.bottom;
+                    var _barHeight = 0;
+                    try {
+                        var ttsBar = document.getElementById('ttsPlayerBar');
+                        if (ttsBar && ttsBar.style.display !== 'none') {
+                            var barRect = ttsBar.getBoundingClientRect();
+                            _barHeight = barRect.height;
+                            // El player bar es fixed bottom — si overlaps con el scroll container, usar su top como bottom seguro
+                            if (barRect.top < contRect.bottom && barRect.bottom > contRect.top) {
+                                safeBottom = Math.min(safeBottom, barRect.top);
+                            }
+                        }
+                    } catch(_eBar) {}
+
+                    // v749cm: asegurar que se puede scrollear lo suficiente para que el ÚLTIMO chunk
+                    // tampoco quede detrás del player. Inyectamos padding-bottom dinámico (= alto del player + 20)
+                    // marcando el container con data-tts-padded para revertir después.
+                    if (_barHeight > 0) {
+                        var neededPad = _barHeight + 20;
+                        var curPad = parseInt(scrollEl.style.paddingBottom || '0', 10) || 0;
+                        if (curPad < neededPad) {
+                            scrollEl.style.paddingBottom = neededPad + 'px';
+                            scrollEl.setAttribute('data-tts-padded', '1');
+                        }
+                    }
+
+                    // Margen extra de aire arriba/abajo (8px) + margen para el player (16px)
+                    var TOP_PAD = 8;
+                    var BOTTOM_PAD = 16;
+                    var topOk = curRect.top >= contRect.top + TOP_PAD;
+                    var botOk = curRect.bottom <= safeBottom - BOTTOM_PAD;
                     if (!topOk || !botOk) {
-                        // Bring span into view — position it ~25% from top so user can read ahead
+                        // v749cm: posicionar el chunk de forma que ENTERO esté arriba del player,
+                        // preferentemente con ~30% del espacio útil arriba del chunk para que
+                        // el usuario pueda leer la oración que viene también.
+                        var usableHeight = safeBottom - contRect.top;
                         var relTop = curRect.top - contRect.top + scrollEl.scrollTop;
-                        scrollEl.scrollTop = Math.max(0, relTop - scrollEl.clientHeight * 0.25);
+                        var desiredOffsetFromContTop = usableHeight * 0.30;
+                        var newScrollTop = relTop - desiredOffsetFromContTop;
+                        // Clamp
+                        newScrollTop = Math.max(0, Math.min(newScrollTop, scrollEl.scrollHeight - scrollEl.clientHeight));
+                        scrollEl.scrollTop = newScrollTop;
                     }
                 }
             } catch(se) {}
@@ -45473,6 +45531,13 @@ window._ttsStop = function() {
     window.speechSynthesis.cancel();
     window._ttsRestoreHTML();
     window._ttsUpdatePlayerUI();
+    // v749cm: revertir padding-bottom inyectado por _ttsHighlightChunk
+    try {
+        document.querySelectorAll('[data-tts-padded]').forEach(function(el) {
+            el.style.paddingBottom = '';
+            el.removeAttribute('data-tts-padded');
+        });
+    } catch(_ePad) {}
 };
 
 window._ttsPause = function() {
