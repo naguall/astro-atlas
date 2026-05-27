@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cn';</script>
+    <script>window.APP_VERSION = 'v749co';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28829,7 +28829,25 @@ function renderPersonalCalendar(opts) {
     //   - Davison: el "cumpleaños" es la fecha del midpoint, distinta a la del perfil
     //   - Sinastría: deberían mostrarse para ambos perfiles (TODO en futura versión)
     // En su lugar mostramos un mensaje explicativo.
+    // v749co: el calendario personal/relacional muestra por SIGNO solar (no por mes gregoriano),
+    // así que el botón ahora dice "Interpretar [Signo] [Año]" y llama a interpretSolarSign(currentSign)
+    // que interpreta el rango DEL SIGNO (ej. Géminis 21/5 — 20/6) no el mes May.
+    // Además el botón se posiciona ANTES del mensaje/leyenda (debajo del calendario, arriba de la leyenda).
+    var _signLbl = (currentSign && currentSign.name ? currentSign.name : '') + ' ' + year;
+    var _signCallExpr;
+    try {
+        // Pasar currentSign como JSON inline (escape quotes para onclick attribute)
+        var _signJsonStr = JSON.stringify({ name: currentSign.name, start: currentSign.start, end: currentSign.end }).replace(/"/g, '&quot;');
+        _signCallExpr = 'interpretSolarSign(JSON.parse(this.getAttribute(\'data-sign\')))';
+    } catch(_eSig) { _signCallExpr = ''; }
+
     if (_isRelMode) {
+        // v749co: BOTÓN primero (debajo del calendario), DESPUÉS el mensaje (la "leyenda").
+        calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:0;">'
+            + '<div data-sign="' + _signJsonStr + '" onclick="' + _signCallExpr + '" style="text-align:center;color:#c39bd3;cursor:pointer;padding:12px 14px;background:linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06));border:1px solid rgba(155,89,182,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.22),rgba(102,126,234,0.12))\'" onmouseout="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06))\'">'
+            + '✦ ' + (L ? 'Interpretar ' : 'Interpret ') + _signLbl + (L ? ' (relación)' : ' (relationship)')
+            + '</div></div>';
+        // Mensaje/leyenda DESPUÉS del botón
         calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:12px;text-align:center;">'
             + '<div style="font-size:0.8em;color:rgba(255,255,255,0.55);line-height:1.5;">'
             + (L ? '📊 Las celdas del calendario muestran los tránsitos del cielo del día sobre la carta '
@@ -28839,18 +28857,11 @@ function renderPersonalCalendar(opts) {
               : (L?'Davison de la relación':'Davison chart of the relationship'))
             + '. ' + (L ? 'Hacé click en cualquier día para ver el detalle.' : 'Click any day to see details.') + '</div>'
             + '</div>';
-        // v749ch: Botón "Interpretar el mes en 2 quincenas" para calendario relacional
-        var _monthLblRel = monthNames[month] + ' ' + year;
-        calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:0;">'
-            + '<div onclick="interpretMonthByFortnights(' + year + ',' + month + ')" style="text-align:center;color:#c39bd3;cursor:pointer;padding:12px 14px;background:linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06));border:1px solid rgba(155,89,182,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.22),rgba(102,126,234,0.12))\'" onmouseout="this.style.background=\'linear-gradient(135deg,rgba(155,89,182,0.12),rgba(102,126,234,0.06))\'">'
-            + '✦ ' + (L ? 'Interpretar ' + _monthLblRel + ' (relación, en 2 quincenas)' : 'Interpret ' + _monthLblRel + ' (relationship, in 2 fortnights)')
-            + '</div></div>';
     } else {
-        // v749ch: Botón "Interpretar el mes en 2 quincenas" también en modo personal natal
-        var _monthLblPers = monthNames[month] + ' ' + year;
+        // v749co: BOTÓN primero, DESPUÉS yearEventsHTML (la "lista de ciclos" actúa como leyenda/lista).
         calendarHTML += '<div class="personal-natal-card" style="margin-top:8px;padding:0;">'
-            + '<div onclick="interpretMonthByFortnights(' + year + ',' + month + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:12px 14px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">'
-            + '✦ ' + (L ? 'Interpretar ' + _monthLblPers + ' (en 2 quincenas)' : 'Interpret ' + _monthLblPers + ' (in 2 fortnights)')
+            + '<div data-sign="' + _signJsonStr + '" onclick="' + _signCallExpr + '" style="text-align:center;color:#c9a840;cursor:pointer;padding:12px 14px;background:rgba(201,168,64,0.10);border:1px solid rgba(201,168,64,0.35);border-radius:10px;font-size:0.88em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">'
+            + '✦ ' + (L ? 'Interpretar ' : 'Interpret ') + _signLbl
             + '</div></div>';
         calendarHTML += yearEventsHTML;
     }
@@ -29826,15 +29837,15 @@ function showPersonalDayDetail(year, month, day) {
             ${_relModeHeaderHTML}
             <!-- v749cm: header del día UNIFICADO — fecha + chips usan el mismo tono crema neutro
                  para no saturar la página de colores. Excepciones: cumpleaños (lila) y nombres de perfiles
-                 en sinastría (mantienen acento sutil). -->
+                 en sinastría (mantienen acento sutil).
+                 v749co: chips en COLUMNA (lista vertical) en vez de fila, fecha en una sola línea (no wrap). -->
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                <div style="flex:1;">
-                    <h3 style="font-family:'Cinzel',serif;font-size:1em;color:rgba(255,235,200,0.92);margin:0 0 8px 0;letter-spacing:0.5px;">
+                <div style="flex:1;min-width:0;">
+                    <h3 style="font-family:'Cinzel',serif;font-size:0.92em;color:rgba(255,235,200,0.92);margin:0 0 8px 0;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                         ${isBirthday ? '🎂 ' : '🔮 '}${dateStr}
                     </h3>
-                    <!-- v749cm: chips UNIFICADOS — mismo color crema-dorado sutil para todos.
-                         El acento de color queda reservado para casos especiales (cumple, perfil B en sinastría). -->
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:0.7em;">
+                    <!-- v749co: chips en COLUMNA vertical (lista) para que sea más legible. -->
+                    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:0.7em;">
                         ${(function() {
                             // v749cm: estilo único para chips informativos (color discreto, no saturado)
                             var unifBg = 'rgba(255,235,200,0.06)';
@@ -29893,10 +29904,9 @@ function showPersonalDayDetail(year, month, day) {
                 ☌ ${L?'DOBLE ACTIVACIÓN':'DOUBLE ACTIVATION'} — ${_doubleActPlanets.map(p => (planetNames[p]||p)).join(', ')}
             </div>` : ''}
 
-            <!-- v749cm: botón "Interpretar el día completo" — ACCIÓN PRIMARIA, claramente la más prominente.
-                 Más grande, gradient más vivido, font más grande, sombra dorada, animación sutil. -->
-            <div style="margin-bottom:16px;text-align:center;">
-                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:14px 22px;background:linear-gradient(135deg,rgba(201,168,64,0.55),rgba(255,149,0,0.42));border:1.5px solid rgba(255,213,79,0.7);border-radius:14px;color:#fff;font-size:1.02em;font-weight:700;cursor:pointer;width:100%;max-width:420px;box-shadow:0 4px 16px rgba(201,168,64,0.30),0 0 24px rgba(255,213,79,0.15);letter-spacing:0.5px;font-family:'Cinzel',serif;">
+            <!-- v749co: botón "Interpretar el día completo" — vuelto a tamaño previo (más compacto). -->
+            <div style="margin-bottom:14px;text-align:center;">
+                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:10px 18px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.88em;font-weight:700;cursor:pointer;width:100%;max-width:400px;">
                     ✨ ${L ? 'Interpretar el día completo' : 'Interpret full day'}
                 </button>
             </div>
@@ -31161,10 +31171,18 @@ function generateGregorianMonth() {
     // + los hardcoded), lunas nuevas/llenas/cuartos, eclipses, equinoccios/solsticios, stelliums.
     var astroEvents = computeMonthAstroEvents(currentGregorianYear, currentGregorianMonth);
 
-    html += '<div style="margin-top:14px;padding:12px 14px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.22);border-radius:10px;">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
-    html += '<div style="font-size:0.9em;color:#c9a840;font-weight:700;letter-spacing:1px;text-transform:uppercase;">✦ ' + (currentLang === 'es' ? 'Eventos astrológicos de ' : 'Astrological events of ') + monthNamesG[currentGregorianMonth] + '</div>';
-    html += '<div style="font-size:0.75em;color:rgba(201,168,64,0.7);">' + astroEvents.length + '</div>';
+    // v749co: BOTÓN "Interpretar [mes]" — movido ARRIBA de los eventos (entre calendar y la lista).
+    var _monthLbl = monthNamesG[currentGregorianMonth] + ' ' + currentGregorianYear;
+    html += '<div style="margin-top:14px;">';
+    html += '<div onclick="interpretMonthByFortnights(' + currentGregorianYear + ',' + currentGregorianMonth + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:10px 14px;background:rgba(201,168,64,0.10);border-radius:8px;border:1px solid rgba(201,168,64,0.35);font-size:0.85em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">';
+    html += '✦ ' + (currentLang === 'es' ? 'Interpretar ' + _monthLbl : 'Interpret ' + _monthLbl);
+    html += '</div></div>';
+
+    // v749co: caja de eventos — titulo más corto que entre en una sola fila.
+    html += '<div style="margin-top:12px;padding:12px 14px;background:rgba(20,20,40,0.5);border:1px solid rgba(201,168,64,0.22);border-radius:10px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;white-space:nowrap;overflow:hidden;">';
+    html += '<div style="font-size:0.82em;color:#c9a840;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;">✦ ' + (currentLang === 'es' ? 'Eventos ' : 'Events ') + monthNamesG[currentGregorianMonth] + ' ' + currentGregorianYear + '</div>';
+    html += '<div style="font-size:0.75em;color:rgba(201,168,64,0.7);flex-shrink:0;margin-left:8px;">' + astroEvents.length + '</div>';
     html += '</div>';
 
     if (astroEvents.length > 0) {
@@ -31179,12 +31197,6 @@ function generateGregorianMonth() {
             html += '</div>';
         });
         html += '</div>';
-        // v749f: Botón "Interpretar todo el mes" dividido en 2 quincenas
-        var _monthLbl = monthNamesG[currentGregorianMonth] + ' ' + currentGregorianYear;
-        html += '<div style="margin-top:10px;border-top:1px solid rgba(201,168,64,0.22);padding-top:10px;">';
-        html += '<div onclick="interpretMonthByFortnights(' + currentGregorianYear + ',' + currentGregorianMonth + ')" style="text-align:center;color:#c9a840;cursor:pointer;padding:8px 12px;background:rgba(201,168,64,0.10);border-radius:6px;border:1px solid rgba(201,168,64,0.35);font-size:0.85em;font-weight:600;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(201,168,64,0.18)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.10)\'">';
-        html += '✦ ' + (currentLang === 'es' ? 'Interpretar ' + _monthLbl : 'Interpret ' + _monthLbl);
-        html += '</div></div>';
     } else {
         html += '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-style:italic;font-size:0.85em;">' + (currentLang === 'es' ? 'Sin eventos astrológicos este mes' : 'No astrological events this month') + '</div>';
     }
@@ -31513,27 +31525,46 @@ function interpretSolarSign(signObj) {
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
+    // v749co: detectar si estamos en calendario relacional (sinastria/compuesta/davison)
+    // para que la interpretación hable de LA RELACIÓN, no de la carta natal individual.
+    var _relSolMode = (window._isRelationsCalendarActive && window._calRelMode && window._calRelMode !== 'natal') ? window._calRelMode : null;
     var natalCtx = '';
-    try {
-        var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
-        if (ns) {
-            if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
-            if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
-            if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
-        }
-    } catch(e) {}
+    if (!_relSolMode) {
+        try {
+            var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+            if (ns) {
+                if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+                if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+                if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+            }
+        } catch(e) {}
+    }
+
+    var _relPrefixSol = '';
+    if (_relSolMode) {
+        var _relLblSol = _relSolMode === 'sinastria' ? (L?'SINASTRÍA':'SYNASTRY')
+                       : _relSolMode === 'compuesta' ? (L?'CARTA COMPUESTA':'COMPOSITE CHART')
+                       : (L?'CARTA DAVISON':'DAVISON CHART');
+        _relPrefixSol = L
+            ? 'CONTEXTO: Este período del signo ' + signName + ' se interpreta sobre la ' + _relLblSol + ' de la relación. NO sobre una carta natal individual — sobre el vínculo como entidad. '
+            : 'CONTEXT: This ' + signName + ' sign period is interpreted on the ' + _relLblSol + ' of the relationship. NOT on an individual natal chart — on the bond as an entity. ';
+    }
 
     var prompt = L
-        ? 'Interpretá el mes solar de ' + signName + ' (' + fmt(signStart) + ' a ' + fmt(signEnd) + ') como una narrativa integrada. '
-            + 'Describí los temas dominantes del signo, qué áreas se activan y consejos para fluir con la energía.\n\n'
+        ? _relPrefixSol + 'Interpretá el mes solar de ' + signName + ' (' + fmt(signStart) + ' a ' + fmt(signEnd) + ') como una narrativa integrada'
+            + (_relSolMode ? ' sobre la relación' : '') + '. '
+            + 'Describí los temas dominantes del signo, qué áreas se activan y consejos para fluir con la energía'
+            + (_relSolMode ? ' en el vínculo' : '') + '.\n\n'
             + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
             + 'EVENTOS DEL MES:\n' + (allEvents.length ? allEvents.join('\n') : '(sin eventos mayores)')
-        : 'Interpret the solar month of ' + signName + ' (' + fmt(signStart) + ' to ' + fmt(signEnd) + ') as an integrated narrative. '
-            + 'Describe the dominant themes of the sign, what areas activate and advice to flow with the energy.\n\n'
+        : _relPrefixSol + 'Interpret the solar month of ' + signName + ' (' + fmt(signStart) + ' to ' + fmt(signEnd) + ') as an integrated narrative'
+            + (_relSolMode ? ' about the relationship' : '') + '. '
+            + 'Describe the dominant themes of the sign, what areas activate and advice to flow with the energy'
+            + (_relSolMode ? ' in the bond' : '') + '.\n\n'
             + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
             + 'MONTH EVENTS:\n' + (allEvents.length ? allEvents.join('\n') : '(no major events)');
 
-    var readingTitle = (L?'Mes solar ':'Solar month ') + signName;
+    var readingTitle = (L?'Mes solar ':'Solar month ') + signName + (_relSolMode ? (L?' (relación)':' (relationship)') : '');
     setTimeout(function() {
         if (typeof fetchAIInterpretation === 'function') fetchAIInterpretation(prompt, 'aiSolarSignInterpDiv', readingTitle);
     }, 100);
