@@ -26926,6 +26926,9 @@ window._openChartZoom = function(stateKey) {
     modal.style.display = 'flex';
 
     // v749ct: pinch-zoom manual + drag pan + botones (fallback robusto a user-scalable=no)
+    // BUG FIX: el handler de "double-tap reset" anterior contaba los DOS dedos del pinch (al soltarse
+    // por separado) como un doble-tap y reseteaba a 1×. Ahora trackeamos si la última gesture fue
+    // un pinch o un drag y SOLO consideramos tap real si fue 1 dedo sin movimiento.
     try {
         var inner = document.getElementById('chartZoomInner');
         var content = document.getElementById('chartZoomContent');
@@ -26936,23 +26939,34 @@ window._openChartZoom = function(stateKey) {
         var pinchStartDist = 0, pinchStartScale = 1;
         var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
         var isPinching = false, isDragging = false;
+        var wasPinching = false; // se queda en true hasta que TODOS los dedos se levanten
+        var moved = false; // si el dedo se movió, no es un tap
+        var touchStartTime = 0;
+        var tapStartX = 0, tapStartY = 0;
         function apply() {
-            inner.style.transform = 'scale(' + scale + ') translate(' + (tx/scale) + 'px,' + (ty/scale) + 'px)';
+            // v749ct: usar translate3d para forzar GPU + transform-origin top-left para que el zoom no "salte" al centro
+            inner.style.transform = 'translate3d(' + tx + 'px,' + ty + 'px,0) scale(' + scale + ')';
             if (resetBtn) resetBtn.textContent = scale.toFixed(scale < 1 ? 2 : 1) + '×';
         }
         function clamp(s) { return Math.min(5, Math.max(0.3, s)); }
         function dist(a, b) { var dx = a.clientX - b.clientX, dy = a.clientY - b.clientY; return Math.sqrt(dx*dx + dy*dy); }
         content.addEventListener('touchstart', function(e) {
+            touchStartTime = Date.now();
             if (e.touches.length === 2) {
-                isPinching = true; isDragging = false;
+                isPinching = true; isDragging = false; wasPinching = true; moved = true;
                 pinchStartDist = dist(e.touches[0], e.touches[1]);
                 pinchStartScale = scale;
                 e.preventDefault();
-            } else if (e.touches.length === 1 && scale > 1.05) {
-                isDragging = true; isPinching = false;
-                dragStartX = e.touches[0].clientX;
-                dragStartY = e.touches[0].clientY;
-                dragStartTx = tx; dragStartTy = ty;
+            } else if (e.touches.length === 1) {
+                tapStartX = e.touches[0].clientX;
+                tapStartY = e.touches[0].clientY;
+                moved = false;
+                if (scale > 1.05) {
+                    isDragging = true; isPinching = false;
+                    dragStartX = e.touches[0].clientX;
+                    dragStartY = e.touches[0].clientY;
+                    dragStartTx = tx; dragStartTy = ty;
+                }
             }
         }, { passive: false });
         content.addEventListener('touchmove', function(e) {
@@ -26966,21 +26980,41 @@ window._openChartZoom = function(stateKey) {
             } else if (isDragging && e.touches.length === 1) {
                 tx = dragStartTx + (e.touches[0].clientX - dragStartX);
                 ty = dragStartTy + (e.touches[0].clientY - dragStartY);
+                moved = true;
                 apply();
                 e.preventDefault();
+            } else if (e.touches.length === 1) {
+                // sin drag activo pero hay movimiento → marcar para no tratar como tap
+                var dx = Math.abs(e.touches[0].clientX - tapStartX);
+                var dy = Math.abs(e.touches[0].clientY - tapStartY);
+                if (dx > 8 || dy > 8) moved = true;
             }
         }, { passive: false });
-        content.addEventListener('touchend', function(e) {
-            if (e.touches.length === 0) { isPinching = false; isDragging = false; }
-        });
-        // double-tap to reset
+        // v749ct: double-tap reset CORREGIDO — solo cuenta como tap si:
+        //   (a) NO fue parte de un pinch (wasPinching debe ser false)
+        //   (b) El dedo no se movió significativamente
+        //   (c) La duración fue corta (< 250ms)
+        //   (d) Todos los dedos están levantados (e.touches.length === 0)
         var lastTap = 0;
         content.addEventListener('touchend', function(e) {
-            var now = Date.now();
-            if (now - lastTap < 280 && e.touches.length === 0) {
-                scale = 1; tx = 0; ty = 0; apply();
+            // Reset flags solo cuando TODOS los dedos se levantaron
+            if (e.touches.length === 0) {
+                isPinching = false; isDragging = false;
+                var dur = Date.now() - touchStartTime;
+                var isRealTap = !wasPinching && !moved && dur < 250;
+                if (isRealTap) {
+                    var now = Date.now();
+                    if (now - lastTap < 280) {
+                        // doble-tap real → reset
+                        scale = 1; tx = 0; ty = 0; apply();
+                        lastTap = 0;
+                    } else {
+                        lastTap = now;
+                    }
+                }
+                wasPinching = false;
+                moved = false;
             }
-            lastTap = now;
         });
         if (inBtn) inBtn.onclick = function() { scale = clamp(scale * 1.25); apply(); };
         if (outBtn) outBtn.onclick = function() { scale = clamp(scale / 1.25); apply(); };
@@ -30350,7 +30384,8 @@ function interpretCalendarDay(year, month, day) {
     // Si el usuario reporta "sigue sin funcionar", el toast debería aparecer aunque falle adentro.
     console.log('[interpretCalendarDay] CALLED — year/month/day:', year, month, day);
     try {
-        if (typeof window.showToast === 'function') window.showToast('✨ Cargando interpretación del día…', null, 1500);
+        // v749ct: toast dorado (#c9a840) para combinar con la paleta de la app — no verde
+        if (typeof window.showToast === 'function') window.showToast('✨ Cargando interpretación del día…', 'rgba(201,168,64,0.96)', 1500);
     } catch(_eToast) {}
     var L = currentLang === 'es';
     var date = new Date(year, month, day);
@@ -30521,76 +30556,74 @@ function interpretCalendarDay(year, month, day) {
     var prompt;
     if (L) {
         if (_ctx.mode === 'sinastria') {
+            // v749ct: prompt simplificado — antes había una serie de "reglas estrictas" sobre doble activación,
+            // asimetría, "no inventes simetrías", etc. que se metían como aclaraciones explícitas en el output
+            // del AI (ej. "este tránsito afecta a A pero no a B", "no hay aspectos simétricos"). Esas reglas
+            // se agregaron cuando el bug de cache (v749bx) hacía que se leyera la misma carta 2 veces —
+            // YA está arreglado. Ahora pedimos al AI que interprete naturalmente sin meta-comentarios.
             prompt = _relPrefix
-                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — NO es una lectura de la sinastría natal en general. '
-                + 'El SUJETO de esta interpretación son los TRÁNSITOS PLANETARIOS del día y cómo afectan al vínculo entre ' + _nameA + ' y ' + _nameB + '. '
-                + 'La sinastría natal (aspectos cruzados, overlays de casas, puntaje) que aparece en tu contexto es BACKGROUND/MARCO de referencia — NO la repitas como si fuera la lectura del día.\n\n'
+                + 'INTERPRETACIÓN DEL DÍA ' + dateStr + ' para el vínculo entre ' + _nameA + ' y ' + _nameB + '. '
+                + 'Los tránsitos planetarios listados a continuación son los datos REALES del día — usalos como única fuente, no inventes aspectos adicionales.\n\n'
                 + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + _nameA + ': ' + (transitDesc || 'ninguno significativo') + '\n'
                 + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + _nameB + ': ' + transitsBDesc + '\n' : '')
-                + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre el vínculo): ' + _dayEventsDesc + '\n' : '')
-                + '\n📌 INSTRUCCIONES CRÍTICAS:\n'
-                + '1. Para cada tránsito importante listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién (' + _nameA + ' o ' + _nameB + '), y qué activa esa combinación específica.\n'
-                + '2. ⚠️ REGLA ESTRICTA SOBRE "DOBLES ACTIVACIONES": Solo decir "para ambos" o "doble activación" cuando el MISMO tránsito (mismo planeta, mismo aspecto) aparezca EXPLÍCITAMENTE en AMBAS listas (la de ' + _nameA + ' Y la de ' + _nameB + '). Si lo decís, DEBÉS citar la posición natal de CADA UNO con planeta + signo + grado (ej: "Quirón en Aries 28° de ' + _nameA + ' Y Quirón en Géminis 7° de ' + _nameB + ' — ambos reciben la conjunción de tránsito"). Si los planetas natales están en signos diferentes o muy distantes, NO es una doble activación real — interpretá cada uno por separado.\n'
-                + '3. Si un tránsito SOLO aparece en la lista de uno de los dos, decilo claramente: "este tránsito afecta a ' + _nameA + ' pero no a ' + _nameB + '" — NO inventes simetría que no esté en los datos.\n'
-                + '4. Dale peso EQUILIBRADO a ' + _nameA + ' y ' + _nameB + ' — no centres todo en una sola.\n'
-                + '5. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
-                + '6. Estructura: a) Tránsitos clave del día y a quién afectan (especifica nombre), b) Dobles activaciones REALES con posiciones natales citadas, c) Tránsitos asimétricos (a una sola carta), d) Manifestación en la dinámica relacional HOY, e) Consejos prácticos para ESTE DÍA, f) Advertencias.\n'
-                + '7. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.\n'
-                + '8. PROHIBIDO usar lenguaje vago tipo "para ambos" sin citar las posiciones exactas. Si no podés citar las dos posiciones natales con signo y grado, NO digas que es doble activación.\n'
-                + '9. ⚠️ INVIOLABILIDAD DE LA LISTA: USÁ ÚNICAMENTE los tránsitos listados arriba. Cada tránsito aparece con su grado natal y orbe. NO inventes aspectos adicionales (a antípodas, ángulos opuestos, etc.). Si un aspecto NO está en una lista, NO existe para esa persona. Una oposición a ASC implica conjunción al DESC — pero NO es "conjunción al ASC" — son aspectos distintos. Confiá ÚNICAMENTE en la lista textual.';
+                + (_dayEventsDesc ? '\nEventos generales del día (contexto cósmico): ' + _dayEventsDesc + '\n' : '')
+                + '\nINSTRUCCIONES:\n'
+                + '- Interpretá los tránsitos importantes y cómo se manifiestan en la dinámica del vínculo HOY.\n'
+                + '- Conectá con la sinastría natal SOLO cuando aporte algo concreto (ej: "este tránsito reactiva la cuadratura Luna-Venus de la sinastría").\n'
+                + '- Si NO hay tránsitos significativos, decí simplemente que el día está tranquilo para el vínculo y dejalo ahí. No expliqués qué falta ni qué no aparece.\n'
+                + '- Hablá con naturalidad. No hagas aclaraciones meta del tipo "no hay aspectos simétricos", "este tránsito afecta solo a X", "no hay doble activación", "las cartas no reflejan lo mismo". Si no aplica algo, simplemente no lo menciones.\n'
+                + '- Estructura sugerida: tránsitos del día → manifestación en el vínculo → consejos prácticos para HOY → advertencias si las hay.\n'
+                + '- USÁ ÚNICAMENTE los tránsitos listados (cada uno trae grado y orbe). NO inventes aspectos adicionales. Una oposición a ASC NO implica conjunción al ASC.';
         } else {
             // compuesta / davison: una sola "carta" relacional
             // v749by: reforzar que es interpretación DE LA RELACIÓN — no mencionar perfiles individuales
             var _modoCarta = _ctx.mode === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart') : (L?'Carta Davison':'Davison Chart');
+            // v749ct: prompt simplificado — sin la "REGLA DE EQUILIBRIO" que generaba aclaraciones forzadas.
             prompt = _relPrefix
-                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — Esta es la ' + _modoCarta + ' de ' + _nameA + ' + ' + _nameB + '. '
-                + 'El SUJETO es LA RELACIÓN como entidad propia (midpoints planetarios). NO es la carta de ' + _nameA + ' ni la de ' + _nameB + ' individualmente.\n\n'
+                + 'INTERPRETACIÓN DEL DÍA ' + dateStr + ' sobre la ' + _modoCarta + ' de ' + _nameA + ' + ' + _nameB + ' (la relación como entidad propia, midpoints).\n\n'
                 + 'TRÁNSITOS DEL DÍA sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo') + '\n'
-                + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre la relación): ' + _dayEventsDesc + '\n' : '')
-                + '\n📌 INSTRUCCIONES:\n'
-                + '1. COMENZÁ el texto con: "Esta es la interpretación de la ' + _modoCarta.toLowerCase() + ' de ' + _nameA + ' + ' + _nameB + ' para [fecha]."\n'
-                + '2. Hablá de "LA RELACIÓN", "el vínculo", "el sistema relacional", "esta unión" — NO uses "vos"/"tu" ni te dirijas a una persona individual.\n'
-                + '3. ⚠️ REGLA DE EQUILIBRIO: NO menciones a ' + _nameA + ' solo, ni a ' + _nameB + ' solo. Si por algún tránsito específico tenés que mencionar a alguno individualmente para contextualizar la dinámica, mencioná SIEMPRE A AMBOS POR EQUILIBRIO. Nunca asimetría.\n'
-                + '4. Interpretá cada tránsito importante y cómo se manifiesta en el vínculo (no en una persona).\n'
-                + '5. Estructura: a) Apertura con identificación clara del tipo de carta, b) Tránsitos clave del día, c) Energía general del día para la relación, d) Consejos prácticos para el vínculo HOY, e) Advertencias.\n'
-                + '6. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para esta relación" — NO repitas la carta relacional natal.\n'
-                + '7. ⚠️ INVIOLABILIDAD DE LA LISTA: USÁ ÚNICAMENTE los tránsitos listados (cada uno trae grado natal y orbe). NO inventes aspectos adicionales. Una oposición a ASC NO implica conjunción a ASC simultánea — es solo UN aspecto. Confiá ÚNICAMENTE en la lista.';
+                + (_dayEventsDesc ? '\nEventos generales del día (contexto cósmico): ' + _dayEventsDesc + '\n' : '')
+                + '\nINSTRUCCIONES:\n'
+                + '- Comenzá con: "Esta es la interpretación de la ' + _modoCarta.toLowerCase() + ' de ' + _nameA + ' + ' + _nameB + ' para [fecha]."\n'
+                + '- Hablá de "la relación", "el vínculo", "el sistema relacional" — no te dirijas a una persona individual.\n'
+                + '- Interpretá cada tránsito importante y cómo se manifiesta en el vínculo HOY.\n'
+                + '- Si NO hay tránsitos significativos, decí simplemente que el día está tranquilo para la relación y dejalo ahí. No expliqués qué falta.\n'
+                + '- Hablá con naturalidad. No hagas aclaraciones meta del tipo "no hay simetría", "esto no afecta de igual manera", etc.\n'
+                + '- Estructura sugerida: tránsitos clave → energía general para el vínculo → consejos prácticos para HOY → advertencias si las hay.\n'
+                + '- USÁ ÚNICAMENTE los tránsitos listados (cada uno con grado y orbe). NO inventes aspectos adicionales.';
         }
     } else {
         if (_ctx.mode === 'sinastria') {
+            // v749ct: simplified — same reasoning as the Spanish version above.
             prompt = _relPrefix
-                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general natal synastry reading. '
-                + 'The SUBJECT is TODAY\'S PLANETARY TRANSITS and how they affect the bond between ' + _nameA + ' and ' + _nameB + '. '
-                + 'The natal synastry (cross aspects, house overlays, score) in your context is BACKGROUND — do NOT repeat it as if it were today\'s reading.\n\n'
+                + 'INTERPRETATION OF THE DAY ' + dateStr + ' for the bond between ' + _nameA + ' and ' + _nameB + '. '
+                + 'The transits listed below are the REAL data for the day — use only those, do not invent additional aspects.\n\n'
                 + 'TODAY\'S TRANSITS on ' + _nameA + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
                 + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + _nameB + '\'s natal chart: ' + transitsBDesc + '\n' : '')
-                + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the bond): ' + _dayEventsDesc + '\n' : '')
-                + '\n📌 CRITICAL INSTRUCTIONS:\n'
-                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom (' + _nameA + ' or ' + _nameB + '), and what does that specific combination activate.\n'
-                + '2. ⚠️ STRICT RULE ON "DOUBLE ACTIVATIONS": Only say "for both" or "double activation" when the SAME transit (same planet, same aspect) appears EXPLICITLY in BOTH lists (' + _nameA + '\'s AND ' + _nameB + '\'s). When you do, you MUST cite each natal position with planet + sign + degree. If natal planets are in different signs or far apart, it is NOT a real double activation — interpret each separately.\n'
-                + '3. If a transit only appears in one list, say so clearly: "this transit affects ' + _nameA + ' but not ' + _nameB + '" — do NOT invent symmetries not in the data.\n'
-                + '4. Give BALANCED weight to both — do not focus on just one.\n'
-                + '5. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
-                + '6. Structure: a) Key transits and whom they affect (specify name), b) REAL double activations with both natal positions cited, c) Asymmetric transits (only one chart), d) Today\'s relational manifestation, e) Practical advice for THIS DAY, f) Warnings.\n'
-                + '7. If NO significant transits, say "today is a quiet day energetically for the bond" — do NOT invent a natal reading to fill space.\n'
-                + '8. PROHIBITED: vague language like "for both" without citing exact positions. If you cannot cite both natal positions with sign and degree, do NOT call it a double activation.\n'
-                + '9. ⚠️ LIST INVIOLABILITY: USE ONLY the transits listed above (each comes with natal degree and orb). Do NOT invent additional aspects (to antipodes, opposite angles, etc.). An opposition to ASC means conjunction to DESC — NOT "conjunction to ASC". Trust ONLY the textual list.';
+                + (_dayEventsDesc ? '\nGeneral day events (cosmic context): ' + _dayEventsDesc + '\n' : '')
+                + '\nINSTRUCTIONS:\n'
+                + '- Interpret the important transits and how they manifest in the bond TODAY.\n'
+                + '- Connect with the natal synastry ONLY when it adds something concrete (e.g. "this transit reactivates the Moon-Venus square of the synastry").\n'
+                + '- If NO significant transits, just say the day is quiet for the bond and leave it there. Do not explain what is missing.\n'
+                + '- Speak naturally. Do NOT add meta-disclaimers like "no symmetric aspects", "this transit only affects X", "no double activation", "the charts do not reflect the same thing". If something does not apply, simply do not mention it.\n'
+                + '- Suggested structure: today\'s transits → manifestation in the bond → practical advice for TODAY → warnings if any.\n'
+                + '- USE ONLY the listed transits (each with degree and orb). Do NOT invent additional aspects. An opposition to ASC does NOT imply a conjunction to ASC.';
         } else {
             // v749by: reforzar que es interpretación DE LA RELACIÓN — no mencionar perfiles individuales
             var _modoCartaEn = _ctx.mode === 'compuesta' ? 'Composite Chart' : 'Davison Chart';
+            // v749ct: simplified — removed BALANCE RULE that forced meta-disclaimers in output.
             prompt = _relPrefix
-                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — This is the ' + _modoCartaEn + ' of ' + _nameA + ' + ' + _nameB + '. '
-                + 'The SUBJECT is THE RELATIONSHIP as its own entity (planetary midpoints). It is NOT ' + _nameA + '\'s chart nor ' + _nameB + '\'s chart individually.\n\n'
+                + 'INTERPRETATION OF THE DAY ' + dateStr + ' on the ' + _modoCartaEn + ' of ' + _nameA + ' + ' + _nameB + ' (the relationship as its own entity, midpoints).\n\n'
                 + 'TODAY\'S TRANSITS on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant') + '\n'
-                + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the relationship): ' + _dayEventsDesc + '\n' : '')
-                + '\n📌 INSTRUCTIONS:\n'
-                + '1. START the text with: "This is the interpretation of the ' + _modoCartaEn.toLowerCase() + ' of ' + _nameA + ' + ' + _nameB + ' for [date]."\n'
-                + '2. Speak of "THE RELATIONSHIP", "the bond", "the relational system", "this union" — DO NOT use "you" nor address one person individually.\n'
-                + '3. ⚠️ BALANCE RULE: Do NOT mention ' + _nameA + ' alone, nor ' + _nameB + ' alone. If for a specific transit you must mention someone individually to contextualize the dynamic, ALWAYS mention BOTH FOR BALANCE. Never asymmetry.\n'
-                + '4. Interpret each important transit and how it manifests in the bond (not in a person).\n'
-                + '5. Structure: a) Opening with clear chart-type identification, b) Key transits, c) General energy of the day for the relationship, d) Practical advice for the bond TODAY, e) Warnings.\n'
-                + '6. If NO significant transits, say so — do NOT repeat the natal relational chart.\n'
-                + '7. ⚠️ LIST INVIOLABILITY: USE ONLY listed transits (each has natal degree and orb). Do NOT invent additional aspects. Trust ONLY the list.';
+                + (_dayEventsDesc ? '\nGeneral day events (cosmic context): ' + _dayEventsDesc + '\n' : '')
+                + '\nINSTRUCTIONS:\n'
+                + '- Start with: "This is the interpretation of the ' + _modoCartaEn.toLowerCase() + ' of ' + _nameA + ' + ' + _nameB + ' for [date]."\n'
+                + '- Speak of "the relationship", "the bond", "the relational system" — do not address one person individually.\n'
+                + '- Interpret each important transit and how it manifests in the bond TODAY.\n'
+                + '- If NO significant transits, just say the day is quiet for the relationship and leave it there. Do not explain what is missing.\n'
+                + '- Speak naturally. Do NOT add meta-disclaimers like "no symmetry", "this does not affect equally", etc.\n'
+                + '- Suggested structure: key transits → general energy for the bond → practical advice for TODAY → warnings if any.\n'
+                + '- USE ONLY the listed transits (each with degree and orb). Do NOT invent additional aspects.';
         }
     }
 
@@ -30675,7 +30708,7 @@ function interpretCalendarDay(year, month, day) {
         _ttlEl.textContent = _title;
         _bodyEl.innerHTML = bodyHtml;
         detailModal.classList.add('show');
-        // Scroll al tope
+        // Scroll al tope inicialmente para que el usuario vea el título
         var _mc = detailModal.querySelector('.modal-content');
         if (_mc) _mc.scrollTop = 0;
         console.log('[interpretCalendarDay] modal abierto, llamando fetchAIInterpretation en 100ms');
@@ -30686,6 +30719,24 @@ function interpretCalendarDay(year, month, day) {
                 var _div = document.getElementById('calDayInterpDiv');
                 if (_div) _div.innerHTML = '<div style="padding:14px;color:#ff6b6b;font-size:0.85em;text-align:center;">' + (L?'Error al cargar interpretación: ':'Error loading interpretation: ') + (_eFetch.message || '') + '</div>';
             }
+            // v749ct: después de disparar fetch, scrollear el modal para que calDayInterpDiv quede al tope.
+            // Así el usuario ve el inicio de la interpretación apenas comienza a cargar.
+            // Reintentamos varias veces porque la respuesta del AI streamea de a poco.
+            function _scrollToInterp() {
+                try {
+                    var _ip = document.getElementById('calDayInterpDiv');
+                    var _mc2 = detailModal.querySelector('.modal-content');
+                    if (_ip && _mc2) {
+                        // Calcular offset relativo al scroll container
+                        var _interpTop = _ip.offsetTop;
+                        _mc2.scrollTop = Math.max(0, _interpTop - 12);
+                    }
+                } catch(_eScroll) {}
+            }
+            // Scroll inmediato + reintentos a medida que llega contenido
+            setTimeout(_scrollToInterp, 200);
+            setTimeout(_scrollToInterp, 600);
+            setTimeout(_scrollToInterp, 1200);
         }, 100);
     } catch(_eIntDay) {
         console.error('[interpretCalendarDay] error fatal:', _eIntDay);
@@ -30827,9 +30878,10 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         if (sectionType === 'transitosMayores') {
             sectionTitle = L?'Tránsitos Mayores (Lentos)':'Major Transits (Slow)';
             if (_sinTransitBlock) {
+                // v749ct: quitado el item de "DOBLES ACTIVACIONES" — generaba aclaraciones forzadas en el output.
                 prompt = _isectRelPrefix + (L
-                    ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) el ' + dateStr + ' considerando AMBAS cartas natales. ' + _sinTransitBlock + ' Para cada tránsito significativo: 1) Qué carta natal afecta y a quién (' + _nameA + ' o ' + _nameB + '), 2) Simbolismo del tránsito, 3) Casa natal y área de vida activada, 4) Si hay DOBLES ACTIVACIONES (mismo planeta hace aspectos a ambas cartas), enfatizalas. 5) Cómo se manifiesta en el vínculo.' + _antiNatalSec
-                    : 'Interpret the SLOW major transits (Jupiter, Saturn, Uranus, Neptune, Pluto) on ' + dateStr + ' considering BOTH natal charts. ' + _sinTransitBlock + ' For each significant transit: 1) Which natal chart it affects and whom (' + _nameA + ' or ' + _nameB + '), 2) Symbolism, 3) Natal house and life area, 4) If DOUBLE ACTIVATIONS (same planet aspects both charts) — emphasize. 5) How it manifests in the bond.' + _antiNatalSec);
+                    ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) el ' + dateStr + ' considerando ambas cartas natales. ' + _sinTransitBlock + ' Para cada tránsito significativo: simbolismo, casa natal y área de vida activada, cómo se manifiesta en el vínculo. Hablá con naturalidad — no hagas aclaraciones meta sobre simetría/asimetría entre las dos cartas.' + _antiNatalSec
+                    : 'Interpret the SLOW major transits (Jupiter, Saturn, Uranus, Neptune, Pluto) on ' + dateStr + ' considering both natal charts. ' + _sinTransitBlock + ' For each significant transit: symbolism, natal house and life area, how it manifests in the bond. Speak naturally — do not add meta-comments about symmetry/asymmetry between the two charts.' + _antiNatalSec);
             } else {
                 prompt = _isectRelPrefix + (L
                     ? 'Interpretá los tránsitos mayores LENTOS (Júpiter, Saturno, Urano, Neptuno, Plutón) el ' + dateStr + ': ' + (desc || 'sin tránsitos lentos activos') + '. Estos marcan ciclos largos y transformaciones profundas. Detallá: 1) Simbolismo de cada tránsito, 2) Casa natal y área de vida activada, 3) Lección o crecimiento, 4) Tiempo aproximado de influencia, 5) Cómo navegar.'
@@ -48635,7 +48687,7 @@ function buildSystemPrompt(contextLevel) {
               + 'Si te dan posiciones específicas Y la carta del usuario, integralos: el aspecto del día (🅱️) aterriza en la carta del usuario (🅰️) generando interpretación personalizada.\n'
               + 'Si el usuario te pide algo específico de su carta y no tenés el dato → aplicá 🅰️ regla (a)/(b)/(c).\n\n'
               + '🚫 PROHIBIDO en TODOS los casos:\n'
-              + '• Asumir simetrías ("para ambos", "igual en cada uno") sin tener el dato exacto de cada parte.\n'
+              + '• Inventar equivalencias entre dos cartas sin tener ambos datos. NO digas "para ambos", "doble activación", "igual en cada uno" salvo que puedas citar las dos posiciones natales exactas. Si no aplica, simplemente NO lo menciones — no expliqués "no hay simetría" ni "las cartas no reflejan lo mismo".\n'
               + '• Contradecirte: si en un párrafo decís "Sol en Capricornio" y dos párrafos después "Sol en Escorpio", eso es invención. Citá una vez y mantenelo.\n'
               + '• Decir "no tengo este dato" cuando lo que falta es solo CONOCIMIENTO GENERAL (lo tenés entrenado).\n'
               + '• Inventar grados/casas/posiciones del usuario que no están en tu contexto.\n\n'
@@ -48663,7 +48715,7 @@ function buildSystemPrompt(contextLevel) {
               + 'If given specific positions AND user chart, integrate: today\'s aspect (🅱️) lands in user\'s chart (🅰️) for personalized interpretation.\n'
               + 'If user asks for something specific in their chart and you don\'t have it → apply 🅰️ rule (a)/(b)/(c).\n\n'
               + '🚫 ALWAYS FORBIDDEN:\n'
-              + '• Assuming symmetries ("for both", "same in each") without having exact data of each party.\n'
+              + '• Inventing equivalences between two charts without having both data points. Do NOT say "for both", "double activation", "same in each" unless you can cite both exact natal positions. If it does not apply, simply DO NOT mention it — do not explain "no symmetry" nor "the charts do not reflect the same".\n'
               + '• Contradicting yourself: if in one paragraph you say "Sun in Capricorn" and later "Sun in Scorpio", that is invention.\n'
               + '• Saying "I don\'t have this data" when what is missing is just GENERAL KNOWLEDGE (you have it trained).\n'
               + '• Inventing degrees/houses/positions of the user not in your context.\n\n'
