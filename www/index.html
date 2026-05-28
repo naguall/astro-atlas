@@ -26890,6 +26890,9 @@ function drawNatalWheel(canvasId, transitDate) {
 
 // v749ci: abre un modal fullscreen con SVG ampliado + pinch-to-zoom nativo.
 // Se invoca desde cualquier rueda clickeable (natal, compuesta, davison, sinastría, biwheel).
+// v749ct: el viewport global tiene user-scalable=no → pinch-zoom nativo NO funciona.
+// Implementamos pinch-zoom manual con touch events + CSS transform sobre el wrapper interno.
+// También añadimos botones +/− / reset por si el pinch falla en algún device.
 window._openChartZoom = function(stateKey) {
     var st = window[stateKey];
     if (!st || !st.svg) return;
@@ -26902,20 +26905,88 @@ window._openChartZoom = function(stateKey) {
         modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
         document.body.appendChild(modal);
     }
-    // SVG con overflow:visible para permitir pinch-zoom (CSS transform + touch-action)
+    // v749ct: wrapper con id `chartZoomInner` que recibe transform: scale(...) + translate(...)
     modal.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(15,17,55,0.85);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">'
         + '<div style="font-family:\'Cinzel\',serif;font-size:0.95em;color:#c9a840;">' + (st.title || (L?'Carta':'Chart')) + '</div>'
-        + '<button onclick="document.getElementById(\'chartZoomModal\').style.display=\'none\';" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.6em;cursor:pointer;padding:0 8px;line-height:1;">×</button>'
+        + '<div style="display:flex;align-items:center;gap:8px;">'
+        + '<button id="czZoomOut" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:1.1em;cursor:pointer;width:34px;height:34px;border-radius:50%;line-height:1;padding:0;">−</button>'
+        + '<button id="czZoomReset" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:0.75em;cursor:pointer;padding:6px 10px;border-radius:14px;line-height:1;">1×</button>'
+        + '<button id="czZoomIn" style="background:rgba(201,168,64,0.18);border:1px solid rgba(201,168,64,0.4);color:#c9a840;font-size:1.1em;cursor:pointer;width:34px;height:34px;border-radius:50%;line-height:1;padding:0;">+</button>'
+        + '<button onclick="document.getElementById(\'chartZoomModal\').style.display=\'none\';" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.6em;cursor:pointer;padding:0 8px;line-height:1;margin-left:4px;">×</button>'
         + '</div>'
-        + '<div id="chartZoomContent" style="flex:1;overflow:auto;touch-action:pinch-zoom pan-x pan-y;display:flex;align-items:center;justify-content:center;padding:10px;">'
-        + '<div style="min-width:90vw;max-width:none;transform-origin:center center;">'
+        + '</div>'
+        + '<div id="chartZoomContent" style="flex:1;overflow:hidden;touch-action:none;display:flex;align-items:center;justify-content:center;padding:10px;">'
+        + '<div id="chartZoomInner" style="min-width:90vw;max-width:none;transform-origin:center center;transform:scale(1) translate(0px,0px);transition:transform 0.05s linear;">'
         + st.svg.replace(/max-width:700px/g, 'max-width:none').replace(/style="width:100%;/, 'style="width:90vw;height:auto;max-width:none;')
         + '</div>'
         + '</div>'
         + '<div style="text-align:center;font-size:0.72em;color:rgba(255,255,255,0.35);padding:8px;background:rgba(15,17,55,0.6);flex-shrink:0;">'
-        + (L ? 'Usá pellizco (pinch) para hacer zoom · Tocá fuera para cerrar' : 'Pinch to zoom · Tap outside to close')
+        + (L ? 'Usá pellizco (pinch) o +/− para zoom · Arrastrá para mover · Tocá ✕ para cerrar' : 'Pinch or +/− to zoom · Drag to pan · Tap ✕ to close')
         + '</div>';
     modal.style.display = 'flex';
+
+    // v749ct: pinch-zoom manual + drag pan + botones (fallback robusto a user-scalable=no)
+    try {
+        var inner = document.getElementById('chartZoomInner');
+        var content = document.getElementById('chartZoomContent');
+        var resetBtn = document.getElementById('czZoomReset');
+        var inBtn = document.getElementById('czZoomIn');
+        var outBtn = document.getElementById('czZoomOut');
+        var scale = 1, tx = 0, ty = 0;
+        var pinchStartDist = 0, pinchStartScale = 1;
+        var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
+        var isPinching = false, isDragging = false;
+        function apply() {
+            inner.style.transform = 'scale(' + scale + ') translate(' + (tx/scale) + 'px,' + (ty/scale) + 'px)';
+            if (resetBtn) resetBtn.textContent = scale.toFixed(scale < 1 ? 2 : 1) + '×';
+        }
+        function clamp(s) { return Math.min(5, Math.max(0.3, s)); }
+        function dist(a, b) { var dx = a.clientX - b.clientX, dy = a.clientY - b.clientY; return Math.sqrt(dx*dx + dy*dy); }
+        content.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                isPinching = true; isDragging = false;
+                pinchStartDist = dist(e.touches[0], e.touches[1]);
+                pinchStartScale = scale;
+                e.preventDefault();
+            } else if (e.touches.length === 1 && scale > 1.05) {
+                isDragging = true; isPinching = false;
+                dragStartX = e.touches[0].clientX;
+                dragStartY = e.touches[0].clientY;
+                dragStartTx = tx; dragStartTy = ty;
+            }
+        }, { passive: false });
+        content.addEventListener('touchmove', function(e) {
+            if (isPinching && e.touches.length === 2) {
+                var d = dist(e.touches[0], e.touches[1]);
+                if (pinchStartDist > 0) {
+                    scale = clamp(pinchStartScale * (d / pinchStartDist));
+                    apply();
+                }
+                e.preventDefault();
+            } else if (isDragging && e.touches.length === 1) {
+                tx = dragStartTx + (e.touches[0].clientX - dragStartX);
+                ty = dragStartTy + (e.touches[0].clientY - dragStartY);
+                apply();
+                e.preventDefault();
+            }
+        }, { passive: false });
+        content.addEventListener('touchend', function(e) {
+            if (e.touches.length === 0) { isPinching = false; isDragging = false; }
+        });
+        // double-tap to reset
+        var lastTap = 0;
+        content.addEventListener('touchend', function(e) {
+            var now = Date.now();
+            if (now - lastTap < 280 && e.touches.length === 0) {
+                scale = 1; tx = 0; ty = 0; apply();
+            }
+            lastTap = now;
+        });
+        if (inBtn) inBtn.onclick = function() { scale = clamp(scale * 1.25); apply(); };
+        if (outBtn) outBtn.onclick = function() { scale = clamp(scale / 1.25); apply(); };
+        if (resetBtn) resetBtn.onclick = function() { scale = 1; tx = 0; ty = 0; apply(); };
+        apply();
+    } catch(_eZoom) { console.warn('[chartZoom] init error:', _eZoom); }
 };
 
 // ===== ASPECT GRID (Triangular Matrix) =====
@@ -30327,7 +30398,17 @@ function interpretCalendarDay(year, month, day) {
 
     // v749aq: detectar modo relacional y construir prompt apropiado
     var _ctx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
+    // v749ct: si modo relacional pero falta profileA/profileB, FORZAR a modo natal —
+    // antes esto crasheaba con "Cannot read properties of undefined (reading 'name')"
+    // cuando un flow previo dejaba _isRelationsCalendarActive=true pero el context perdió perfiles.
+    if (_ctx.mode !== 'natal' && (!_ctx.profileA || !_ctx.profileB)) {
+        console.warn('[interpretCalendarDay] modo relacional sin perfiles válidos — fallback a natal. _ctx:', _ctx);
+        _ctx = { mode: 'natal' };
+    }
     var _isRel = _ctx.mode !== 'natal';
+    // v749ct: helper para leer nombres con guard
+    var _nameA = (_ctx.profileA && _ctx.profileA.name) || 'A';
+    var _nameB = (_ctx.profileB && _ctx.profileB.name) || 'B';
     var _relPrefix = '';
     var transitChart = natalChart; // por default usar la natal del perfil activo
 
@@ -30335,17 +30416,17 @@ function interpretCalendarDay(year, month, day) {
         if (_ctx.mode === 'compuesta') {
             transitChart = _ctx.chartA; // chartA = composite chart
             _relPrefix = L
-                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA COMPUESTA de la relación entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. La carta compuesta representa la relación como ENTIDAD PROPIA (midpoints planetarios). NO interpretes mi carta personal — interpretá los tránsitos sobre LA RELACIÓN como una entidad. '
-                : 'RELATIONAL CONTEXT: This is about the COMPOSITE CHART of the relationship between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. The composite chart represents the relationship AS ITS OWN ENTITY (planetary midpoints). Do NOT interpret my personal chart — interpret transits on THE RELATIONSHIP as an entity. ';
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA COMPUESTA de la relación entre ' + _nameA + ' y ' + _nameB + '. La carta compuesta representa la relación como ENTIDAD PROPIA (midpoints planetarios). NO interpretes mi carta personal — interpretá los tránsitos sobre LA RELACIÓN como una entidad. '
+                : 'RELATIONAL CONTEXT: This is about the COMPOSITE CHART of the relationship between ' + _nameA + ' and ' + _nameB + '. The composite chart represents the relationship AS ITS OWN ENTITY (planetary midpoints). Do NOT interpret my personal chart — interpret transits on THE RELATIONSHIP as an entity. ';
         } else if (_ctx.mode === 'davison') {
             transitChart = _ctx.chartA; // chartA = davison chart
             _relPrefix = L
-                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA DAVISON de la relación entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. La carta Davison es una carta REAL calculada al midpoint temporal y espacial de ambos nacimientos. NO interpretes mi carta personal — interpretá los tránsitos sobre la carta Davison como representante real de la relación. '
-                : 'RELATIONAL CONTEXT: This is about the DAVISON CHART of the relationship between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. The Davison chart is a REAL chart calculated at the time/space midpoint of both births. Do NOT interpret my personal chart — interpret transits on the Davison chart as the real representative of the relationship. ';
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la CARTA DAVISON de la relación entre ' + _nameA + ' y ' + _nameB + '. La carta Davison es una carta REAL calculada al midpoint temporal y espacial de ambos nacimientos. NO interpretes mi carta personal — interpretá los tránsitos sobre la carta Davison como representante real de la relación. '
+                : 'RELATIONAL CONTEXT: This is about the DAVISON CHART of the relationship between ' + _nameA + ' and ' + _nameB + '. The Davison chart is a REAL chart calculated at the time/space midpoint of both births. Do NOT interpret my personal chart — interpret transits on the Davison chart as the real representative of the relationship. ';
         } else if (_ctx.mode === 'sinastria') {
             _relPrefix = L
-                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la SINASTRÍA (compatibilidad) entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. Analizá los tránsitos del día sobre LAS DOS CARTAS NATALES (no solo una). Si hay días de DOBLE ACTIVACIÓN (mismo planeta tránsito hits ambas cartas), enfatizá su importancia para la relación. NO interpretes solo mi carta — siempre considerá las dos. '
-                : 'RELATIONAL CONTEXT: This is about SYNASTRY (compatibility) between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. Analyze the day\'s transits on BOTH NATAL CHARTS (not just one). If there are DOUBLE ACTIVATION days (same transit planet hits both charts), emphasize their importance for the relationship. Do NOT interpret only my chart — always consider both. ';
+                ? 'CONTEXTO RELACIONAL: Esta interpretación es sobre la SINASTRÍA (compatibilidad) entre ' + _nameA + ' y ' + _nameB + '. Analizá los tránsitos del día sobre LAS DOS CARTAS NATALES (no solo una). Si hay días de DOBLE ACTIVACIÓN (mismo planeta tránsito hits ambas cartas), enfatizá su importancia para la relación. NO interpretes solo mi carta — siempre considerá las dos. '
+                : 'RELATIONAL CONTEXT: This is about SYNASTRY (compatibility) between ' + _nameA + ' and ' + _nameB + '. Analyze the day\'s transits on BOTH NATAL CHARTS (not just one). If there are DOUBLE ACTIVATION days (same transit planet hits both charts), emphasize their importance for the relationship. Do NOT interpret only my chart — always consider both. ';
         }
     }
 
@@ -30426,7 +30507,7 @@ function interpretCalendarDay(year, month, day) {
     var _firstTransitLabel;
     if (_isRel) {
         if (_ctx.mode === 'sinastria') {
-            _firstTransitLabel = (L?'la carta natal de ':'the natal chart of ') + (_ctx.profileA.name||'A');
+            _firstTransitLabel = (L?'la carta natal de ':'the natal chart of ') + _nameA;
         } else {
             _firstTransitLabel = (L?'la ':'the ') + _ctx.label;
         }
@@ -30442,16 +30523,16 @@ function interpretCalendarDay(year, month, day) {
         if (_ctx.mode === 'sinastria') {
             prompt = _relPrefix
                 + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — NO es una lectura de la sinastría natal en general. '
-                + 'El SUJETO de esta interpretación son los TRÁNSITOS PLANETARIOS del día y cómo afectan al vínculo entre ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + '. '
+                + 'El SUJETO de esta interpretación son los TRÁNSITOS PLANETARIOS del día y cómo afectan al vínculo entre ' + _nameA + ' y ' + _nameB + '. '
                 + 'La sinastría natal (aspectos cruzados, overlays de casas, puntaje) que aparece en tu contexto es BACKGROUND/MARCO de referencia — NO la repitas como si fuera la lectura del día.\n\n'
-                + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileA.name||'A') + ': ' + (transitDesc || 'ninguno significativo') + '\n'
-                + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + (_ctx.profileB.name||'B') + ': ' + transitsBDesc + '\n' : '')
+                + 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + _nameA + ': ' + (transitDesc || 'ninguno significativo') + '\n'
+                + (transitsBDesc ? 'TRÁNSITOS DEL DÍA sobre la carta natal de ' + _nameB + ': ' + transitsBDesc + '\n' : '')
                 + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre el vínculo): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCCIONES CRÍTICAS:\n'
-                + '1. Para cada tránsito importante listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién (' + (_ctx.profileA.name||'A') + ' o ' + (_ctx.profileB.name||'B') + '), y qué activa esa combinación específica.\n'
-                + '2. ⚠️ REGLA ESTRICTA SOBRE "DOBLES ACTIVACIONES": Solo decir "para ambos" o "doble activación" cuando el MISMO tránsito (mismo planeta, mismo aspecto) aparezca EXPLÍCITAMENTE en AMBAS listas (la de ' + (_ctx.profileA.name||'A') + ' Y la de ' + (_ctx.profileB.name||'B') + '). Si lo decís, DEBÉS citar la posición natal de CADA UNO con planeta + signo + grado (ej: "Quirón en Aries 28° de ' + (_ctx.profileA.name||'A') + ' Y Quirón en Géminis 7° de ' + (_ctx.profileB.name||'B') + ' — ambos reciben la conjunción de tránsito"). Si los planetas natales están en signos diferentes o muy distantes, NO es una doble activación real — interpretá cada uno por separado.\n'
-                + '3. Si un tránsito SOLO aparece en la lista de uno de los dos, decilo claramente: "este tránsito afecta a ' + (_ctx.profileA.name||'A') + ' pero no a ' + (_ctx.profileB.name||'B') + '" — NO inventes simetría que no esté en los datos.\n'
-                + '4. Dale peso EQUILIBRADO a ' + (_ctx.profileA.name||'A') + ' y ' + (_ctx.profileB.name||'B') + ' — no centres todo en una sola.\n'
+                + '1. Para cada tránsito importante listado arriba, decí: qué planeta tránsito hace qué aspecto a qué planeta natal de quién (' + _nameA + ' o ' + _nameB + '), y qué activa esa combinación específica.\n'
+                + '2. ⚠️ REGLA ESTRICTA SOBRE "DOBLES ACTIVACIONES": Solo decir "para ambos" o "doble activación" cuando el MISMO tránsito (mismo planeta, mismo aspecto) aparezca EXPLÍCITAMENTE en AMBAS listas (la de ' + _nameA + ' Y la de ' + _nameB + '). Si lo decís, DEBÉS citar la posición natal de CADA UNO con planeta + signo + grado (ej: "Quirón en Aries 28° de ' + _nameA + ' Y Quirón en Géminis 7° de ' + _nameB + ' — ambos reciben la conjunción de tránsito"). Si los planetas natales están en signos diferentes o muy distantes, NO es una doble activación real — interpretá cada uno por separado.\n'
+                + '3. Si un tránsito SOLO aparece en la lista de uno de los dos, decilo claramente: "este tránsito afecta a ' + _nameA + ' pero no a ' + _nameB + '" — NO inventes simetría que no esté en los datos.\n'
+                + '4. Dale peso EQUILIBRADO a ' + _nameA + ' y ' + _nameB + ' — no centres todo en una sola.\n'
                 + '5. Conectá los tránsitos del día con la dinámica natal SOLO cuando aporte (ej. "este tránsito reactiva la cuadratura Luna-Venus de la sinastría"). Sin convertir esto en una lectura de la sinastría natal.\n'
                 + '6. Estructura: a) Tránsitos clave del día y a quién afectan (especifica nombre), b) Dobles activaciones REALES con posiciones natales citadas, c) Tránsitos asimétricos (a una sola carta), d) Manifestación en la dinámica relacional HOY, e) Consejos prácticos para ESTE DÍA, f) Advertencias.\n'
                 + '7. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para el vínculo" — NO inventes una lectura natal para llenar el espacio.\n'
@@ -30462,14 +30543,14 @@ function interpretCalendarDay(year, month, day) {
             // v749by: reforzar que es interpretación DE LA RELACIÓN — no mencionar perfiles individuales
             var _modoCarta = _ctx.mode === 'compuesta' ? (L?'Carta Compuesta':'Composite Chart') : (L?'Carta Davison':'Davison Chart');
             prompt = _relPrefix
-                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — Esta es la ' + _modoCarta + ' de ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + '. '
-                + 'El SUJETO es LA RELACIÓN como entidad propia (midpoints planetarios). NO es la carta de ' + (_ctx.profileA.name||'A') + ' ni la de ' + (_ctx.profileB.name||'B') + ' individualmente.\n\n'
+                + '⚠️ INTERPRETACIÓN DEL DÍA ' + dateStr + ' — Esta es la ' + _modoCarta + ' de ' + _nameA + ' + ' + _nameB + '. '
+                + 'El SUJETO es LA RELACIÓN como entidad propia (midpoints planetarios). NO es la carta de ' + _nameA + ' ni la de ' + _nameB + ' individualmente.\n\n'
                 + 'TRÁNSITOS DEL DÍA sobre ' + _firstTransitLabel + ': ' + (transitDesc || 'ninguno significativo') + '\n'
                 + (_dayEventsDesc ? '\nEVENTOS GENERALES DEL DÍA (afectan a todos por igual — usalos para ENMARCAR el contexto cósmico del día sobre la relación): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCCIONES:\n'
-                + '1. COMENZÁ el texto con: "Esta es la interpretación de la ' + _modoCarta.toLowerCase() + ' de ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + ' para [fecha]."\n'
+                + '1. COMENZÁ el texto con: "Esta es la interpretación de la ' + _modoCarta.toLowerCase() + ' de ' + _nameA + ' + ' + _nameB + ' para [fecha]."\n'
                 + '2. Hablá de "LA RELACIÓN", "el vínculo", "el sistema relacional", "esta unión" — NO uses "vos"/"tu" ni te dirijas a una persona individual.\n'
-                + '3. ⚠️ REGLA DE EQUILIBRIO: NO menciones a ' + (_ctx.profileA.name||'A') + ' solo, ni a ' + (_ctx.profileB.name||'B') + ' solo. Si por algún tránsito específico tenés que mencionar a alguno individualmente para contextualizar la dinámica, mencioná SIEMPRE A AMBOS POR EQUILIBRIO. Nunca asimetría.\n'
+                + '3. ⚠️ REGLA DE EQUILIBRIO: NO menciones a ' + _nameA + ' solo, ni a ' + _nameB + ' solo. Si por algún tránsito específico tenés que mencionar a alguno individualmente para contextualizar la dinámica, mencioná SIEMPRE A AMBOS POR EQUILIBRIO. Nunca asimetría.\n'
                 + '4. Interpretá cada tránsito importante y cómo se manifiesta en el vínculo (no en una persona).\n'
                 + '5. Estructura: a) Apertura con identificación clara del tipo de carta, b) Tránsitos clave del día, c) Energía general del día para la relación, d) Consejos prácticos para el vínculo HOY, e) Advertencias.\n'
                 + '6. Si NO hay tránsitos significativos, decí "hoy es un día energéticamente tranquilo para esta relación" — NO repitas la carta relacional natal.\n'
@@ -30479,15 +30560,15 @@ function interpretCalendarDay(year, month, day) {
         if (_ctx.mode === 'sinastria') {
             prompt = _relPrefix
                 + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — NOT a general natal synastry reading. '
-                + 'The SUBJECT is TODAY\'S PLANETARY TRANSITS and how they affect the bond between ' + (_ctx.profileA.name||'A') + ' and ' + (_ctx.profileB.name||'B') + '. '
+                + 'The SUBJECT is TODAY\'S PLANETARY TRANSITS and how they affect the bond between ' + _nameA + ' and ' + _nameB + '. '
                 + 'The natal synastry (cross aspects, house overlays, score) in your context is BACKGROUND — do NOT repeat it as if it were today\'s reading.\n\n'
-                + 'TODAY\'S TRANSITS on ' + (_ctx.profileA.name||'A') + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
-                + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + (_ctx.profileB.name||'B') + '\'s natal chart: ' + transitsBDesc + '\n' : '')
+                + 'TODAY\'S TRANSITS on ' + _nameA + '\'s natal chart: ' + (transitDesc || 'none significant') + '\n'
+                + (transitsBDesc ? 'TODAY\'S TRANSITS on ' + _nameB + '\'s natal chart: ' + transitsBDesc + '\n' : '')
                 + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the bond): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 CRITICAL INSTRUCTIONS:\n'
-                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom (' + (_ctx.profileA.name||'A') + ' or ' + (_ctx.profileB.name||'B') + '), and what does that specific combination activate.\n'
-                + '2. ⚠️ STRICT RULE ON "DOUBLE ACTIVATIONS": Only say "for both" or "double activation" when the SAME transit (same planet, same aspect) appears EXPLICITLY in BOTH lists (' + (_ctx.profileA.name||'A') + '\'s AND ' + (_ctx.profileB.name||'B') + '\'s). When you do, you MUST cite each natal position with planet + sign + degree. If natal planets are in different signs or far apart, it is NOT a real double activation — interpret each separately.\n'
-                + '3. If a transit only appears in one list, say so clearly: "this transit affects ' + (_ctx.profileA.name||'A') + ' but not ' + (_ctx.profileB.name||'B') + '" — do NOT invent symmetries not in the data.\n'
+                + '1. For each important transit listed above: which transit planet aspects which natal planet of whom (' + _nameA + ' or ' + _nameB + '), and what does that specific combination activate.\n'
+                + '2. ⚠️ STRICT RULE ON "DOUBLE ACTIVATIONS": Only say "for both" or "double activation" when the SAME transit (same planet, same aspect) appears EXPLICITLY in BOTH lists (' + _nameA + '\'s AND ' + _nameB + '\'s). When you do, you MUST cite each natal position with planet + sign + degree. If natal planets are in different signs or far apart, it is NOT a real double activation — interpret each separately.\n'
+                + '3. If a transit only appears in one list, say so clearly: "this transit affects ' + _nameA + ' but not ' + _nameB + '" — do NOT invent symmetries not in the data.\n'
                 + '4. Give BALANCED weight to both — do not focus on just one.\n'
                 + '5. Connect transits to natal dynamics ONLY when relevant. Do NOT turn this into a natal synastry reading.\n'
                 + '6. Structure: a) Key transits and whom they affect (specify name), b) REAL double activations with both natal positions cited, c) Asymmetric transits (only one chart), d) Today\'s relational manifestation, e) Practical advice for THIS DAY, f) Warnings.\n'
@@ -30498,14 +30579,14 @@ function interpretCalendarDay(year, month, day) {
             // v749by: reforzar que es interpretación DE LA RELACIÓN — no mencionar perfiles individuales
             var _modoCartaEn = _ctx.mode === 'compuesta' ? 'Composite Chart' : 'Davison Chart';
             prompt = _relPrefix
-                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — This is the ' + _modoCartaEn + ' of ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + '. '
-                + 'The SUBJECT is THE RELATIONSHIP as its own entity (planetary midpoints). It is NOT ' + (_ctx.profileA.name||'A') + '\'s chart nor ' + (_ctx.profileB.name||'B') + '\'s chart individually.\n\n'
+                + '⚠️ INTERPRETATION OF THE DAY ' + dateStr + ' — This is the ' + _modoCartaEn + ' of ' + _nameA + ' + ' + _nameB + '. '
+                + 'The SUBJECT is THE RELATIONSHIP as its own entity (planetary midpoints). It is NOT ' + _nameA + '\'s chart nor ' + _nameB + '\'s chart individually.\n\n'
                 + 'TODAY\'S TRANSITS on ' + _firstTransitLabel + ': ' + (transitDesc || 'none significant') + '\n'
                 + (_dayEventsDesc ? '\nGENERAL DAY EVENTS (affect everyone equally — use them to FRAME the day\'s cosmic context for the relationship): ' + _dayEventsDesc + '\n' : '')
                 + '\n📌 INSTRUCTIONS:\n'
-                + '1. START the text with: "This is the interpretation of the ' + _modoCartaEn.toLowerCase() + ' of ' + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B') + ' for [date]."\n'
+                + '1. START the text with: "This is the interpretation of the ' + _modoCartaEn.toLowerCase() + ' of ' + _nameA + ' + ' + _nameB + ' for [date]."\n'
                 + '2. Speak of "THE RELATIONSHIP", "the bond", "the relational system", "this union" — DO NOT use "you" nor address one person individually.\n'
-                + '3. ⚠️ BALANCE RULE: Do NOT mention ' + (_ctx.profileA.name||'A') + ' alone, nor ' + (_ctx.profileB.name||'B') + ' alone. If for a specific transit you must mention someone individually to contextualize the dynamic, ALWAYS mention BOTH FOR BALANCE. Never asymmetry.\n'
+                + '3. ⚠️ BALANCE RULE: Do NOT mention ' + _nameA + ' alone, nor ' + _nameB + ' alone. If for a specific transit you must mention someone individually to contextualize the dynamic, ALWAYS mention BOTH FOR BALANCE. Never asymmetry.\n'
                 + '4. Interpret each important transit and how it manifests in the bond (not in a person).\n'
                 + '5. Structure: a) Opening with clear chart-type identification, b) Key transits, c) General energy of the day for the relationship, d) Practical advice for the bond TODAY, e) Warnings.\n'
                 + '6. If NO significant transits, say so — do NOT repeat the natal relational chart.\n'
@@ -30538,9 +30619,9 @@ function interpretCalendarDay(year, month, day) {
     // En Davison se agrega la fecha + lugar de "nacimiento" de la relación (carta natal real al midpoint).
     var _titleSuffix = '';
     if (_ctx.mode === 'compuesta') {
-        _titleSuffix = (L?' — Carta Compuesta de ':' — Composite Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
+        _titleSuffix = (L?' — Carta Compuesta de ':' — Composite Chart of ') + _nameA + ' + ' + _nameB;
     } else if (_ctx.mode === 'davison') {
-        _titleSuffix = (L?' — Carta Davison de ':' — Davison Chart of ') + (_ctx.profileA.name||'A') + ' + ' + (_ctx.profileB.name||'B');
+        _titleSuffix = (L?' — Carta Davison de ':' — Davison Chart of ') + _nameA + ' + ' + _nameB;
         // v749bz: agregar fecha de nacimiento de la relación (Davison es carta natal real al midpoint)
         if (_ctx.davData && _ctx.davData.dateStr) {
             var _davInfo = (L?' [nacida ':' [born ') + _ctx.davData.dateStr;
@@ -30550,7 +30631,7 @@ function interpretCalendarDay(year, month, day) {
             _titleSuffix += _davInfo;
         }
     } else if (_ctx.mode === 'sinastria') {
-        _titleSuffix = (L?' — Sinastría ':' — Synastry ') + (_ctx.profileA.name||'A') + ' ↔ ' + (_ctx.profileB.name||'B');
+        _titleSuffix = (L?' — Sinastría ':' — Synastry ') + _nameA + ' ↔ ' + _nameB;
     } else {
         _titleSuffix = L ? ' — Calendario Personal (Tránsitos)' : ' — Personal Calendar (Transits)';
     }
