@@ -7,6 +7,30 @@
   "display": "standalone",
   "background_color": "#02020F",
   "theme_color": "#c9a840",
+  "share_target": {
+    "action": "share-import",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": ["application/json", ".json", "text/plain"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "share-import",
+      "accept": {
+        "application/json": [".json"]
+      }
+    }
+  ],
   "icons": [
     { "src": "icons/android_mdpi_48x48.png", "sizes": "48x48", "type": "image/png" },
     { "src": "icons/android_hdpi_72x72.png", "sizes": "72x72", "type": "image/png" },
