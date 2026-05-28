@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-atlas-v749';
+const CACHE_NAME = 'astro-atlas-v749ct';
 const ASSETS = [
   '/astro-atlas/',
   '/astro-atlas/index.html',
@@ -134,8 +134,52 @@ function updateBadgeCount() {
   }).catch(()=>{});
 }
 
+// v749ct: share_target handler — recibe .json compartido desde WhatsApp/Email/etc.
+// Parsea el archivo y lo guarda temporalmente en IndexedDB, después redirige al main
+// con ?shareImport=1 para que la app lo agarre.
+async function _swHandleShareImport(request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file');
+    if (!file) {
+      return Response.redirect('/astro-atlas/?shareImportError=nofile', 303);
+    }
+    const text = await file.text();
+    // Validar que sea JSON
+    try { JSON.parse(text); } catch(_) {
+      return Response.redirect('/astro-atlas/?shareImportError=notjson', 303);
+    }
+    // Guardar en IndexedDB temporalmente
+    await _swStoreSharedFile(file.name || 'backup.json', text);
+    return Response.redirect('/astro-atlas/?shareImport=1', 303);
+  } catch (e) {
+    console.error('[SW] share-import error:', e);
+    return Response.redirect('/astro-atlas/?shareImportError=' + encodeURIComponent(e.message || 'unknown'), 303);
+  }
+}
+
+function _swStoreSharedFile(filename, content) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('astroatlas_share', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('files', { keyPath: 'id' });
+    req.onsuccess = () => {
+      const db = req.result;
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').put({ id: 'pending', filename: filename, content: content, ts: Date.now() });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
 self.addEventListener('fetch', e => {
   const url = e.request.url;
+  // v749ct: share_target — interceptar POST a /astro-atlas/share-import
+  if (e.request.method === 'POST' && url.includes('/share-import')) {
+    e.respondWith(_swHandleShareImport(e.request));
+    return;
+  }
   // External images (NASA, Wikimedia): pass through directly without modifying request mode
   if (url.includes('upload.wikimedia.org') || url.includes('science.nasa.gov')) {
     return;
