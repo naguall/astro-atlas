@@ -8157,10 +8157,10 @@ function handleGdriveTokenResponse(response) {
         // Avanzar al siguiente step del setup
         try { window._setupFlowNext(); } catch(_eSF) {}
     }
-    // Ahora intentar el primer backup en background (no bloquea la UI)
+    // v749ct: auto-backup al conectar — ya NO pisa otros devices porque cada backup es archivo
+    // versionado independiente con device label embedded. Restore es vía picker.
     driveBackupData(gdriveAccessToken).then(function() {
         scheduleDailyDriveBackup();
-        // Refrescar otra vez para que muestre "Último backup" con fecha
         var modal2 = document.getElementById('preferencesModal');
         if (modal2 && modal2.classList.contains('show')) { openPreferencesModal(); }
     }).catch(function(e) {
@@ -8238,7 +8238,7 @@ window._signInGoogleUnified = function() {
                     try { window._setupFlowNext(); } catch(_){}
                 }
 
-                // Backup inicial en background
+                // v749ct: auto-backup al conectar — ya NO pisa otros devices (archivos versionados independientes con device label)
                 if (typeof driveBackupData === 'function') {
                     driveBackupData(gdriveAccessToken).then(function() {
                         if (typeof scheduleDailyDriveBackup === 'function') scheduleDailyDriveBackup();
@@ -8300,14 +8300,35 @@ function _driveBackupFilename(isoDate) {
     return GDRIVE_BACKUP_PREFIX + isoDate.replace(/:/g, '-').replace(/\..*/, '') + '.json';
 }
 
+// v749ct: device label embedded en cada backup → permite saber qué device generó cada versión
+// y evitar confusión cuando hay backups de varios devices en la misma cuenta de Drive.
+// El user puede renombrar su device en Preferences (futura mejora).
+function _getDeviceLabel() {
+    var label = localStorage.getItem('astroAtlas_deviceLabel');
+    if (label) return label;
+    // Auto-generar: UA hint + random suffix corto
+    var ua = navigator.userAgent || '';
+    var os = ua.match(/Android \d+|iPhone|iPad|Windows|Mac OS|Linux/i);
+    var prefix = os ? os[0].replace(/\s+/g,'-') : 'device';
+    var suffix = Math.random().toString(36).substring(2, 6);
+    label = prefix + '-' + suffix;
+    try { localStorage.setItem('astroAtlas_deviceLabel', label); } catch(_){}
+    return label;
+}
+
 // Save ALL localStorage to Drive appdata as JSON
 // v749cl: ahora cada backup crea un archivo NUEVO con timestamp en el nombre.
 // Mantiene los últimos GDRIVE_MAX_VERSIONS y borra los más viejos.
 // El archivo legacy "moonsync_backup.json" se sigue actualizando como "latest" por compat.
 function driveBackupData(token) {
+    // v749ct: cada backup ahora embebe _deviceLabel para identificar qué device lo generó.
+    // YA NO actualizamos el archivo "latest" legacy — eso causaba que Device 2 pisara a Device 1
+    // sin previo aviso. Ahora cada device crea sus propios archivos versionados y el restore es
+    // siempre vía picker (driveRestoreNow → driveShowRestorePicker).
     var backup = {
-        _version: 'moonsync_gdrive_v2',
+        _version: 'moonsync_gdrive_v3',
         _date: new Date().toISOString(),
+        _deviceLabel: _getDeviceLabel(),
         _count: localStorage.length,
         allKeys: {}
     };
@@ -8319,8 +8340,6 @@ function driveBackupData(token) {
         return k !== 'app_version' && k !== 'notifHistory' && k !== 'lastNotifLogDay';
     });
     if (meaningfulKeys.length === 0) {
-        // v749cr: avisar al usuario cuando "Guardar ahora" no encuentra nada para guardar
-        // (antes el toast "Guardando..." quedaba colgado sin feedback final)
         console.log('[Drive] Nothing meaningful to backup');
         showToast(currentLang === 'es' ? '⚠️ Nada para guardar todavía. Usá la app un poco y volvé a tocar Guardar.' : '⚠️ Nothing to backup yet. Use the app a bit and tap Save again.');
         return Promise.resolve();
@@ -8328,7 +8347,7 @@ function driveBackupData(token) {
     var jsonStr = JSON.stringify(backup);
     var versionedName = _driveBackupFilename(backup._date);
 
-    // 1) Crear archivo VERSIONADO nuevo
+    // Crear archivo VERSIONADO nuevo — único, sin pisar nada
     var versionedBlob = new Blob([jsonStr], {type: 'application/json'});
     var versionedFD = new FormData();
     versionedFD.append('metadata', new Blob([JSON.stringify({ name: versionedName, parents: ['appDataFolder'] })], {type: 'application/json'}));
@@ -8342,32 +8361,9 @@ function driveBackupData(token) {
         if (!r.ok) { return r.text().then(function(t) { throw new Error('Drive API error: ' + t); }); }
         return r.json();
     }).then(function(versionedResult) {
-        console.log('[Drive] Versioned backup created:', versionedName, versionedResult.id);
-
-        // 2) En paralelo: actualizar también el archivo "latest" (legacy moonsync_backup.json)
-        //    para que driveRestoreData siga funcionando con la lógica existente.
-        return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r) { return r.json(); }).then(function(list) {
-            var fileId = (list.files && list.files.length > 0) ? list.files[0].id : null;
-            var latestBlob = new Blob([jsonStr], {type: 'application/json'});
-            var latestFD = new FormData();
-            var metadata = { name: GDRIVE_BACKUP_FILENAME };
-            if (!fileId) metadata.parents = ['appDataFolder'];
-            latestFD.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-            latestFD.append('file', latestBlob);
-            var url = fileId
-                ? 'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=multipart'
-                : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-            return fetch(url, {
-                method: fileId ? 'PATCH' : 'POST',
-                headers: { 'Authorization': 'Bearer ' + token },
-                body: latestFD
-            });
-        }).then(function(){
-            // 3) Limpiar versiones viejas (mantener solo las últimas GDRIVE_MAX_VERSIONS)
-            return _drivePruneOldBackups(token);
-        });
+        console.log('[Drive] Versioned backup created:', versionedName, versionedResult.id, '(device:', backup._deviceLabel + ')');
+        // Limpiar versiones VIEJAS DE ESTE DEVICE (no las de otros devices)
+        return _drivePruneOldBackups(token);
     }).then(function() {
         var now = new Date().toISOString();
         localStorage.setItem('gdriveLastBackup', now);
@@ -8376,7 +8372,6 @@ function driveBackupData(token) {
         showToast(currentLang === 'es' ? '✅ Backup guardado en Google Drive' : '✅ Backup saved to Google Drive');
     }).catch(function(e) {
         console.error('[Drive] Backup error:', e);
-        // Token may have expired
         if (e.message && e.message.includes('401')) {
             gdriveAccessToken = '';
             gdriveTokenExpiry = 0;
@@ -8452,72 +8447,75 @@ window.restoreDriveBackupVersion = function(fileId) {
     });
 };
 
-// Restore ALL localStorage from Drive appdata backup
-// v749cr: si no encuentra el archivo "latest" (astroatlas_backup.json), intenta el versionado más reciente
-// (moonsync_backup_*.json) como fallback. Esto resuelve el bug "no puedo restaurar desde el Device 2"
-// cuando el Device 1 saveó pero el latest se perdió por alguna razón.
-function driveRestoreData(token) {
+// v749ct: helper para formatear "hace X tiempo"
+function _drive_timeAgo(date) {
     var L = currentLang === 'es';
-    showToast(L ? '☁️ Buscando backup en Google Drive...' : '☁️ Searching backup in Google Drive...');
-    // Pedimos AMBOS: el latest legacy y los versionados — para tener fallback
-    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=200&fields=files(id,name,modifiedTime)', {
+    var now = Date.now();
+    var diff = Math.max(0, now - date.getTime());
+    var min = 60*1000, h = 60*min, d = 24*h;
+    if (diff < min) return L?'recién':'just now';
+    if (diff < h) return Math.floor(diff/min) + (L?' min':' min');
+    if (diff < d) return Math.floor(diff/h) + (L?'h':'h');
+    if (diff < 7*d) return Math.floor(diff/d) + (L?'d':'d');
+    return date.toLocaleDateString();
+}
+
+// v749ct: lista TODOS los backups en Drive y devuelve metadata (device label de cada uno se lee
+// del JSON del archivo, no del filename, para soportar archivos viejos sin tag)
+function driveListBackups(token) {
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=200&fields=files(id,name,modifiedTime,size)', {
         headers: { 'Authorization': 'Bearer ' + token }
     }).then(function(r) {
-        if (!r.ok) return r.text().then(function(t){ throw new Error('Drive list error: '+t); });
+        if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
         return r.json();
     }).then(function(list) {
         var allFiles = (list && list.files) || [];
-        console.log('[Drive Restore] Archivos en appDataFolder:', allFiles.map(function(f){return f.name;}));
-        // 1) Buscar el "latest" legacy
-        var latestFile = allFiles.find(function(f){ return f.name === GDRIVE_BACKUP_FILENAME; });
-        // 2) Si no existe, buscar la versión más reciente con prefix moonsync_backup_
-        if (!latestFile) {
-            var versioned = allFiles.filter(function(f){ return f.name && f.name.indexOf(GDRIVE_BACKUP_PREFIX) === 0; });
-            versioned.sort(function(a,b){ return (b.modifiedTime||'').localeCompare(a.modifiedTime||''); });
-            if (versioned.length > 0) {
-                latestFile = versioned[0];
-                console.log('[Drive Restore] latest no encontrado, usando versión más reciente:', latestFile.name);
-            }
-        }
-        if (!latestFile) {
-            // 3) Como último fallback, buscar el archivo JSON más reciente que haya en appDataFolder
-            var jsonFiles = allFiles.filter(function(f){ return f.name && f.name.endsWith('.json'); });
-            jsonFiles.sort(function(a,b){ return (b.modifiedTime||'').localeCompare(a.modifiedTime||''); });
-            if (jsonFiles.length > 0) {
-                latestFile = jsonFiles[0];
-                console.log('[Drive Restore] Usando JSON más reciente como fallback:', latestFile.name);
-            }
-        }
-        if (!latestFile) {
-            showToast(L ? '❌ No se encontró ningún backup en Drive (Device 1 todavía no guardó)' : '❌ No backup found in Drive (Device 1 hasn\'t saved yet)');
-            return null;
-        }
-        var fileId = latestFile.id;
-        var modifiedTime = latestFile.modifiedTime;
-        console.log('[Drive Restore] Descargando', latestFile.name, fileId);
-        return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r) { return r.json(); }).then(function(backup) {
-            var restoredCount = 0;
-            if (backup.allKeys && Object.keys(backup.allKeys).length > 0) {
-                Object.keys(backup.allKeys).forEach(function(key) {
-                    if (key !== 'app_version') {
-                        localStorage.setItem(key, backup.allKeys[key]);
-                        restoredCount++;
-                    }
-                });
-            }
-            if (restoredCount > 0) {
-                var dateStr = modifiedTime ? new Date(modifiedTime).toLocaleDateString() : '';
-                showToast((currentLang === 'es'
-                    ? '✅ Restaurados ' + restoredCount + ' elementos desde Drive (' + dateStr + ')'
-                    : '✅ Restored ' + restoredCount + ' items from Drive (' + dateStr + ')'));
-                setTimeout(function() { location.reload(); }, 2500);
-            } else {
-                showToast(currentLang === 'es' ? '❌ El backup de Drive está vacío' : '❌ Drive backup is empty');
-            }
-            return restoredCount;
+        // Filtrar solo archivos de backup (versionados + el legacy "latest" si existe)
+        var backupFiles = allFiles.filter(function(f) {
+            return f.name && (f.name.indexOf(GDRIVE_BACKUP_PREFIX) === 0 || f.name === GDRIVE_BACKUP_FILENAME || (f.name.endsWith('.json') && f.name.indexOf('moonsync') >= 0));
         });
+        // Sort by modifiedTime DESC (más nuevo primero)
+        backupFiles.sort(function(a,b){ return (b.modifiedTime||'').localeCompare(a.modifiedTime||''); });
+        return backupFiles;
+    });
+}
+
+// v749ct: descarga + restaura UN backup específico (por fileId)
+function driveRestoreData(token, fileId) {
+    var L = currentLang === 'es';
+    showToast(L ? '☁️ Descargando backup...' : '☁️ Downloading backup...');
+    return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
+        return r.json();
+    }).then(function(backup) {
+        if (!backup || !backup.allKeys) throw new Error(L?'Backup inválido':'Invalid backup');
+        // Snapshot pre-restore local (por las dudas)
+        try { if (typeof autoBackupToIndexedDB === 'function') autoBackupToIndexedDB(); } catch(_) {}
+        // Limpiar localStorage existente (preservar config técnica)
+        var preserve = ['app_version', 'gdriveAccessToken', 'gdriveTokenExpiry', 'astroAtlas_deviceLabel'];
+        var keysToClear = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && preserve.indexOf(k) === -1) keysToClear.push(k);
+        }
+        keysToClear.forEach(function(k){ localStorage.removeItem(k); });
+        // Aplicar backup
+        var restoredCount = 0;
+        Object.keys(backup.allKeys).forEach(function(key) {
+            if (preserve.indexOf(key) !== -1) return;
+            localStorage.setItem(key, backup.allKeys[key]);
+            restoredCount++;
+        });
+        if (restoredCount > 0) {
+            var label = backup._deviceLabel ? (' [' + backup._deviceLabel + ']') : '';
+            showToast((L ? '✅ Restaurados ' + restoredCount + ' items' : '✅ Restored ' + restoredCount + ' items') + label, null, 3500);
+            setTimeout(function() { location.reload(); }, 2000);
+        } else {
+            showToast(L ? '❌ Backup vacío' : '❌ Empty backup');
+        }
+        return restoredCount;
     }).catch(function(e) {
         console.error('[Drive] Restore error:', e);
         // v749ct: mostrar la causa REAL del error en vez del mensaje genérico
@@ -8579,6 +8577,8 @@ function driveBackupNow() {
     }
 }
 
+// v749ct: driveRestoreNow ahora abre un PICKER con la lista de backups de TODOS los devices.
+// El user elige cuál restaurar (en vez de auto-restaurar el "latest" que podía ser de otro device).
 function driveRestoreNow() {
     var L = currentLang === 'es';
     if (!gdriveIsConnected()) {
@@ -8586,12 +8586,109 @@ function driveRestoreNow() {
         gdriveSignIn();
         return;
     }
-    try { driveRestoreData(gdriveAccessToken); }
-    catch(_eRN) {
-        console.error('[Drive] Exception en driveRestoreNow:', _eRN);
-        showToast((L ? '❌ Excepción restaurando: ' : '❌ Exception restoring: ') + (_eRN.message || _eRN));
-    }
+    driveShowRestorePicker();
 }
+
+// v749ct: Modal que lista los backups disponibles en Drive (de TODOS los devices) y deja al user elegir.
+window.driveShowRestorePicker = function() {
+    var L = currentLang === 'es';
+    var myDevice = _getDeviceLabel();
+
+    // Crear modal
+    var modal = document.createElement('div');
+    modal.id = '_driveRestorePickerModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);display:flex;align-items:flex-end;justify-content:center;';
+    modal.onclick = function(e) { if (e.target === modal) { try { document.body.removeChild(modal); } catch(_){} } };
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:#0f1137;border-top:1px solid rgba(66,133,244,0.4);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;';
+    sheet.innerHTML =
+        '<div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);">' +
+            '<div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 10px;"></div>' +
+            '<div style="font-family:\'Cinzel\',serif;font-size:0.98em;color:#7baaf7;text-align:center;">☁️ ' + (L?'Restaurar desde Drive':'Restore from Drive') + '</div>' +
+            '<div style="font-size:0.72em;color:rgba(255,255,255,0.45);text-align:center;margin-top:4px;">' + (L?'Tu device:':'Your device:') + ' <strong>' + myDevice + '</strong></div>' +
+        '</div>' +
+        '<div id="_driveRestoreList" style="flex:1;overflow-y:auto;padding:10px 14px;">' +
+            '<div style="text-align:center;color:rgba(255,255,255,0.5);padding:30px;font-size:0.85em;">' + (L?'Cargando lista de backups…':'Loading backup list…') + '</div>' +
+        '</div>' +
+        '<button id="_driveRestoreCancel" style="padding:14px;background:none;border:none;border-top:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.85em;">' + (L?'Cancelar':'Cancel') + '</button>';
+    modal.appendChild(sheet);
+    document.body.appendChild(modal);
+    function close() { try { document.body.removeChild(modal); } catch(_){} }
+    document.getElementById('_driveRestoreCancel').onclick = close;
+
+    // Cargar lista de backups
+    driveListBackups(gdriveAccessToken).then(function(files) {
+        if (files.length === 0) {
+            document.getElementById('_driveRestoreList').innerHTML =
+                '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:30px;font-size:0.85em;">' +
+                    (L?'No se encontró ningún backup en Drive todavía.':'No backups found in Drive yet.') +
+                '</div>';
+            return;
+        }
+        // Para cada archivo, hacer fetch de los primeros bytes para leer _deviceLabel y _count
+        // (puede ser lento si hay muchos — usamos batch de 20)
+        var head = files.slice(0, 20);
+        var lookups = head.map(function(f) {
+            return fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', {
+                headers: { 'Authorization': 'Bearer ' + gdriveAccessToken }
+            }).then(function(r){ return r.json(); }).then(function(json) {
+                f._deviceLabel = json && json._deviceLabel ? json._deviceLabel : (L?'(sin tag)':'(no tag)');
+                f._count = json && json._count ? json._count : (json.allKeys ? Object.keys(json.allKeys).length : 0);
+            }).catch(function() { f._deviceLabel = (L?'(error leer)':'(read error)'); f._count = 0; });
+        });
+        Promise.all(lookups).then(function() {
+            var html = '';
+            head.forEach(function(f) {
+                var date = f.modifiedTime ? new Date(f.modifiedTime) : null;
+                var ago = date ? _drive_timeAgo(date) : '?';
+                var dateFull = date ? date.toLocaleString() : '';
+                var isMyDevice = f._deviceLabel === myDevice;
+                var dotColor = isMyDevice ? '#4caf50' : '#7baaf7';
+                var badge = isMyDevice ? '<span style="font-size:0.65em;color:#4caf50;background:rgba(76,175,80,0.12);padding:1px 5px;border-radius:4px;margin-left:6px;">' + (L?'este device':'this device') + '</span>' : '';
+                html += '<div data-fid="' + f.id + '" class="_drv_rest_item" style="padding:12px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '<div style="width:8px;height:8px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></div>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="color:#fff;font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + f._deviceLabel + badge + '</div>' +
+                            '<div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:2px;">' +
+                                '<span title="' + dateFull + '">' + (L?'hace ':'') + ago + (L?'':' ago') + '</span>' +
+                                (f._count ? ' · ' + f._count + ' items' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="color:#7baaf7;font-size:0.85em;">⬇️</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            if (files.length > head.length) {
+                html += '<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:0.7em;padding:6px;">+' + (files.length - head.length) + ' ' + (L?'más antiguos':'older') + '</div>';
+            }
+            document.getElementById('_driveRestoreList').innerHTML = html;
+            Array.prototype.forEach.call(document.querySelectorAll('._drv_rest_item'), function(el) {
+                el.onclick = function() {
+                    var fid = el.getAttribute('data-fid');
+                    var deviceLabel = el.querySelector('div[style*="font-weight:600"]').textContent.replace(/este device|this device/,'').trim();
+                    // Confirmar — restore borra los datos locales
+                    var confirmMsg = L
+                        ? '¿Restaurar este backup de "' + deviceLabel + '"?\n\nVa a REEMPLAZAR los datos actuales de este device con los del backup. Los datos actuales se perderán.'
+                        : 'Restore this backup from "' + deviceLabel + '"?\n\nThis will REPLACE current data on this device with the backup. Current data will be lost.';
+                    if (confirm(confirmMsg)) {
+                        close();
+                        driveRestoreData(gdriveAccessToken, fid).catch(function(e) {
+                            console.warn('[restorePicker] restore error:', e);
+                        });
+                    }
+                };
+            });
+        });
+    }).catch(function(e) {
+        console.error('[restorePicker] listBackups error:', e);
+        var errMsg = (e && e.message ? e.message : String(e)).substring(0, 200);
+        document.getElementById('_driveRestoreList').innerHTML =
+            '<div style="text-align:center;color:#ff6b6b;padding:20px;font-size:0.82em;">' +
+                (L?'Error cargando backups: ':'Error loading backups: ') + errMsg +
+            '</div>';
+    });
+};
 
 // v749cs: exposición explícita a window para inline onclick handlers en HTML
 // (las top-level function declarations YA son globales, pero esto sirve como defensa contra
@@ -15007,7 +15104,92 @@ if (_dreamAlarmEnabled) {
             }
         }, 2000);
     }
+    // v749ct: share_target — un .json fue compartido a la app desde WhatsApp/Email/etc.
+    // El service worker ya lo guardó en IndexedDB; nosotros lo leemos y mostramos confirmación.
+    if (params.get('shareImport') === '1') {
+        var url4 = new URL(window.location);
+        url4.searchParams.delete('shareImport');
+        window.history.replaceState({}, '', url4);
+        setTimeout(function() { _handleSharedBackupFile(); }, 1500);
+    }
+    var shareErr = params.get('shareImportError');
+    if (shareErr) {
+        var url5 = new URL(window.location);
+        url5.searchParams.delete('shareImportError');
+        window.history.replaceState({}, '', url5);
+        setTimeout(function() {
+            var msgs = {
+                nofile: currentLang === 'es' ? '❌ No se recibió ningún archivo' : '❌ No file received',
+                notjson: currentLang === 'es' ? '❌ El archivo no es un backup válido (no es JSON)' : '❌ File is not a valid backup (not JSON)'
+            };
+            if (typeof showToast === 'function') showToast(msgs[shareErr] || ('❌ Error: ' + shareErr), null, 5000);
+        }, 1500);
+    }
 })();
+
+// v749ct: lee el archivo compartido desde IndexedDB (puesto ahí por el service worker)
+// y muestra modal "¿Restaurar este backup?"
+function _handleSharedBackupFile() {
+    var L = currentLang === 'es';
+    var req = indexedDB.open('astroatlas_share', 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore('files', { keyPath: 'id' }); };
+    req.onsuccess = function() {
+        var db = req.result;
+        var tx = db.transaction('files', 'readwrite');
+        var store = tx.objectStore('files');
+        var getReq = store.get('pending');
+        getReq.onsuccess = function() {
+            var rec = getReq.result;
+            if (!rec) {
+                if (typeof showToast === 'function') showToast(L?'⚠️ No hay archivo pendiente de importar':'⚠️ No pending import file', null, 3500);
+                return;
+            }
+            // Eliminar del store inmediatamente para no procesar dos veces
+            store.delete('pending');
+            try {
+                var backup = JSON.parse(rec.content);
+                var keysCount = backup && backup.allKeys ? Object.keys(backup.allKeys).length : 0;
+                var dateStr = backup && backup._date ? new Date(backup._date).toLocaleString() : '';
+                var deviceLabel = backup && backup._deviceLabel ? backup._deviceLabel : (L?'(sin tag)':'(no tag)');
+                if (!backup || !backup.allKeys || keysCount === 0) {
+                    if (typeof showToast === 'function') showToast(L?'❌ El archivo no parece un backup de AstroAtlas':'❌ File does not look like an AstroAtlas backup', null, 5000);
+                    return;
+                }
+                var msg = L
+                    ? '¿Restaurar este backup recibido por compartir?\n\nDevice origen: ' + deviceLabel + '\nFecha: ' + dateStr + '\nItems: ' + keysCount + '\n\nVa a REEMPLAZAR los datos de este device. Los datos actuales se perderán.'
+                    : 'Restore this shared backup?\n\nSource device: ' + deviceLabel + '\nDate: ' + dateStr + '\nItems: ' + keysCount + '\n\nThis will REPLACE current data. Current data will be lost.';
+                if (confirm(msg)) {
+                    // Snapshot pre-restore
+                    try { if (typeof autoBackupToIndexedDB === 'function') autoBackupToIndexedDB(); } catch(_){}
+                    var preserve = ['app_version', 'gdriveAccessToken', 'gdriveTokenExpiry', 'astroAtlas_deviceLabel'];
+                    var keysToClear = [];
+                    for (var i = 0; i < localStorage.length; i++) {
+                        var k = localStorage.key(i);
+                        if (k && preserve.indexOf(k) === -1) keysToClear.push(k);
+                    }
+                    keysToClear.forEach(function(k){ localStorage.removeItem(k); });
+                    var restoredCount = 0;
+                    Object.keys(backup.allKeys).forEach(function(key) {
+                        if (preserve.indexOf(key) !== -1) return;
+                        localStorage.setItem(key, backup.allKeys[key]);
+                        restoredCount++;
+                    });
+                    if (typeof showToast === 'function') showToast((L?'✅ Restaurados ':'✅ Restored ') + restoredCount + (L?' items. Recargando…':' items. Reloading…'), 'rgba(201,168,64,0.96)', 3000);
+                    setTimeout(function(){ location.reload(); }, 2000);
+                }
+            } catch(e) {
+                console.error('[shareImport] error parseando backup:', e);
+                if (typeof showToast === 'function') showToast((L?'❌ Error leyendo backup: ':'❌ Error reading backup: ') + (e.message||''), null, 5000);
+            }
+        };
+        getReq.onerror = function() {
+            if (typeof showToast === 'function') showToast(L?'❌ No se pudo leer el archivo compartido':'❌ Could not read shared file', null, 4000);
+        };
+    };
+    req.onerror = function() {
+        console.warn('[shareImport] no se pudo abrir IndexedDB');
+    };
+}
 
 // Expose globally
 window.toggleDreamAlarm = toggleDreamAlarm;
