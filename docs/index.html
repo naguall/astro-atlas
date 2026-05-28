@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749cr';</script>
+    <script>window.APP_VERSION = 'v749ct';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -1366,6 +1366,38 @@
     </div>
 
     <script>
+// ==============================================
+// v749cs: showToast GLOBAL — antes esta función se llamaba 32 veces en la app
+// (gdriveSignIn, driveBackupNow, handleGdriveTokenResponse, etc.) pero NUNCA
+// estaba declarada globalmente — solo había un `_showToast` local dentro de
+// shareTextSafe. Resultado: cada call tiraba `ReferenceError: showToast is not
+// defined` silenciosamente desde onclick handlers, y por eso los botones de
+// Google Drive (Guardar/Restaurar/Conectar) NO mostraban ningún feedback ni
+// hacían nada visible. ROOT CAUSE de toda la saga de bugs de Drive.
+// ==============================================
+window.showToast = function(msg, color, duration) {
+    try {
+        var prev = document.getElementById('_globalToast');
+        if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+        var t = document.createElement('div');
+        t.id = '_globalToast';
+        // Auto-color: rojo si empieza con ❌, amarillo si ⚠️, azul si ☁️/⬇️, verde por default
+        var autoColor = color;
+        if (!autoColor) {
+            if (/^❌|^✗|error/i.test(msg)) autoColor = 'rgba(231,76,60,0.96)';
+            else if (/^⚠️|^⚠/.test(msg)) autoColor = 'rgba(255,193,7,0.96)';
+            else if (/^☁️|^⬇️|drive|google/i.test(msg)) autoColor = 'rgba(66,133,244,0.96)';
+            else autoColor = 'rgba(37,211,102,0.95)';
+        }
+        t.style.cssText = 'position:fixed;top:max(env(safe-area-inset-top,20px),20px);left:50%;transform:translateX(-50%);background:' + autoColor + ';color:#fff;padding:12px 20px;border-radius:8px;font-size:0.88em;font-weight:600;z-index:999999;box-shadow:0 4px 16px rgba(0,0,0,0.5);max-width:90vw;text-align:center;line-height:1.4;animation:slideDown 0.3s ease;';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        var dur = duration || 3500;
+        setTimeout(function() { if (t.parentNode) { t.style.opacity = '0'; t.style.transition = 'opacity 0.4s'; } }, dur - 400);
+        setTimeout(function() { try { if (t.parentNode) document.body.removeChild(t); } catch(_){} }, dur);
+    } catch(e) { console.warn('[showToast] error:', e, 'msg:', msg); }
+};
+
 // ==============================================
 // CÁLCULOS ASTRONÓMICOS Y LUNARES
 // ==============================================
@@ -8440,6 +8472,15 @@ function driveRestoreNow() {
     }
 }
 
+// v749cs: exposición explícita a window para inline onclick handlers en HTML
+// (las top-level function declarations YA son globales, pero esto sirve como defensa contra
+// cualquier refactor futuro que las mueva a un closure).
+window.gdriveSignIn = gdriveSignIn;
+window.gdriveSignOut = gdriveSignOut;
+window.gdriveIsConnected = gdriveIsConnected;
+window.driveBackupNow = driveBackupNow;
+window.driveRestoreNow = driveRestoreNow;
+
 // v749cl: Modal con historial de versiones (local IndexedDB + Drive si está conectado)
 window.openBackupVersionsModal = function() {
     var L = currentLang === 'es';
@@ -12460,20 +12501,12 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                     }
                 }
             }
-            // v749cf: clave global para botón Regenerar (siempre disponible)
-            var _regenKey = '_regenPrompt_' + chatId;
-            window[_regenKey] = { prompt: specificPrompt, target: targetDivId, title: readingTitle, storage: storageKey, chatId: chatId };
-            // v749am: initial AI response — botones 📤 + 🔄 en la esquina superior derecha de la bubble (v749cf: añadido Regenerar siempre)
-            chatHtml += '<div style="margin-bottom:8px;text-align:left;position:relative;"><div style="display:inline-block;max-width:92%;padding:10px 14px;padding-right:64px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);position:relative;"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div>'
-                + '<button onclick="shareMessageFromChat(\'' + chatId + '\', \'initial\')" title="' + (L?'Compartir este bloque':'Share this block') + '" style="position:absolute;top:6px;right:34px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">📤</button>'
-                + '<button onclick="(function(){var d=window[\'' + _regenKey + '\'];if(!d)return;try{var c=getInterpChat(d.chatId);if(c){c.initialResponse=null;saveInterpChat(d.chatId,c);}}catch(_){}var t=document.getElementById(d.target);if(t)t.innerHTML=\'\';fetchAIInterpretation(d.prompt,d.target,d.title,d.storage);})()" title="' + (L?'Regenerar la interpretación (ignora cache)':'Regenerate the interpretation (ignore cache)') + '" style="position:absolute;top:6px;right:6px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">🔄</button>'
+            // v749ct: botón Regenerar removido (confundía con disco de guardar). Solo queda 📤 Compartir en la bubble.
+            // v749ct: initial AI response — solo botón 📤 (compartir) en la esquina superior derecha de la bubble. Guardar vive en la barra inferior (💾).
+            chatHtml += '<div style="margin-bottom:8px;text-align:left;position:relative;"><div style="display:inline-block;max-width:92%;padding:10px 14px;padding-right:36px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);position:relative;"><div id="interpResp_' + chatId + '"><p>' + formattedHtml + '</p></div>'
+                + '<button onclick="shareMessageFromChat(\'' + chatId + '\', \'initial\')" title="' + (L?'Compartir este bloque':'Share this block') + '" style="position:absolute;top:6px;right:6px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#667eea;font-size:0.85em;cursor:pointer;padding:2px 6px;line-height:1;">📤</button>'
                 + '</div></div>';
-            // v749cf: si la respuesta del cache se ve truncada, mostrar banner sugiriendo regenerar
-            if (_cachedLooksTruncated) {
-                chatHtml += '<div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.35);border-radius:8px;text-align:center;">'
-                    + '<div style="color:#ffc107;font-size:0.78em;margin-bottom:6px;">⚠️ ' + (L?'Esta respuesta podría estar incompleta. Tocá 🔄 arriba para regenerarla.':'This response may be incomplete. Tap 🔄 above to regenerate.') + '</div>'
-                    + '</div>';
-            }
+            // v749ct: banner de truncamiento removido (referenciaba botón 🔄 que ya no existe).
             // Existing chat messages (if reopening) — cada uno con su botón 📤
             if (_existChat && _existChat.messages) {
                 _existChat.messages.forEach(function(msg, _mIdx) {
@@ -17754,6 +17787,32 @@ function getAspectSymbol(type) {
     return symbols[type] || type;
 }
 
+// v749ct: muchos Android no tienen los glifos Unicode de aspectos en la fuente del sistema
+// (☌ ☍ ⚹ ☽ etc.) — caen a tofu o partial-derivative ∂. Esta helper devuelve un label corto
+// en texto que siempre renderiza, para mostrar al lado del símbolo.
+function aspectLabel(symbol, lang) {
+    var L = (lang || (typeof currentLang !== 'undefined' ? currentLang : 'es')) === 'es';
+    var map = {
+        '☌': L ? 'conj' : 'conj',
+        '⚹': L ? 'sex'  : 'sxt',
+        '□': L ? 'cuad' : 'sq',
+        '⊡': L ? 'cuad' : 'sq',
+        '△': L ? 'trig' : 'tri',
+        '☍': L ? 'opo'  : 'opp',
+        '∠': L ? 'semicuad' : 'semisq',
+        '⊼': L ? 'sesq' : 'sesq',
+        '⚻': L ? 'quinc' : 'qnx'
+    };
+    return map[symbol] || '';
+}
+
+// v749ct: render seguro de aspecto = símbolo + label en texto (entre paréntesis si hay).
+// Si el símbolo no tiene mapeo (raro), devuelve solo el símbolo.
+function aspectGlyph(symbol, lang) {
+    var lab = aspectLabel(symbol, lang);
+    return lab ? (symbol + ' ' + lab) : symbol;
+}
+
 function getAspectColor(type) {
     // Handle "Entra en X" / "Enters X" patterns
     if (type && (type.startsWith('Entra en') || type.startsWith('Enters'))) return '#9b59b6';
@@ -21391,11 +21450,16 @@ function updateCurrentDayInfoForMode(mode) {
             }
         }
 
+        // v749ct: detectar patrones de aspectos (T-Cuadrada, Yod, Gran Trígono, Gran Cruz)
+        // y añadirlos al banner. Stellium ya estaba — ahora se añaden los demás.
+        var _todayPatterns2 = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(today) : [];
+        var _patternsForBanner2 = _todayPatterns2.filter(function(p) { return p.type !== 'stellium'; });
         const allPlanetaryEvents = [
             ...(_todayLunarPhaseEvent ? [{ type: 'moonPhase', data: _todayLunarPhaseEvent }] : []),
             ...(todayEclipse ? [{ type: 'eclipse', data: todayEclipse }] : []),
             ...(todayAstroEvent ? [{ type: 'astroEvent', data: todayAstroEvent }] : []),
             ...(todayStellium ? [{ type: 'stellium', data: todayStellium }] : []),
+            ..._patternsForBanner2.map(function(p) { return { type: 'pattern', data: p }; }),
             ...todaySignChanges.map(ch => ({ type: 'signChange', data: ch })),
             ...todayRetrogrades.map(ret => ({ type: 'retrograde', data: ret })),
             ...todayInterAspects.map(asp => ({ type: 'interPlanetaryAspect', data: asp })),
@@ -21593,6 +21657,12 @@ function updateCurrentDayInfoForMode(mode) {
                                 const ipaText = (_aspP1Full + ' ' + asp.symbol + ' ' + _aspP2Full + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
                                 const ipaDisplay = _aspP1Abbr + ' ' + asp.symbol + ' ' + _aspP2Abbr;
                                 return `<div onclick="showBannerAspectDetail('${ipaText}')" title="${ipaText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">${ts2}${ipaDisplay}</span></div>`;
+                            } else if (event.type === 'pattern') {
+                                // v749ct: patrones de aspectos (T-Cuadrada, Yod, Gran Trígono, Gran Cruz)
+                                const pat = event.data;
+                                const _patPlanets = (pat.planets || []).join(', ');
+                                const _patText = ((pat.icon||'★') + ' ' + (pat.name||'Patrón') + ' — ' + _patPlanets).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${_patText}')" title="${_patText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${pat.color || '#9b59b6'};text-align:center;width:100%;cursor:pointer;"><span style="color:#e8eaf6">${pat.icon||'★'} ${pat.name||'Patrón'}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
@@ -29976,8 +30046,9 @@ function showPersonalDayDetail(year, month, day) {
             </div>` : ''}
 
             <!-- v749co: botón "Interpretar el día completo" — vuelto a tamaño previo (más compacto). -->
+            <!-- v749ct: onclick envuelto en try/catch — si interpretCalendarDay tira error, lo mostramos -->
             <div style="margin-bottom:14px;text-align:center;">
-                <button onclick="interpretCalendarDay(${year},${month},${day})" style="padding:10px 18px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.88em;font-weight:700;cursor:pointer;width:100%;max-width:400px;">
+                <button onclick="try{if(typeof interpretCalendarDay==='function'){interpretCalendarDay(${year},${month},${day});}else{alert('Error: interpretCalendarDay no está definida — recargá la app');}}catch(_eBtn){console.error('[btn interpretar día] error:',_eBtn);alert('Error al interpretar: '+(_eBtn.message||_eBtn));}" style="padding:10px 18px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.88em;font-weight:700;cursor:pointer;width:100%;max-width:400px;">
                     ✨ ${L ? 'Interpretar el día completo' : 'Interpret full day'}
                 </button>
             </div>
@@ -30204,6 +30275,12 @@ function showPersonalDayDetail(year, month, day) {
 
 // ===== INTERPRET CALENDAR DAY (full day) =====
 function interpretCalendarDay(year, month, day) {
+    // v749ct: toast inmediato + log para confirmar que el click llega.
+    // Si el usuario reporta "sigue sin funcionar", el toast debería aparecer aunque falle adentro.
+    console.log('[interpretCalendarDay] CALLED — year/month/day:', year, month, day);
+    try {
+        if (typeof window.showToast === 'function') window.showToast('✨ Cargando interpretación del día…', null, 1500);
+    } catch(_eToast) {}
     var L = currentLang === 'es';
     var date = new Date(year, month, day);
     var dateStr = date.toLocaleDateString('es', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -30213,10 +30290,11 @@ function interpretCalendarDay(year, month, day) {
     // Build context about that specific day
     // v749cq: chequeos defensivos — antes si natal era null el try/catch silently returneaba
     // y el modal nunca se abría → el botón parecía "no hacer nada".
-    var natal = getNatalData();
+    var natal = (typeof getNatalData === 'function') ? getNatalData() : null;
     if (!natal || !natal.id) {
         console.warn('[interpretCalendarDay] No hay perfil natal activo — abortando');
-        alert(L ? 'No hay un perfil natal activo. Configurá uno en Astrología → Carta para usar la interpretación.' : 'No active natal profile. Set one up in Astrology → Chart to use interpretation.');
+        if (typeof window.showToast === 'function') window.showToast('⚠️ No hay perfil natal activo. Configurá uno en Astrología → Carta.', null, 5000);
+        else alert(L ? 'No hay un perfil natal activo. Configurá uno en Astrología → Carta para usar la interpretación.' : 'No active natal profile. Set one up in Astrology → Chart to use interpretation.');
         return;
     }
     var natalChart;
@@ -34326,12 +34404,15 @@ function renderCalendar() {
             }
         } catch(_eMev) { console.warn('[Lunar banner] moonEvent compute:', _eMev); }
 
-        // Combinar TODOS los eventos planetarios del día — orden: eclipses, equinoccios, stelliums, cambios signo, retrógrados, aspectos
+        // Combinar TODOS los eventos planetarios del día — orden: eclipses, equinoccios, stelliums, patrones, cambios signo, retrógrados, aspectos
+        // v749ct: incluir patrones de aspectos (T-Cuadrada, Yod, Gran Trígono, Gran Cruz) en el banner
+        var _patternsForBanner = todayDynamicPatterns.filter(function(p) { return p.type !== 'stellium'; });
         const allPlanetaryEvents = [
             ...(todayEclipse2 ? [{ type: 'eclipse', data: todayEclipse2 }] : []),
             ...(todayAstroEvent2 ? [{ type: 'astroEvent', data: todayAstroEvent2 }] : []),
             ...(_todayMoonEventBanner ? [{ type: 'moonPhase', data: _todayMoonEventBanner }] : []),
             ...(todayStellium2 ? [{ type: 'stellium', data: todayStellium2 }] : (todayDynamicStellium ? [{ type: 'stellium', data: { sign: todayDynamicStellium.sign, planets: todayDynamicStellium.planets } }] : [])),
+            ..._patternsForBanner.map(function(p) { return { type: 'pattern', data: p }; }),
             ...todaySignChanges.map(ch => ({ type: 'signChange', data: ch })),
             ...todayRetrogrades.map(ret => ({ type: 'retrograde', data: ret })),
             ...todayInterAspects.map(asp => ({ type: 'interPlanetaryAspect', data: asp })),
@@ -34460,6 +34541,12 @@ function renderCalendar() {
                                 const ts2 = asp.time?`<span style="font-weight:bold;color:#c9a840">${asp.time}</span> `:'';
                                 const ipaText = (_aspP1Full + ' ' + asp.symbol + ' ' + _aspP2Full + (asp.aspectName ? ' (' + asp.aspectName + ')' : '')).replace(/'/g, "\\'");
                                 return `<div onclick="showBannerAspectDetail('${ipaText}')" title="${ipaText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${asp.color};"><span style="color:#e8eaf6">${ts2}${_aspP1Abbr} ${asp.symbol} ${_aspP2Abbr}</span></div>`;
+                            } else if (event.type === 'pattern') {
+                                // v749ct: patrones de aspectos (T-Cuadrada, Yod, Gran Trígono, Gran Cruz)
+                                const pat = event.data;
+                                const _patPlanets = (pat.planets || []).join(', ');
+                                const _patText = ((pat.icon||'★') + ' ' + (pat.name||'Patrón') + ' — ' + _patPlanets).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${_patText}')" title="${_patText}" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;text-align:center;width:100%;border-left:2px solid ${pat.color || '#9b59b6'};"><span style="color:#e8eaf6">${pat.icon||'★'} ${pat.name||'Patrón'}</span></div>`;
                             } else if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
@@ -39360,8 +39447,32 @@ window.openAstroModal = openAstroModal;
         if (Math.abs(dy) * MAX_VERTICAL_RATIO > Math.abs(dx)) { console.log('[swipe] rejected: too vertical dx=' + dx + ' dy=' + dy); return; }
 
         // Don't swipe inside modals, AI chat, or scrollable tables
+        // v749cs: añadidos #natalTabChart (rueda — usuario quiere tocarla para zoom, no cambiar signo),
+        //         #natalTabHoy (rueda de tránsitos), #chartZoomModal (modal pinch-zoom),
+        //         #natalTabCiclos, #natalTabSinastria, #natalTabCompuesta, #natalTabDavison, #natalTabRelCalendar.
+        //         Antes solo se excluían Tables/Tutor/Mapa — el resto disparaba swipe accidental.
         const target = e.target;
-        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabMapa'))) { console.log('[swipe] rejected: inside excluded container'); return; }
+        if (target.closest && (
+            target.closest('.modal-content') ||
+            target.closest('#aiChatPanel') ||
+            target.closest('.preferences-modal') ||
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('.table-scroll-container') ||
+            target.closest('.natal-data-table') ||
+            target.closest('#natalTabTables') ||
+            target.closest('#natalTabTutor') ||
+            target.closest('#natalTabMapa') ||
+            target.closest('#natalTabChart') ||
+            target.closest('#natalTabHoy') ||
+            target.closest('#natalTabCiclos') ||
+            target.closest('#natalTabSinastria') ||
+            target.closest('#natalTabCompuesta') ||
+            target.closest('#natalTabDavison') ||
+            target.closest('#natalTabRelCalendar') ||
+            target.closest('#chartZoomModal') ||
+            target.closest('svg')
+        )) { console.log('[swipe] rejected: inside excluded container'); return; }
         console.log('[swipe] firing dx=' + dx + ' calendarMode=' + calendarMode);
 
         if (dx < 0) {
@@ -45885,19 +45996,19 @@ window._ttsHighlightChunk = function(idx) {
                         }
                     }
 
-                    // Margen extra de aire arriba/abajo (8px) + margen para el player (16px)
-                    var TOP_PAD = 8;
+                    // v749ct: el chunk activo debe quedar PEGADO ARRIBA (no en el medio).
+                    // El usuario pidió ver la frase en lectura en el TOP del área visible —
+                    // donde antes aparecía "visceral ante las..." — para no taparse con el player.
+                    // Cambio: cualquier movimiento fuera del "top sweet spot" reposiciona el chunk
+                    // al top con un pequeño aire (10px). Antes usaba 30% del espacio útil → demasiado abajo.
+                    var TOP_PAD = 10;
                     var BOTTOM_PAD = 16;
-                    var topOk = curRect.top >= contRect.top + TOP_PAD;
+                    var topOk = curRect.top >= contRect.top + TOP_PAD && curRect.top <= contRect.top + TOP_PAD + 30;
                     var botOk = curRect.bottom <= safeBottom - BOTTOM_PAD;
                     if (!topOk || !botOk) {
-                        // v749cm: posicionar el chunk de forma que ENTERO esté arriba del player,
-                        // preferentemente con ~30% del espacio útil arriba del chunk para que
-                        // el usuario pueda leer la oración que viene también.
-                        var usableHeight = safeBottom - contRect.top;
+                        // v749ct: posicionar el chunk JUSTO al top (10px de aire), no en 30%.
                         var relTop = curRect.top - contRect.top + scrollEl.scrollTop;
-                        var desiredOffsetFromContTop = usableHeight * 0.30;
-                        var newScrollTop = relTop - desiredOffsetFromContTop;
+                        var newScrollTop = relTop - TOP_PAD;
                         // Clamp
                         newScrollTop = Math.max(0, Math.min(newScrollTop, scrollEl.scrollHeight - scrollEl.clientHeight));
                         scrollEl.scrollTop = newScrollTop;
