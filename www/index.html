@@ -8180,6 +8180,102 @@ function gdriveSignIn() {
     gdriveTokenClient.requestAccessToken({prompt: 'consent'});
 }
 
+// v749ct: login UNIFICADO de Google — conecta Drive (backup) + Firebase Auth (AstroConnect/Social) en UN solo popup.
+// Estrategia: usar firebase.auth.signInWithPopup con scope de Drive incluido. El credential resultante trae el
+// access_token de Drive listo para usar. Resultado: un solo "Continue with Google" → todo conectado.
+// En Capacitor APK: signInWithPopup falla (origin localhost rechazado por Google), así que ahí caemos a GIS-only.
+window._signInGoogleUnified = function() {
+    var L = currentLang === 'es';
+    var isCapacitor = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+    // APK Capacitor: solo Drive vía GIS (Firebase popup no funciona en WebView)
+    if (isCapacitor) {
+        if (typeof gdriveSignIn === 'function') gdriveSignIn();
+        return;
+    }
+
+    // PWA / web: intentar flujo unificado con Firebase Auth
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        // Firebase no inicializado todavía → fallback a Drive-only
+        console.warn('[unifiedSignin] firebase auth no disponible — fallback a GIS Drive only');
+        if (typeof gdriveSignIn === 'function') gdriveSignIn();
+        return;
+    }
+
+    try {
+        var provider = new firebase.auth.GoogleAuthProvider();
+        // Pedir scope de Drive appdata (mismo que GIS solicita) — Firebase devuelve el access_token en credential
+        provider.addScope('https://www.googleapis.com/auth/drive.appdata');
+        provider.setCustomParameters({ prompt: 'consent' });
+
+        if (typeof window.showToast === 'function') {
+            window.showToast('🔄 ' + (L?'Abriendo Google…':'Opening Google…'), 'rgba(66,133,244,0.96)', 2000);
+        }
+
+        firebase.auth().signInWithPopup(provider).then(function(result) {
+            console.log('[unifiedSignin] Firebase user:', result.user && result.user.email);
+            // result.credential trae el accessToken de Google (Drive scope incluido)
+            var cred = result.credential;
+            if (cred && cred.accessToken) {
+                // Guardar token de Drive como si hubiera venido por GIS (handleGdriveTokenResponse)
+                var expiresIn = 3600;
+                gdriveAccessToken = cred.accessToken;
+                gdriveTokenExpiry = Date.now() + (expiresIn * 1000);
+                localStorage.setItem('gdriveAccessToken', gdriveAccessToken);
+                localStorage.setItem('gdriveTokenExpiry', gdriveTokenExpiry.toString());
+                console.log('[unifiedSignin] ✅ Drive token guardado + Firebase user logueado');
+
+                if (typeof window.showToast === 'function') {
+                    window.showToast('✅ ' + (L?'Google Drive + AstroConnect conectados':'Google Drive + AstroConnect connected'), 'rgba(66,133,244,0.96)', 3500);
+                }
+
+                // Refrescar Preferences si está abierto
+                var modal = document.getElementById('preferencesModal');
+                if (modal && modal.classList.contains('show')) { try { openPreferencesModal(); } catch(_){} }
+
+                // Avanzar setup si está activo
+                if (typeof window._setupFlowNext === 'function') {
+                    try { window._setupFlowNext(); } catch(_){}
+                }
+
+                // Backup inicial en background
+                if (typeof driveBackupData === 'function') {
+                    driveBackupData(gdriveAccessToken).then(function() {
+                        if (typeof scheduleDailyDriveBackup === 'function') scheduleDailyDriveBackup();
+                    }).catch(function(e) { console.warn('[unifiedSignin] backup inicial falló:', e); });
+                }
+            } else {
+                // Sin Drive token — Firebase ok, pero usuario tiene que re-consentir Drive aparte
+                console.warn('[unifiedSignin] credential sin accessToken — Firebase ok pero Drive no');
+                if (typeof window.showToast === 'function') {
+                    window.showToast('🌐 ' + (L?'AstroConnect conectado. Tocá de nuevo para Drive':'AstroConnect connected. Tap again for Drive'), 'rgba(0,188,212,0.96)', 4000);
+                }
+                if (typeof window._setupFlowNext === 'function') {
+                    try { window._setupFlowNext(); } catch(_){}
+                }
+            }
+        }).catch(function(e) {
+            console.error('[unifiedSignin] error:', e);
+            // Usuario canceló el popup
+            if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-blocked')) {
+                if (e.code === 'auth/popup-blocked' && typeof window.showToast === 'function') {
+                    window.showToast('⚠️ ' + (L?'Popup bloqueado por el browser. Habilitalos para continuar.':'Popup blocked by browser. Allow popups to continue.'), null, 5000);
+                }
+                return;
+            }
+            // Otros errores: avisar y fallback a GIS Drive-only
+            console.warn('[unifiedSignin] cayendo a fallback Drive-only');
+            if (typeof window.showToast === 'function') {
+                window.showToast('⚠️ ' + (e && e.message ? e.message.substring(0, 80) : 'Error') + ' — Drive only', null, 4000);
+            }
+            if (typeof gdriveSignIn === 'function') gdriveSignIn();
+        });
+    } catch(eGlobal) {
+        console.error('[unifiedSignin] excepción:', eGlobal);
+        if (typeof gdriveSignIn === 'function') gdriveSignIn();
+    }
+};
+
 function gdriveSignOut() {
     if (gdriveAccessToken && typeof google !== 'undefined') {
         google.accounts.oauth2.revoke(gdriveAccessToken, function() {
@@ -8424,7 +8520,32 @@ function driveRestoreData(token) {
         });
     }).catch(function(e) {
         console.error('[Drive] Restore error:', e);
-        showToast(currentLang === 'es' ? '❌ Error al restaurar desde Drive' : '❌ Error restoring from Drive');
+        // v749ct: mostrar la causa REAL del error en vez del mensaje genérico
+        var L2 = currentLang === 'es';
+        var errMsg = e && e.message ? e.message : String(e);
+        var lower = errMsg.toLowerCase();
+        var pretty;
+        if (lower.indexOf('drive api has not been used') >= 0 || lower.indexOf('service_disabled') >= 0 || lower.indexOf('accessnotconfigured') >= 0) {
+            pretty = L2
+                ? '❌ La Drive API no está habilitada en el proyecto Google Cloud. El admin tiene que habilitarla en console.cloud.google.com → APIs → Google Drive API → Enable.'
+                : '❌ Google Drive API not enabled in Google Cloud project. Admin must enable it at console.cloud.google.com → APIs → Google Drive API → Enable.';
+            showToast(pretty, null, 9000);
+        } else if (lower.indexOf('invalid_token') >= 0 || lower.indexOf('401') >= 0 || lower.indexOf('unauthor') >= 0) {
+            pretty = L2 ? '❌ Token expirado. Reconectá Google Drive.' : '❌ Token expired. Reconnect Google Drive.';
+            showToast(pretty, null, 6000);
+            // Limpiar token inválido para forzar re-signin
+            try {
+                gdriveAccessToken = ''; gdriveTokenExpiry = 0;
+                localStorage.removeItem('gdriveAccessToken'); localStorage.removeItem('gdriveTokenExpiry');
+            } catch(_){}
+        } else if (lower.indexOf('failed to fetch') >= 0 || lower.indexOf('networkerror') >= 0) {
+            pretty = L2 ? '❌ Sin conexión a internet. Verificá tu wifi/datos.' : '❌ No internet. Check your wifi/data.';
+            showToast(pretty, null, 5000);
+        } else {
+            // Mostrar mensaje completo (truncado a 250 chars) para que el user vea qué pasó
+            pretty = (L2 ? '❌ Error al restaurar: ' : '❌ Restore error: ') + errMsg.substring(0, 250);
+            showToast(pretty, null, 9000);
+        }
         throw e;
     });
 }
@@ -36627,28 +36748,32 @@ function goToCurrentCycle() {
 
                 } else if (s === 'drive') {
                     // v749cr: setup paso Google Drive — BOTÓN REAL de conexión + opción "Saltar"
-                    // Antes solo había "Siguiente →" sin la opción de conectar acá.
-                    // Exponemos `window._setupFlowNext` para que handleGdriveTokenResponse pueda avanzar.
+                    // v749ct: el botón ahora hace login UNIFICADO — un Google click conecta Drive + AstroConnect/Social
                     window._setupFlowNext = next;
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">☁️</div>' +
-                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#7baaf7;margin:0 0 12px;">Google Drive</h2>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#7baaf7;margin:0 0 12px;">' + (L?'Conectá tu Google':'Connect your Google') + '</h2>' +
                         '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
-                        (L ? 'Sincronizá automáticamente tus datos (perfiles, cartas, diario, sueños, interpretaciones) en la nube de tu cuenta de Google. Después podés restaurar todo en otro dispositivo con la misma cuenta.' : 'Automatically sync your data (profiles, charts, diary, dreams, readings) to your Google account cloud. Then restore everything on another device with the same account.') + '</p>' +
-                        '<p style="font-size:0.78em;color:rgba(150,180,255,0.55);line-height:1.5;margin:0 0 24px;padding:0 8px;">🔒 ' +
-                        (L ? 'Carpeta privada de la app — solo vos podés verla.' : 'Private app folder — only you can see it.') + '</p>' +
+                        (L ? 'Con un solo click activás:' : 'A single click enables:') + '</p>' +
+                        '<div style="text-align:left;padding:0 18px;margin-bottom:14px;font-size:0.82em;color:rgba(255,255,255,0.7);line-height:1.7;">' +
+                            '<div>☁️ <strong>' + (L?'Drive':'Drive') + '</strong> — ' + (L?'backup automático de perfiles, cartas, diario, sueños.':'auto-backup of profiles, charts, diary, dreams.') + '</div>' +
+                            '<div>🌐 <strong>AstroConnect</strong> — ' + (L?'red social, chats, búsqueda de gemelos astrológicos.':'social network, chats, twin search.') + '</div>' +
+                        '</div>' +
+                        '<p style="font-size:0.78em;color:rgba(150,180,255,0.55);line-height:1.5;margin:0 0 22px;padding:0 8px;">🔒 ' +
+                        (L ? 'Carpeta privada — solo vos podés verla.' : 'Private folder — only you can see it.') + '</p>' +
                         '<div id="driveBtnArea"></div>';
                     var driveArea = overlay.querySelector('#driveBtnArea');
-                    // Botón principal: Conectar Drive
+                    // Botón principal: Conectar Google (Drive + Social)
                     var connectDriveBtn = document.createElement('button');
-                    connectDriveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px;flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ' + (L ? 'Conectar Google Drive' : 'Connect Google Drive');
+                    connectDriveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px;flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ' + (L ? 'Continuar con Google' : 'Continue with Google');
                     connectDriveBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(66,133,244,0.25),rgba(66,133,244,0.08));border:1.5px solid rgba(66,133,244,0.55);border-radius:12px;color:#7baaf7;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:4px;';
                     connectDriveBtn.onclick = function() {
-                        if (typeof gdriveSignIn === 'function') {
+                        // v749ct: usar login UNIFICADO — un solo click conecta Drive + AstroConnect/Social
+                        if (typeof window._signInGoogleUnified === 'function') {
+                            window._signInGoogleUnified();
+                        } else if (typeof gdriveSignIn === 'function') {
                             gdriveSignIn();
-                            // El callback handleGdriveTokenResponse llama window._setupFlowNext (next) cuando termina.
-                            // Si el user cancela el OAuth, queda en este step — pueden tocar Saltar.
                         } else {
-                            console.warn('[setup] gdriveSignIn no disponible');
+                            console.warn('[setup] sign-in no disponible');
                             next();
                         }
                     };
@@ -40427,9 +40552,9 @@ function openPreferencesModal() {
                     ? 'Conecta tu cuenta de Google para guardar backups automáticos en la nube. Solo tú puedes verlos (carpeta privada de la app).'
                     : 'Connect your Google account to automatically save backups to the cloud. Only you can see them (private app folder).') +
             '</div>' +
-            '<button onclick="gdriveSignIn()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.85em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+            '<button onclick="(window._signInGoogleUnified||gdriveSignIn)()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(66,133,244,0.05));border:1px solid rgba(66,133,244,0.4);border-radius:8px;color:#7baaf7;font-size:0.85em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
                 '<svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>' +
-                'Conectar con Google Drive' +
+                (currentLang==='es'?'Continuar con Google (Drive + AstroConnect)':'Continue with Google (Drive + AstroConnect)') +
             '</button>'
         ))
     );
@@ -42468,12 +42593,10 @@ function _initFirebase() {
 }
 
 // ── Auth Functions ──
+// v749ct: _signInGoogle delega al login UNIFICADO — conecta Drive + AstroConnect en un solo Google popup.
+// Antes solo conectaba Firebase Auth; ahora trae también el access_token de Drive.
 function _signInGoogle() {
     if (!_auth) return;
-    // v746: En Capacitor WebView ni popup ni redirect funcionan con Firebase Auth
-    // (Google rechaza el origin `https://localhost`). Requiere plugin nativo
-    // `@capacitor-firebase/authentication` (proyecto medio, no en esta beta).
-    // Por ahora: solo permitir email/password en APK.
     var isCapacitor = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if (isCapacitor) {
         var msg = currentLang === 'es'
@@ -42482,6 +42605,12 @@ function _signInGoogle() {
         alert(msg);
         return;
     }
+    // PWA: usar flujo unificado (Drive + Firebase en un popup)
+    if (typeof window._signInGoogleUnified === 'function') {
+        window._signInGoogleUnified();
+        return;
+    }
+    // Fallback: solo Firebase (sin Drive)
     var provider = new firebase.auth.GoogleAuthProvider();
     _auth.signInWithPopup(provider).catch(function(e) { alert('Error: ' + e.message); });
 }
