@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v848';</script>
+    <script>window.APP_VERSION = 'v849';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -826,13 +826,13 @@
             <!-- Mode buttons: single row, compact to fit screen -->
             <!-- v746: touch-action pan-x para que el scroll horizontal funcione en WebView Capacitor -->
             <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:flex-start;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;padding:0 8px 0 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;">
-                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Lunar</button>
-                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Solar</button>
-                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astro</span></button>
+                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:3px 6px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:14px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.68em;flex-shrink:0;">Lunar</button>
+                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:3px 6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.68em;flex-shrink:0;">Solar</button>
+                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:3px 6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.68em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:3px 6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.66em;flex-shrink:0;"><span id="personalButtonLabel">Astro</span></button>
                 <!-- v749u: tab Atlas = entry point a vistas Tierra y Sistema Solar -->
-                <button id="atlasModeBtn" onclick="switchToAtlasMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="atlasButtonLabel">Atlas</span></button>
-                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Social</button>
+                <button id="atlasModeBtn" onclick="switchToAtlasMode()" style="padding:3px 6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.68em;flex-shrink:0;"><span id="atlasButtonLabel">Atlas</span></button>
+                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:3px 6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.68em;flex-shrink:0;">Social</button>
                 <!-- Earth y Solar System se acceden via Atlas (no como tabs principales) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
