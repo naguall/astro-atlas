@@ -10763,6 +10763,126 @@ window._renderTextToImageBlob = async function(title, text) {
     });
 };
 
+// v749ct: picker que aparece ANTES del share nativo si el user está logueado en Social.
+// Permite elegir entre "Chat AstroAtlas" (manda al chat interno) y "Otras apps" (WhatsApp/Email vía navigator.share).
+// Si no hay sesión social, se salta el picker y va directo a share nativo.
+window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps) {
+    var L = currentLang === 'es';
+    var modal = document.createElement('div');
+    modal.id = '_sharePickerModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease;';
+    modal.onclick = function(e) { if (e.target === modal) { try { document.body.removeChild(modal); } catch(_){} } };
+
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:#0f1137;border-top:1px solid rgba(201,168,64,0.3);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:18px 16px 24px;animation:slideUp 0.25s ease;';
+    sheet.innerHTML =
+        '<div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 14px;"></div>' +
+        '<div style="font-family:\'Cinzel\',serif;font-size:0.95em;color:#c9a840;text-align:center;margin-bottom:14px;">' + (L?'Compartir interpretación':'Share interpretation') + '</div>' +
+        '<button id="_spickAstro" style="width:100%;padding:14px;margin-bottom:8px;background:linear-gradient(135deg,rgba(201,168,64,0.25),rgba(201,168,64,0.08));border:1px solid rgba(201,168,64,0.4);border-radius:12px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">' +
+            '<div style="font-size:1.8em;line-height:1;">💬</div>' +
+            '<div style="flex:1;">' +
+                '<div style="font-weight:700;color:#c9a840;font-size:0.95em;">' + (L?'Chat de AstroAtlas':'AstroAtlas Chat') + '</div>' +
+                '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);">' + (L?'Mandar a una persona conectada en Social':'Send to a person connected in Social') + '</div>' +
+            '</div>' +
+        '</button>' +
+        '<button id="_spickOther" style="width:100%;padding:14px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">' +
+            '<div style="font-size:1.8em;line-height:1;">📱</div>' +
+            '<div style="flex:1;">' +
+                '<div style="font-weight:700;font-size:0.95em;">' + (L?'Otras apps':'Other apps') + '</div>' +
+                '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);">WhatsApp, Email, ' + (L?'copiar, etc.':'copy, etc.') + '</div>' +
+            '</div>' +
+        '</button>' +
+        '<button id="_spickCancel" style="width:100%;padding:12px;margin-top:6px;background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.85em;">' + (L?'Cancelar':'Cancel') + '</button>';
+    modal.appendChild(sheet);
+    document.body.appendChild(modal);
+    function close() { try { document.body.removeChild(modal); } catch(_){} }
+    document.getElementById('_spickAstro').onclick = function() { close(); onPickAstroChat(); };
+    document.getElementById('_spickOther').onclick = function() { close(); onPickOtherApps(); };
+    document.getElementById('_spickCancel').onclick = close;
+};
+
+// v749ct: modal selector de chat — lista los chats activos del usuario para mandar la interpretación
+window._pickAstroChatAndSend = function(title, text) {
+    var L = currentLang === 'es';
+    var _socUser = (typeof _socialUser !== 'undefined') ? _socialUser : null;
+    var _firestoreDb = (typeof _db !== 'undefined') ? _db : null;
+    if (!_firestoreDb || !_socUser) {
+        if (typeof window.showToast === 'function') window.showToast(L?'⚠️ Iniciá sesión en Social para mandar por chat':'⚠️ Sign in to Social to send via chat', null, 4500);
+        return;
+    }
+    // Modal con loading
+    var modal = document.createElement('div');
+    modal.id = '_chatPickerModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);display:flex;align-items:flex-end;justify-content:center;';
+    modal.onclick = function(e) { if (e.target === modal) { try { document.body.removeChild(modal); } catch(_){} } };
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:#0f1137;border-top:1px solid rgba(201,168,64,0.3);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:70vh;display:flex;flex-direction:column;';
+    sheet.innerHTML =
+        '<div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);">' +
+            '<div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 10px;"></div>' +
+            '<div style="font-family:\'Cinzel\',serif;font-size:0.95em;color:#c9a840;text-align:center;">' + (L?'Elegí un chat':'Pick a chat') + '</div>' +
+        '</div>' +
+        '<div id="_chatPickerList" style="flex:1;overflow-y:auto;padding:10px 14px;">' +
+            '<div style="text-align:center;color:rgba(255,255,255,0.5);padding:20px;font-size:0.85em;">' + (L?'Cargando chats…':'Loading chats…') + '</div>' +
+        '</div>' +
+        '<button id="_chatPickerCancel" style="padding:14px;background:none;border:none;border-top:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.85em;">' + (L?'Cancelar':'Cancel') + '</button>';
+    modal.appendChild(sheet);
+    document.body.appendChild(modal);
+    function close() { try { document.body.removeChild(modal); } catch(_){} }
+    document.getElementById('_chatPickerCancel').onclick = close;
+
+    // Cargar chats donde el usuario es participante
+    var myUid = _socUser.uid;
+    _firestoreDb.collection('chats').where('participants', 'array-contains', myUid).orderBy('lastMessageAt', 'desc').limit(30).get().then(function(snap) {
+        var chats = [];
+        snap.forEach(function(d) { var c = d.data(); c._id = d.id; chats.push(c); });
+        if (chats.length === 0) {
+            document.getElementById('_chatPickerList').innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:30px;font-size:0.85em;">' + (L?'No tenés chats todavía. Andá a Social → Buscar para iniciar uno.':'No chats yet. Go to Social → Search to start one.') + '</div>';
+            return;
+        }
+        // Resolver nombres del otro participante
+        var otherUids = chats.map(function(c) { return c.participants ? c.participants.find(function(p) { return p !== myUid; }) : null; }).filter(Boolean);
+        var nameMap = {};
+        var lookups = otherUids.map(function(uid) {
+            return _firestoreDb.collection('users').doc(uid).get().then(function(d) {
+                if (d.exists) { var dd = d.data(); nameMap[uid] = dd.displayName || dd.email || uid.substring(0,8); }
+                else nameMap[uid] = uid.substring(0,8);
+            }).catch(function() { nameMap[uid] = uid.substring(0,8); });
+        });
+        Promise.all(lookups).then(function() {
+            var html = '';
+            chats.forEach(function(chat) {
+                var otherUid = chat.participants ? chat.participants.find(function(p) { return p !== myUid; }) : null;
+                var name = otherUid ? (nameMap[otherUid] || otherUid.substring(0,8)) : 'Chat';
+                var preview = (chat.lastMessage || '').substring(0, 60);
+                html += '<div data-chatid="' + chat._id + '" data-name="' + name.replace(/"/g,'&quot;') + '" class="_chatPick" style="padding:12px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;">' +
+                    '<div style="font-weight:600;color:#fff;font-size:0.9em;">' + name + '</div>' +
+                    (preview ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + preview + '</div>' : '') +
+                '</div>';
+            });
+            document.getElementById('_chatPickerList').innerHTML = html;
+            // Click handlers
+            Array.prototype.forEach.call(document.querySelectorAll('._chatPick'), function(el) {
+                el.onclick = function() {
+                    var chatId = el.getAttribute('data-chatid');
+                    var name = el.getAttribute('data-name');
+                    var msg = '✨ ' + (title || 'AstroAtlas') + '\n\n' + (text || '') + '\n\n— AstroAtlas 🌙';
+                    if (typeof _sendChatMsg === 'function') {
+                        _sendChatMsg(chatId, msg);
+                        if (typeof window.showToast === 'function') window.showToast('✅ ' + (L?'Enviado a ':'Sent to ') + name, 'rgba(201,168,64,0.96)', 3000);
+                        close();
+                    } else {
+                        if (typeof window.showToast === 'function') window.showToast(L?'❌ Sistema de chat no disponible':'❌ Chat system unavailable', null, 4000);
+                    }
+                };
+            });
+        });
+    }).catch(function(e) {
+        console.warn('[chatPicker] error:', e);
+        document.getElementById('_chatPickerList').innerHTML = '<div style="text-align:center;color:#ff6b6b;padding:20px;font-size:0.85em;">' + (L?'Error cargando chats: ':'Error loading chats: ') + (e.message||'') + '</div>';
+    });
+};
+
 // v749bh: helper de share con auto-archivo .txt para textos largos.
 // Estrategia:
 //   - Texto <3500 chars → compartir como TEXTO normal (cabe en intent)
@@ -10770,7 +10890,23 @@ window._renderTextToImageBlob = async function(title, text) {
 //   - Fallback (si navigator.share files no soporta): texto + clipboard como antes
 // Por qué .txt y no imagen: WhatsApp re-comprime imágenes muy agresivo → pixelación ilegible.
 // .txt llega entero, recipient le da tap y se abre en cualquier lector.
+// v749ct: AHORA si _socialUser está logueado, muestra picker (Chat AstroAtlas / Otras apps) antes del share nativo.
 window.shareTextSafe = function(title, text) {
+    // v749ct: si hay sesión social activa, ofrecer picker entre chat AstroAtlas y share nativo
+    var _socUser = (typeof _socialUser !== 'undefined') ? _socialUser : null;
+    if (_socUser && _socUser.uid) {
+        window._showSharePicker(title, text,
+            function() { window._pickAstroChatAndSend(title, text); },
+            function() { window._doNativeShareTextSafe(title, text); }
+        );
+        return;
+    }
+    // No socialUser → directo a share nativo (comportamiento legacy)
+    window._doNativeShareTextSafe(title, text);
+};
+
+// Núcleo original de shareTextSafe (extraído para que el picker pueda dispararlo en "Otras apps")
+window._doNativeShareTextSafe = function(title, text) {
     var L = currentLang === 'es';
     var LONG_TEXT_THRESHOLD = 3500;
 
