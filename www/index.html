@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v749co';</script>
+    <script>window.APP_VERSION = 'v749cr';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8105,7 +8105,7 @@ function initGoogleDrive() {
 function handleGdriveTokenResponse(response) {
     if (response.error) {
         console.error('❌ Google Drive auth error:', response);
-        showToast(currentLang === 'es' ? '❌ Error conectando Google Drive' : '❌ Error connecting Google Drive');
+        showToast(currentLang === 'es' ? '❌ Error conectando Google Drive: ' + (response.error || '') : '❌ Error connecting Google Drive: ' + (response.error || ''));
         return;
     }
     gdriveAccessToken = response.access_token;
@@ -8113,11 +8113,27 @@ function handleGdriveTokenResponse(response) {
     localStorage.setItem('gdriveAccessToken', gdriveAccessToken);
     localStorage.setItem('gdriveTokenExpiry', gdriveTokenExpiry.toString());
     console.log('✅ Google Drive connected');
-    showToast(currentLang === 'es' ? '☁️ Google Drive conectado — guardando backup...' : '☁️ Google Drive connected — saving backup...');
+    showToast(currentLang === 'es' ? '☁️ Google Drive conectado' : '☁️ Google Drive connected');
+    // v749cr: REFRESH UI INMEDIATAMENTE — antes esperábamos a que terminara el backup pero
+    // si la promesa no resolvía (ej. nada para guardar, error silencioso) la UI nunca se actualizaba
+    // y el usuario tenía que cerrar/abrir Preferencias para ver los botones Guardar/Restaurar.
+    var modal = document.getElementById('preferencesModal');
+    if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+    // También cerrar setup-flow overlay si está abierto (onboarding Drive step)
+    var setupOverlay = document.getElementById('setupFlowOverlay');
+    if (setupOverlay && typeof window._setupFlowNext === 'function') {
+        // Avanzar al siguiente step del setup
+        try { window._setupFlowNext(); } catch(_eSF) {}
+    }
+    // Ahora intentar el primer backup en background (no bloquea la UI)
     driveBackupData(gdriveAccessToken).then(function() {
         scheduleDailyDriveBackup();
-        var modal = document.getElementById('preferencesModal');
-        if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+        // Refrescar otra vez para que muestre "Último backup" con fecha
+        var modal2 = document.getElementById('preferencesModal');
+        if (modal2 && modal2.classList.contains('show')) { openPreferencesModal(); }
+    }).catch(function(e) {
+        console.warn('[Drive] Backup inicial post-signin falló:', e);
+        showToast(currentLang === 'es' ? '⚠️ Conectado pero el primer backup falló: ' + (e && e.message || '') : '⚠️ Connected but first backup failed: ' + (e && e.message || ''));
     });
 }
 
@@ -8175,7 +8191,10 @@ function driveBackupData(token) {
         return k !== 'app_version' && k !== 'notifHistory' && k !== 'lastNotifLogDay';
     });
     if (meaningfulKeys.length === 0) {
+        // v749cr: avisar al usuario cuando "Guardar ahora" no encuentra nada para guardar
+        // (antes el toast "Guardando..." quedaba colgado sin feedback final)
         console.log('[Drive] Nothing meaningful to backup');
+        showToast(currentLang === 'es' ? '⚠️ Nada para guardar todavía. Usá la app un poco y volvé a tocar Guardar.' : '⚠️ Nothing to backup yet. Use the app a bit and tap Save again.');
         return Promise.resolve();
     }
     var jsonStr = JSON.stringify(backup);
@@ -8306,17 +8325,48 @@ window.restoreDriveBackupVersion = function(fileId) {
 };
 
 // Restore ALL localStorage from Drive appdata backup
+// v749cr: si no encuentra el archivo "latest" (astroatlas_backup.json), intenta el versionado más reciente
+// (moonsync_backup_*.json) como fallback. Esto resuelve el bug "no puedo restaurar desde el Device 2"
+// cuando el Device 1 saveó pero el latest se perdió por alguna razón.
 function driveRestoreData(token) {
-    showToast(currentLang === 'es' ? '☁️ Buscando backup en Google Drive...' : '☁️ Searching backup in Google Drive...');
-    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name%3D%27' + GDRIVE_BACKUP_FILENAME + '%27', {
+    var L = currentLang === 'es';
+    showToast(L ? '☁️ Buscando backup en Google Drive...' : '☁️ Searching backup in Google Drive...');
+    // Pedimos AMBOS: el latest legacy y los versionados — para tener fallback
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=200&fields=files(id,name,modifiedTime)', {
         headers: { 'Authorization': 'Bearer ' + token }
-    }).then(function(r) { return r.json(); }).then(function(list) {
-        if (!list.files || list.files.length === 0) {
-            showToast(currentLang === 'es' ? '❌ No se encontró backup en Drive' : '❌ No backup found in Drive');
+    }).then(function(r) {
+        if (!r.ok) return r.text().then(function(t){ throw new Error('Drive list error: '+t); });
+        return r.json();
+    }).then(function(list) {
+        var allFiles = (list && list.files) || [];
+        console.log('[Drive Restore] Archivos en appDataFolder:', allFiles.map(function(f){return f.name;}));
+        // 1) Buscar el "latest" legacy
+        var latestFile = allFiles.find(function(f){ return f.name === GDRIVE_BACKUP_FILENAME; });
+        // 2) Si no existe, buscar la versión más reciente con prefix moonsync_backup_
+        if (!latestFile) {
+            var versioned = allFiles.filter(function(f){ return f.name && f.name.indexOf(GDRIVE_BACKUP_PREFIX) === 0; });
+            versioned.sort(function(a,b){ return (b.modifiedTime||'').localeCompare(a.modifiedTime||''); });
+            if (versioned.length > 0) {
+                latestFile = versioned[0];
+                console.log('[Drive Restore] latest no encontrado, usando versión más reciente:', latestFile.name);
+            }
+        }
+        if (!latestFile) {
+            // 3) Como último fallback, buscar el archivo JSON más reciente que haya en appDataFolder
+            var jsonFiles = allFiles.filter(function(f){ return f.name && f.name.endsWith('.json'); });
+            jsonFiles.sort(function(a,b){ return (b.modifiedTime||'').localeCompare(a.modifiedTime||''); });
+            if (jsonFiles.length > 0) {
+                latestFile = jsonFiles[0];
+                console.log('[Drive Restore] Usando JSON más reciente como fallback:', latestFile.name);
+            }
+        }
+        if (!latestFile) {
+            showToast(L ? '❌ No se encontró ningún backup en Drive (Device 1 todavía no guardó)' : '❌ No backup found in Drive (Device 1 hasn\'t saved yet)');
             return null;
         }
-        var fileId = list.files[0].id;
-        var modifiedTime = list.files[0].modifiedTime;
+        var fileId = latestFile.id;
+        var modifiedTime = latestFile.modifiedTime;
+        console.log('[Drive Restore] Descargando', latestFile.name, fileId);
         return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r) { return r.json(); }).then(function(backup) {
@@ -8348,25 +8398,46 @@ function driveRestoreData(token) {
 }
 
 function driveBackupNow() {
+    var L = currentLang === 'es';
+    // v749cr: si no conectado, lanzar signin (handleGdriveTokenResponse hace el backup automáticamente)
     if (!gdriveIsConnected()) {
+        console.log('[Drive] No conectado — lanzando signin');
+        showToast(L ? '☁️ Conectá Google Drive primero...' : '☁️ Connect Google Drive first...');
         gdriveSignIn();
         return;
     }
-    showToast(currentLang === 'es' ? '☁️ Guardando en Google Drive...' : '☁️ Saving to Google Drive...');
-    driveBackupData(gdriveAccessToken).then(function() {
-        var modal = document.getElementById('preferencesModal');
-        if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
-    }).catch(function(e) {
-        showToast(currentLang === 'es' ? '❌ Error al guardar en Drive' : '❌ Error saving to Drive');
-    });
+    showToast(L ? '☁️ Guardando en Google Drive...' : '☁️ Saving to Google Drive...');
+    console.log('[Drive] Guardar ahora — ejecutando backup');
+    try {
+        driveBackupData(gdriveAccessToken).then(function() {
+            console.log('[Drive] backup completado');
+            // El propio driveBackupData ya muestra "Backup guardado" toast.
+            // Si no hubo nada significativo para guardar, ningún toast — chequear ahora.
+            // Refrescar UI siempre
+            var modal = document.getElementById('preferencesModal');
+            if (modal && modal.classList.contains('show')) { openPreferencesModal(); }
+        }).catch(function(e) {
+            console.error('[Drive] Error en backup:', e);
+            showToast((L ? '❌ Error al guardar en Drive: ' : '❌ Drive save error: ') + (e && e.message || e || ''));
+        });
+    } catch(_eBN) {
+        console.error('[Drive] Exception en driveBackupNow:', _eBN);
+        showToast((L ? '❌ Excepción guardando: ' : '❌ Exception saving: ') + (_eBN.message || _eBN));
+    }
 }
 
 function driveRestoreNow() {
+    var L = currentLang === 'es';
     if (!gdriveIsConnected()) {
+        showToast(L ? '☁️ Conectá Google Drive primero...' : '☁️ Connect Google Drive first...');
         gdriveSignIn();
         return;
     }
-    driveRestoreData(gdriveAccessToken);
+    try { driveRestoreData(gdriveAccessToken); }
+    catch(_eRN) {
+        console.error('[Drive] Exception en driveRestoreNow:', _eRN);
+        showToast((L ? '❌ Excepción restaurando: ' : '❌ Exception restoring: ') + (_eRN.message || _eRN));
+    }
 }
 
 // v749cl: Modal con historial de versiones (local IndexedDB + Drive si está conectado)
@@ -28838,7 +28909,7 @@ function renderPersonalCalendar(opts) {
     try {
         // Pasar currentSign como JSON inline (escape quotes para onclick attribute)
         var _signJsonStr = JSON.stringify({ name: currentSign.name, start: currentSign.start, end: currentSign.end }).replace(/"/g, '&quot;');
-        _signCallExpr = 'interpretSolarSign(JSON.parse(this.getAttribute(\'data-sign\')))';
+        _signCallExpr = 'interpretSignByHalves(JSON.parse(this.getAttribute(\'data-sign\')))';
     } catch(_eSig) { _signCallExpr = ''; }
 
     if (_isRelMode) {
@@ -30140,12 +30211,41 @@ function interpretCalendarDay(year, month, day) {
     // Keep personalDayModal open — interpretation overlays on top
 
     // Build context about that specific day
+    // v749cq: chequeos defensivos — antes si natal era null el try/catch silently returneaba
+    // y el modal nunca se abría → el botón parecía "no hacer nada".
     var natal = getNatalData();
+    if (!natal || !natal.id) {
+        console.warn('[interpretCalendarDay] No hay perfil natal activo — abortando');
+        alert(L ? 'No hay un perfil natal activo. Configurá uno en Astrología → Carta para usar la interpretación.' : 'No active natal profile. Set one up in Astrology → Chart to use interpretation.');
+        return;
+    }
     var natalChart;
     try {
         var profileChart = localStorage.getItem('natalChart_' + natal.id);
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
-    } catch(e) { return; }
+    } catch(e) {
+        console.error('[interpretCalendarDay] Error parseando natalChart:', e);
+        alert(L ? 'Error cargando la carta natal del perfil. Probá cerrar y reabrir la app.' : 'Error loading the profile\'s natal chart. Try closing and reopening the app.');
+        return;
+    }
+    if (!natalChart) {
+        console.warn('[interpretCalendarDay] natalChart es null — calculando o abortando');
+        // Intentar calcular sobre la marcha si tenemos los datos del perfil
+        if (natal.date && natal.time && typeof calculateNatalChart === 'function') {
+            try {
+                var _bd = new Date(natal.date + 'T' + natal.time + ':00');
+                natalChart = calculateNatalChart(_bd, natal.lat, natal.lon);
+                if (natalChart) {
+                    localStorage.setItem('natalChart_' + natal.id, JSON.stringify(natalChart));
+                    console.log('[interpretCalendarDay] natalChart recalculado on-the-fly');
+                }
+            } catch(_eCalc) { console.error('[interpretCalendarDay] error recalculando:', _eCalc); }
+        }
+        if (!natalChart) {
+            alert(L ? 'No se pudo cargar la carta natal. Volvé a Astrología → Carta para recalcularla.' : 'Could not load the natal chart. Go back to Astrology → Chart to recalculate.');
+            return;
+        }
+    }
 
     // v749aq: detectar modo relacional y construir prompt apropiado
     var _ctx = (window._isRelationsCalendarActive && typeof getCalRelContext === 'function') ? getCalRelContext() : { mode: 'natal' };
@@ -30399,32 +30499,38 @@ function interpretCalendarDay(year, month, day) {
         detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
         document.body.appendChild(detailModal);
     }
-    // v749cn: forzar estructura + z-index + handler en CADA llamada
+    // v749cq: SIEMPRE rebuild la estructura del modal — más robusto que el check de v749cn.
+    // Las funciones que comparten compositePlanetDetailModal (showSynastryPlanetCompare, etc.)
+    // usan los mismos IDs internos, así que reescribir la innerHTML aquí no rompe nada de ellas
+    // (cuando ellas se ejecuten, harán su propio rewrite). Esto resuelve el bug de "el botón
+    // no abre el modal" causado por estados intermedios stale.
     detailModal.style.zIndex = '10010';
+    detailModal.style.display = '';
     detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
-    // Sólo reescribir innerHTML si la estructura esperada no existe (evita destruir contenido en curso de otra interpretación)
-    if (!document.getElementById('compPlanetDetailTitle') || !document.getElementById('compPlanetDetailBody') || !detailModal.contains(document.getElementById('compPlanetDetailBody'))) {
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
-    }
     try {
+        // Force-rewrite estructura siempre (evita cualquier estado raro)
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         var _ttlEl = document.getElementById('compPlanetDetailTitle');
         var _bodyEl = document.getElementById('compPlanetDetailBody');
-        if (_ttlEl) _ttlEl.textContent = _title;
-        if (_bodyEl) _bodyEl.innerHTML = bodyHtml;
-        else throw new Error('compPlanetDetailBody no encontrado');
+        if (!_ttlEl || !_bodyEl) throw new Error('estructura del modal no se pudo crear');
+        _ttlEl.textContent = _title;
+        _bodyEl.innerHTML = bodyHtml;
         detailModal.classList.add('show');
-        // v749cn: scroll al tope (por si quedó scrolleado de una interpretación anterior)
+        // Scroll al tope
         var _mc = detailModal.querySelector('.modal-content');
         if (_mc) _mc.scrollTop = 0;
-        setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
+        console.log('[interpretCalendarDay] modal abierto, llamando fetchAIInterpretation en 100ms');
+        setTimeout(function() {
+            try { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }
+            catch(_eFetch) {
+                console.error('[interpretCalendarDay] fetchAIInterpretation error:', _eFetch);
+                var _div = document.getElementById('calDayInterpDiv');
+                if (_div) _div.innerHTML = '<div style="padding:14px;color:#ff6b6b;font-size:0.85em;text-align:center;">' + (L?'Error al cargar interpretación: ':'Error loading interpretation: ') + (_eFetch.message || '') + '</div>';
+            }
+        }, 100);
     } catch(_eIntDay) {
-        console.error('[interpretCalendarDay] error abriendo modal:', _eIntDay);
-        // Reescribir estructura desde cero y reintentar 1 vez
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
-        document.getElementById('compPlanetDetailTitle').textContent = _title;
-        document.getElementById('compPlanetDetailBody').innerHTML = bodyHtml;
-        detailModal.classList.add('show');
-        setTimeout(function() { fetchAIInterpretation(prompt, 'calDayInterpDiv', _title); }, 100);
+        console.error('[interpretCalendarDay] error fatal:', _eIntDay);
+        alert((L ? 'Error al abrir interpretación: ' : 'Error opening interpretation: ') + (_eIntDay.message || _eIntDay));
     }
 }
 
@@ -31570,6 +31676,174 @@ function interpretSolarSign(signObj) {
     }, 100);
 }
 window.interpretSolarSign = interpretSolarSign;
+
+// v749cp: interpretSignByHalves — interpreta el período del signo en 2 quincenas
+// (igual al patrón de interpretMonthByFortnights pero usando las fechas del signo solar,
+// no del mes calendario). Detecta modo relacional para hablar del vínculo.
+function interpretSignByHalves(signObj) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) { console.error('[interpretSignByHalves] modal not found'); return; }
+    var L = currentLang === 'es';
+
+    var signStart = new Date(signObj.start);
+    var signEnd = new Date(signObj.end);
+    var signName = signObj.name || (L?'Signo':'Sign');
+    var fmt = function(d) { return d.getDate() + '/' + (d.getMonth()+1); };
+
+    // v749cp: detectar modo relacional
+    var _relMode = (window._isRelationsCalendarActive && window._calRelMode && window._calRelMode !== 'natal') ? window._calRelMode : null;
+    var _relLbl = _relMode === 'sinastria' ? (L?'SINASTRÍA':'SYNASTRY')
+                : _relMode === 'compuesta' ? (L?'CARTA COMPUESTA':'COMPOSITE CHART')
+                : _relMode === 'davison' ? (L?'CARTA DAVISON':'DAVISON CHART')
+                : '';
+
+    titleEl.textContent = '☉ ' + signName + (_relMode ? (L?' — Relación':' — Relationship') : '') + ' · ' + signStart.getFullYear();
+
+    // Reset modal estado (mismo patrón que interpretMonthByFortnights)
+    modal.classList.remove('show'); modal.style.display = 'none'; void modal.offsetWidth; modal.style.display = '';
+
+    // Split en 2 quincenas: punto medio en días
+    var totalDays = Math.round((signEnd - signStart) / 86400000) + 1;
+    var midDayOffset = Math.floor(totalDays / 2);
+    var midDate = new Date(signStart); midDate.setDate(midDate.getDate() + midDayOffset);
+    // Q1: signStart → midDate (inclusive)
+    // Q2: midDate+1 → signEnd
+    var q1Start = new Date(signStart);
+    var q1End = new Date(midDate);
+    var q2Start = new Date(midDate); q2Start.setDate(q2Start.getDate() + 1);
+    var q2End = new Date(signEnd);
+
+    // Recolectar eventos para cada quincena
+    function collectEvents(dStart, dEnd) {
+        var events = [];
+        for (var d = new Date(dStart); d <= dEnd; d.setDate(d.getDate()+1)) {
+            var dCopy = new Date(d);
+            try {
+                var ipa = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(dCopy) : [];
+                ipa.forEach(function(a){ events.push({ day:dCopy.getDate(), month:dCopy.getMonth()+1, label: (a.planet1 + ' ' + a.symbol + ' ' + a.planet2 + (a.aspect?' ('+a.aspect+')':'')), icon:'✦', color:'#7ec8ff' }); });
+            } catch(e){}
+            try {
+                var sc = (typeof getSignChanges === 'function') ? getSignChanges(dCopy) : [];
+                sc.forEach(function(c){ events.push({ day:dCopy.getDate(), month:dCopy.getMonth()+1, label:(c.planet + ' → ' + c.toSign), icon:'→', color:'#7ec8ff' }); });
+            } catch(e){}
+            try {
+                var rt = (typeof getRetrogrades === 'function') ? getRetrogrades(dCopy) : [];
+                rt.forEach(function(r){ events.push({ day:dCopy.getDate(), month:dCopy.getMonth()+1, label:(r.planet + (r.isStart?(L?' inicia ℞':' ℞ starts'):(L?' directo':' direct')) + (r.sign?' '+r.sign:'')), icon:'℞', color:'#f4b942' }); });
+            } catch(e){}
+            try {
+                var me = (typeof getMoonEventForDate === 'function') ? getMoonEventForDate(dCopy) : null;
+                if (me) events.push({ day:dCopy.getDate(), month:dCopy.getMonth()+1, label:(me.type==='new'?(L?'🌑 Luna Nueva':'🌑 New Moon'):me.type==='full'?(L?'🌕 Luna Llena':'🌕 Full Moon'):(L?'🌓 Cuarto':'🌓 Quarter'))+(me.sign?(L?' en '+me.sign:' in '+me.sign):''), icon:'☽', color:'#b39ddb' });
+            } catch(e){}
+            try {
+                var ec = (typeof getEclipseInfo === 'function') ? getEclipseInfo(dCopy) : null;
+                if (ec) events.push({ day:dCopy.getDate(), month:dCopy.getMonth()+1, label:(ec.type==='solar'?(L?'☀️ Eclipse Solar':'☀️ Solar Eclipse'):(L?'🌒 Eclipse Lunar':'🌒 Lunar Eclipse')), icon:'⊙', color:'#d32f2f' });
+            } catch(e){}
+        }
+        return events;
+    }
+
+    var q1Events = collectEvents(q1Start, q1End);
+    var q2Events = collectEvents(q2Start, q2End);
+
+    function buildEventListHtml(events) {
+        if (!events.length) return '<div style="font-style:italic;color:rgba(255,255,255,0.45);padding:6px 0;">' + (L?'Sin eventos':'No events') + '</div>';
+        return events.map(function(e) {
+            var prefix = String(e.day).padStart(2,'0') + '/' + e.month;
+            return '<div style="font-size:0.82em;padding:5px 8px;margin-bottom:3px;background:rgba(0,0,0,0.25);border-left:3px solid ' + e.color + ';border-radius:4px;color:rgba(255,255,255,0.85);"><b style="color:' + e.color + ';">' + prefix + '</b> &middot; ' + e.icon + ' ' + e.label + '</div>';
+        }).join('');
+    }
+
+    var rangeLbl1 = fmt(q1Start) + ' — ' + fmt(q1End);
+    var rangeLbl2 = fmt(q2Start) + ' — ' + fmt(q2End);
+
+    // Color tematización: relación = lila, natal = dorado
+    var col1 = _relMode ? '#c39bd3' : '#7ec8ff';
+    var col2 = _relMode ? '#b39ddb' : '#e8c84a';
+
+    var html = '<div style="margin-bottom:14px;font-size:0.85em;color:rgba(255,255,255,0.55);">'
+        + '☉ ' + signName + ' ' + signStart.getFullYear() + ' · ' + fmt(signStart) + ' — ' + fmt(signEnd)
+        + (_relMode ? ' · ' + (L?'Relación':'Relationship') : '')
+        + '</div>';
+
+    // Quincena 1
+    html += '<div style="border:1px solid ' + col1 + '40;border-radius:8px;padding:12px;margin-bottom:14px;background:' + col1 + '08;">';
+    html += '<h3 style="margin:0 0 8px 0;color:' + col1 + ';font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">'
+         + (L ? '⏵ Quincena 1' : '⏵ Half 1') + ' <span style="font-size:0.75em;color:rgba(255,255,255,0.5);font-weight:400;letter-spacing:0;">(' + rangeLbl1 + ')</span>'
+         + '</h3>';
+    html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q1Events) + '</div>';
+    html += '<div style="border-top:1px solid ' + col1 + '30;padding-top:10px;"><div style="font-size:0.75em;color:' + col1 + ';margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiSignQ1InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
+    html += '</div>';
+
+    // Quincena 2
+    html += '<div style="border:1px solid ' + col2 + '40;border-radius:8px;padding:12px;background:' + col2 + '08;">';
+    html += '<h3 style="margin:0 0 8px 0;color:' + col2 + ';font-family:\'Cinzel\',serif;letter-spacing:1px;font-size:0.95em;white-space:nowrap;">'
+         + (L ? '⏵ Quincena 2' : '⏵ Half 2') + ' <span style="font-size:0.75em;color:rgba(255,255,255,0.5);font-weight:400;letter-spacing:0;">(' + rangeLbl2 + ')</span>'
+         + '</h3>';
+    html += '<div style="margin-bottom:10px;max-height:180px;overflow-y:auto;">' + buildEventListHtml(q2Events) + '</div>';
+    html += '<div style="border-top:1px solid ' + col2 + '30;padding-top:10px;"><div style="font-size:0.75em;color:' + col2 + ';margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">' + (L?'Interpretación':'Interpretation') + '</div><div id="aiSignQ2InterpDiv"><div style="font-style:italic;color:rgba(255,255,255,0.5);font-size:0.85em;">' + (L?'Cargando...':'Loading...') + '</div></div></div>';
+    html += '</div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Construir prompts
+    function eventsToText(events) {
+        return events.map(function(e) {
+            return String(e.day).padStart(2,'0') + '/' + e.month + ': ' + e.label;
+        }).join('\n');
+    }
+
+    var natalCtx = '';
+    if (!_relMode) {
+        try {
+            var ns = JSON.parse(localStorage.getItem('natalChart') || 'null');
+            if (ns) {
+                if (ns.sun) natalCtx += '- Sol natal: ' + (ns.sun.sign || '?') + '\n';
+                if (ns.moon) natalCtx += '- Luna natal: ' + (ns.moon.sign || '?') + '\n';
+                if (ns.ascendant) natalCtx += '- Ascendente: ' + (ns.ascendant.sign || ns.ascendant || '?') + '\n';
+            }
+        } catch(e) {}
+    }
+
+    function buildPrompt(qNum, rangeLbl, events) {
+        var _relPrefix = '';
+        if (_relMode) {
+            _relPrefix = L
+                ? 'CONTEXTO: Esta interpretación es sobre la ' + _relLbl + ' de la relación (vínculo como entidad). NO sobre una carta natal individual. '
+                : 'CONTEXT: This interpretation is about the ' + _relLbl + ' of the relationship (bond as an entity). NOT an individual natal chart. ';
+        }
+        if (L) {
+            return _relPrefix + 'Interpretá la ' + (qNum===1?'PRIMERA':'SEGUNDA') + ' QUINCENA del signo de ' + signName + ' (' + rangeLbl + ') como un panorama astrológico integrado'
+                 + (_relMode ? ' sobre la relación' : '') + '. '
+                 + 'Dame una visión narrativa de las energías dominantes, los temas centrales que se activan, días clave y consejos prácticos'
+                 + (_relMode ? ' para el vínculo' : '') + '.\n\n'
+                 + (natalCtx ? 'CONTEXTO NATAL:\n' + natalCtx + '\n' : '')
+                 + 'EVENTOS DE LA QUINCENA:\n' + (events.length ? eventsToText(events) : '(sin eventos mayores en este período — describí igual la energía general del tramo del signo)') + '\n\n'
+                 + 'Mantenelo conciso, claro y aplicable. No listes evento por evento; tejé una narrativa.';
+        } else {
+            return _relPrefix + 'Interpret the ' + (qNum===1?'FIRST':'SECOND') + ' HALF of the ' + signName + ' sign period (' + rangeLbl + ') as an integrated astrological landscape'
+                 + (_relMode ? ' about the relationship' : '') + '. '
+                 + 'Give a narrative view of the dominant energies, central themes, key days and practical advice'
+                 + (_relMode ? ' for the bond' : '') + '.\n\n'
+                 + (natalCtx ? 'NATAL CONTEXT:\n' + natalCtx + '\n' : '')
+                 + 'EVENTS OF THIS HALF:\n' + (events.length ? eventsToText(events) : '(no major events — describe general energy of the sign tract anyway)') + '\n\n'
+                 + 'Keep it concise, clear and applicable. Don\'t list event by event; weave a narrative.';
+        }
+    }
+
+    var titleQ1 = (L?'Quincena 1 — ':'Half 1 — ') + signName + ' (' + rangeLbl1 + ')';
+    var titleQ2 = (L?'Quincena 2 — ':'Half 2 — ') + signName + ' (' + rangeLbl2 + ')';
+
+    setTimeout(function() {
+        if (typeof fetchAIInterpretation === 'function') fetchAIInterpretation(buildPrompt(1, rangeLbl1, q1Events), 'aiSignQ1InterpDiv', titleQ1);
+    }, 100);
+    setTimeout(function() {
+        if (typeof fetchAIInterpretation === 'function') fetchAIInterpretation(buildPrompt(2, rangeLbl2, q2Events), 'aiSignQ2InterpDiv', titleQ2);
+    }, 250);
+}
+window.interpretSignByHalves = interpretSignByHalves;
 
 // v749m: paleta unificada para los eventos astrológicos del mes (sin colisiones)
 // Tipos de aspecto siguen convención clásica: cálidos = duros, fríos = suaves
@@ -35915,18 +36189,32 @@ function goToCurrentCycle() {
                     langBtns.appendChild(enBtn);
 
                 } else if (s === 'calendar') {
+                    // v749cr: agregar botón real "Conectar Google Calendar"
+                    window._setupFlowNext = next;
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">📅</div>' +
                         '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#4285f4;margin:0 0 12px;">Google Calendar</h2>' +
-                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
                         (L ? 'Importá tus eventos y sincronizá tu agenda con los tránsitos planetarios.' : 'Import your events and sync your agenda with planetary transits.') + '</p>' +
-                        '<p style="font-size:0.8em;color:rgba(150,180,255,0.6);line-height:1.5;margin:0 0 28px;padding:0 8px;">💡 ' +
-                        (L ? 'Podés conectar Google Calendar desde Preferencias (⚙️) en cualquier momento.' : 'You can connect Google Calendar from Preferences (⚙️) at any time.') + '</p>' +
                         '<div id="calBtnArea"></div>';
                     var calArea = overlay.querySelector('#calBtnArea');
+                    // Botón principal: Conectar Calendar
+                    var connectCalBtn = document.createElement('button');
+                    connectCalBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px;flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ' + (L ? 'Conectar Google Calendar' : 'Connect Google Calendar');
+                    connectCalBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(66,133,244,0.25),rgba(66,133,244,0.08));border:1.5px solid rgba(66,133,244,0.55);border-radius:12px;color:#7baaf7;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:4px;';
+                    connectCalBtn.onclick = function() {
+                        if (typeof gcalSignIn === 'function') {
+                            gcalSignIn();
+                            // El user vuelve manualmente o autoavanza si hay callback de éxito
+                            // En APK gcalSignIn redirige a la PWA externa, así que el setup queda — saltamos a Next
+                            setTimeout(function() { window._setupFlowNext = null; next(); }, 1200);
+                        } else { next(); }
+                    };
+                    calArea.appendChild(connectCalBtn);
+                    // Botón skip
                     var skipBtn = document.createElement('button');
-                    skipBtn.textContent = L ? 'Siguiente →' : 'Next →';
-                    skipBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;';
-                    skipBtn.onclick = next;
+                    skipBtn.textContent = L ? 'Saltar por ahora' : 'Skip for now';
+                    skipBtn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                    skipBtn.onclick = function() { window._setupFlowNext = null; next(); };
                     calArea.appendChild(skipBtn);
 
                 } else if (s === 'social') {
@@ -35982,18 +36270,38 @@ function goToCurrentCycle() {
                     }
 
                 } else if (s === 'drive') {
+                    // v749cr: setup paso Google Drive — BOTÓN REAL de conexión + opción "Saltar"
+                    // Antes solo había "Siguiente →" sin la opción de conectar acá.
+                    // Exponemos `window._setupFlowNext` para que handleGdriveTokenResponse pueda avanzar.
+                    window._setupFlowNext = next;
                     wrap.innerHTML += '<div style="font-size:3.5em;margin-bottom:16px;">☁️</div>' +
-                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#667eea;margin:0 0 12px;">Google Drive</h2>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#7baaf7;margin:0 0 12px;">Google Drive</h2>' +
                         '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 12px;padding:0 8px;">' +
-                        (L ? 'Guardá y restaurá todos tus datos — diario, configuraciones y más — con backup automático en Drive.' : 'Save and restore all your data — journal, settings and more — with automatic Drive backup.') + '</p>' +
-                        '<p style="font-size:0.8em;color:rgba(150,180,255,0.6);line-height:1.5;margin:0 0 28px;padding:0 8px;">💡 ' +
-                        (L ? 'Podés conectar Google Drive desde Preferencias (⚙️) en cualquier momento.' : 'You can connect Google Drive from Preferences (⚙️) at any time.') + '</p>' +
+                        (L ? 'Sincronizá automáticamente tus datos (perfiles, cartas, diario, sueños, interpretaciones) en la nube de tu cuenta de Google. Después podés restaurar todo en otro dispositivo con la misma cuenta.' : 'Automatically sync your data (profiles, charts, diary, dreams, readings) to your Google account cloud. Then restore everything on another device with the same account.') + '</p>' +
+                        '<p style="font-size:0.78em;color:rgba(150,180,255,0.55);line-height:1.5;margin:0 0 24px;padding:0 8px;">🔒 ' +
+                        (L ? 'Carpeta privada de la app — solo vos podés verla.' : 'Private app folder — only you can see it.') + '</p>' +
                         '<div id="driveBtnArea"></div>';
                     var driveArea = overlay.querySelector('#driveBtnArea');
+                    // Botón principal: Conectar Drive
+                    var connectDriveBtn = document.createElement('button');
+                    connectDriveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px;flex-shrink:0;"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ' + (L ? 'Conectar Google Drive' : 'Connect Google Drive');
+                    connectDriveBtn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(66,133,244,0.25),rgba(66,133,244,0.08));border:1.5px solid rgba(66,133,244,0.55);border-radius:12px;color:#7baaf7;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:4px;';
+                    connectDriveBtn.onclick = function() {
+                        if (typeof gdriveSignIn === 'function') {
+                            gdriveSignIn();
+                            // El callback handleGdriveTokenResponse llama window._setupFlowNext (next) cuando termina.
+                            // Si el user cancela el OAuth, queda en este step — pueden tocar Saltar.
+                        } else {
+                            console.warn('[setup] gdriveSignIn no disponible');
+                            next();
+                        }
+                    };
+                    driveArea.appendChild(connectDriveBtn);
+                    // Botón skip
                     var skipDriveConn = document.createElement('button');
-                    skipDriveConn.textContent = L ? 'Siguiente →' : 'Next →';
-                    skipDriveConn.style.cssText = 'width:100%;padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.4);border-radius:12px;color:#a0b4ff;font-size:0.9em;font-weight:700;cursor:pointer;';
-                    skipDriveConn.onclick = next;
+                    skipDriveConn.textContent = L ? 'Saltar por ahora' : 'Skip for now';
+                    skipDriveConn.style.cssText = 'width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;';
+                    skipDriveConn.onclick = function() { window._setupFlowNext = null; next(); };
                     driveArea.appendChild(skipDriveConn);
 
                 } else if (s === 'ready') {
