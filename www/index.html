@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v855';</script>
+    <script>window.APP_VERSION = 'v856';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -11412,7 +11412,7 @@ window._doNativeShareTextSafe = function(title, text) {
     if (title) {
         txtHeader = title + '\n' + new Array(Math.min(title.length, 60) + 1).join('=') + '\n\n';
     }
-    var txtFooter = '\n\n— AstroAtlas 🌙\nhttps://bearman-ux.github.io/moon_tracker_complete/';
+    var txtFooter = '\n\n— AstroAtlas 🌙';
     var txtContent = txtHeader + text + txtFooter;
 
     // Crear blob .txt (UTF-8 con BOM para que Windows/Android abran con encoding correcto)
