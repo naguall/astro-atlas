@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v860';</script>
+    <script>window.APP_VERSION = 'v861';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -814,8 +814,7 @@
     </script>
     <div class="container">
         <header>
-            <!-- v860: wordmark AstroAtlas SIEMPRE visible arriba (antes solo aparecía nombre de la sección actual ej. ASTROCONNECT) -->
-            <div id="appBrandMark" style="text-align:center;font-family:'Cinzel',serif;font-size:0.65em;color:rgba(201,168,64,0.65);letter-spacing:3px;font-weight:600;text-transform:uppercase;margin-bottom:2px;padding:2px 0;">AstroAtlas</div>
+            <!-- v861: wordmark AstroAtlas REMOVIDO — desordenaba títulos al hacer wrap con el versionBadge -->
             <!-- Header row: title left, utility buttons right — always same line -->
             <div id="headerTitleRow" style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;">
                 <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🌙 Lunar</h1>
@@ -43100,8 +43099,14 @@ function _loadProfile(uid) {
 }
 
 // v858: helper toast persistente para mostrar errores del publish (alert() a veces se silencia en APK)
+// v861: SOLO muestra el toast si el user sigue en Social — si se fue a otra tab, solo loguea para no molestar
 function _publishToast(msg, color) {
     console.log('[publishProfile]', msg);
+    // v861: si user no está en Social, no mostrar overlay (se quedaba popeando errores cuando ya navegaste a Solar/Lunar)
+    if (typeof calendarMode === 'undefined' || calendarMode !== 'social') {
+        console.log('[publishToast] suppressed (not on Social, current=' + (typeof calendarMode !== 'undefined' ? calendarMode : '?') + ')');
+        return;
+    }
     try {
         var t = document.createElement('div');
         t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(5,7,30,0.97);border:1px solid ' + (color || '#ff9800') + ';border-radius:12px;padding:14px 22px;color:#fff;font-size:0.88em;z-index:99999;text-align:center;max-width:88%;white-space:pre-line;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
