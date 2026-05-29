@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v857';</script>
+    <script>window.APP_VERSION = 'v858';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -32177,10 +32177,20 @@ function generateGregorianMonth() {
 
     if (astroEvents.length > 0) {
         html += '<div style="display:flex;flex-direction:column;gap:5px;max-height:380px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-right:4px;">';
+        // v858: contraste para eventos pasados/hoy/futuros en la lista del mes Gregoriano
+        var _todayMid = new Date(); _todayMid.setHours(0,0,0,0);
         astroEvents.forEach(function(item) {
             var dayOfWeek = item.date.toLocaleDateString(currentLang === 'es' ? 'es' : 'en', { weekday: 'short' });
             var clickTxt = (item.label || '').replace(/'/g, "\\'").replace(/"/g, '');
-            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(0,0,0,0.30);border-radius:6px;border-left:3px solid ' + item.color + ';font-size:0.82em;color:rgba(255,255,255,0.92);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(0,0,0,0.45)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.30)\'">';
+            // v858: comparar fecha del evento con hoy
+            var _evMid = new Date(item.date); _evMid.setHours(0,0,0,0);
+            var _isPast = _evMid.getTime() < _todayMid.getTime();
+            var _isToday = _evMid.getTime() === _todayMid.getTime();
+            var _pastStyle = _isPast ? 'opacity:0.4;filter:brightness(0.55) saturate(0.6);' : '';
+            var _todayBg = _isToday ? 'background:rgba(201,168,64,0.20);' : 'background:rgba(0,0,0,0.30);';
+            var _todayHoverBg = _isToday ? '\'rgba(201,168,64,0.30)\'' : '\'rgba(0,0,0,0.45)\'';
+            var _todayOutBg = _isToday ? '\'rgba(201,168,64,0.20)\'' : '\'rgba(0,0,0,0.30)\'';
+            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="display:flex;align-items:center;gap:10px;padding:7px 10px;' + _todayBg + 'border-radius:6px;border-left:3px solid ' + item.color + ';font-size:0.82em;color:rgba(255,255,255,0.92);cursor:pointer;transition:background 0.15s;' + _pastStyle + '" onmouseover="this.style.background=' + _todayHoverBg + '" onmouseout="this.style.background=' + _todayOutBg + '">';
             html += '<div style="flex-shrink:0;font-weight:700;color:' + item.color + ';min-width:54px;text-align:left;font-size:0.95em;">' + String(item.day).padStart(2,'0') + ' ' + dayOfWeek.substring(0,3) + '</div>';
             html += '<div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><span style="margin-right:6px;">' + (item.icon || '✦') + '</span>' + item.label + '</div>';
             if (item.detail) html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);flex-shrink:0;">' + item.detail + '</div>';
@@ -43087,28 +43097,54 @@ function _loadProfile(uid) {
     }, 10000);
 }
 
-function _publishProfile(callback) {
-    // v853: en vez de return silencioso, mostrar mensaje claro al user
-    var _isES = L();
-    if (!_db) {
-        alert(_isES ? '❌ Firestore no inicializado. Recargá la app.' : '❌ Firestore not initialized. Reload the app.');
-        return;
-    }
-    if (!_socialUser) {
-        alert(_isES ? '❌ No estás logueado en Social. Tocá "Continuar con Google" arriba y volvé a intentar.' : '❌ Not signed in to Social. Tap "Continue with Google" above and try again.');
-        return;
-    }
-    var natal = typeof getNatalData === 'function' ? getNatalData() : null;
-    if (!natal) { alert(_isES ? 'Primero configura tu carta natal en la sección Astro' : 'First set up your natal chart in the Astro section'); return; }
+// v858: helper toast persistente para mostrar errores del publish (alert() a veces se silencia en APK)
+function _publishToast(msg, color) {
+    console.log('[publishProfile]', msg);
+    try {
+        var t = document.createElement('div');
+        t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(5,7,30,0.97);border:1px solid ' + (color || '#ff9800') + ';border-radius:12px;padding:14px 22px;color:#fff;font-size:0.88em;z-index:99999;text-align:center;max-width:88%;white-space:pre-line;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function(){ t.style.opacity = '0'; t.style.transition = 'opacity 0.5s'; setTimeout(function(){ if(t.parentNode) t.remove(); }, 600); }, 5000);
+    } catch(e) { alert(msg); }
+}
 
-    var chartKey = 'natalChart_' + natal.id;
-    var chartRaw = localStorage.getItem(chartKey) || localStorage.getItem('natalChart');
-    var chart = null;
-    try { chart = JSON.parse(chartRaw); } catch(e) {}
-    if (!chart || !chart.planets) {
-        alert(L() ? 'No se encontró la carta natal calculada. Ve a Astro y espera que se calcule.' : 'Calculated natal chart not found. Go to Astro and wait for calculation.');
-        return;
-    }
+function _publishProfile(callback) {
+    // v858: logging extenso + toast persistente en cada precondición. Tracea exactamente qué falla.
+    console.log('🌐 [publishProfile] START');
+    var _isES = L();
+    try {
+        if (!_db) {
+            _publishToast(_isES ? '❌ Firestore no inicializado.\nRecargá la app y volvé a intentar.' : '❌ Firestore not initialized.\nReload the app and try again.', '#ff6b6b');
+            console.error('🌐 [publishProfile] FAIL: _db is null');
+            return;
+        }
+        console.log('🌐 [publishProfile] _db OK');
+        if (!_socialUser) {
+            _publishToast(_isES ? '❌ No estás logueado en Social.\nTocá "Continuar con Google" arriba y volvé a intentar.' : '❌ Not signed in to Social.\nTap "Continue with Google" above and try again.', '#ff6b6b');
+            console.error('🌐 [publishProfile] FAIL: _socialUser is null');
+            return;
+        }
+        console.log('🌐 [publishProfile] _socialUser:', _socialUser.uid, _socialUser.email);
+        var natal = typeof getNatalData === 'function' ? getNatalData() : null;
+        if (!natal) {
+            _publishToast(_isES ? '❌ Primero configurá tu carta natal en la sección Astro\n(fecha, hora y lugar de nacimiento).' : '❌ First set up your natal chart in the Astro section\n(birth date, time and place).', '#ff9800');
+            console.error('🌐 [publishProfile] FAIL: getNatalData returned null');
+            return;
+        }
+        console.log('🌐 [publishProfile] natal:', natal.id, natal.name);
+
+        var chartKey = 'natalChart_' + natal.id;
+        var chartRaw = localStorage.getItem(chartKey) || localStorage.getItem('natalChart');
+        console.log('🌐 [publishProfile] chartKey:', chartKey, 'rawLen:', chartRaw ? chartRaw.length : 0);
+        var chart = null;
+        try { chart = JSON.parse(chartRaw); } catch(e) { console.error('🌐 [publishProfile] JSON parse error:', e); }
+        if (!chart || !chart.planets) {
+            _publishToast(_isES ? '❌ Carta natal no calculada.\nAndá a Astro y esperá que cargue (5–10s), después volvé a tocar Publicar.' : '❌ Natal chart not calculated.\nGo to Astro and wait for it to load (5–10s), then try Publish again.', '#ff9800');
+            console.error('🌐 [publishProfile] FAIL: chart or chart.planets missing. chart=', chart);
+            return;
+        }
+        console.log('🌐 [publishProfile] chart.planets keys:', Object.keys(chart.planets));
 
     // Build searchable profile
     var planets = chart.planets;
@@ -43155,12 +43191,23 @@ function _publishProfile(callback) {
         online: true
     };
 
+    console.log('🌐 [publishProfile] writing to Firestore users/', _socialUser.uid, 'sunSign=', profile.sunSign);
+    _publishToast(_isES ? '⏳ Publicando perfil...' : '⏳ Publishing profile...', '#00bcd4');
     _db.collection('users').doc(_socialUser.uid).set(profile, { merge: true }).then(function() {
+        console.log('🌐 [publishProfile] ✅ Firestore write OK');
         _socialProfile = profile;
         _socialProfile._uid = _socialUser.uid;
+        _publishToast(_isES ? '✅ Perfil publicado correctamente' : '✅ Profile published successfully', '#4ecdc4');
         if (callback) callback();
         _renderSocial();
-    }).catch(function(e) { alert('Error: ' + e.message); });
+    }).catch(function(e) {
+        console.error('🌐 [publishProfile] FAIL Firestore write:', e);
+        _publishToast((_isES ? '❌ Error guardando perfil:\n' : '❌ Error saving profile:\n') + (e && e.message ? e.message : e), '#ff6b6b');
+    });
+    } catch(_outerErr) {
+        console.error('🌐 [publishProfile] OUTER catch:', _outerErr);
+        _publishToast((_isES ? '❌ Error inesperado:\n' : '❌ Unexpected error:\n') + (_outerErr && _outerErr.message ? _outerErr.message : _outerErr), '#ff6b6b');
+    }
 }
 
 function _serializePlanets(planets) {
