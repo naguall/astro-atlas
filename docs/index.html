@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v858';</script>
+    <script>window.APP_VERSION = 'v860';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -814,6 +814,8 @@
     </script>
     <div class="container">
         <header>
+            <!-- v860: wordmark AstroAtlas SIEMPRE visible arriba (antes solo aparecía nombre de la sección actual ej. ASTROCONNECT) -->
+            <div id="appBrandMark" style="text-align:center;font-family:'Cinzel',serif;font-size:0.65em;color:rgba(201,168,64,0.65);letter-spacing:3px;font-weight:600;text-transform:uppercase;margin-bottom:2px;padding:2px 0;">AstroAtlas</div>
             <!-- Header row: title left, utility buttons right — always same line -->
             <div id="headerTitleRow" style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;">
                 <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🌙 Lunar</h1>
@@ -43149,11 +43151,14 @@ function _publishProfile(callback) {
     // Build searchable profile
     var planets = chart.planets;
     var houses = chart.houses;
+    // v859: usar Date() en vez de serverTimestamp() — si firebase.firestore.FieldValue no existe en runtime
+    //       (compat namespace no cargado), serverTimestamp() es undefined y Firestore rechaza el doc silenciosamente.
+    var _nowDate = new Date();
     var profile = {
         displayName: _socialUser.displayName || _socialUser.email.split('@')[0],
         photoURL: _socialUser.photoURL || '',
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        joinedAt: _nowDate,
+        updatedAt: _nowDate,
         // Searchable planet data
         sunSign: planets.sun ? planets.sun.sign : '',
         sunDegree: planets.sun ? Math.floor(planets.sun.degree) : 0,
@@ -43174,7 +43179,7 @@ function _publishProfile(callback) {
         // Full chart data for detailed comparison
         chartData: {
             planets: _serializePlanets(planets),
-            houses: houses ? { ascendant: houses.ascendant, mc: houses.mc, cusps: houses.cusps } : null,
+            houses: houses ? { ascendant: houses.ascendant || 0, mc: houses.mc || 0, cusps: houses.cusps || [] } : null,
             aspects: chart.natalAspects ? chart.natalAspects.slice(0, 50) : [],
             elements: chart.elementQuality || null
         },
@@ -43191,18 +43196,50 @@ function _publishProfile(callback) {
         online: true
     };
 
-    console.log('🌐 [publishProfile] writing to Firestore users/', _socialUser.uid, 'sunSign=', profile.sunSign);
+    // v859: sanitizar — JSON.stringify→parse elimina undefined y funciones que Firestore rechaza silenciosamente
+    var _safeProfile;
+    try {
+        _safeProfile = JSON.parse(JSON.stringify(profile));
+        // restaurar fechas como Date (JSON.stringify las convierte a string)
+        _safeProfile.joinedAt = _nowDate;
+        _safeProfile.updatedAt = _nowDate;
+    } catch(_eSan) {
+        console.error('🌐 [publishProfile] sanitize error:', _eSan);
+        _safeProfile = profile;
+    }
+    var _payloadSize = JSON.stringify(_safeProfile).length;
+    console.log('🌐 [publishProfile] writing to Firestore users/', _socialUser.uid, 'sunSign=', _safeProfile.sunSign, 'payload bytes:', _payloadSize);
+
+    if (_payloadSize > 900000) {
+        // Firestore limit es 1MB — si nos pasamos, tirar chartData.aspects (lo más pesado)
+        console.warn('🌐 [publishProfile] payload >900KB, stripping aspects');
+        _safeProfile.chartData.aspects = [];
+    }
+
     _publishToast(_isES ? '⏳ Publicando perfil...' : '⏳ Publishing profile...', '#00bcd4');
-    _db.collection('users').doc(_socialUser.uid).set(profile, { merge: true }).then(function() {
+
+    // v859: backup local SIEMPRE — para que el user tenga algo aunque Firestore falle
+    try { localStorage.setItem('astroconnect_profile_backup', JSON.stringify(_safeProfile)); } catch(_eB) {}
+
+    // v859: timeout de 15s con Promise.race — si Firestore se cuelga (offline, network drop, SDK bug),
+    //       mostramos error en vez de quedarnos colgados para siempre
+    var _writePromise = _db.collection('users').doc(_socialUser.uid).set(_safeProfile, { merge: true });
+    var _timeoutPromise = new Promise(function(_resolve, _reject) {
+        setTimeout(function() { _reject(new Error('Firestore set() timeout 15s — Firestore se colgó')); }, 15000);
+    });
+
+    Promise.race([_writePromise, _timeoutPromise]).then(function() {
         console.log('🌐 [publishProfile] ✅ Firestore write OK');
-        _socialProfile = profile;
+        _socialProfile = _safeProfile;
         _socialProfile._uid = _socialUser.uid;
         _publishToast(_isES ? '✅ Perfil publicado correctamente' : '✅ Profile published successfully', '#4ecdc4');
         if (callback) callback();
         _renderSocial();
     }).catch(function(e) {
+        var _msg = e && e.message ? e.message : (typeof e === 'string' ? e : 'unknown');
+        var _code = e && e.code ? ' [' + e.code + ']' : '';
         console.error('🌐 [publishProfile] FAIL Firestore write:', e);
-        _publishToast((_isES ? '❌ Error guardando perfil:\n' : '❌ Error saving profile:\n') + (e && e.message ? e.message : e), '#ff6b6b');
+        _publishToast((_isES ? '❌ Error guardando perfil' : '❌ Error saving profile') + _code + ':\n' + _msg, '#ff6b6b');
     });
     } catch(_outerErr) {
         console.error('🌐 [publishProfile] OUTER catch:', _outerErr);
@@ -43431,8 +43468,24 @@ function _postProcessSearchResults(results, filters) {
 }
 
 function _findTopMatches(callback) {
-    if (!_db || !_socialProfile) return;
-    _db.collection('users').where('privacy.showOnSearch', '==', true).limit(100).get().then(function(snap) {
+    // v860: logging + .catch() + intento server-first para diagnosticar bug APK donde no aparecen perfiles
+    if (!_db || !_socialProfile) {
+        console.warn('🔍 [findTopMatches] aborted: _db=', !!_db, '_socialProfile=', !!_socialProfile);
+        if (callback) callback([]);
+        return;
+    }
+    console.log('🔍 [findTopMatches] querying users where privacy.showOnSearch==true, limit 100');
+    var _query = _db.collection('users').where('privacy.showOnSearch', '==', true).limit(100);
+    // v860: intentar fetch desde servidor primero para esquivar cache vacío en APK
+    var _serverFirst;
+    try {
+        _serverFirst = _query.get({ source: 'server' });
+    } catch(_eSrc) {
+        console.warn('🔍 [findTopMatches] source:server falló, fallback a default:', _eSrc);
+        _serverFirst = _query.get();
+    }
+    _serverFirst.then(function(snap) {
+        console.log('🔍 [findTopMatches] snapshot size=', snap.size, 'fromCache=', snap.metadata ? snap.metadata.fromCache : '?');
         var results = [];
         snap.forEach(function(doc) {
             if (doc.id === _socialUser.uid) return;
@@ -43443,7 +43496,28 @@ function _findTopMatches(callback) {
         });
         results.sort(function(a, b) { return b._similarity - a._similarity; });
         _matchCache = results;
+        console.log('🔍 [findTopMatches] returning', results.length, 'matches');
         callback(results);
+    }).catch(function(err) {
+        console.error('🔍 [findTopMatches] FAIL:', err && err.code, err && err.message, err);
+        // Si el server falló, intentar caché como último recurso
+        _query.get().then(function(snap2) {
+            console.log('🔍 [findTopMatches] cache fallback size=', snap2.size);
+            var results2 = [];
+            snap2.forEach(function(doc) {
+                if (doc.id === _socialUser.uid) return;
+                var d = doc.data();
+                d._uid = doc.id;
+                d._similarity = _calcSimilarity(_socialProfile.chartData, d.chartData);
+                results2.push(d);
+            });
+            results2.sort(function(a, b) { return b._similarity - a._similarity; });
+            _matchCache = results2;
+            callback(results2);
+        }).catch(function(err2) {
+            console.error('🔍 [findTopMatches] cache fallback FAIL:', err2);
+            callback([]);
+        });
     });
 }
 
