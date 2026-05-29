@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v856';</script>
+    <script>window.APP_VERSION = 'v857';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -22271,7 +22271,8 @@ function updateCurrentDayInfoForMode(mode) {
                     `}
                 </div>
                 <!-- Info según modo -->
-                <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
+                <!-- v857: display:flex column para que el botón Interpretar quede docked al fondo de la caja vía margin-top:auto -->
+                <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box; display:flex; flex-direction:column;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor2}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         <span style="font-size: 1em;">${displayEmoji}</span>
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
@@ -22349,7 +22350,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ` : `<div style="font-size:0.6em;color:${bannerAspColor2}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
                     <!-- v749y: botón "Interpretar todo" SIEMPRE visible al final -->
                     <div style="margin-top:auto;padding-top:4px;border-top:1px solid ${bannerAspColor2}22;">
-                        <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor2};cursor:pointer;padding:3px;background:${bannerAspColor2}14;border-radius:4px;border:1px solid ${bannerAspColor2}33;">✦ ${currentLang==='es'?'Interpretar todo':'Interpret all'}</div>
+                        <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor2};cursor:pointer;padding:3px;background:${bannerAspColor2}14;border-radius:4px;border:1px solid ${bannerAspColor2}33;">✦ ${currentLang==='es'?'Interpretar':'Interpret'}</div>
                     </div>
                 </div>
             </div>
@@ -29410,7 +29411,7 @@ function renderPersonalCalendar(opts) {
                    // (tránsitos sobre carta natal + contexto año personal, NO aspectos genéricos del día)
                    (majorTransits && majorTransits.length > 0
                      ? '<div style="margin-top:4px;border-top:1px solid ' + c_aspBorder + '22;padding-top:4px;">' +
-                         '<div onclick="showAllTransitsInterpretation()" style="font-size:0.6em;text-align:center;color:' + c_aspBorder + ';cursor:pointer;padding:3px;background:' + c_aspBorder + '14;border-radius:4px;border:1px solid ' + c_aspBorder + '33;">✦ ' + (L?'Interpretar todo':'Interpret all') + '</div>' +
+                         '<div onclick="showAllTransitsInterpretation()" style="font-size:0.6em;text-align:center;color:' + c_aspBorder + ';cursor:pointer;padding:3px;background:' + c_aspBorder + '14;border-radius:4px;border:1px solid ' + c_aspBorder + '33;">✦ ' + (L?'Interpretar':'Interpret') + '</div>' +
                        '</div>'
                      : '') +
                  '</div>' +
@@ -29727,7 +29728,8 @@ function renderPersonalCalendar(opts) {
             var dayNum = ev.date.getDate();
             var isPast = ev.date < today && ev.date.toDateString() !== today.toDateString();
             var isEventToday = ev.date.toDateString() === today.toDateString();
-            var opacity = isPast ? 'opacity:0.45;' : '';
+            // v857: contraste más fuerte (filter brightness+saturate) además del opacity para que los eventos pasados se distingan claramente
+            var opacity = isPast ? 'opacity:0.4;filter:brightness(0.55) saturate(0.6);' : '';
             var todayHighlight = isEventToday ? 'background:rgba(201,168,64,0.15);border-radius:6px;' : '';
             yearEventsHTML += '<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;font-size:0.82em;' + opacity + todayHighlight + '" onclick="showPersonalDayDetail(' + year + ',' + mi + ',' + dayNum + ')" style="cursor:pointer;">';
             yearEventsHTML += '<span style="min-width:22px;text-align:right;color:rgba(255,255,255,0.35);font-size:0.85em;">' + dayNum + '</span>';
@@ -35289,7 +35291,8 @@ function renderCalendar() {
                 </div>
 
                 <!-- Luna/Sol/Info Hoy -->
-                <div style="background: ${bannerAspBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor}44; border-top: 2px solid ${bannerAspColor}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
+                <!-- v857: flex column para que el botón Interpretar quede docked abajo de la caja -->
+                <div style="background: ${bannerAspBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor}44; border-top: 2px solid ${bannerAspColor}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box; display:flex; flex-direction:column;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
                     </div>
@@ -35366,7 +35369,7 @@ function renderCalendar() {
                     ` : `<div style="font-size:0.6em;color:${bannerAspColor}66;font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
                     <!-- v749y: botón "Interpretar todo" SIEMPRE visible al final (no condicional a eventos) -->
                     <div style="margin-top:auto;padding-top:4px;border-top:1px solid ${bannerAspColor}22;">
-                        <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor};cursor:pointer;padding:3px;background:${bannerAspColor}14;border-radius:4px;border:1px solid ${bannerAspColor}33;">✦ ${currentLang==='es'?'Interpretar todo':'Interpret all'}</div>
+                        <div onclick="showAllAspectsInterpretation()" style="font-size:0.6em;text-align:center;color:${bannerAspColor};cursor:pointer;padding:3px;background:${bannerAspColor}14;border-radius:4px;border:1px solid ${bannerAspColor}33;">✦ ${currentLang==='es'?'Interpretar':'Interpret'}</div>
                     </div>
                 </div>
             </div>
@@ -43067,7 +43070,21 @@ function _loadProfile(uid) {
     }).catch(function(err) {
         console.error('Error loading social profile:', err);
         _profileLoading = false;
+        // v857: re-render para salir de "Cargando perfil..." cuando Firestore falla (sino quedaba pegado)
+        if (typeof calendarMode !== 'undefined' && calendarMode === 'social') {
+            _renderSocial();
+        }
     });
+    // v857: timeout de seguridad — si Firestore tarda más de 10s, soltar el loading state
+    setTimeout(function() {
+        if (_profileLoading) {
+            console.warn('⚠️ Profile load timeout (10s) — forzando re-render');
+            _profileLoading = false;
+            if (typeof calendarMode !== 'undefined' && calendarMode === 'social') {
+                _renderSocial();
+            }
+        }
+    }, 10000);
 }
 
 function _publishProfile(callback) {
@@ -44080,9 +44097,10 @@ function _renderMainSocial(container, isES) {
         var badgeHtml = showMsgBadge
             ? '<span style="position:absolute;top:-5px;right:-4px;background:#ff4444;color:#fff;border-radius:50%;min-width:16px;height:16px;line-height:16px;padding:0 3px;font-size:0.70em;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1.5px solid #0a0a2e;box-sizing:border-box;z-index:10;">' + _unreadCount + '</span>'
             : (showActBadge ? '<span style="position:absolute;top:-5px;right:-4px;background:#ff9800;color:#fff;border-radius:50%;min-width:16px;height:16px;line-height:16px;padding:0 3px;font-size:0.70em;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1.5px solid #0a0a2e;box-sizing:border-box;z-index:10;">' + _unreadCount + '</span>' : '');
-        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;position:relative;overflow:visible;' +
+        // v857: wrap label in span with overflow:hidden+ellipsis para evitar overlap entre tabs (Actividad/Buscar se pegaban)
+        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.6em;min-width:0;position:relative;overflow:visible;box-sizing:border-box;' +
             (isActive ? 'background:rgba(0,188,212,0.2);color:#00bcd4;font-weight:700;' : 'background:transparent;color:rgba(255,255,255,0.4);font-weight:500;') +
-            '">' + tab.icon + '<br>' + tab.label + badgeHtml +
+            '">' + tab.icon + '<br><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;">' + tab.label + '</span>' + badgeHtml +
             '</button>';
     });
     navHtml += '</div>';
