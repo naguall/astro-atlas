@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v850';</script>
+    <script>window.APP_VERSION = 'v851';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -7987,6 +7987,22 @@ function scheduleDailyDriveBackup() {
     });
 }
 
+// v850: wrapper para auto-backup que respeta el "una vez por día" — usado al conectar Drive,
+// post-restore, post-sync, etc. Evita el bug donde cada launch creaba un backup nuevo.
+function autoBackupOncePerDay() {
+    var lastDay = localStorage.getItem('gdriveLastBackupDay') || '';
+    var today = new Date().toISOString().slice(0,10);
+    if (lastDay === today) {
+        console.log('[Drive] auto-backup skipped — ya hicimos backup hoy (' + lastDay + ')');
+        return Promise.resolve(null);
+    }
+    if (!gdriveIsConnected()) return Promise.resolve(null);
+    console.log('[Drive] auto-backup once-per-day disparado');
+    return driveBackupData(gdriveAccessToken).then(function() {
+        localStorage.setItem('gdriveLastBackupDay', today);
+    });
+}
+
 // Run auto-restore on startup, then start periodic backup
 (function initAutoBackup() {
     autoRestoreFromIndexedDB().then(function(restored) {
@@ -8157,12 +8173,13 @@ function handleGdriveTokenResponse(response) {
         // Avanzar al siguiente step del setup
         try { window._setupFlowNext(); } catch(_eSF) {}
     }
-    // v749ct: auto-backup al conectar — ya NO pisa otros devices porque cada backup es archivo
-    // versionado independiente con device label embedded. Restore es vía picker.
-    driveBackupData(gdriveAccessToken).then(function() {
-        scheduleDailyDriveBackup();
-        var modal2 = document.getElementById('preferencesModal');
-        if (modal2 && modal2.classList.contains('show')) { openPreferencesModal(); }
+    // v850: auto-backup al conectar respeta "una vez por día" (autoBackupOncePerDay).
+    // Si ya hicimos backup hoy, NO crea otro al conectar.
+    autoBackupOncePerDay().then(function(result) {
+        if (result !== null) {
+            var modal2 = document.getElementById('preferencesModal');
+            if (modal2 && modal2.classList.contains('show')) { openPreferencesModal(); }
+        }
     }).catch(function(e) {
         console.warn('[Drive] Backup inicial post-signin falló:', e);
         showToast(currentLang === 'es' ? '⚠️ Conectado pero el primer backup falló: ' + (e && e.message || '') : '⚠️ Connected but first backup failed: ' + (e && e.message || ''));
@@ -8243,10 +8260,9 @@ window._signInGoogleUnified = function() {
                     try { window._setupFlowNext(); } catch(_){}
                 }
 
-                if (typeof driveBackupData === 'function') {
-                    driveBackupData(gdriveAccessToken).then(function() {
-                        if (typeof scheduleDailyDriveBackup === 'function') scheduleDailyDriveBackup();
-                    }).catch(function(e) { console.warn('[unifiedSignin/native] backup inicial falló:', e); });
+                // v850: auto-backup solo si no hicimos uno hoy
+                if (typeof autoBackupOncePerDay === 'function') {
+                    autoBackupOncePerDay().catch(function(e) { console.warn('[unifiedSignin/native] backup inicial falló:', e); });
                 }
             } else {
                 console.warn('[unifiedSignin/native] sin accessToken — Drive no quedó conectado');
@@ -8317,11 +8333,9 @@ window._signInGoogleUnified = function() {
                     try { window._setupFlowNext(); } catch(_){}
                 }
 
-                // v749ct: auto-backup al conectar — ya NO pisa otros devices (archivos versionados independientes con device label)
-                if (typeof driveBackupData === 'function') {
-                    driveBackupData(gdriveAccessToken).then(function() {
-                        if (typeof scheduleDailyDriveBackup === 'function') scheduleDailyDriveBackup();
-                    }).catch(function(e) { console.warn('[unifiedSignin] backup inicial falló:', e); });
+                // v850: auto-backup solo si no hicimos uno hoy (autoBackupOncePerDay)
+                if (typeof autoBackupOncePerDay === 'function') {
+                    autoBackupOncePerDay().catch(function(e) { console.warn('[unifiedSignin] backup inicial falló:', e); });
                 }
             } else {
                 // Sin Drive token — Firebase ok, pero usuario tiene que re-consentir Drive aparte
