@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v849';</script>
+    <script>window.APP_VERSION = 'v850';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8180,21 +8180,100 @@ function gdriveSignIn() {
     gdriveTokenClient.requestAccessToken({prompt: 'consent'});
 }
 
-// v749ct: login UNIFICADO de Google — conecta Drive (backup) + Firebase Auth (AstroConnect/Social) en UN solo popup.
-// Estrategia: usar firebase.auth.signInWithPopup con scope de Drive incluido. El credential resultante trae el
-// access_token de Drive listo para usar. Resultado: un solo "Continue with Google" → todo conectado.
-// En Capacitor APK: signInWithPopup falla (origin localhost rechazado por Google), así que ahí caemos a GIS-only.
+// v749ct/v850: login UNIFICADO de Google — conecta Drive (backup) + Firebase Auth (AstroConnect/Social) en UN solo flujo.
+// PWA: usa firebase.auth.signInWithPopup con scope de Drive.
+// APK Capacitor: usa @capacitor-firebase/authentication (plugin nativo) → abre el selector de cuentas Google nativo,
+//                no requiere popup ni localhost. Devuelve el mismo accessToken para Drive.
 window._signInGoogleUnified = function() {
     var L = currentLang === 'es';
     var isCapacitor = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
-    // APK Capacitor: solo Drive vía GIS (Firebase popup no funciona en WebView)
+    // ═══════════════════════════════════════════════════════════════════
+    // APK CAPACITOR: usar plugin nativo @capacitor-firebase/authentication
+    // ═══════════════════════════════════════════════════════════════════
     if (isCapacitor) {
-        if (typeof gdriveSignIn === 'function') gdriveSignIn();
+        var FirebaseAuth = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+        if (!FirebaseAuth) {
+            console.warn('[unifiedSignin] FirebaseAuthentication plugin no disponible — fallback a GIS Drive only');
+            if (typeof window.showToast === 'function') window.showToast('⚠️ ' + (L?'Plugin nativo no encontrado. Reinstalá el APK.':'Native plugin not found. Reinstall APK.'), null, 4500);
+            if (typeof gdriveSignIn === 'function') gdriveSignIn();
+            return;
+        }
+
+        if (typeof window.showToast === 'function') {
+            window.showToast('🔄 ' + (L?'Abriendo Google…':'Opening Google…'), 'rgba(66,133,244,0.96)', 2000);
+        }
+
+        FirebaseAuth.signInWithGoogle({
+            scopes: ['https://www.googleapis.com/auth/drive.appdata'],
+            customParameters: [{ key: 'prompt', value: 'consent' }]
+        }).then(function(result) {
+            console.log('[unifiedSignin/native] user:', result && result.user && result.user.email);
+            var cred = result && result.credential;
+            var accessToken = cred && cred.accessToken;
+            var idToken = cred && cred.idToken;
+
+            // Sincronizar el Firebase Auth del SDK web con el credential del plugin nativo
+            // (así _socialUser/onAuthStateChanged se enteran y todo el Social funciona)
+            try {
+                if (typeof firebase !== 'undefined' && firebase.auth && idToken) {
+                    var webCred = firebase.auth.GoogleAuthProvider.credential(idToken, accessToken);
+                    firebase.auth().signInWithCredential(webCred).then(function(){
+                        console.log('[unifiedSignin/native] web SDK sincronizado');
+                    }).catch(function(e){ console.warn('[unifiedSignin/native] signInWithCredential failed:', e && e.message); });
+                }
+            } catch(eSync) { console.warn('[unifiedSignin/native] sync error:', eSync); }
+
+            if (accessToken) {
+                var expiresIn = 3600;
+                gdriveAccessToken = accessToken;
+                gdriveTokenExpiry = Date.now() + (expiresIn * 1000);
+                localStorage.setItem('gdriveAccessToken', gdriveAccessToken);
+                localStorage.setItem('gdriveTokenExpiry', gdriveTokenExpiry.toString());
+                console.log('[unifiedSignin/native] ✅ Drive token guardado + Firebase user logueado');
+
+                if (typeof window.showToast === 'function') {
+                    window.showToast('✅ ' + (L?'Google Drive + AstroConnect conectados':'Google Drive + AstroConnect connected'), 'rgba(66,133,244,0.96)', 3500);
+                }
+
+                var modal = document.getElementById('preferencesModal');
+                if (modal && modal.classList.contains('show')) { try { openPreferencesModal(); } catch(_){} }
+
+                if (typeof window._setupFlowNext === 'function') {
+                    try { window._setupFlowNext(); } catch(_){}
+                }
+
+                if (typeof driveBackupData === 'function') {
+                    driveBackupData(gdriveAccessToken).then(function() {
+                        if (typeof scheduleDailyDriveBackup === 'function') scheduleDailyDriveBackup();
+                    }).catch(function(e) { console.warn('[unifiedSignin/native] backup inicial falló:', e); });
+                }
+            } else {
+                console.warn('[unifiedSignin/native] sin accessToken — Drive no quedó conectado');
+                if (typeof window.showToast === 'function') {
+                    window.showToast('🌐 ' + (L?'AstroConnect conectado. Tocá de nuevo para Drive':'AstroConnect connected. Tap again for Drive'), 'rgba(0,188,212,0.96)', 4000);
+                }
+                if (typeof window._setupFlowNext === 'function') {
+                    try { window._setupFlowNext(); } catch(_){}
+                }
+            }
+        }).catch(function(e) {
+            console.error('[unifiedSignin/native] error:', e);
+            var msg = e && (e.message || e.code || String(e));
+            if (msg && (msg.indexOf('cancel') >= 0 || msg.indexOf('Cancel') >= 0)) {
+                // User canceló — no toast
+                return;
+            }
+            if (typeof window.showToast === 'function') {
+                window.showToast('⚠️ ' + (msg ? msg.substring(0, 100) : 'Error'), null, 5000);
+            }
+        });
         return;
     }
 
-    // PWA / web: intentar flujo unificado con Firebase Auth
+    // ═══════════════════════════════════════════════════════════════════
+    // PWA / WEB: usa firebase.auth.signInWithPopup
+    // ═══════════════════════════════════════════════════════════════════
     if (typeof firebase === 'undefined' || !firebase.auth) {
         // Firebase no inicializado todavía → fallback a Drive-only
         console.warn('[unifiedSignin] firebase auth no disponible — fallback a GIS Drive only');
