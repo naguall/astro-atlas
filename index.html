@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v852';</script>
+    <script>window.APP_VERSION = 'v853';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8928,30 +8928,42 @@ function handleGcalTokenResponse(response) {
 }
 
 function gcalSignIn() {
-    // v745/v747: en APK Capacitor, Google Identity Services NO carga porque el WebView
-    // tiene origin `https://localhost` que NO está registrado como autorizado en
-    // la consola de Google Cloud. Workaround: abrir la PWA en Chrome externo.
-    var _isCap745 = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    if (_isCap745) {
+    // v852: APK Capacitor — usa el plugin nativo @capacitor-firebase/authentication con scope de Calendar
+    var _isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (_isCap) {
         var L = currentLang === 'es';
-        // v747: confirmación con apertura directa de la PWA en Chrome externo
-        var url = 'https://naguall.github.io/astro-atlas/';
-        if (confirm((L
-            ? 'Google Calendar en la APK requiere un plugin OAuth nativo (próximamente).\n\n¿Abrir la PWA en Chrome ahora para sincronizar? Los eventos guardados en tu cuenta Google aparecerán también en la APK al sincronizar.'
-            : 'Google Calendar in the APK requires a native OAuth plugin (coming soon).\n\nOpen the PWA in Chrome now to sync? Events saved to your Google account will also appear in the APK after syncing.'))) {
-            try {
-                // Intentar abrir en navegador externo via Capacitor App plugin
-                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.openUrl) {
-                    window.Capacitor.Plugins.App.openUrl({ url: url }).catch(function() {
-                        window.open(url, '_system');
-                    });
-                } else {
-                    window.open(url, '_system');
-                }
-            } catch(e) {
-                window.open(url, '_blank');
-            }
+        var FirebaseAuth = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+        if (!FirebaseAuth) {
+            alert(L ? '❌ Plugin nativo no encontrado. Reinstalá el APK.' : '❌ Native plugin not found. Reinstall APK.');
+            return;
         }
+        if (typeof showToast === 'function') showToast('🔄 ' + (L?'Abriendo Google Calendar…':'Opening Google Calendar…'), 'rgba(66,133,244,0.96)', 2000);
+        FirebaseAuth.signInWithGoogle({
+            scopes: ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events.readonly'],
+            customParameters: [{ key: 'prompt', value: 'consent' }]
+        }).then(function(result) {
+            var cred = result && result.credential;
+            var accessToken = cred && cred.accessToken;
+            if (accessToken) {
+                gcalAccessToken = accessToken;
+                gcalTokenExpiry = Date.now() + (3600 * 1000);
+                localStorage.setItem('gcalAccessToken', gcalAccessToken);
+                localStorage.setItem('gcalTokenExpiry', gcalTokenExpiry.toString());
+                if (typeof showToast === 'function') showToast('✅ ' + (L?'Google Calendar conectado':'Google Calendar connected'), 'rgba(66,133,244,0.96)', 3000);
+                // Fetch eventos inmediatamente
+                if (typeof gcalFetchEvents === 'function') gcalFetchEvents();
+                // Refresh UI
+                var modal = document.getElementById('preferencesModal');
+                if (modal && modal.classList.contains('show')) { try { openPreferencesModal(); } catch(_){} }
+            } else {
+                if (typeof showToast === 'function') showToast(L?'⚠️ Sin access token de Calendar':'⚠️ No Calendar access token', null, 4000);
+            }
+        }).catch(function(e) {
+            console.error('[gcalSignIn/native] error:', e);
+            var msg = e && (e.message || e.code || String(e));
+            if (msg && (msg.indexOf('cancel') >= 0 || msg.indexOf('Cancel') >= 0)) return;
+            if (typeof showToast === 'function') showToast('⚠️ ' + (msg ? msg.substring(0,100) : 'Error'), null, 5000);
+        });
         return;
     }
     if (!GCAL_CLIENT_ID) {
@@ -42872,20 +42884,13 @@ function _initFirebase() {
 // Antes solo conectaba Firebase Auth; ahora trae también el access_token de Drive.
 function _signInGoogle() {
     if (!_auth) return;
-    var isCapacitor = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    if (isCapacitor) {
-        var msg = currentLang === 'es'
-            ? 'Inicia sesión con Google requiere un plugin nativo aún no implementado en esta APK beta.\n\nPor ahora usá email + contraseña abajo, o instalá la PWA en Chrome móvil (https://naguall.github.io/astro-atlas/) que sí soporta Google Sign-In.'
-            : 'Google Sign-In requires a native plugin not yet implemented in this beta APK.\n\nFor now use email + password below, or install the PWA in Chrome mobile (https://naguall.github.io/astro-atlas/) which supports Google Sign-In.';
-        alert(msg);
-        return;
-    }
-    // PWA: usar flujo unificado (Drive + Firebase en un popup)
+    // v852: en APK Capacitor el plugin nativo @capacitor-firebase/authentication YA ESTÁ INTEGRADO,
+    // así que el flujo unificado funciona en ambos lados (APK + PWA).
     if (typeof window._signInGoogleUnified === 'function') {
         window._signInGoogleUnified();
         return;
     }
-    // Fallback: solo Firebase (sin Drive)
+    // Fallback (no debería ejecutarse en producción): solo Firebase web SDK
     var provider = new firebase.auth.GoogleAuthProvider();
     _auth.signInWithPopup(provider).catch(function(e) { alert('Error: ' + e.message); });
 }
