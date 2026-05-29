@@ -28,7 +28,9 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v853';</script>
+    <script>window.APP_VERSION = 'v855';</script>
+    <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
+
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -287,8 +289,9 @@
             box-shadow: 0 0 14px rgba(74,158,255,0.18);
             transform: scale(1.02);
         }
-        .day-cell.past { opacity: 0.4; }
-        .day-cell.past:hover { opacity: 0.7; }
+        /* v854: contraste más oscuro para fechas pasadas (calendario lunar/solar/gregoriano) */
+        .day-cell.past { opacity: 0.40; filter: brightness(0.55) saturate(0.70); }
+        .day-cell.past:hover { opacity: 0.72; filter: brightness(0.78) saturate(0.85); }
         /* v749: glow celeste fuerte para HOY (antes era casi invisible) */
         .day-cell.today {
             background: linear-gradient(160deg, rgba(126,200,255,0.22) 0%, rgba(100,181,246,0.12) 100%);
@@ -562,8 +565,9 @@
         /* v749ac: usar la misma var que .day-cell (lunar/solar/greg) para que escale con preferencia small/medium/large */
         .personal-day-cell { min-height: var(--day-cell-min-height, 110px); background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; box-sizing: border-box; overflow: hidden; min-width: 0; }
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
-        .personal-day-cell.past { opacity: 0.4; }
-        .personal-day-cell.past:hover { opacity: 0.7; }
+        /* v854: contraste más oscuro para fechas pasadas (calendario personal) */
+        .personal-day-cell.past { opacity: 0.40; filter: brightness(0.55) saturate(0.70); }
+        .personal-day-cell.past:hover { opacity: 0.72; filter: brightness(0.78) saturate(0.85); }
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
         .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
@@ -8939,7 +8943,7 @@ function gcalSignIn() {
         }
         if (typeof showToast === 'function') showToast('🔄 ' + (L?'Abriendo Google Calendar…':'Opening Google Calendar…'), 'rgba(66,133,244,0.96)', 2000);
         FirebaseAuth.signInWithGoogle({
-            scopes: ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events.readonly'],
+            scopes: ['https://www.googleapis.com/auth/calendar.events'],
             customParameters: [{ key: 'prompt', value: 'consent' }]
         }).then(function(result) {
             var cred = result && result.credential;
@@ -9151,37 +9155,58 @@ async function gcalFetchEvents() {
     }
 }
 
+// v855: helper — convierte un local event + dateStr a payload Google Calendar.
+// Reutilizado por gcalCreateEvent y gcalUpdateEvent para mantener el shape consistente.
+function _gcalBuildPayload(localEvent, dateStr) {
+    const dateParts = dateStr.split('-');
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1;
+    const day = parseInt(dateParts[2]);
+
+    let startDateTime, endDateTime;
+    if (localEvent.time) {
+        const [h, m] = localEvent.time.split(':');
+        const start = new Date(year, month, day, parseInt(h), parseInt(m));
+        const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        startDateTime = { dateTime: start.toISOString(), timeZone: tz };
+        endDateTime = { dateTime: end.toISOString(), timeZone: tz };
+    } else {
+        // All-day event
+        startDateTime = { date: dateStr };
+        endDateTime = { date: dateStr };
+    }
+
+    const payload = {
+        summary: localEvent.title,
+        description: localEvent.description || '',
+        start: startDateTime,
+        end: endDateTime
+    };
+
+    // v855: pasar recordatorios al GCal si tiene
+    if (Array.isArray(localEvent.reminders) && localEvent.reminders.length > 0) {
+        payload.reminders = {
+            useDefault: false,
+            overrides: localEvent.reminders.slice(0, 5).map(function(r) {
+                return { method: 'popup', minutes: parseInt(r.minutes) || 0 };
+            })
+        };
+    }
+
+    return payload;
+}
+
+// v855: gcalCreateEvent ahora RETORNA el gcalId del evento creado (string) o null si falló.
+// Esto permite a saveEvent guardar el ID en el evento local para futuras updates/deletes.
 async function gcalCreateEvent(localEvent, dateStr) {
     if (!gcalIsConnected()) {
         alert(t('gcalSyncError') + ': ' + (currentLang === 'es' ? 'No conectado' : 'Not connected'));
-        return false;
+        return null;
     }
 
     try {
-        const dateParts = dateStr.split('-');
-        const year = parseInt(dateParts[0]);
-        const month = parseInt(dateParts[1]) - 1;
-        const day = parseInt(dateParts[2]);
-
-        let startDateTime, endDateTime;
-        if (localEvent.time) {
-            const [h, m] = localEvent.time.split(':');
-            const start = new Date(year, month, day, parseInt(h), parseInt(m));
-            const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour
-            startDateTime = { dateTime: start.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone };
-            endDateTime = { dateTime: end.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone };
-        } else {
-            // All-day event
-            startDateTime = { date: dateStr };
-            endDateTime = { date: dateStr };
-        }
-
-        const gcalEvent = {
-            summary: localEvent.title,
-            description: localEvent.description || '',
-            start: startDateTime,
-            end: endDateTime
-        };
+        const gcalEvent = _gcalBuildPayload(localEvent, dateStr);
 
         const resp = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
             method: 'POST',
@@ -9193,17 +9218,50 @@ async function gcalCreateEvent(localEvent, dateStr) {
         });
 
         if (resp.ok) {
-            console.log('✅ Event sent to Google Calendar');
-            // Re-sync to get the new event ID
+            const created = await resp.json();
+            console.log('✅ Event sent to Google Calendar:', created.id);
+            // Re-sync en background para refrescar la vista de eventos GCal en otras fechas
             setTimeout(() => gcalFetchEvents(), 1000);
-            return true;
+            return created.id || true;
         } else {
             const err = await resp.json();
             console.error('❌ Google Calendar create error:', err);
-            return false;
+            return null;
         }
     } catch(e) {
         console.error('❌ Google Calendar create error:', e);
+        return null;
+    }
+}
+
+// v855: NEW — Update an existing Google Calendar event (bidirectional sync).
+async function gcalUpdateEvent(gcalId, localEvent, dateStr) {
+    if (!gcalIsConnected() || !gcalId) return false;
+    try {
+        const gcalEvent = _gcalBuildPayload(localEvent, dateStr);
+        const resp = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(gcalId), {
+            method: 'PATCH',
+            headers: {
+                'Authorization': 'Bearer ' + gcalAccessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(gcalEvent)
+        });
+        if (resp.ok) {
+            console.log('✅ Event updated in Google Calendar:', gcalId);
+            setTimeout(() => gcalFetchEvents(), 1000);
+            return true;
+        }
+        // 404 = evento ya no existe en GCal (borrado desde otro lado). Limpiamos el id local.
+        if (resp.status === 404) {
+            console.warn('⚠️ GCal event 404 (borrado externamente):', gcalId);
+            return 'gone';
+        }
+        const err = await resp.json().catch(() => ({}));
+        console.error('❌ Google Calendar update error:', err);
+        return false;
+    } catch(e) {
+        console.error('❌ Google Calendar update error:', e);
         return false;
     }
 }
@@ -9215,10 +9273,42 @@ async function gcalDeleteEvent(gcalId) {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
         });
-        return resp.ok || resp.status === 204;
+        // 410 Gone / 404 = ya borrado, tratamos como éxito
+        return resp.ok || resp.status === 204 || resp.status === 404 || resp.status === 410;
     } catch(e) {
         console.error('❌ Google Calendar delete error:', e);
         return false;
+    }
+}
+
+// v855: hook automático llamado desde saveEvent — pushea local → GCal (create o update).
+// Guarda el gcalId resultante en el evento local para sync futuro.
+// No bloquea el flujo del usuario: corre async, muestra toast discreto si falla.
+async function _gcalAutoPushEvent(eventObj, dateStr, dateKey, eventIndex) {
+    if (!gcalIsConnected()) return;
+    try {
+        if (eventObj.gcalId) {
+            // UPDATE
+            const r = await gcalUpdateEvent(eventObj.gcalId, eventObj, dateStr);
+            if (r === 'gone') {
+                // re-crear si fue borrado en GCal
+                const newId = await gcalCreateEvent(eventObj, dateStr);
+                if (newId && typeof newId === 'string' && events[dateKey] && events[dateKey][eventIndex]) {
+                    events[dateKey][eventIndex].gcalId = newId;
+                    saveEvents();
+                }
+            }
+        } else {
+            // CREATE
+            const newId = await gcalCreateEvent(eventObj, dateStr);
+            if (newId && typeof newId === 'string' && events[dateKey] && events[dateKey][eventIndex]) {
+                events[dateKey][eventIndex].gcalId = newId;
+                saveEvents();
+                console.log('🔗 gcalId stored on local event:', newId);
+            }
+        }
+    } catch(e) {
+        console.error('❌ _gcalAutoPushEvent error:', e);
     }
 }
 
@@ -9957,14 +10047,15 @@ function isWeekend(date) {
 })();
 
 // ══════════════════════════════════════════════════════════════════
-// v745: Widget Android — sincronizar datos cuando la app abre
+// v854: Widget Android — bridge a SharedPreferences via WidgetBridge plugin
+// El widget nativo (LunarWidgetProvider) lee estos datos para mostrar
+// día personal, idioma y ubicación del usuario. En PWA es no-op.
 // ══════════════════════════════════════════════════════════════════
 function _syncWidgetData() {
-    if (!window.MoonSyncNative || !window.MoonSyncNative.updateWidgetData) return;
     try {
         var natal = (typeof getNatalData === 'function') ? getNatalData() : null;
         var data = {
-            lang: currentLang || 'es',
+            lang: (typeof currentLang !== 'undefined' ? currentLang : 'es') || 'es',
             userLat: parseFloat(localStorage.getItem('userLat') || (typeof ASTRO_USER_LAT !== 'undefined' ? ASTRO_USER_LAT : '9.93')),
             userLon: parseFloat(localStorage.getItem('userLon') || (typeof ASTRO_USER_LON !== 'undefined' ? ASTRO_USER_LON : '-84.08'))
         };
@@ -9980,12 +10071,24 @@ function _syncWidgetData() {
             data.personalDay = Math.floor((today - bDate) / 86400000) + 1;
             data.personalTotal = Math.round((nextBd - bDate) / 86400000);
         }
-        window.MoonSyncNative.updateWidgetData(data);
-        console.log('[Widget] Synced data:', data);
+        // v854: Capacitor 6 — preferred plugin
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WidgetBridge) {
+            window.Capacitor.Plugins.WidgetBridge.setWidgetData(data).then(function(){
+                console.log('[Widget] WidgetBridge sync OK:', data);
+            }).catch(function(err){
+                console.warn('[Widget] WidgetBridge sync error:', err);
+            });
+        } else if (window.MoonSyncNative && window.MoonSyncNative.updateWidgetData) {
+            // legacy fallback
+            window.MoonSyncNative.updateWidgetData(data);
+            console.log('[Widget] (legacy) Synced data:', data);
+        }
     } catch(e) { console.warn('[Widget] sync error:', e); }
 }
 // Sync after init + each time user changes profile/lang/location
 setTimeout(_syncWidgetData, 3000);
+// v854: also re-sync periodically (every 30 min) while app is open, so widget stays fresh
+setInterval(_syncWidgetData, 30 * 60 * 1000);
 window._syncWidgetDataPublic = _syncWidgetData;
 
 function openAspectsModal(date, lunarDay, dayData) {
@@ -16567,8 +16670,13 @@ async function sendEventToGcal(localIndex, btn) {
     btn.textContent = t('gcalSyncing');
     btn.disabled = true;
 
-    const success = await gcalCreateEvent(localEvents[localIndex], key);
-    if (success) {
+    // v855: gcalCreateEvent ahora retorna el ID (string) o null. Guardamos el id localmente.
+    const result = await gcalCreateEvent(localEvents[localIndex], key);
+    if (result) {
+        if (typeof result === 'string' && localEvents[localIndex]) {
+            localEvents[localIndex].gcalId = result;
+            saveEvents();
+        }
         btn.textContent = '✓ ' + t('gcalSentOk');
         btn.style.color = '#4ecdc4';
     } else {
@@ -16656,16 +16764,26 @@ function saveEvent() {
         events[key] = [];
     }
 
-    // If editing, delete the old event first
+    // If editing, preserve the original gcalId so we PATCH instead of POST a duplicate.
+    var _preservedGcalId = null;
     if (typeof window.editingEventIndex !== 'undefined' && window.editingEventIndex !== null) {
+        var _old = events[key][window.editingEventIndex];
+        if (_old && _old.gcalId) _preservedGcalId = _old.gcalId;
         events[key].splice(window.editingEventIndex, 1);
         window.editingEventIndex = null;
     }
+    if (_preservedGcalId) event.gcalId = _preservedGcalId;
 
     events[key].push(event);
+    var _pushedIndex = events[key].length - 1;
 
     saveEvents();
     showEventsList(events[key]);
+
+    // v855: bidirectional sync — auto-push a Google Calendar si está conectado
+    if (typeof gcalIsConnected === 'function' && gcalIsConnected() && typeof _gcalAutoPushEvent === 'function') {
+        _gcalAutoPushEvent(event, key, key, _pushedIndex);
+    }
 
     if (calendarMode === 'lunar') {
         renderCalendar();
@@ -16766,13 +16884,22 @@ function deleteEvent(index) {
         const key = getDateKey(selectedDate);
         console.log('🔑 Date key:', key);
         console.log('📦 Events for this key:', events[key]);
-        
+
         if (!events[key]) {
             alert(t('errorNoEvents'));
             console.error('No events found for key:', key);
             return;
         }
-        
+
+        // v855: bidirectional sync — borrar en Google Calendar si el evento tiene gcalId
+        var _evToDel = events[key][index];
+        if (_evToDel && _evToDel.gcalId && typeof gcalIsConnected === 'function' && gcalIsConnected() && typeof gcalDeleteEvent === 'function') {
+            gcalDeleteEvent(_evToDel.gcalId).then(function(ok) {
+                if (ok) console.log('🗑️ GCal event deleted:', _evToDel.gcalId);
+                else console.warn('⚠️ GCal delete failed for:', _evToDel.gcalId);
+            });
+        }
+
         console.log('✂️ Removing event at index:', index);
         events[key].splice(index, 1);
         
@@ -42459,23 +42586,26 @@ function requestGPS() {
                 });
             } catch(e) {
                 console.error('GPS success callback error:', e);
-                _gpsResetBtn(L ? '⚠️ Error GPS' : '⚠️ GPS Error');
+                _gpsResetBtn(L ? '📡 GPS no disponible · usá búsqueda abajo' : '📡 GPS unavailable · use search below');
                 setTimeout(function() {
                     if (btn) btn.textContent = L ? '📍 Obtener ubicación GPS' : '📍 Get GPS Location';
-                }, 3000);
+                }, 4500);
             }
         },
         err => {
+            // v853: mensajes amables que sugieren acción en vez de mostrar "Error"
             if (err.code === 1) {
-                _gpsResetBtn(L ? '⚠️ Permiso denegado' : '⚠️ Permission denied');
+                _gpsResetBtn(L ? '🔒 Activá permiso de ubicación' : '🔒 Enable location permission');
+            } else if (err.code === 2) {
+                _gpsResetBtn(L ? '📡 GPS desactivado · usá búsqueda abajo' : '📡 GPS off · use search below');
             } else if (err.code === 3) {
-                _gpsResetBtn(L ? '⚠️ Tiempo agotado' : '⚠️ Timed out');
+                _gpsResetBtn(L ? '⏱️ GPS no responde · usá búsqueda abajo' : '⏱️ GPS not responding · use search below');
             } else {
-                _gpsResetBtn(L ? '⚠️ Error GPS' : '⚠️ GPS Error');
+                _gpsResetBtn(L ? '📡 GPS no disponible · usá búsqueda abajo' : '📡 GPS unavailable · use search below');
             }
             setTimeout(function() {
                 if (btn) btn.textContent = L ? '📍 Obtener ubicación GPS' : '📍 Get GPS Location';
-            }, 3000);
+            }, 4500);
         },
         { timeout: 15000, enableHighAccuracy: false, maximumAge: 60000 }
     );
@@ -42941,9 +43071,18 @@ function _loadProfile(uid) {
 }
 
 function _publishProfile(callback) {
-    if (!_socialUser || !_db) return;
+    // v853: en vez de return silencioso, mostrar mensaje claro al user
+    var _isES = L();
+    if (!_db) {
+        alert(_isES ? '❌ Firestore no inicializado. Recargá la app.' : '❌ Firestore not initialized. Reload the app.');
+        return;
+    }
+    if (!_socialUser) {
+        alert(_isES ? '❌ No estás logueado en Social. Tocá "Continuar con Google" arriba y volvé a intentar.' : '❌ Not signed in to Social. Tap "Continue with Google" above and try again.');
+        return;
+    }
     var natal = typeof getNatalData === 'function' ? getNatalData() : null;
-    if (!natal) { alert(L() ? 'Primero configura tu carta natal en la sección Astro' : 'First set up your natal chart in the Astro section'); return; }
+    if (!natal) { alert(_isES ? 'Primero configura tu carta natal en la sección Astro' : 'First set up your natal chart in the Astro section'); return; }
 
     var chartKey = 'natalChart_' + natal.id;
     var chartRaw = localStorage.getItem(chartKey) || localStorage.getItem('natalChart');
