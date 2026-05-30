@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v864';</script>
+    <script>window.APP_VERSION = 'v865';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -8150,10 +8150,9 @@ function initGoogleDrive() {
             console.log('☁️ Google Drive: token valid, running daily backup check');
             scheduleDailyDriveBackup();
         } else if (localStorage.getItem('gdriveAccessToken')) {
-            // v862/v863: NO disparar refresh automático en APK Capacitor — GIS no funciona silenciosamente
+            // v862/v863/v865: NO disparar refresh automático en APK Capacitor — GIS no funciona silenciosamente
             // en WebView, muestra el account picker cada vez que se abre la app.
-            // En PWA: intentar silent refresh CON HINT (email guardado) para evitar el picker cuando
-            // el browser tiene múltiples cuentas Google logueadas.
+            // En PWA: silent refresh SOLO si tenemos email guardado (hint). Sin hint → picker, mejor pedir reconexión manual.
             var _isCapApp = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
             if (_isCapApp) {
                 console.log('☁️ Drive token expirado (APK) — usuario reconecta manualmente');
@@ -8162,19 +8161,26 @@ function initGoogleDrive() {
                 gdriveAccessToken = '';
                 gdriveTokenExpiry = 0;
             } else {
-                // PWA: silent refresh con hint para no mostrar picker en browsers con multi-cuenta
                 var _savedEmail = localStorage.getItem('gdriveUserEmail') || '';
-                try {
-                    var _refreshOpts = {prompt: ''};
-                    if (_savedEmail) _refreshOpts.hint = _savedEmail;
-                    console.log('☁️ Drive silent refresh' + (_savedEmail ? ' con hint: ' + _savedEmail : ' sin hint'));
-                    gdriveTokenClient.requestAccessToken(_refreshOpts);
-                } catch(silentErr) {
-                    console.log('☁️ Drive silent refresh failed:', silentErr);
+                if (!_savedEmail) {
+                    // v865: sin email guardado el silent refresh muestra el picker → no lo intentamos.
+                    //       Usuario reconecta UNA vez manualmente, ahí guardamos email, refreshes futuros silenciosos.
+                    console.log('☁️ Drive token expirado (PWA, sin email guardado) — usuario reconecta manualmente');
                     localStorage.removeItem('gdriveAccessToken');
                     localStorage.removeItem('gdriveTokenExpiry');
                     gdriveAccessToken = '';
                     gdriveTokenExpiry = 0;
+                } else {
+                    try {
+                        console.log('☁️ Drive silent refresh con hint:', _savedEmail);
+                        gdriveTokenClient.requestAccessToken({prompt: '', hint: _savedEmail});
+                    } catch(silentErr) {
+                        console.log('☁️ Drive silent refresh failed:', silentErr);
+                        localStorage.removeItem('gdriveAccessToken');
+                        localStorage.removeItem('gdriveTokenExpiry');
+                        gdriveAccessToken = '';
+                        gdriveTokenExpiry = 0;
+                    }
                 }
             }
         }
@@ -8195,6 +8201,17 @@ function handleGdriveTokenResponse(response) {
     localStorage.setItem('gdriveTokenExpiry', gdriveTokenExpiry.toString());
     console.log('✅ Google Drive connected');
     showToast(currentLang === 'es' ? '☁️ Google Drive conectado' : '☁️ Google Drive connected');
+    // v865: guardar email vía userinfo para que futuros silent refreshes pasen hint y no muestren picker
+    try {
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': 'Bearer ' + gdriveAccessToken }
+        }).then(function(r) { return r.ok ? r.json() : null; }).then(function(info) {
+            if (info && info.email) {
+                localStorage.setItem('gdriveUserEmail', info.email);
+                console.log('☁️ Drive user email guardado para silent refresh:', info.email);
+            }
+        }).catch(function(e) { console.warn('☁️ userinfo fetch failed:', e); });
+    } catch(_eUi) {}
     // v749cr: REFRESH UI INMEDIATAMENTE — antes esperábamos a que terminara el backup pero
     // si la promesa no resolvía (ej. nada para guardar, error silencioso) la UI nunca se actualizaba
     // y el usuario tenía que cerrar/abrir Preferencias para ver los botones Guardar/Restaurar.
