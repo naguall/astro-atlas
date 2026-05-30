@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-atlas-v863';
+const CACHE_NAME = 'astro-atlas-v864';
 const ASSETS = [
   '/astro-atlas/',
   '/astro-atlas/index.html',

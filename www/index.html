@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v863';</script>
+    <script>window.APP_VERSION = 'v864';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -11226,10 +11226,10 @@ window._renderTextToImageBlob = async function(title, text) {
     });
 };
 
-// v749ct: picker que aparece ANTES del share nativo si el user está logueado en Social.
-// Permite elegir entre "Chat AstroAtlas" (manda al chat interno) y "Otras apps" (WhatsApp/Email vía navigator.share).
+// v749ct/v864: picker que aparece ANTES del share nativo si el user está logueado en Social.
+// 3 opciones: Chat (1 persona) / Feed AstroConnect (público a amigos) / Otras apps (WhatsApp, etc.)
 // Si no hay sesión social, se salta el picker y va directo a share nativo.
-window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps) {
+window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps, onPickFeed) {
     var L = currentLang === 'es';
     var modal = document.createElement('div');
     modal.id = '_sharePickerModal';
@@ -11248,6 +11248,14 @@ window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps
                 '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);">' + (L?'Mandar a una persona conectada en Social':'Send to a person connected in Social') + '</div>' +
             '</div>' +
         '</button>' +
+        // v864: NEW — Publicar al Feed (timeline público de AstroConnect, todos los amigos lo ven)
+        '<button id="_spickFeed" style="width:100%;padding:14px;margin-bottom:8px;background:linear-gradient(135deg,rgba(0,188,212,0.25),rgba(0,188,212,0.08));border:1px solid rgba(0,188,212,0.4);border-radius:12px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">' +
+            '<div style="font-size:1.8em;line-height:1;">🌐</div>' +
+            '<div style="flex:1;">' +
+                '<div style="font-weight:700;color:#00bcd4;font-size:0.95em;">' + (L?'Publicar al Feed':'Post to Feed') + '</div>' +
+                '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);">' + (L?'Visible para tus amigos en AstroConnect':'Visible to your friends in AstroConnect') + '</div>' +
+            '</div>' +
+        '</button>' +
         '<button id="_spickOther" style="width:100%;padding:14px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;">' +
             '<div style="font-size:1.8em;line-height:1;">📱</div>' +
             '<div style="flex:1;">' +
@@ -11261,7 +11269,47 @@ window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps
     function close() { try { document.body.removeChild(modal); } catch(_){} }
     document.getElementById('_spickAstro').onclick = function() { close(); onPickAstroChat(); };
     document.getElementById('_spickOther').onclick = function() { close(); onPickOtherApps(); };
+    // v864: feed callback con fallback si no se pasó (compat con llamadas viejas)
+    document.getElementById('_spickFeed').onclick = function() {
+        close();
+        if (typeof onPickFeed === 'function') onPickFeed();
+        else if (typeof window._publishInterpretationToFeed === 'function') window._publishInterpretationToFeed(title, text);
+    };
     document.getElementById('_spickCancel').onclick = close;
+};
+
+// v864: publica una interpretación al feed de AstroConnect
+window._publishInterpretationToFeed = function(title, text) {
+    var L = currentLang === 'es';
+    if (typeof _socialUser === 'undefined' || !_socialUser) {
+        if (typeof window.showToast === 'function') window.showToast(L?'⚠️ Iniciá sesión en Social primero':'⚠️ Sign in to Social first', null, 4000);
+        return;
+    }
+    if (typeof _postToFeed !== 'function') {
+        if (typeof window.showToast === 'function') window.showToast(L?'❌ Sistema de feed no disponible':'❌ Feed not available', null, 4000);
+        return;
+    }
+    // Truncar a 2000 chars para no spamear el feed
+    var MAX = 2000;
+    var body = text || '';
+    var truncated = false;
+    if (body.length > MAX) {
+        body = body.substring(0, MAX) + '...\n\n[' + (L?'Lectura completa en tu AstroAtlas':'Full reading in your AstroAtlas') + ']';
+        truncated = true;
+    }
+    var content = '✨ ' + (title || (L?'Interpretación':'Interpretation')) + '\n\n' + body;
+    if (typeof window.showToast === 'function') window.showToast('⏳ ' + (L?'Publicando al feed...':'Publishing to feed...'), 'rgba(0,188,212,0.96)', 2000);
+    try {
+        _postToFeed(content, 'interpretation', function(postId) {
+            if (typeof window.showToast === 'function') {
+                window.showToast('✅ ' + (L?'Publicado en el Feed':'Posted to Feed') + (truncated ? ' (' + (L?'truncado':'truncated') + ')' : ''), 'rgba(0,188,212,0.96)', 3500);
+            }
+            console.log('[shareToFeed] post created:', postId);
+        });
+    } catch(e) {
+        console.error('[shareToFeed] error:', e);
+        if (typeof window.showToast === 'function') window.showToast('❌ ' + (L?'Error publicando: ':'Error posting: ') + (e.message||''), null, 4000);
+    }
 };
 
 // v749ct: modal selector de chat — lista los chats activos del usuario para mandar la interpretación
@@ -11355,17 +11403,16 @@ window._pickAstroChatAndSend = function(title, text) {
 // .txt llega entero, recipient le da tap y se abre en cualquier lector.
 // v749ct: AHORA si _socialUser está logueado, muestra picker (Chat AstroAtlas / Otras apps) antes del share nativo.
 window.shareTextSafe = function(title, text) {
-    // v749ct: si hay sesión social activa, ofrecer picker entre chat AstroAtlas y share nativo
-    var _socUser = (typeof _socialUser !== 'undefined') ? _socialUser : null;
-    if (_socUser && _socUser.uid) {
-        window._showSharePicker(title, text,
-            function() { window._pickAstroChatAndSend(title, text); },
-            function() { window._doNativeShareTextSafe(title, text); }
-        );
-        return;
-    }
-    // No socialUser → directo a share nativo (comportamiento legacy)
-    window._doNativeShareTextSafe(title, text);
+    // v864: SIEMPRE mostrar el picker con las 3 opciones (Chat / Feed / Otras apps).
+    // Si el usuario no está logueado a Social y elige Chat o Feed, la función interna le pide login.
+    // Antes solo mostraba el picker si _socialUser estaba activo → si te logueabas y no terminaba
+    // el perfil, _socialUser quedaba null y saltaba directo a la share sheet de Android sin ofrecer
+    // las opciones internas. Ahora SIEMPRE aparece para que tengas la opción de compartir a Social.
+    window._showSharePicker(title, text,
+        function() { window._pickAstroChatAndSend(title, text); },
+        function() { window._doNativeShareTextSafe(title, text); },
+        function() { window._publishInterpretationToFeed(title, text); }
+    );
 };
 
 // Núcleo original de shareTextSafe (extraído para que el picker pueda dispararlo en "Otras apps")
