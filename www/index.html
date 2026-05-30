@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v862';</script>
+    <script>window.APP_VERSION = 'v863';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -8150,24 +8150,27 @@ function initGoogleDrive() {
             console.log('☁️ Google Drive: token valid, running daily backup check');
             scheduleDailyDriveBackup();
         } else if (localStorage.getItem('gdriveAccessToken')) {
-            // v862: NO disparar refresh automático en APK Capacitor — GIS no funciona silenciosamente
-            // en WebView, muestra el account picker cada vez que se abre la app. El usuario reconecta
-            // manualmente desde Preferencias → Google Drive cuando hace falta.
-            // En PWA web sí intentamos silent refresh.
+            // v862/v863: NO disparar refresh automático en APK Capacitor — GIS no funciona silenciosamente
+            // en WebView, muestra el account picker cada vez que se abre la app.
+            // En PWA: intentar silent refresh CON HINT (email guardado) para evitar el picker cuando
+            // el browser tiene múltiples cuentas Google logueadas.
             var _isCapApp = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
             if (_isCapApp) {
                 console.log('☁️ Drive token expirado (APK) — usuario reconecta manualmente');
-                // Marcar como desconectado para que la UI lo muestre como tal
                 localStorage.removeItem('gdriveAccessToken');
                 localStorage.removeItem('gdriveTokenExpiry');
                 gdriveAccessToken = '';
                 gdriveTokenExpiry = 0;
             } else {
-                // PWA: intentar silent refresh
+                // PWA: silent refresh con hint para no mostrar picker en browsers con multi-cuenta
+                var _savedEmail = localStorage.getItem('gdriveUserEmail') || '';
                 try {
-                    gdriveTokenClient.requestAccessToken({prompt: ''});
+                    var _refreshOpts = {prompt: ''};
+                    if (_savedEmail) _refreshOpts.hint = _savedEmail;
+                    console.log('☁️ Drive silent refresh' + (_savedEmail ? ' con hint: ' + _savedEmail : ' sin hint'));
+                    gdriveTokenClient.requestAccessToken(_refreshOpts);
                 } catch(silentErr) {
-                    console.log('☁️ Drive silent refresh failed');
+                    console.log('☁️ Drive silent refresh failed:', silentErr);
                     localStorage.removeItem('gdriveAccessToken');
                     localStorage.removeItem('gdriveTokenExpiry');
                     gdriveAccessToken = '';
@@ -8259,6 +8262,8 @@ window._signInGoogleUnified = function() {
             var cred = result && result.credential;
             var accessToken = cred && cred.accessToken;
             var idToken = cred && cred.idToken;
+            // v863: guardar email para usar como hint en silent refresh
+            try { if (result && result.user && result.user.email) localStorage.setItem('gdriveUserEmail', result.user.email); } catch(_eEm){}
 
             // Sincronizar el Firebase Auth del SDK web con el credential del plugin nativo
             // (así _socialUser/onAuthStateChanged se enteran y todo el Social funciona)
@@ -8339,6 +8344,8 @@ window._signInGoogleUnified = function() {
 
         firebase.auth().signInWithPopup(provider).then(function(result) {
             console.log('[unifiedSignin] Firebase user:', result.user && result.user.email);
+            // v863: guardar email para usar como hint en silent refresh (evita picker en PWA multi-cuenta)
+            try { if (result.user && result.user.email) localStorage.setItem('gdriveUserEmail', result.user.email); } catch(_eEm){}
             // result.credential trae el accessToken de Google (Drive scope incluido)
             var cred = result.credential;
             if (cred && cred.accessToken) {
@@ -45854,22 +45861,13 @@ if ('serviceWorker' in navigator) {
                     var serverVer = m[1];
                     var serverN = _parseVer(serverVer);
                     var localN  = _parseVer(APP_VERSION);
-                    // Only reload if server is strictly newer — and only once per session (anti-loop guard)
+                    // v863: NO force reload — mostrar banner para que el usuario decida cuándo actualizar.
+                    // Antes hacía window.location.reload(true) automáticamente y cortaba al usuario en medio de
+                    // una interpretación / sesión activa. Ahora solo banner; aplica al tocar "Actualizar".
                     if (serverN > localN) {
-                        console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — auto-updating');
-                        // v696: Auto-reload with sessionStorage anti-loop guard (resets on fresh app open)
-                        var _reloadKey = '_svrReload_' + serverVer;
-                        if (sessionStorage.getItem(_reloadKey)) {
-                            console.log('ℹ️ Already reloaded for ' + serverVer + ' this session — skipping');
-                            return;
-                        }
-                        sessionStorage.setItem(_reloadKey, '1');
-                        if (window.caches) {
-                            caches.keys().then(function(keys) {
-                                keys.forEach(function(k) { caches.delete(k); });
-                            }).then(function() { window.location.reload(true); });
-                        } else {
-                            window.location.reload(true);
+                        console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — mostrando banner');
+                        if (typeof showUpdateBanner === 'function') {
+                            showUpdateBanner();
                         }
                     } else if (serverN < localN) {
                         console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
