@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v861';</script>
+    <script>window.APP_VERSION = 'v862';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -7964,13 +7964,24 @@ function autoRestoreFromIndexedDB() {
 // Auto-backup every time user saves diary, events, or journals
 // Debounced to avoid excessive writes
 let _autoBackupTimer = null;
+// v862: throttle Drive auto-backup — minimo 5 min entre auto-backups (evita loop al escribir sueños)
+const _DRIVE_AUTO_BACKUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
 function scheduleAutoBackup() {
     clearTimeout(_autoBackupTimer);
     _autoBackupTimer = setTimeout(function() {
         autoBackupToIndexedDB();
-        // v676: Also backup to Google Drive if connected
+        // v862: throttle — no disparar Drive backup si el último fue hace menos de 5 min
         if (gdriveIsConnected()) {
-            driveBackupData(gdriveAccessToken).catch(function(e) {
+            var _lastAutoStr = localStorage.getItem('gdriveLastAutoBackupTs') || '0';
+            var _lastAuto = parseInt(_lastAutoStr, 10) || 0;
+            var _now = Date.now();
+            if (_now - _lastAuto < _DRIVE_AUTO_BACKUP_MIN_INTERVAL_MS) {
+                console.log('[Drive] auto-backup throttled (último hace', Math.round((_now-_lastAuto)/1000), 's)');
+                return;
+            }
+            localStorage.setItem('gdriveLastAutoBackupTs', String(_now));
+            // v862: silent=true → NO mostrar toast en auto-backups (sólo el botón manual lo hace)
+            driveBackupData(gdriveAccessToken, true).catch(function(e) {
                 console.warn('[Drive] Auto-backup failed:', e);
             });
         }
@@ -8139,15 +8150,29 @@ function initGoogleDrive() {
             console.log('☁️ Google Drive: token valid, running daily backup check');
             scheduleDailyDriveBackup();
         } else if (localStorage.getItem('gdriveAccessToken')) {
-            // Token expired — silent refresh
-            try {
-                gdriveTokenClient.requestAccessToken({prompt: ''});
-            } catch(silentErr) {
-                console.log('☁️ Drive silent refresh failed');
+            // v862: NO disparar refresh automático en APK Capacitor — GIS no funciona silenciosamente
+            // en WebView, muestra el account picker cada vez que se abre la app. El usuario reconecta
+            // manualmente desde Preferencias → Google Drive cuando hace falta.
+            // En PWA web sí intentamos silent refresh.
+            var _isCapApp = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+            if (_isCapApp) {
+                console.log('☁️ Drive token expirado (APK) — usuario reconecta manualmente');
+                // Marcar como desconectado para que la UI lo muestre como tal
                 localStorage.removeItem('gdriveAccessToken');
                 localStorage.removeItem('gdriveTokenExpiry');
                 gdriveAccessToken = '';
                 gdriveTokenExpiry = 0;
+            } else {
+                // PWA: intentar silent refresh
+                try {
+                    gdriveTokenClient.requestAccessToken({prompt: ''});
+                } catch(silentErr) {
+                    console.log('☁️ Drive silent refresh failed');
+                    localStorage.removeItem('gdriveAccessToken');
+                    localStorage.removeItem('gdriveTokenExpiry');
+                    gdriveAccessToken = '';
+                    gdriveTokenExpiry = 0;
+                }
             }
         }
     } catch(e) {
@@ -8418,7 +8443,8 @@ function _getDeviceLabel() {
 // v749cl: ahora cada backup crea un archivo NUEVO con timestamp en el nombre.
 // Mantiene los últimos GDRIVE_MAX_VERSIONS y borra los más viejos.
 // El archivo legacy "moonsync_backup.json" se sigue actualizando como "latest" por compat.
-function driveBackupData(token) {
+function driveBackupData(token, silent) {
+    // v862: silent=true para auto-backups (no muestra toast). Por defecto false (manual).
     // v749ct: cada backup ahora embebe _deviceLabel para identificar qué device lo generó.
     // YA NO actualizamos el archivo "latest" legacy — eso causaba que Device 2 pisara a Device 1
     // sin previo aviso. Ahora cada device crea sus propios archivos versionados y el restore es
@@ -8466,8 +8492,11 @@ function driveBackupData(token) {
         var now = new Date().toISOString();
         localStorage.setItem('gdriveLastBackup', now);
         localStorage.setItem('gdriveLastBackupDay', now.slice(0,10));
-        console.log('✅ Drive backup saved (versioned):', versionedName);
-        showToast(currentLang === 'es' ? '✅ Backup guardado en Google Drive' : '✅ Backup saved to Google Drive');
+        console.log('✅ Drive backup saved (versioned):', versionedName, silent?'[silent]':'[manual]');
+        // v862: solo mostrar toast en backups MANUALES (silent=false). Auto-backups silenciosos.
+        if (!silent) {
+            showToast(currentLang === 'es' ? '✅ Backup guardado en Google Drive' : '✅ Backup saved to Google Drive');
+        }
     }).catch(function(e) {
         console.error('[Drive] Backup error:', e);
         if (e.message && e.message.includes('401')) {
