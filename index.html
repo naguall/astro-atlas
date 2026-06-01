@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v867';</script>
+    <script>window.APP_VERSION = 'v869';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -23305,6 +23305,43 @@ function calculateTransitsToNatal(transitDate, natalChart) {
     return _result;
 }
 
+// v869: ═══════════════════════════════════════════════════════════════════════════
+// Orbe efectivo para sinastría — calibración profesional moderna
+//
+//   • Luminarias (Sol/Luna) en aspectos mayores → orbe mínimo 10°
+//     Razón: Liz Greene, Sue Tompkins, defaults Astro.com. Las luminarias
+//     vibran a mayor distancia angular en sinastría que planetas comunes.
+//
+//   • Asteroides (Ceres/Palas/Juno/Vesta) → orbes tight (Demetra George):
+//       conjunción/oposición: 3°
+//       cuadratura/trígono:    2°
+//       sextil:                1.5°
+//       semisextil/quincuncio: 1°
+//     Razón: cuerpos menores con influencia más sutil. Orbes amplios
+//     generan ruido y aspectos accidentales.
+//
+//   • Lilith con orbe estándar de planetas (no asteroide — es punto matemático).
+//   • Resto: usa el orbe base de la tabla aspectTypes (calibración AstroAtlas).
+// ═══════════════════════════════════════════════════════════════════════════
+function getSynastryEffectiveOrb(p1, p2, asp) {
+    var ASTEROIDS = ['ceres','pallas','juno','vesta'];
+    var isAsteroid = ASTEROIDS.indexOf(p1) >= 0 || ASTEROIDS.indexOf(p2) >= 0;
+    if (isAsteroid) {
+        var ASTEROID_ORBS = {
+            'conjunction': 3, 'opposition': 3,
+            'square': 2, 'trine': 2,
+            'sextile': 1.5,
+            'semisextile': 1, 'quincunx': 1
+        };
+        return ASTEROID_ORBS[asp.name] || 0;
+    }
+    var isLuminary = (p1 === 'sun' || p1 === 'moon' || p2 === 'sun' || p2 === 'moon');
+    if (isLuminary && asp.major) {
+        return Math.max(asp.orb, 10);
+    }
+    return asp.orb;
+}
+
 // ===== SYNASTRY: Cross-aspect calculation between two charts =====
 function calculateSynastryAspects(chart1, chart2) {
     var aspectTypes = [
@@ -23316,7 +23353,8 @@ function calculateSynastryAspects(chart1, chart2) {
         { name: 'quincunx', symbol: '⚻', angle: 150, orb: 3, color: '#8e44ad', major: false },
         { name: 'opposition', symbol: '☍', angle: 180, orb: 8, color: '#c0392b', major: true }
     ];
-    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+    // v869: incluir Lilith (punto matemático) además de asteroides ya agregados en v868
+    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith','ceres','pallas','juno','vesta'];
     var aspects = [];
 
     for (var i = 0; i < planets.length; i++) {
@@ -23334,8 +23372,11 @@ function calculateSynastryAspects(chart1, chart2) {
 
             for (var k = 0; k < aspectTypes.length; k++) {
                 var asp = aspectTypes[k];
+                // v869: orbe efectivo (luminarias 10°, asteroides 1-3°, resto base)
+                var effOrb = getSynastryEffectiveOrb(p1, p2, asp);
+                if (effOrb === 0) continue; // asteroide sin orbe para este aspecto menor
                 var aspectDiff = Math.abs(diff - asp.angle);
-                if (aspectDiff <= asp.orb) {
+                if (aspectDiff <= effOrb) {
                     aspects.push({
                         planet1: p1, lon1: lon1,
                         symbol1: planetSymbols[p1] || p1[0].toUpperCase(),
@@ -23344,7 +23385,7 @@ function calculateSynastryAspects(chart1, chart2) {
                         type: asp.name, symbol: asp.symbol,
                         color: asp.color, major: asp.major,
                         orb: aspectDiff.toFixed(1),
-                        exactness: asp.orb - aspectDiff,
+                        exactness: effOrb - aspectDiff,
                         score: getSynastryScore(p1, p2, asp.name)
                     });
                     break;
@@ -23368,7 +23409,10 @@ function calculateSynastryAspects(chart1, chart2) {
                 if (diff2 > 180) diff2 = 360 - diff2;
                 for (var ai = 0; ai < aspectTypes.length; ai++) {
                     var a2 = aspectTypes[ai];
-                    if (Math.abs(diff2 - a2.angle) <= a2.orb * 0.7) {
+                    // v869: orbe efectivo × 0.7 para puntos sensibles (ASC/MC)
+                    var effOrb2 = getSynastryEffectiveOrb(pp, points[xi].name, a2) * 0.7;
+                    if (effOrb2 === 0) continue;
+                    if (Math.abs(diff2 - a2.angle) <= effOrb2) {
                         aspects.push({
                             planet1: pp, lon1: plon,
                             symbol1: planetSymbols[pp] || '?',
@@ -23377,7 +23421,7 @@ function calculateSynastryAspects(chart1, chart2) {
                             type: a2.name, symbol: a2.symbol,
                             color: a2.color, major: a2.major,
                             orb: Math.abs(diff2 - a2.angle).toFixed(1),
-                            exactness: a2.orb - Math.abs(diff2 - a2.angle),
+                            exactness: effOrb2 - Math.abs(diff2 - a2.angle),
                             score: getSynastryScore(pp, points[xi].name, a2.name)
                         });
                         break;
@@ -23453,10 +23497,11 @@ function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
 
     var signGlyphs2 = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
     var signColors2 = ['#c0392b','#27ae60','#f39c12','#2980b9','#e67e22','#27ae60','#2980b9','#c0392b','#8e44ad','#27ae60','#2980b9','#2980b9'];
-    var planetGlyphs2 = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊'};
+    // v868: glyphs y colores agregados para asteroides Ceres ⚳ / Palas ⚴ / Juno ⚵ / Vesta ⚶
+    var planetGlyphs2 = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊','ceres':'⚳','pallas':'⚴','juno':'⚵','vesta':'⚶'};
     // v749bi: persona 1 = dorado oscuro, persona 2 = lila oscuro — legible sobre fondo blanco
-    var p1Colors = {'sun':'#c9710e','moon':'#37474f','mercury':'#8b6914','venus':'#1e7e34','mars':'#a93226','jupiter':'#5b4ba0','saturn':'#37474f','uranus':'#0e6e5b','neptune':'#1e5fa3','pluto':'#3d3d3d','chiron':'#a07a10','northnode':'#3d3d3d','lilith':'#222'};
-    var p2Colors = {'sun':'#d35400','moon':'#1565c0','mercury':'#b8860b','venus':'#388e3c','mars':'#c0392b','jupiter':'#6a3da0','saturn':'#455a64','uranus':'#00838f','neptune':'#1976d2','pluto':'#7b1fa2','chiron':'#b87a00','northnode':'#455a64','lilith':'#444'};
+    var p1Colors = {'sun':'#c9710e','moon':'#37474f','mercury':'#8b6914','venus':'#1e7e34','mars':'#a93226','jupiter':'#5b4ba0','saturn':'#37474f','uranus':'#0e6e5b','neptune':'#1e5fa3','pluto':'#3d3d3d','chiron':'#a07a10','northnode':'#3d3d3d','lilith':'#222','ceres':'#558b2f','pallas':'#01579b','juno':'#7b1fa2','vesta':'#bf360c'};
+    var p2Colors = {'sun':'#d35400','moon':'#1565c0','mercury':'#b8860b','venus':'#388e3c','mars':'#c0392b','jupiter':'#6a3da0','saturn':'#455a64','uranus':'#00838f','neptune':'#1976d2','pluto':'#7b1fa2','chiron':'#b87a00','northnode':'#455a64','lilith':'#444','ceres':'#689f38','pallas':'#0277bd','juno':'#8e24aa','vesta':'#d84315'};
 
     // Rotation: ASC on left
     var ascRot = chart1.houses ? chart1.houses.ascendant : 0;
@@ -24680,7 +24725,9 @@ window._onCalRelModeClick = function(mode) {
 
 function calculateCompositeChart(nc1, nc2) {
     var composite = { planets: {}, houses: null };
-    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+    // v868/v869: incluir Lilith + asteroides Ceres/Palas/Juno/Vesta. Si una carta no los tiene (no había
+    // SwissEph al momento de calcularla), simplemente no se calcula el midpoint para ese cuerpo.
+    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith','ceres','pallas','juno','vesta'];
 
     planets.forEach(function(p) {
         if (nc1.planets[p] && nc2.planets[p]) {
@@ -24857,7 +24904,8 @@ window.openCompositeView = function(profileId) {
     var name2 = profile ? (profile.name || profile.cityName || 'Perfil') : 'Perfil';
 
     var comp = calculateCompositeChart(nc1, nc2);
-    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte'};
+    // v868/v869: agregados Lilith + asteroides al display map
+    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
 
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
@@ -24987,10 +25035,54 @@ window.openDavisonView = function(profileId) {
 
     var dav = calculateDavisonData(profile1, profile2);
 
-    // Real Davison chart: calculate ephemeris for midpoint date and location
-    var davChart = calculateNatalChart(dav.date);
+    // v869: Real Davison chart — calculate ephemeris for midpoint date AND location.
+    // BUG previo: calculateNatalChart internamente lee natalLat/natalLon de localStorage que son
+    // los del PERFIL ACTIVO. Las casas Davison salían sesgadas al perfil actual en vez del midpoint.
+    // Fix: pre-cargar coords del midpoint en localStorage, calcular, restaurar las originales.
+    var _savedLat = localStorage.getItem('natalLat');
+    var _savedLon = localStorage.getItem('natalLon');
+    localStorage.setItem('natalLat', String(dav.lat));
+    localStorage.setItem('natalLon', String(dav.lon));
+    var davChart;
+    try {
+        davChart = calculateNatalChart(dav.date);
+    } finally {
+        if (_savedLat !== null) localStorage.setItem('natalLat', _savedLat); else localStorage.removeItem('natalLat');
+        if (_savedLon !== null) localStorage.setItem('natalLon', _savedLon); else localStorage.removeItem('natalLon');
+    }
     var comp = { planets: davChart.planets, houses: davChart.houses };
-    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte'};
+    // v868/v869: agregados Lilith + asteroides al display map
+    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ceres':'Ceres','pallas':'Pallas','juno':'Juno','vesta':'Vesta'};
+
+    // v869: reverse geocode el midpoint para mostrar ciudad/país en vez de solo lat/lon.
+    // Si Nominatim responde, actualiza dav.cityName y refresca el elemento de la UI.
+    try {
+        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + dav.lat + '&lon=' + dav.lon + '&format=json&zoom=10&addressdetails=1&accept-language=' + (currentLang||'es'), {
+            headers: {'User-Agent':'AstroAtlas/v869'}
+        }).then(function(r) { return r.ok ? r.json() : null; }).then(function(info) {
+            if (!info || !info.address) return;
+            var a = info.address;
+            // Construye nombre: ciudad/town/village, region, país
+            var parts = [];
+            var city = a.city || a.town || a.village || a.hamlet || a.county;
+            if (city) parts.push(city);
+            if (a.state && a.state !== city) parts.push(a.state);
+            if (a.country) parts.push(a.country);
+            var pretty;
+            if (parts.length > 0) {
+                pretty = parts.join(', ');
+            } else if (info.display_name) {
+                // Fallback: si no hay city/state/country pero hay display_name (océano, agua internacional)
+                pretty = info.display_name.split(',').slice(0, 3).join(',').trim();
+            } else {
+                return;
+            }
+            dav.cityName = pretty + ' (' + dav.lat.toFixed(2) + ', ' + dav.lon.toFixed(2) + ')';
+            // Refrescar el elemento si todavía existe en el DOM
+            var davLocEl = document.getElementById('_davLocationLine');
+            if (davLocEl) davLocEl.innerHTML = ((currentLang==='es'?'Ubicación':'Location')) + ': ' + dav.cityName;
+        }).catch(function(e) { console.warn('[Davison reverse geocode]', e); });
+    } catch(_eRG) {}
 
     var modal = document.getElementById('natalDetailModal');
     var titleEl = document.getElementById('natalDetailTitle');
@@ -25011,7 +25103,8 @@ window.openDavisonView = function(profileId) {
     html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1.6;">';
     html += ('Fecha') + ': ' + dav.date.toLocaleDateString('es', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '<br>';
     html += ('Hora') + ': ' + dav.timeStr + '<br>';
-    html += ((currentLang==='es'?'Ubicación':'Location')) + ': ' + dav.cityName;
+    // v869: id para que reverse geocode pueda refrescar el texto cuando Nominatim responda
+    html += '<span id="_davLocationLine">' + ((currentLang==='es'?'Ubicación':'Location')) + ': ' + dav.cityName + '</span>';
     html += '</div></div>';
 
     // Planets — each planet is clickable
