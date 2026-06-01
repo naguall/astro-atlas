@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v865';</script>
+    <script>window.APP_VERSION = 'v867';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -815,10 +815,10 @@
     <div class="container">
         <header>
             <!-- v861: wordmark AstroAtlas REMOVIDO — desordenaba títulos al hacer wrap con el versionBadge -->
-            <!-- Header row: title left, utility buttons right — always same line -->
-            <div id="headerTitleRow" style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;">
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🌙 Lunar</h1>
-                <span id="versionBadge" style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:0.62em;color:rgba(102,126,234,0.95);font-weight:700;background:rgba(102,126,234,0.12);border:1px solid rgba(102,126,234,0.35);border-radius:8px;padding:1px 7px;pointer-events:none;opacity:1;z-index:10;"></span>
+            <!-- v867: header con position:relative + título absolute-centrado para que LUNAR/SOLAR queden en el CENTRO real de la pantalla (no en el centro del flex-box residual) -->
+            <div id="headerTitleRow" style="position:relative;display:flex;align-items:center;justify-content:flex-end;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;min-height:32px;">
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;pointer-events:none;">🌙 Lunar</h1>
+                <span id="versionBadge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:0.62em;color:rgba(102,126,234,0.95);font-weight:700;background:rgba(102,126,234,0.12);border:1px solid rgba(102,126,234,0.35);border-radius:8px;padding:1px 7px;pointer-events:none;opacity:1;z-index:10;"></span>
                 <div id="headerUtilBtns" style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;">
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
@@ -11295,9 +11295,19 @@ window._showSharePicker = function(title, text, onPickAstroChat, onPickOtherApps
     document.getElementById('_spickCancel').onclick = close;
 };
 
-// v864: publica una interpretación al feed de AstroConnect
+// v864/v866: publica una interpretación al feed de AstroConnect
 window._publishInterpretationToFeed = function(title, text) {
     var L = currentLang === 'es';
+    // v866: inicializar Firebase si nunca se hizo + fallback a firebase.auth().currentUser
+    if ((typeof _db === 'undefined' || !_db) && typeof _initFirebase === 'function') {
+        try { _initFirebase(); } catch(_eIF){}
+    }
+    if ((typeof _socialUser === 'undefined' || !_socialUser) && typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+            var _u = firebase.auth().currentUser;
+            if (_u && typeof _socialUser !== 'undefined') _socialUser = _u;
+        } catch(_eAu){}
+    }
     if (typeof _socialUser === 'undefined' || !_socialUser) {
         if (typeof window.showToast === 'function') window.showToast(L?'⚠️ Iniciá sesión en Social primero':'⚠️ Sign in to Social first', null, 4000);
         return;
@@ -11332,7 +11342,15 @@ window._publishInterpretationToFeed = function(title, text) {
 // v749ct: modal selector de chat — lista los chats activos del usuario para mandar la interpretación
 window._pickAstroChatAndSend = function(title, text) {
     var L = currentLang === 'es';
-    var _socUser = (typeof _socialUser !== 'undefined') ? _socialUser : null;
+    // v866: si Firebase no está inicializado todavía (user nunca abrió Social), intentar inicializar.
+    //       Y como fallback, leer el user directo de firebase.auth().currentUser si _socialUser está vacío.
+    if ((typeof _db === 'undefined' || !_db) && typeof _initFirebase === 'function') {
+        try { _initFirebase(); } catch(_eIF){}
+    }
+    var _socUser = (typeof _socialUser !== 'undefined' && _socialUser) ? _socialUser : null;
+    if (!_socUser && typeof firebase !== 'undefined' && firebase.auth) {
+        try { _socUser = firebase.auth().currentUser; if (_socUser && typeof _socialUser !== 'undefined') _socialUser = _socUser; } catch(_eAu){}
+    }
     var _firestoreDb = (typeof _db !== 'undefined') ? _db : null;
     if (!_firestoreDb || !_socUser) {
         if (typeof window.showToast === 'function') window.showToast(L?'⚠️ Iniciá sesión en Social para mandar por chat':'⚠️ Sign in to Social to send via chat', null, 4500);
@@ -15959,6 +15977,10 @@ function _renderCompass() {
 
     var targetAz = targetBody.azimuth;
     var targetAlt = targetBody.altitude;
+    // v866: exponer azimut + heading "verdadero" (con declinación) para que el botón Auto-calibrar
+    //       pueda calcular el offset necesario para alinear flecha y objetivo
+    window._compassCurrentTargetAz = targetAz;
+    window._compassCurrentTrueHeading = heading;
     var relAngle = ((targetAz - heading) % 360 + 360) % 360;
     var targetBelowHorizon = targetAlt < 0;
 
@@ -16589,16 +16611,26 @@ function _renderCompass() {
     info += '</div>';
 
     // ── Calibration adjustment ──
+    // v866: panel ABIERTO por defecto + botón "Auto-calibrar al objetivo" para alinear de 1 tap
+    //       cuando el usuario está apuntando al objeto celeste real (ej. la luna que ve por la ventana)
     info += '<div style="margin-top:8px;text-align:center;padding:4px 8px;">';
-    info += '<div onclick="var p=document.getElementById(\'compassCalibPanel\');p.style.display=p.style.display===\'none\'?\'block\':\'none\';" style="font-size:0.65em;color:rgba(255,255,255,0.2);cursor:pointer;">' + (L ? '⚙ Calibrar brújula' : '⚙ Calibrate compass') + '</div>';
-    info += '<div id="compassCalibPanel" style="display:none;margin-top:6px;">';
+    info += '<div onclick="var p=document.getElementById(\'compassCalibPanel\');p.style.display=p.style.display===\'none\'?\'block\':\'none\';" style="font-size:0.78em;color:rgba(201,168,64,0.85);cursor:pointer;font-weight:600;padding:6px;border:1px solid rgba(201,168,64,0.25);border-radius:8px;background:rgba(201,168,64,0.06);">' + (L ? '⚙ Calibrar brújula' : '⚙ Calibrate compass') + '</div>';
+    info += '<div id="compassCalibPanel" style="display:block;margin-top:8px;">';
+    // v866: instrucciones claras
+    info += '<div style="font-size:0.7em;color:rgba(255,255,255,0.5);margin-bottom:6px;line-height:1.4;">' + (L ? 'Apuntá el teléfono al objeto real (Luna, Sol, etc.) y tocá Auto-calibrar.' : 'Point the phone at the real object (Moon, Sun, etc.) and tap Auto-calibrate.') + '</div>';
+    // Botón Auto-calibrar — calcula la diferencia entre el azimut del objeto y el heading actual y lo guarda como offset
+    info += '<button onclick="window._autoCalibrateCompass()" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(76,175,80,0.4);background:rgba(76,175,80,0.15);color:#81c784;font-size:0.82em;font-weight:700;cursor:pointer;margin-bottom:8px;">🎯 ' + (L ? 'Auto-calibrar al objetivo' : 'Auto-calibrate to target') + '</button>';
+    // Ajuste fino manual
+    info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);margin-bottom:4px;">' + (L ? 'Ajuste fino manual:' : 'Manual fine-tune:') + '</div>';
     info += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">';
-    info += '<button onclick="window._adjustCompassCalib(-0.5)" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;cursor:pointer;">◀</button>';
-    info += '<span style="font-size:0.75em;color:rgba(255,255,255,0.5);min-width:60px;text-align:center;" id="compassCalibVal">' + _compassCalibOffset.toFixed(1) + '°</span>';
-    info += '<button onclick="window._adjustCompassCalib(+0.5)" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.9em;cursor:pointer;">▶</button>';
-    info += '<button onclick="window._adjustCompassCalib(-_compassCalibOffset)" style="padding:2px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.3);font-size:0.65em;cursor:pointer;">Reset</button>';
+    info += '<button onclick="window._adjustCompassCalib(-5)" style="padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.75em;cursor:pointer;">−5°</button>';
+    info += '<button onclick="window._adjustCompassCalib(-0.5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em;cursor:pointer;">◀</button>';
+    info += '<span style="font-size:0.85em;color:rgba(255,255,255,0.75);min-width:60px;text-align:center;font-weight:600;" id="compassCalibVal">' + _compassCalibOffset.toFixed(1) + '°</span>';
+    info += '<button onclick="window._adjustCompassCalib(+0.5)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.95em;cursor:pointer;">▶</button>';
+    info += '<button onclick="window._adjustCompassCalib(+5)" style="padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;font-size:0.75em;cursor:pointer;">+5°</button>';
     info += '</div>';
-    info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.15);margin-top:3px;">' + (L ? 'Ajuste fino si la flecha no apunta exacto' : 'Fine-tune if arrow doesn\'t point exactly') + '</div>';
+    info += '<button onclick="window._adjustCompassCalib(-_compassCalibOffset)" style="padding:4px 12px;margin-top:6px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);font-size:0.7em;cursor:pointer;">' + (L ? 'Reset a 0°' : 'Reset to 0°') + '</button>';
+    info += '<div style="font-size:0.62em;color:rgba(255,255,255,0.3);margin-top:6px;line-height:1.4;">' + (L ? 'Movimiento en 8 ayuda a recalibrar el sensor del teléfono. Acercate a metales o imanes la afecta.' : 'Figure-8 motion helps recalibrate phone sensor. Metal objects/magnets affect it.') + '</div>';
     info += '</div></div>';
 
     bodyEl.innerHTML = svg + info;
@@ -16609,6 +16641,29 @@ window._adjustCompassCalib = function(delta) {
     localStorage.setItem('compassCalibOffset', _compassCalibOffset.toString());
     var el = document.getElementById('compassCalibVal');
     if (el) el.textContent = _compassCalibOffset.toFixed(1) + '°';
+};
+
+// v866: Auto-calibración apuntando al objetivo. El usuario está apuntando el teléfono al objeto
+// celeste real (Luna, Sol, etc) que ve en el cielo. Calculamos la diferencia entre el azimut real
+// del objeto y el heading actual (con declinación), y la sumamos al offset existente.
+window._autoCalibrateCompass = function() {
+    var L = currentLang === 'es';
+    var targetAz = window._compassCurrentTargetAz;
+    var trueHeading = window._compassCurrentTrueHeading;
+    if (typeof targetAz !== 'number' || typeof trueHeading !== 'number' || isNaN(targetAz) || isNaN(trueHeading)) {
+        if (typeof showToast === 'function') showToast(L?'⚠️ Brújula no lista. Esperá un momento.':'⚠️ Compass not ready. Wait a moment.', null, 3000);
+        return;
+    }
+    // diff: cuánto hay que rotar el heading para que coincida con el target
+    var diff = ((targetAz - trueHeading + 540) % 360) - 180; // normaliza a [-180, 180]
+    _compassCalibOffset = Math.round((_compassCalibOffset + diff) * 10) / 10;
+    // Limitamos a [-90, +90] para evitar overshoots locos
+    if (_compassCalibOffset > 90) _compassCalibOffset = 90;
+    if (_compassCalibOffset < -90) _compassCalibOffset = -90;
+    localStorage.setItem('compassCalibOffset', _compassCalibOffset.toString());
+    var el = document.getElementById('compassCalibVal');
+    if (el) el.textContent = _compassCalibOffset.toFixed(1) + '°';
+    if (typeof showToast === 'function') showToast('✅ ' + (L?'Calibrado a ':'Calibrated to ') + _compassCalibOffset.toFixed(1) + '° (' + (L?'corrección de ':'correction of ') + diff.toFixed(1) + '°)', 'rgba(76,175,80,0.92)', 4000);
 };
 
 function closeMoonCompass() {
@@ -38035,6 +38090,35 @@ if (typeof google !== 'undefined' && google.accounts) {
         setTimeout(() => { initGoogleCalendar(); initGoogleDrive(); }, 1000);
     });
 }
+
+// v867: en PWA web, los tabs Lunar/Solar/Gregoriano/Astro/Atlas/Social ocupaban espacio justo del ancho.
+// El CSS actual usa justify-content:flex-start que en pantallas más anchas deja espacio vacío a la derecha.
+// Fix: SOLO en PWA (no APK Capacitor) cambiar a space-between y dar flex:1 a cada tab para que llenen.
+(function _adjustPwaModeBtns() {
+    function _isApkCapacitor() {
+        return (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    }
+    function _apply() {
+        if (_isApkCapacitor()) return; // APK queda con scroll horizontal compacto
+        var row = document.querySelector('.mode-btns');
+        if (!row) return;
+        row.style.justifyContent = 'space-between';
+        row.style.overflowX = 'visible';
+        // Cada botón visible (display !== 'none') se expande para llenar
+        Array.prototype.forEach.call(row.querySelectorAll('button'), function(b) {
+            var cs = window.getComputedStyle(b);
+            if (cs.display === 'none') return;
+            b.style.flex = '1 1 0';
+            b.style.minWidth = '0';
+            b.style.textAlign = 'center';
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _apply);
+    } else {
+        _apply();
+    }
+})();
 
 // v749au: Setup notification channel high-importance al cargar la app (solo en Capacitor APK)
 // Esto garantiza que las notificaciones aparezcan como banner emergente con sonido en Android
