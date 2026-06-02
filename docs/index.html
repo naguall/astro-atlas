@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v869';</script>
+    <script>window.APP_VERSION = 'v870';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -815,11 +815,11 @@
     <div class="container">
         <header>
             <!-- v861: wordmark AstroAtlas REMOVIDO — desordenaba títulos al hacer wrap con el versionBadge -->
-            <!-- v867: header con position:relative + título absolute-centrado para que LUNAR/SOLAR queden en el CENTRO real de la pantalla (no en el centro del flex-box residual) -->
-            <div id="headerTitleRow" style="position:relative;display:flex;align-items:center;justify-content:flex-end;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;min-height:32px;">
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;pointer-events:none;">🌙 Lunar</h1>
+            <!-- v867/v870: título arriba centrado, botones de utilidad en fila aparte abajo (antes overlapeaba con position:absolute) -->
+            <div id="headerTitleRow" style="position:relative;display:flex;flex-direction:column;align-items:center;width:100%;margin-bottom:6px;padding:0 4px;">
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">🌙 Lunar</h1>
                 <span id="versionBadge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:0.62em;color:rgba(102,126,234,0.95);font-weight:700;background:rgba(102,126,234,0.12);border:1px solid rgba(102,126,234,0.35);border-radius:8px;padding:1px 7px;pointer-events:none;opacity:1;z-index:10;"></span>
-                <div id="headerUtilBtns" style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;">
+                <div id="headerUtilBtns" style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-top:6px;">
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
                     <button id="moonCompassBtn" onclick="openMoonCompass()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">🧭</button>
