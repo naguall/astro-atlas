@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v870';</script>
+    <script>window.APP_VERSION = 'v872';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -8104,14 +8104,33 @@ function initGoogleCalendar() {
             gcalFetchEvents();
             gcalStartAutoSync();
         } else if (localStorage.getItem('gcalAccessToken')) {
-            // Token existed but expired — silently request a new one
-            console.log('📅 Google Calendar: token expired, requesting silent refresh...');
-            try {
-                gcalTokenClient.requestAccessToken({prompt: ''});
-            } catch(silentErr) {
-                console.log('📅 Silent refresh failed, user will need to reconnect manually');
+            // v871: misma estrategia que Drive — en APK Capacitor NO disparar silent refresh (GIS no funciona
+            // silencioso en WebView, muestra el picker). En PWA: silent refresh CON HINT del email guardado.
+            var _isCapCal = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+            if (_isCapCal) {
+                console.log('📅 Google Calendar: token expirado (APK) — usuario reconecta manualmente');
                 localStorage.removeItem('gcalAccessToken');
                 localStorage.removeItem('gcalTokenExpiry');
+                gcalAccessToken = '';
+                gcalTokenExpiry = 0;
+            } else {
+                var _calEmail = localStorage.getItem('gcalUserEmail') || localStorage.getItem('gdriveUserEmail') || '';
+                if (!_calEmail) {
+                    console.log('📅 Google Calendar: token expirado (PWA, sin email) — usuario reconecta manualmente');
+                    localStorage.removeItem('gcalAccessToken');
+                    localStorage.removeItem('gcalTokenExpiry');
+                    gcalAccessToken = '';
+                    gcalTokenExpiry = 0;
+                } else {
+                    console.log('📅 Google Calendar: silent refresh con hint:', _calEmail);
+                    try {
+                        gcalTokenClient.requestAccessToken({prompt: '', hint: _calEmail});
+                    } catch(silentErr) {
+                        console.log('📅 Silent refresh failed:', silentErr);
+                        localStorage.removeItem('gcalAccessToken');
+                        localStorage.removeItem('gcalTokenExpiry');
+                    }
+                }
             }
         }
     } catch(e) {
@@ -8975,6 +8994,17 @@ function handleGcalTokenResponse(response) {
     localStorage.setItem('gcalAccessToken', gcalAccessToken);
     localStorage.setItem('gcalTokenExpiry', gcalTokenExpiry.toString());
     console.log('✅ Google Calendar connected');
+    // v871: guardar email vía userinfo para que futuros silent refreshes pasen hint y no muestren picker
+    try {
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
+        }).then(function(r) { return r.ok ? r.json() : null; }).then(function(info) {
+            if (info && info.email) {
+                localStorage.setItem('gcalUserEmail', info.email);
+                console.log('📅 Calendar user email guardado para silent refresh:', info.email);
+            }
+        }).catch(function(e) { console.warn('📅 userinfo fetch failed:', e); });
+    } catch(_eUi) {}
     gcalFetchEvents();
     // Start auto-sync interval
     gcalStartAutoSync();
@@ -38184,25 +38214,27 @@ if (typeof google !== 'undefined' && google.accounts) {
     });
 }
 
-// v867: en PWA web, los tabs Lunar/Solar/Gregoriano/Astro/Atlas/Social ocupaban espacio justo del ancho.
-// El CSS actual usa justify-content:flex-start que en pantallas más anchas deja espacio vacío a la derecha.
-// Fix: SOLO en PWA (no APK Capacitor) cambiar a space-between y dar flex:1 a cada tab para que llenen.
+// v867/v872: en PWA web, los tabs Lunar/Solar/Gregoriano/Astro/Atlas/Social ocupaban espacio justo del ancho.
+// El CSS actual usa justify-content:flex-start que deja espacio vacío a la derecha.
+// v867 hizo flex:1 1 0 (todas igual ancho) → "Gregoriano" pisaba a "Astro" por ser más largo.
+// v872: dejar ancho natural de cada tab, distribuir con space-around (más gap en bordes + entre tabs).
 (function _adjustPwaModeBtns() {
     function _isApkCapacitor() {
         return (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     }
     function _apply() {
-        if (_isApkCapacitor()) return; // APK queda con scroll horizontal compacto
+        if (_isApkCapacitor()) return; // APK queda con scroll horizontal compacto, como estaba
         var row = document.querySelector('.mode-btns');
         if (!row) return;
-        row.style.justifyContent = 'space-between';
+        row.style.justifyContent = 'space-around';
         row.style.overflowX = 'visible';
-        // Cada botón visible (display !== 'none') se expande para llenar
+        row.style.gap = '6px'; // más separación entre tabs
+        // Reset cualquier flex forzado de v867 — cada tab usa su ancho natural
         Array.prototype.forEach.call(row.querySelectorAll('button'), function(b) {
             var cs = window.getComputedStyle(b);
             if (cs.display === 'none') return;
-            b.style.flex = '1 1 0';
-            b.style.minWidth = '0';
+            b.style.flex = '0 0 auto'; // ancho natural, no se estira ni encoge
+            b.style.minWidth = '';
             b.style.textAlign = 'center';
         });
     }
