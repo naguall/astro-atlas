@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v874';</script>
+    <script>window.APP_VERSION = 'v875';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -41198,33 +41198,12 @@ function openPreferencesModal() {
         };
     }
 
-    // Spanish voices: prefer Latin American, filter out Apple novelty voices
-    var _appleNoveltyEs = ['Eddy','Flo','Grandma','Grandpa','Reed','Rocko','Sandy','Shelley'];
-    var _allEsVoices = voices.filter(function(v) {
-        if (!v.lang.startsWith('es')) return false;
-        var baseName = v.name.split(' (')[0];
-        if (_appleNoveltyEs.indexOf(baseName) !== -1) return false;
-        return true;
-    });
-    // Try to prefer Latin American voices (no Spain)
-    var esVoices = _allEsVoices.filter(function(v) {
-        return v.lang !== 'es-ES' && v.lang !== 'es_ES';
-    });
-    // If filtering removed too many, show ALL Spanish voices (iOS 18 may only have es-ES Eloquence voices)
-    if (esVoices.length <= 1 && _allEsVoices.length > esVoices.length) {
-        esVoices = _allEsVoices;
-    }
-
-    // English voices: filter out novelty/joke voices AND Apple novelty that sound similar
-    var _noveltyNames = ['Bad News','Bahh','Bells','Boing','Bubbles','Cellos','Good News','Jester','Organ','Superstar','Trinoids','Whisper','Wobble','Zarvox','Ralph','Fred','Junior','Kathy','Vicki','Victoria','Princess'];
-    var _appleNoveltyEn = ['Eddy','Flo','Grandma','Grandpa','Reed','Rocko','Sandy','Shelley'];
-    var enVoices = voices.filter(function(v) {
-        if (!v.lang.startsWith('en')) return false;
-        if (_noveltyNames.indexOf(v.name) !== -1) return false;
-        var baseName = v.name.split(' (')[0];
-        if (_appleNoveltyEn.indexOf(baseName) !== -1) return false;
-        return true;
-    });
+    // v875: SIN filtros agresivos — mostrar TODAS las voces es-* y en-*. Si solo aparece una
+    // es porque el WebView (Android Chrome) solo expone 1 voz por idioma — limitación del SO.
+    var esVoices = voices.filter(function(v) { return v.lang.toLowerCase().startsWith('es'); });
+    var enVoices = voices.filter(function(v) { return v.lang.toLowerCase().startsWith('en'); });
+    // v875: si el usuario tiene su "voice override" guardado y la voz existe, lo mostramos arriba
+    var allVoices = voices.slice(); // copia para listado completo (debug + dropdown "otras")
 
     // Helper to guess gender from voice name
     var _femaleNames = ['Mónica','Paulina','Catherine','Karen','Samantha','Tessa','Moira','Fiona','Allison','Ava','Susan','Zoe','Nicky','Alice','Joana','Luciana','Mariska','Meijia','Melina','Milena','Sara','Tünde','Yelda','Martha','Angelica','Jimena','Francisca'];
@@ -41247,8 +41226,14 @@ function openPreferencesModal() {
     });
     voiceContent += '</select>';
     if (esVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + 'No se encontraron voces. Intenta recargar la página.' + '</div>';
-    if (esVoices.length > 0 && esVoices.length <= 3) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + '💡 En Android, el navegador solo ve una voz por idioma. Para cambiar la voz: Ajustes → Accesibilidad → Texto a voz → Google ⚙️ → elige otra voz en el idioma que prefieras. La app usará la voz que selecciones ahí.' + '</div>';
-    voiceContent += '<button onclick="testTTSVoice(\'es\')" style="margin-top:6px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + 'Probar voz' + '</button>';
+    // v875: input manual — escribís nombre de voz ("Carlos", "Mónica", etc.) y la app la busca al hablar
+    var savedManualEs = localStorage.getItem('ttsVoiceManual_es') || '';
+    voiceContent += '<div style="margin-top:8px;">';
+    voiceContent += '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);margin-bottom:4px;">' + (currentLang==='es'?'O escribí el nombre exacto de la voz (override):':'Or type exact voice name (override):') + '</div>';
+    voiceContent += '<input id="ttsVoiceManualEs" type="text" placeholder="ej: Carlos, Microsoft Carlos Online" value="' + savedManualEs.replace(/"/g,'&quot;') + '" onchange="localStorage.setItem(\'ttsVoiceManual_es\',this.value);" style="width:100%;padding:8px 10px;background:rgba(20,10,40,0.6);border:1px solid rgba(102,126,234,0.25);border-radius:6px;color:#fff;font-size:0.78em;box-sizing:border-box;" />';
+    voiceContent += '</div>';
+    voiceContent += '<button onclick="testTTSVoice(\'es\')" style="margin-top:8px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + 'Probar voz' + '</button>';
+    voiceContent += '<button onclick="window._refreshVoiceDropdowns&&window._refreshVoiceDropdowns();openPreferencesModal();" style="margin-top:8px;margin-left:6px;padding:5px 14px;background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);border-radius:16px;color:#c39bd3;font-size:0.75em;cursor:pointer;">🔄 ' + (currentLang==='es'?'Re-escanear voces':'Re-scan voices') + '</button>';
     voiceContent += '</div>';
 
     // English voice selector
@@ -41262,7 +41247,29 @@ function openPreferencesModal() {
     });
     voiceContent += '</select>';
     if (enVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + 'No se encontraron voces en inglés. Intenta recargar.' + '</div>';
-    voiceContent += '<button onclick="testTTSVoice(\'en\')" style="margin-top:6px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + 'Probar voz' + '</button>';
+    // v875: input manual también para inglés
+    var savedManualEn = localStorage.getItem('ttsVoiceManual_en') || '';
+    voiceContent += '<div style="margin-top:8px;">';
+    voiceContent += '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);margin-bottom:4px;">' + (currentLang==='es'?'O escribí el nombre exacto de la voz:':'Or type exact voice name:') + '</div>';
+    voiceContent += '<input id="ttsVoiceManualEn" type="text" placeholder="ex: Samantha, Daniel" value="' + savedManualEn.replace(/"/g,'&quot;') + '" onchange="localStorage.setItem(\'ttsVoiceManual_en\',this.value);" style="width:100%;padding:8px 10px;background:rgba(20,10,40,0.6);border:1px solid rgba(102,126,234,0.25);border-radius:6px;color:#fff;font-size:0.78em;box-sizing:border-box;" />';
+    voiceContent += '</div>';
+    voiceContent += '<button onclick="testTTSVoice(\'en\')" style="margin-top:8px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + 'Probar voz' + '</button>';
+    voiceContent += '</div>';
+
+    // v875: nota informativa sobre cómo conseguir más voces (incluido Carlos)
+    voiceContent += '<div style="margin-top:10px;padding:10px 12px;background:rgba(155,89,182,0.06);border:1px solid rgba(155,89,182,0.2);border-radius:8px;font-size:0.72em;color:rgba(255,255,255,0.6);line-height:1.6;">';
+    voiceContent += '<div style="color:#c39bd3;font-weight:600;margin-bottom:4px;">💡 ' + (currentLang==='es'?'¿Solo ves una voz? Cómo conseguir más:':'Only seeing one voice? How to get more:') + '</div>';
+    if (currentLang === 'es') {
+        voiceContent += '<b>Android:</b> el navegador solo expone 1 voz por idioma (limitación del sistema). Para cambiar la voz default: Ajustes → Accesibilidad → Texto a voz → Google ⚙️ → Idioma → cambiar variante. Después tocá "Re-escanear voces" arriba.<br>';
+        voiceContent += '<b>Voz "Carlos":</b> es de Microsoft Edge (Windows). En Android NO viene por default. Alternativas: instalar <b>Acapela TTS</b> o <b>Vocalizer TTS</b> (Google Play, pagas) — traen voces masculinas españolas de alta calidad.<br>';
+        voiceContent += '<b>iPhone/iPad:</b> Ajustes → Accesibilidad → Contenido hablado → Voces → Español → "Voz mejorada" o "Premium".<br>';
+        voiceContent += '<b>PWA en computadora:</b> abrila en Edge (tenés Carlos) o Chrome (varias voces Google Cloud).';
+    } else {
+        voiceContent += '<b>Android:</b> browser only exposes 1 voice per language (OS limitation). To change: Settings → Accessibility → Text-to-Speech → Google ⚙️ → Language → change variant. Then tap "Re-scan voices".<br>';
+        voiceContent += '<b>"Carlos" voice:</b> it\'s a Microsoft Edge (Windows) voice. Not on Android by default. Alternatives: install <b>Acapela TTS</b> or <b>Vocalizer TTS</b> from Play Store (paid).<br>';
+        voiceContent += '<b>iPhone/iPad:</b> Settings → Accessibility → Spoken Content → Voices → Spanish → "Enhanced" or "Premium".<br>';
+        voiceContent += '<b>PWA on desktop:</b> open in Edge (has Carlos) or Chrome (Google Cloud voices).';
+    }
     voiceContent += '</div>';
 
     // Speed control
@@ -47196,6 +47203,22 @@ if (window.speechSynthesis) {
 
 window._getTTSVoice = function(langCode) {
     var voices = window.speechSynthesis.getVoices();
+    // v875: chequear primero el "manual override" — el usuario tipea un nombre exacto o parcial
+    // (ej. "Carlos") y intentamos matchear (case-insensitive, substring).
+    var manualName = (localStorage.getItem('ttsVoiceManual_' + langCode) || '').trim();
+    if (manualName) {
+        var manualLower = manualName.toLowerCase();
+        // 1° exact match
+        var exact = voices.find(function(v) { return v.name === manualName; });
+        if (exact) return exact;
+        // 2° case-insensitive exact
+        var ci = voices.find(function(v) { return v.name.toLowerCase() === manualLower; });
+        if (ci) return ci;
+        // 3° substring match (ej. "Carlos" → "Microsoft Carlos Online (Natural)")
+        var sub = voices.find(function(v) { return v.name.toLowerCase().indexOf(manualLower) !== -1; });
+        if (sub) { console.log('🔊 TTS voice manual match:', manualName, '→', sub.name); return sub; }
+        console.warn('🔊 TTS voice manual "' + manualName + '" no encontrada en getVoices(), fallback al dropdown');
+    }
     var savedName = localStorage.getItem('ttsVoice_' + langCode) || '';
     if (savedName) {
         var saved = voices.find(function(v) { return v.name === savedName; });
