@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v879';</script>
+    <script>window.APP_VERSION = 'v880';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -31714,11 +31714,20 @@ function interpretCalendarDay(year, month, day) {
         _titleSuffix = L ? ' — Calendario Personal (Tránsitos)' : ' — Personal Calendar (Transits)';
     }
     var _title = (L ? 'Interpretación del Día' : 'Day Interpretation') + _titleSuffix + ' · ' + dateStr;
+    // v880: wall of text de tránsitos ahora va en una caja SCROLLABLE como en "Interpretación Carta Natal"
+    // (foto 1). Antes se renderizaba como párrafo plano y empujaba la interpretación lejos abajo.
+    var _transitBoxHtml = '';
+    if (transitDesc) {
+        _transitBoxHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;font-size:0.78em;color:rgba(255,255,255,0.65);line-height:1.5;max-height:180px;overflow-y:auto;margin-top:8px;">'
+            + '<div style="font-weight:700;color:#c9a840;margin-bottom:6px;font-size:0.85em;">' + (L ? 'Tránsitos del día' : 'Day transits') + '</div>'
+            + (transitDesc.replace(/</g,'&lt;').replace(/>/g,'&gt;'))
+            + '</div>';
+    }
     var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="font-size:2em;">✨</div>'
         + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
         + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
-        + (transitDesc ? '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-top:4px;">' + (L ? 'Tránsitos: ' : 'Transits: ') + transitDesc + '</div>' : '')
+        + _transitBoxHtml
         + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
         + '<div id="calDayInterpDiv"></div>';
 
