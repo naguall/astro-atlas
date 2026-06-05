@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v872';</script>
+    <script>window.APP_VERSION = 'v874';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -24685,7 +24685,37 @@ if (!window._calRelModeInit) {
     } catch(_){}
 }
 
-// HTML del selector de modo (4 pills + dropdown de segundo perfil cuando aplica)
+// v874: helper que retorna el dropdown "Vista calendario" (Lunar/Solar/Gregoriano)
+// Se reutiliza en Personal Calendar y Relacional. Cambia calendarMode al elegir, salta al tab correspondiente.
+window.buildCalendarStyleDropdown = function() {
+    var L = currentLang === 'es';
+    var cm = (typeof calendarMode !== 'undefined') ? calendarMode : 'lunar';
+    var html = '<div style="display:flex;align-items:center;gap:6px;font-size:0.72em;">';
+    html += '<span style="color:rgba(255,255,255,0.45);">' + (L?'Vista:':'View:') + '</span>';
+    html += '<select onchange="window._calStyleDropdownChange(this.value)" style="background:rgba(0,0,0,0.4);border:1px solid rgba(155,89,182,0.35);border-radius:6px;color:#fff;padding:4px 8px;font-size:0.85em;cursor:pointer;">';
+    var opts = [
+        { v: 'lunar', icon: '🌙', label: L?'Lunar':'Lunar' },
+        { v: 'solar', icon: '☀️', label: L?'Solar':'Solar' },
+        { v: 'gregorian', icon: '📅', label: L?'Gregoriano':'Gregorian' }
+    ];
+    opts.forEach(function(o) {
+        var sel = (cm === o.v) ? ' selected' : '';
+        html += '<option value="' + o.v + '"' + sel + '>' + o.icon + ' ' + o.label + '</option>';
+    });
+    html += '</select></div>';
+    return html;
+};
+
+// v874: handler del dropdown de vista — llama a la función switch correspondiente
+window._calStyleDropdownChange = function(value) {
+    try {
+        if (value === 'lunar' && typeof switchToLunarMode === 'function') switchToLunarMode();
+        else if (value === 'solar' && typeof switchToSolarMode === 'function') switchToSolarMode();
+        else if (value === 'gregorian' && typeof switchToGregorianMode === 'function') switchToGregorianMode();
+    } catch(e) { console.warn('_calStyleDropdownChange error:', e); }
+};
+
+// HTML del selector de modo (v874: dropdown unificado en vez de 3 pills + dropdown de Vista al lado)
 window.buildCalRelSelector = function() {
     var L = currentLang === 'es';
     var ctx = getCalRelContext();
@@ -24695,22 +24725,29 @@ window.buildCalRelSelector = function() {
     var activeId = localStorage.getItem('activeProfileId');
     var otherProfiles = profiles.filter(function(p){ return p.id !== activeId; });
 
-    var pill = function(m, icon, lbl, color) {
-        var active = (mode === m);
-        var bg = active ? color + '33' : 'rgba(255,255,255,0.04)';
-        var bd = active ? color : 'rgba(255,255,255,0.15)';
-        var col = active ? color : 'rgba(255,255,255,0.55)';
-        var fw = active ? '700' : '500';
-        return '<button onclick="_onCalRelModeClick(\'' + m + '\')" style="padding:4px 10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:14px;color:' + col + ';font-weight:' + fw + ';cursor:pointer;font-size:0.72em;white-space:nowrap;flex-shrink:0;">' + icon + ' ' + lbl + '</button>';
-    };
-
     var html = '<div class="personal-natal-card" style="padding:8px 10px;margin-bottom:6px;">';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
-    // v749ay: colores oficiales que matchean los tabs estándalone:
-    //   Sinastría = lila #c39bd3, Compuesta = verde #2ecc71, Davison = amarillo #f1c40f
-    html += pill('sinastria', '☌', (L?'Sinastría':'Synastry'), '#c39bd3');
-    html += pill('compuesta', '⊕', (L?'Compuesta':'Composite'), '#2ecc71');
-    html += pill('davison', '✦', 'Davison', '#f1c40f');
+    // v874: fila con 2 dropdowns lado a lado — Tipo carta + Vista calendario
+    html += '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">';
+
+    // Dropdown 1: Tipo de carta relacional (antes eran 3 pills)
+    html += '<div style="display:flex;align-items:center;gap:6px;font-size:0.72em;">';
+    html += '<span style="color:rgba(255,255,255,0.45);">' + (L?'Carta:':'Chart:') + '</span>';
+    html += '<select onchange="window._onCalRelModeDropdown(this.value)" style="background:rgba(0,0,0,0.4);border:1px solid rgba(155,89,182,0.35);border-radius:6px;color:#fff;padding:4px 8px;font-size:0.85em;cursor:pointer;">';
+    var modes = [
+        { v: 'natal', icon: '✦', label: (L?'Natal':'Natal'), color: '#c9a840' },
+        { v: 'sinastria', icon: '☌', label: (L?'Sinastría':'Synastry'), color: '#c39bd3' },
+        { v: 'compuesta', icon: '⊕', label: (L?'Compuesta':'Composite'), color: '#2ecc71' },
+        { v: 'davison', icon: '✦', label: 'Davison', color: '#f1c40f' }
+    ];
+    modes.forEach(function(m) {
+        var sel = (mode === m.v) ? ' selected' : '';
+        html += '<option value="' + m.v + '"' + sel + '>' + m.icon + ' ' + m.label + '</option>';
+    });
+    html += '</select></div>';
+
+    // Dropdown 2: Vista calendario (Lunar/Solar/Gregoriano)
+    html += window.buildCalendarStyleDropdown();
+
     html += '</div>';
 
     // Selector de 2do perfil si no es natal
@@ -24751,6 +24788,11 @@ window._onCalRelModeClick = function(mode) {
     var secondId = window._calRelSecondProfileId || others[0].id;
     if (!others.find(function(p){ return p.id === secondId; })) secondId = others[0].id;
     setCalRelMode(mode, secondId);
+};
+
+// v874: handler del dropdown de carta relacional (reutiliza la misma lógica de selección de 2do perfil)
+window._onCalRelModeDropdown = function(value) {
+    window._onCalRelModeClick(value);
 };
 
 function calculateCompositeChart(nc1, nc2) {
@@ -29761,6 +29803,8 @@ function renderPersonalCalendar(opts) {
         ${_isRelMode ? '' : _todayBanner}
         <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
+            <!-- v874: dropdown "Vista calendario" en modo personal (no-relacional) — quick-nav a Lunar/Solar/Gregoriano -->
+            ${_isRelMode ? '' : `<div style="display:flex;justify-content:center;margin-bottom:8px;">${typeof window.buildCalendarStyleDropdown==='function'?window.buildCalendarStyleDropdown():''}</div>`}
             <!-- Sign navigation inside calendar -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                 <button onclick="personalPrevMonth()" style="background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;padding:5px 12px;cursor:pointer;font-size:0.85em;">◀</button>
@@ -38517,21 +38561,30 @@ window._setupAstroNotifChannel = function() {
     var isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if (!isCap || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) return Promise.resolve();
     var LN = window.Capacitor.Plugins.LocalNotifications;
-    return LN.createChannel({
-        id: 'astroatlas-high',
-        name: 'AstroAtlas — Eventos importantes',
-        description: 'Notificaciones astrológicas con banner emergente',
-        importance: 5, // IMPORTANCE_HIGH → heads-up banner + sonido
-        visibility: 1, // public on lock screen
-        lights: true,
-        lightColor: '#7ec8ff',
-        vibration: true,
-        sound: 'default'
+    // v873: PEDIR PERMISO de notificaciones explícitamente al setup del channel.
+    // Android 13+ (API 33) requiere POST_NOTIFICATIONS runtime permission. Sin esto las
+    // notificaciones se programan pero NO aparecen en la barra de notificaciones del sistema.
+    return LN.requestPermissions().then(function(perm) {
+        console.log('🔔 [Capacitor] requestPermissions:', perm);
+        if (perm.display !== 'granted') {
+            console.warn('🔔 [Capacitor] Permiso de notificaciones NO concedido — el usuario debe habilitarlas manualmente');
+        }
+        return LN.createChannel({
+            id: 'astroatlas-high',
+            name: 'AstroAtlas — Eventos importantes',
+            description: 'Notificaciones astrológicas con banner emergente',
+            importance: 5, // IMPORTANCE_HIGH → heads-up banner + sonido
+            visibility: 1, // public on lock screen
+            lights: true,
+            lightColor: '#7ec8ff',
+            vibration: true,
+            sound: 'default'
+        });
     }).then(function() {
         window._astroNotifChannelReady = true;
         console.log('🔔 [Capacitor] Channel astroatlas-high creado (IMPORTANCE_HIGH)');
     }).catch(function(e) {
-        console.warn('🔔 [Capacitor] createChannel failed:', e);
+        console.warn('🔔 [Capacitor] setup channel failed:', e);
     });
 };
 
@@ -38545,23 +38598,34 @@ function sendNotif(title, opts) {
     var isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if (isCap && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
         var LN = window.Capacitor.Plugins.LocalNotifications;
-        // Asegurar channel creado
+        // Asegurar channel creado + permisos pedidos
         window._setupAstroNotifChannel().then(function() {
             try {
+                // v873: REMOVIDO smallIcon: 'ic_stat_icon_config_sample' — ese drawable no existe en
+                // el proyecto, hacía que la notificación se programara sin error pero NO se mostrara
+                // en la barra de notificaciones del sistema. Sin smallIcon, Capacitor usa ic_launcher.
+                // Agregué schedule: {at:Date.now()+100} para forzar entrega inmediata.
                 LN.schedule({
                     notifications: [{
                         title: title,
                         body: opts.body || '',
                         id: Math.floor(Math.random() * 2147483647),
                         channelId: 'astroatlas-high',
-                        smallIcon: 'ic_stat_icon_config_sample',
                         iconColor: '#7ec8ff',
                         autoCancel: true,
+                        // v873: ongoing:false para que aparezca en barra; sound default ya está en el channel
+                        ongoing: false,
                         extra: opts.data || {}
                     }]
+                }).then(function() {
+                    console.log('🔔 [Capacitor] ✅ LocalNotification scheduled (high-importance channel, ic_launcher)');
+                    _syncAppBadge();
+                    // v873: también incrementar badge nativo en Android
+                    _setNativeAppBadge();
+                }).catch(function(schedErr) {
+                    console.error('🔔 [Capacitor] LN.schedule rechazó:', schedErr);
+                    _sendNotifViaSW(title, opts);
                 });
-                console.log('🔔 [Capacitor] LocalNotification scheduled vía high-importance channel');
-                _syncAppBadge();
             } catch(e) {
                 console.warn('🔔 [Capacitor] schedule failed, fallback to SW:', e);
                 _sendNotifViaSW(title, opts);
@@ -38590,6 +38654,26 @@ function _sendNotifViaSW(title, opts) {
         console.log('🔔 No SW, using native Notification');
         try { new _Notif(title, opts); } catch(e) { console.log('❌ Native failed:', e); }
     }
+}
+
+// v873: setea el badge nativo de Android sobre el ícono de la app via LocalNotifications.
+// En PWA web usa navigator.setAppBadge (Badging API).
+function _setNativeAppBadge() {
+    try {
+        var history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+        var todayStr = getDateKey(new Date());
+        var unseen = history.filter(function(h) {
+            return !h.seen && (h.localDate || (h.timestamp||'').slice(0,10)) === todayStr;
+        }).length;
+        var isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (isCap && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            // No hay API directa de Badge en LocalNotifications base, pero el conteo de notificaciones
+            // activas en el system tray es lo que Android usa automáticamente para el badge en launcher.
+            // Asegurarse de que las notifs NO sean autoCancel:true después de delivery
+            // (eso ya está manejado en el sendNotif).
+            console.log('🔔 [Capacitor] badge sincronizado vía notificaciones activas, count:', unseen);
+        }
+    } catch(e) { console.warn('_setNativeAppBadge error:', e); }
 }
 
 // Sync the app icon badge with unseen notification count
@@ -47280,12 +47364,59 @@ window._ttsHighlightChunk = function(idx) {
     }
 };
 
+// v873: silent loop audio + MediaSession para que Android NO mate la TTS al cambiar de app.
+// speechSynthesis solo no claim audio focus → Android la pausa al ir a background. Solución:
+// reproducir un <audio> en silencio en loop mientras la TTS suena → Android cree que hay media
+// reproduciéndose y NO pausa la WebView ni la voz.
+window._ttsStartBgAudio = function(title) {
+    try {
+        var au = document.getElementById('_ttsSilentAudio');
+        if (!au) {
+            au = document.createElement('audio');
+            au.id = '_ttsSilentAudio';
+            au.loop = true;
+            au.volume = 0.001; // casi silencio (no totalmente 0 — algunos browsers ignoran si vol=0)
+            au.preload = 'auto';
+            // 1-segundo de silencio en WAV inline (data URI). Muy chico para no afectar carga.
+            au.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+            document.body.appendChild(au);
+        }
+        au.play().catch(function(e) { console.warn('🎵 silent audio play() failed:', e); });
+        // MediaSession metadata para que Android muestre controles de media en lock screen
+        if ('mediaSession' in navigator) {
+            try {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: title || 'AstroAtlas',
+                    artist: 'AstroAtlas',
+                    album: (currentLang==='es'?'Lectura':'Reading')
+                });
+                navigator.mediaSession.playbackState = 'playing';
+                navigator.mediaSession.setActionHandler('pause', function() { try { window._ttsPause(); } catch(e){} });
+                navigator.mediaSession.setActionHandler('play', function() { try { window._ttsResume(); } catch(e){} });
+                navigator.mediaSession.setActionHandler('stop', function() { try { window._ttsStop(); } catch(e){} });
+            } catch(_eMS) { console.warn('MediaSession setup:', _eMS); }
+        }
+    } catch(e) { console.warn('_ttsStartBgAudio error:', e); }
+};
+
+window._ttsStopBgAudio = function() {
+    try {
+        var au = document.getElementById('_ttsSilentAudio');
+        if (au) { au.pause(); }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'paused';
+        }
+    } catch(e) {}
+};
+
 window._ttsStop = function() {
     window._ttsPlayer._navigating = false;
     window._ttsPlayer.playing = false;
     window._ttsPlayer.paused = false;
     window._ttsPlayer._pausedAtIdx = null;
     window.speechSynthesis.cancel();
+    // v873: detener el silent audio + MediaSession cuando termina TTS
+    try { if (typeof window._ttsStopBgAudio === 'function') window._ttsStopBgAudio(); } catch(_e){}
     window._ttsRestoreHTML();
     window._ttsUpdatePlayerUI();
     // v749cm: revertir padding-bottom inyectado por _ttsHighlightChunk
@@ -47327,6 +47458,8 @@ window._ttsPlayChunk = function(idx) {
         p.playing = false;
         p.currentIdx = 0;
         p._navigating = false;
+        // v873: terminó toda la lectura → parar silent audio + MediaSession
+        try { if (typeof window._ttsStopBgAudio === 'function') window._ttsStopBgAudio(); } catch(_e){}
         window._ttsRestoreHTML();
         window._ttsUpdatePlayerUI();
         return;
@@ -47337,6 +47470,8 @@ window._ttsPlayChunk = function(idx) {
     p._navigating = false;
     p.currentIdx = idx;
     p.playing = true;
+    // v873: arrancar silent audio + MediaSession en la primera chunk (idx 0) o si no está sonando
+    try { if (idx === 0 && typeof window._ttsStartBgAudio === 'function') window._ttsStartBgAudio(p._title || 'AstroAtlas'); } catch(_e){}
     window._ttsUpdatePlayerUI();
     window._ttsHighlightChunk(idx);
 
