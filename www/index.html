@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v877';</script>
+    <script>window.APP_VERSION = 'v878';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -27331,13 +27331,19 @@ function switchNatalGroup(group, btn) {
         return;
     }
 
-    // Other groups: activate first subtab
+    // v878: Detalles → SIEMPRE arranca en Calend (Calendario), no en Carta (primer subtab).
+    // Para Relaciones/Curso seguir con el primer subtab por defecto.
     var targetGroup = group === 'detalles' ? detallesDiv
                     : group === 'relaciones' ? relacionesDiv
                     : cursoDiv;
     if (targetGroup) {
-        var firstBtn = targetGroup.querySelector('.natal-subtab');
-        if (firstBtn) firstBtn.click();
+        var preferredBtn = null;
+        if (group === 'detalles') {
+            // buscar el subtab Calendar específicamente
+            preferredBtn = targetGroup.querySelector('.natal-subtab[onclick*="calendar"]');
+        }
+        var btnToClick = preferredBtn || targetGroup.querySelector('.natal-subtab');
+        if (btnToClick) btnToClick.click();
     }
 }
 
@@ -27770,8 +27776,14 @@ function drawNatalWheel(canvasId, transitDate) {
             }
         }
 
-        var R_pMid = (R_planetOuter + R_planetInner) / 2;
-        var nudgeStep = 13;
+        // v878: cuando hay tránsitos (Carta de Hoy), los natales van al borde EXTERNO del planet ring
+        // (cerca de los grados) y con UN SOLO COLOR para distinguirlos visualmente de los tránsitos.
+        // Sin tránsitos (Carta natal sola), los natales mantienen su posición central y colores propios.
+        var _hasTransits = !!transitDate;
+        var R_pMid = _hasTransits ? (R_planetOuter - 15) : ((R_planetOuter + R_planetInner) / 2);
+        var nudgeStep = _hasTransits ? 10 : 13;
+        // v878: color único para natales cuando hay tránsitos (azul oscuro = "tu base")
+        var _natalUnifiedColor = '#1a3a6c';
 
         planetPositions.forEach(function(pp){
             var angle = L2A(pp.lon);
@@ -27781,14 +27793,16 @@ function drawNatalWheel(canvasId, transitDate) {
             var ppx = cx+pr*Math.cos(angle);
             var ppy = cy+pr*Math.sin(angle);
 
-            // Thin pointer line from tick ring to planet
-            svg += '<line x1="'+px(R_tickInner,angle)+'" y1="'+py(R_tickInner,angle)+'" x2="'+ppx.toFixed(1)+'" y2="'+ppy.toFixed(1)+'" stroke="#bbb" stroke-width="0.4"/>';
+            // v878: pointer line MÁS CORTA — empieza DEBAJO del área de números de grados
+            // (antes empezaba en R_tickInner que es justo donde se escriben los números → los tapaba)
+            var R_lineStart = R_planetOuter - 2;
+            svg += '<line x1="'+px(R_lineStart,angle)+'" y1="'+py(R_lineStart,angle)+'" x2="'+ppx.toFixed(1)+'" y2="'+ppy.toFixed(1)+'" stroke="#bbb" stroke-width="0.4"/>';
 
             // Small tick on house ring pointing to planet
             svg += '<line x1="'+px(R_houseOuter,angle)+'" y1="'+py(R_houseOuter,angle)+'" x2="'+px(R_houseOuter+4,angle)+'" y2="'+py(R_houseOuter+4,angle)+'" stroke="#bbb" stroke-width="0.4"/>';
 
-            // Planet glyph
-            var col = planetClrs[pp.key]||'#333';
+            // Planet glyph — v878: si hay tránsitos, todos los natales mismo color (azul oscuro)
+            var col = _hasTransits ? _natalUnifiedColor : (planetClrs[pp.key]||'#333');
             svg += '<text x="'+ppx.toFixed(1)+'" y="'+(ppy-1).toFixed(1)+'" fill="'+col+'" font-size="14" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs[pp.key]||pp.key[0].toUpperCase())+'</text>';
 
             // Degree + sign + minutes below glyph
@@ -27808,18 +27822,18 @@ function drawNatalWheel(canvasId, transitDate) {
         // ===== OUTER BORDER =====
         svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signOuter+'" fill="none" stroke="#333" stroke-width="1.5"/>';
 
-        // ===== TRANSIT BIWHEEL (outer ring) =====
+        // ===== TRANSIT BIWHEEL =====
+        // v878: tránsitos DENTRO de la rueda, cerca del borde de las casas (no afuera del zodiaco como antes).
+        // Quedaba más limpio para ver retornos visualmente: natales (azul oscuro, borde de grados)
+        // vs tránsitos (con colores propios, borde de casas).
         if (transitDate) {
             var tPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron'];
             var tGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷'};
             var tClrs = {'sun':'#ff6b35','moon':'#64B5F6','mercury':'#ffd54f','venus':'#66bb6a','mars':'#ef5350','jupiter':'#7e57c2','saturn':'#78909c','uranus':'#26c6da','neptune':'#42a5f5','pluto':'#ab47bc','chiron':'#ffca28'};
-            var R_tOuter = R_signOuter + 50;
-            var R_tInner = R_signOuter + 4;
+            // v878: tránsitos en la zona interna del planet ring (cerca de casas), natales en la externa (cerca de grados)
+            var R_tOuter = R_planetInner + 18;
+            var R_tInner = R_planetInner + 2;
             var R_tMid = (R_tOuter + R_tInner) / 2;
-
-            // Transit ring background
-            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tOuter+'" fill="none" stroke="rgba(100,181,246,0.15)" stroke-width="1"/>';
-            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tInner+'" fill="none" stroke="rgba(100,181,246,0.15)" stroke-width="0.5"/>';
 
             // Compute transit positions
             var tPositions = [];
@@ -27840,13 +27854,14 @@ function drawNatalWheel(canvasId, transitDate) {
 
             tPositions.forEach(function(tp) {
                 var angle = L2A(tp.lon);
-                var tpr = R_tMid + tp.nudge * 8;
-                if (tpr > R_tOuter - 4) tpr = R_tOuter - 4;
+                // v878: nudge va hacia ADENTRO (hacia el centro) para no chocar con natales que están afuera
+                var tpr = R_tMid - tp.nudge * 7;
+                if (tpr < R_houseOuter + 4) tpr = R_houseOuter + 4;
                 var tppx = cx + tpr * Math.cos(angle);
                 var tppy = cy + tpr * Math.sin(angle);
 
-                // Pointer line from outer zodiac ring to transit planet
-                svg += '<line x1="'+px(R_signOuter,angle)+'" y1="'+py(R_signOuter,angle)+'" x2="'+tppx.toFixed(1)+'" y2="'+tppy.toFixed(1)+'" stroke="rgba(100,181,246,0.25)" stroke-width="0.5"/>';
+                // v878: pointer line corta — del borde de las casas hacia el planeta tránsito
+                svg += '<line x1="'+px(R_houseOuter+2,angle)+'" y1="'+py(R_houseOuter+2,angle)+'" x2="'+tppx.toFixed(1)+'" y2="'+tppy.toFixed(1)+'" stroke="rgba(100,181,246,0.4)" stroke-width="0.5"/>';
 
                 // Transit planet glyph
                 var tcol = tClrs[tp.key] || '#64B5F6';
@@ -27856,14 +27871,12 @@ function drawNatalWheel(canvasId, transitDate) {
                 var tLon = tp.lon;
                 var tpD = Math.floor(tLon%30);
                 var tpSI = Math.floor(tLon/30)%12;
-                svg += '<text x="'+tppx.toFixed(1)+'" y="'+(tppy+9).toFixed(1)+'" fill="rgba(100,181,246,0.5)" font-size="5.5" font-family="system-ui,sans-serif" text-anchor="middle">'+tpD+'°'+signGlyphs[tpSI]+'</text>';
+                svg += '<text x="'+tppx.toFixed(1)+'" y="'+(tppy+9).toFixed(1)+'" fill="rgba(100,181,246,0.6)" font-size="5.5" font-family="system-ui,sans-serif" text-anchor="middle">'+tpD+'°'+signGlyphs[tpSI]+'</text>';
             });
-
-            // Transit outer border
-            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tOuter+'" fill="none" stroke="rgba(100,181,246,0.3)" stroke-width="1"/>';
         }
 
-        var totalR = transitDate ? (R_signOuter + 55) : R_signOuter + 15;
+        // v878: ya no necesitamos espacio extra fuera del zodiaco porque tránsitos van adentro
+        var totalR = R_signOuter + 15;
         var vb = (cx - totalR) + ' ' + (cy - totalR) + ' ' + (totalR*2) + ' ' + (totalR*2);
         // v749ci: rueda CLICKEABLE para abrir en pantalla completa (modal con pinch-to-zoom).
         // Antes en teléfono se veía muy chica y no se distinguían los grados/glifos.
