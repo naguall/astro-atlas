@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v875';</script>
+    <script>window.APP_VERSION = 'v877';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -24745,8 +24745,8 @@ window.buildCalRelSelector = function() {
     });
     html += '</select></div>';
 
-    // Dropdown 2: Vista calendario (Lunar/Solar/Gregoriano)
-    html += window.buildCalendarStyleDropdown();
+    // v876: REVERTIDO el "Dropdown 2: Vista calendario" de v874 — saltaba a Lunar/Solar/Gregorian
+    // completos cambiando contexto de interpretación al genérico con mares/sismos. Solo queda el Carta.
 
     html += '</div>';
 
@@ -29803,8 +29803,9 @@ function renderPersonalCalendar(opts) {
         ${_isRelMode ? '' : _todayBanner}
         <!-- Zodiac Sign Calendar Grid -->
         <div class="personal-natal-card" style="padding:10px;">
-            <!-- v874: dropdown "Vista calendario" en modo personal (no-relacional) — quick-nav a Lunar/Solar/Gregoriano -->
-            ${_isRelMode ? '' : `<div style="display:flex;justify-content:center;margin-bottom:8px;">${typeof window.buildCalendarStyleDropdown==='function'?window.buildCalendarStyleDropdown():''}</div>`}
+            <!-- v876: REVERTIDO el dropdown "Vista" de v874. Saltaba a Lunar/Solar/Gregorian completos
+                 (no vista dentro de Personal) y eso cambiaba el contexto de interpretación al genérico
+                 con mares/sismos. Vuelve a como estaba pre-v874. -->
             <!-- Sign navigation inside calendar -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                 <button onclick="personalPrevMonth()" style="background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;padding:5px 12px;cursor:pointer;font-size:0.85em;">◀</button>
@@ -48448,7 +48449,11 @@ function addHoyInterpMessage(role, html, scrollToBottom) {
 async function sendHoyInterpRequest(isFollowUp) {
     hoyInterpTyping = true;
     try {
-        var systemPrompt = buildSystemPrompt();
+        // v877: pasar 'light' para que NO se inyecten mareas/sismos en el contexto.
+        // gatherFullAppContext() (default) inyecta esos datos cuando _tideCache o _lastEarthquakeData
+        // tienen valores (si alguna vez abriste Atlas/Earth). Eso causaba que el AI mencionara
+        // mareas/sismos en interpretaciones del calendario Personal/Hoy donde no corresponde.
+        var systemPrompt = buildSystemPrompt('light');
         var requestBody = {
             system_instruction: {parts: [{text: systemPrompt}]},
             contents: hoyInterpHistory,
@@ -49916,6 +49921,28 @@ function buildSystemPrompt(contextLevel) {
     base += isEs
         ? '\n\n═══ FORMATO DE RESPUESTA OBLIGATORIO ═══\nTodas tus interpretaciones DEBEN seguir este formato:\n1. Organiza por SECCIONES TEMÁTICAS claras usando encabezados con **negrita** (ej: **Capa Simbólica**, **Capa Astrológica**, **Capa Psicológica**, **Síntesis**).\n2. Deja UNA LÍNEA EN BLANCO entre cada sección/tema.\n3. Usa **negrita** para conceptos clave, nombres de planetas, signos, aspectos y términos importantes.\n4. Cada sección debe ser un párrafo coherente, NO listas con viñetas.\n5. La última sección siempre debe ser una **Síntesis** o **Mensaje Final** que integre todo.\n6. ⚠️ MARCA DE CIERRE OBLIGATORIA: Terminá SIEMPRE tu respuesta con una última línea EXACTAMENTE igual a:\n\n✦ ⊹ FIN ⊹ ✦\n\nEsta marca confirma que la lectura llegó hasta el final. Si la marca falta, el usuario sabrá que la respuesta se cortó. NO la omitas NUNCA, ni siquiera en respuestas cortas o cuando solo escribís un saludo. Va siempre al final, en su propia línea, sin texto adicional después.\nEsto es OBLIGATORIO en TODAS las respuestas.'
         : '\n\n═══ MANDATORY RESPONSE FORMAT ═══\nAll your interpretations MUST follow this format:\n1. Organize by clear THEMATIC SECTIONS using **bold** headers (e.g.: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**).\n2. Leave ONE BLANK LINE between each section/theme.\n3. Use **bold** for key concepts, planet names, signs, aspects, and important terms.\n4. Each section should be a coherent paragraph, NOT bullet lists.\n5. The last section should always be a **Synthesis** or **Final Message** that integrates everything.\n6. ⚠️ MANDATORY CLOSING MARK: ALWAYS end your response with a final line EXACTLY equal to:\n\n✦ ⊹ END ⊹ ✦\n\nThis mark confirms the reading reached the end. If the mark is missing, the user knows the response got cut off. NEVER omit it, even in short replies or simple greetings. It always goes at the end, on its own line, with no additional text after.\nThis is MANDATORY in ALL responses.';
+
+    // v877: ── Anti-hallucinación de mareas/sismos ──
+    // Las personas listan "Oceanografía, sismología, mareas/sismos/tierra" como áreas de expertise.
+    // Sin esta regla, el AI las menciona espontáneamente en interpretaciones astrológicas donde no
+    // corresponde (el usuario reportó que "Interpretar hoy" terminaba hablando de mareas y sismos).
+    base += isEs
+        ? '\n\n═══ TEMAS FUERA DE ASTROLOGÍA — NO INVENTES ═══\n'
+          + 'Aunque tu marco mencione oceanografía, sismología y temas terrestres, NO los traigas a colación en interpretaciones astrológicas (calendario personal, lunar, solar, gregoriano, hoy, tránsitos, aspectos, carta natal).\n'
+          + 'SOLO mencioná mareas, sismos, actividad terrestre o eventos solares físicos si:\n'
+          + '  (A) Hay datos numéricos específicos en tu contexto ("DATOS DE MAREAS", "ACTIVIDAD SÍSMICA", etc. arriba en USER AND APP DATA).\n'
+          + '  (B) El usuario te lo pide explícitamente ("¿cómo están las mareas?", "¿hay sismos cerca?", etc.).\n'
+          + 'NUNCA mencionés mareas/sismos/terremotos espontáneamente en una lectura astrológica.\n'
+          + 'NUNCA inventés datos numéricos de mareas, magnitudes sísmicas o eventos terrestres.\n'
+          + 'Si no tenés esos datos en contexto, NO los traigas — quedate solo en astrología.'
+        : '\n\n═══ TOPICS OUTSIDE ASTROLOGY — DO NOT INVENT ═══\n'
+          + 'Even if your framework mentions oceanography, seismology and earth topics, DO NOT bring them up in astrological interpretations (personal/lunar/solar/gregorian calendar, today, transits, aspects, natal chart).\n'
+          + 'ONLY mention tides, earthquakes, seismic activity or physical solar events if:\n'
+          + '  (A) There is specific numeric data in your context ("TIDE DATA", "SEISMIC ACTIVITY", etc. above in USER AND APP DATA).\n'
+          + '  (B) The user explicitly asks ("how are the tides?", "any earthquakes nearby?", etc.).\n'
+          + 'NEVER bring up tides/earthquakes spontaneously in an astrological reading.\n'
+          + 'NEVER invent numeric data for tides, seismic magnitudes or earth events.\n'
+          + 'If you don\'t have that data in context, DO NOT bring it up — stay only in astrology.';
 
     // ── CRITICAL: DO NOT HALLUCINATE — ask when unsure ──
     // v638: Improved instruction — tell AI to USE the chart data that IS present, only warn if truly missing
