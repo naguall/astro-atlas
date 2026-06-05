@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v878';</script>
+    <script>window.APP_VERSION = 'v879';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -24992,6 +24992,9 @@ window.openCompositeView = function(profileId) {
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (currentLang==='es'?'Puntos medios entre ambas cartas — representa la relación como entidad':'Midpoints between both charts — represents the relationship as an entity') + '</div>';
     html += '</div>';
 
+    // v879: rueda visual de la Carta Compuesta
+    html += '<div id="compositeWheelContainer" style="max-width:100%;margin:0 auto 14px;display:block;"></div>';
+
     // Planets table — each planet is clickable
     html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Planetas Compuestos':'Composite Planets') + '</div>';
     html += '<div style="margin-bottom:14px;">';
@@ -25042,6 +25045,20 @@ window.openCompositeView = function(profileId) {
 
     bodyEl.innerHTML = html;
     modal.classList.add('show');
+
+    // v879: dibujar la rueda Compuesta usando el helper drawNatalWheel via save/restore localStorage
+    try {
+        var _origChart = localStorage.getItem('natalChart');
+        localStorage.setItem('natalChart', JSON.stringify(comp));
+        setTimeout(function() {
+            try {
+                if (typeof drawNatalWheel === 'function') drawNatalWheel('compositeWheelContainer');
+            } catch(e) { console.warn('composite wheel draw error:', e); }
+            // restaurar natalChart original
+            if (_origChart !== null) localStorage.setItem('natalChart', _origChart);
+            else localStorage.removeItem('natalChart');
+        }, 100);
+    } catch(e) { console.warn('composite wheel setup error:', e); }
 };
 
 // ── Carta de Davison: midpoint in time and space ──
@@ -25169,6 +25186,9 @@ window.openDavisonView = function(profileId) {
     html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + (currentLang==='es'?'Punto medio en tiempo y espacio':'Midpoint in time and space') + '</div>';
     html += '</div>';
 
+    // v879: rueda visual de la Carta Davison
+    html += '<div id="davisonWheelContainer" style="max-width:100%;margin:0 auto 14px;display:block;"></div>';
+
     // Davison birth data
     html += '<div style="background:rgba(241,196,15,0.06);border:1px solid rgba(241,196,15,0.2);border-radius:10px;padding:10px;margin-bottom:14px;">';
     html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (currentLang==='es'?'Datos de la Relación':'Relationship Data') + '</div>';
@@ -25231,6 +25251,19 @@ window.openDavisonView = function(profileId) {
 
     bodyEl.innerHTML = html;
     modal.classList.add('show');
+
+    // v879: dibujar la rueda Davison usando drawNatalWheel via save/restore localStorage
+    try {
+        var _origChartDav = localStorage.getItem('natalChart');
+        localStorage.setItem('natalChart', JSON.stringify(comp));
+        setTimeout(function() {
+            try {
+                if (typeof drawNatalWheel === 'function') drawNatalWheel('davisonWheelContainer');
+            } catch(e) { console.warn('davison wheel draw error:', e); }
+            if (_origChartDav !== null) localStorage.setItem('natalChart', _origChartDav);
+            else localStorage.removeItem('natalChart');
+        }, 100);
+    } catch(e) { console.warn('davison wheel setup error:', e); }
 };
 
 // ===== PLANETARY HOURS =====
@@ -27691,16 +27724,18 @@ function drawNatalWheel(canvasId, transitDate) {
 
         // ===== HOUSE CUSPS =====
         if (nc.houses && nc.houses.cusps) {
-            // All cusps: lines from zodiac ring inner boundary through tick ring + planet area + house ring
+            // v879: las cuspas ya NO empiezan en R_signInner — ese era el bug "rayas tapan los grados".
+            // Ahora empiezan DEBAJO del área de números de grados (R_planetOuter), dejando libre la zona
+            // de los números 5/10/15/20/25 que se escriben en R_tickInner+5.
             nc.houses.cusps.forEach(function(cusp, idx) {
                 var a = L2A(cusp);
                 var isAxis = (idx===0||idx===3||idx===6||idx===9);
                 if (isAxis) {
-                    // Axis cusps: bold, from zodiac ring to house ring inner (no cross through center)
-                    svg += line(R_signInner,a,R_houseInner,a,'#333',1.8);
+                    // Axis cusps (AC/IC/DC/MC): bold, pero respetan la zona de grados
+                    svg += line(R_planetOuter,a,R_houseInner,a,'#333',1.8);
                 } else {
-                    // Regular cusps: from zodiac ring inner boundary to house ring inner circle
-                    svg += line(R_signInner,a,R_houseInner,a,'#999',0.6);
+                    // Regular cusps
+                    svg += line(R_planetOuter,a,R_houseInner,a,'#999',0.6);
                 }
             });
 
@@ -47401,25 +47436,54 @@ window._ttsHighlightChunk = function(idx) {
     }
 };
 
-// v873: silent loop audio + MediaSession para que Android NO mate la TTS al cambiar de app.
-// speechSynthesis solo no claim audio focus → Android la pausa al ir a background. Solución:
-// reproducir un <audio> en silencio en loop mientras la TTS suena → Android cree que hay media
-// reproduciéndose y NO pausa la WebView ni la voz.
+// v873/v879: silent loop audio + MediaSession para que Android NO mate la TTS al cambiar de app.
+// v879: agregado Web Audio API oscillator (más robusto que <audio> en Capacitor WebView) + WakeLock.
+window._ttsBgAudioCtx = null;
+window._ttsBgAudioOsc = null;
+window._ttsBgWakeLock = null;
+
 window._ttsStartBgAudio = function(title) {
     try {
+        // 1) <audio> con WAV silencioso (estrategia v873)
         var au = document.getElementById('_ttsSilentAudio');
         if (!au) {
             au = document.createElement('audio');
             au.id = '_ttsSilentAudio';
             au.loop = true;
-            au.volume = 0.001; // casi silencio (no totalmente 0 — algunos browsers ignoran si vol=0)
+            au.volume = 0.01;
             au.preload = 'auto';
-            // 1-segundo de silencio en WAV inline (data URI). Muy chico para no afectar carga.
             au.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
             document.body.appendChild(au);
         }
         au.play().catch(function(e) { console.warn('🎵 silent audio play() failed:', e); });
-        // MediaSession metadata para que Android muestre controles de media en lock screen
+
+        // 2) v879: Web Audio API — oscilador silencioso a 50Hz continuo
+        //    Más robusto que <audio> porque claim el AudioContext que Android no quiere matar
+        try {
+            if (!window._ttsBgAudioCtx) {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) {
+                    window._ttsBgAudioCtx = new AC();
+                }
+            }
+            if (window._ttsBgAudioCtx) {
+                if (window._ttsBgAudioCtx.state === 'suspended') {
+                    window._ttsBgAudioCtx.resume().catch(function(e){ console.warn('AudioCtx resume:', e); });
+                }
+                if (!window._ttsBgAudioOsc) {
+                    var osc = window._ttsBgAudioCtx.createOscillator();
+                    var gain = window._ttsBgAudioCtx.createGain();
+                    gain.gain.value = 0.0001; // casi silencio
+                    osc.frequency.value = 50;  // baja frecuencia, casi inaudible
+                    osc.connect(gain).connect(window._ttsBgAudioCtx.destination);
+                    osc.start();
+                    window._ttsBgAudioOsc = { osc: osc, gain: gain };
+                    console.log('🎵 WebAudio oscillator iniciado (50Hz silencioso) — keep-alive para TTS');
+                }
+            }
+        } catch(_eWA) { console.warn('WebAudio bg setup:', _eWA); }
+
+        // 3) MediaSession metadata para que Android muestre controles de media en lock screen
         if ('mediaSession' in navigator) {
             try {
                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -47433,6 +47497,19 @@ window._ttsStartBgAudio = function(title) {
                 navigator.mediaSession.setActionHandler('stop', function() { try { window._ttsStop(); } catch(e){} });
             } catch(_eMS) { console.warn('MediaSession setup:', _eMS); }
         }
+
+        // 4) v879: WakeLock screen para que el dispositivo no entre en sleep
+        try {
+            if ('wakeLock' in navigator && !window._ttsBgWakeLock) {
+                navigator.wakeLock.request('screen').then(function(wl) {
+                    window._ttsBgWakeLock = wl;
+                    console.log('🔒 WakeLock screen activado');
+                    wl.addEventListener('release', function() {
+                        window._ttsBgWakeLock = null;
+                    });
+                }).catch(function(e) { console.warn('WakeLock request:', e); });
+            }
+        } catch(_eWL) { console.warn('WakeLock setup:', _eWL); }
     } catch(e) { console.warn('_ttsStartBgAudio error:', e); }
 };
 
@@ -47440,6 +47517,16 @@ window._ttsStopBgAudio = function() {
     try {
         var au = document.getElementById('_ttsSilentAudio');
         if (au) { au.pause(); }
+        if (window._ttsBgAudioOsc) {
+            try { window._ttsBgAudioOsc.osc.stop(); } catch(_eOS){}
+            try { window._ttsBgAudioOsc.osc.disconnect(); } catch(_eOD){}
+            window._ttsBgAudioOsc = null;
+            console.log('🎵 WebAudio oscillator detenido');
+        }
+        if (window._ttsBgWakeLock) {
+            try { window._ttsBgWakeLock.release(); } catch(_eW){}
+            window._ttsBgWakeLock = null;
+        }
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = 'paused';
         }
