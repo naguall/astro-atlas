@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v882';</script>
+    <script>window.APP_VERSION = 'v883';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -14699,63 +14699,76 @@ function scheduleDreamAlarm() {
     // Cuando la notif sale y la app se abre (auto o por tap del usuario), JS dispara
     // AlarmAudio.playTones para el sonido Solfeggio en STREAM_ALARM (vol independiente).
     var _isCap = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    if (_isCap && window.MoonSyncNative && window.MoonSyncNative.scheduleNotification) {
-        window.MoonSyncNative.scheduleNotification({
-            id: 88888, // ID fijo para alarma de sueños (se sobrescribe si se reprograma)
-            at: alarmDate,
-            title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
-            body: currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream',
-            tag: 'dream-alarm',
-            data: { dreamAlarm: true }
-        }).then(function() {
-            console.log('[Dream Alarm] Native LocalNotification scheduled for', alarmDate.toLocaleString());
-        }).catch(function(e) {
-            console.warn('[Dream Alarm] LocalNotifications.schedule failed:', e);
-        });
-    }
 
-    // v882: ADEMÁS del MoonSyncNative, programar también una LocalNotifications standard de Capacitor
-    // en un canal con importance MAX (5) para que el sistema haga sonar la notif con la pantalla bloqueada.
-    // El MoonSyncNative scheduleNotification no garantiza sonido en lockscreen — el plugin estándar sí
-    // cuando se usa un channel con importance 5 + sound + allowWhileIdle.
-    if (_isCap) {
+    // v883: PRIORIDAD 1 — plugin nativo nuevo DreamAlarm (AlarmManager.setAlarmClock + FullScreenIntent + canal bypassDnd + USAGE_ALARM).
+    // Esta es la única forma confiable en Android de sonar con pantalla bloqueada + DnD + Doze.
+    // El MoonSyncNative.scheduleNotification de v745 NUNCA existió como plugin Java — fallaba silencioso.
+    var _DA = (_isCap && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
+    if (_DA && _DA.schedule) {
+        // Chequear permiso de Exact Alarms (Android 12+) — si no está, abrir settings para que el user lo active
+        var _proceedSchedule = function() {
+            _DA.schedule({
+                at: alarmDate.getTime(),
+                title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
+                body:  currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream'
+            }).then(function() {
+                console.log('[Dream Alarm] v883 native DreamAlarm.schedule OK for', alarmDate.toLocaleString());
+            }).catch(function(e) {
+                console.warn('[Dream Alarm] v883 DreamAlarm.schedule failed:', e);
+                // Si el error es permiso SCHEDULE_EXACT_ALARM, abrir settings
+                var msg = (e && e.message) ? String(e.message) : '';
+                if (msg.indexOf('SCHEDULE_EXACT_ALARM') !== -1 && _DA.openExactAlarmSettings) {
+                    alert(currentLang === 'es'
+                        ? 'Para que la alarma suene con el teléfono bloqueado, dale permiso de "Alarmas y recordatorios" en la siguiente pantalla.'
+                        : 'For the alarm to ring with phone locked, grant "Alarms & reminders" permission on the next screen.');
+                    _DA.openExactAlarmSettings();
+                }
+            });
+        };
+        if (_DA.canScheduleExactAlarms) {
+            _DA.canScheduleExactAlarms().then(function(r) {
+                if (r && r.granted === false) {
+                    console.warn('[Dream Alarm] Exact alarm permission NOT granted — opening settings');
+                    if (_DA.openExactAlarmSettings) {
+                        alert(currentLang === 'es'
+                            ? 'AstroAtlas necesita permiso de "Alarmas y recordatorios" para que la alarma suene con el teléfono bloqueado.\n\nSe abrirá la pantalla de permisos.'
+                            : 'AstroAtlas needs "Alarms & reminders" permission for the alarm to ring with phone locked.\n\nPermissions screen will open.');
+                        _DA.openExactAlarmSettings();
+                    }
+                }
+                _proceedSchedule();
+            }).catch(function() { _proceedSchedule(); });
+        } else {
+            _proceedSchedule();
+        }
+    } else if (_isCap) {
+        // v882 fallback: si por alguna razón no se cargó el plugin, usar LocalNotifications standard
         try {
             var _LN = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
             if (_LN && _LN.schedule) {
-                // Crear/asegurar canal de ALARMA (importance MAX, suena en lockscreen, ignora DnD del user si Channel lo permite)
                 if (_LN.createChannel) {
                     _LN.createChannel({
                         id: 'astroatlas-alarm',
                         name: currentLang === 'es' ? 'AstroAtlas — Alarma de Sueños' : 'AstroAtlas — Dream Alarm',
-                        description: currentLang === 'es' ? 'Alarma de sueños — debe sonar con pantalla bloqueada' : 'Dream alarm — must sound with screen locked',
-                        importance: 5,        // IMPORTANCE_MAX → suena/vibra/heads-up
-                        visibility: 1,        // PUBLIC → visible en lockscreen
-                        lights: true,
-                        lightColor: '#7ec8ff',
-                        vibration: true,
-                        sound: 'default'      // Sonido de notificación por defecto del sistema
+                        importance: 5, visibility: 1, lights: true, lightColor: '#7ec8ff',
+                        vibration: true, sound: 'default'
                     }).catch(function(){});
                 }
                 _LN.schedule({
                     notifications: [{
-                        id: 88889, // distinto al de MoonSyncNative para no chocar
+                        id: 88889,
                         title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
                         body: currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream',
-                        schedule: { at: alarmDate, allowWhileIdle: true }, // allowWhileIdle = atraviesa Doze
+                        schedule: { at: alarmDate, allowWhileIdle: true },
                         channelId: 'astroatlas-alarm',
                         sound: 'default',
                         smallIcon: 'ic_stat_icon',
-                        ongoing: false,
-                        autoCancel: true,
+                        ongoing: false, autoCancel: true,
                         extra: { dreamAlarm: true }
                     }]
-                }).then(function() {
-                    console.log('[Dream Alarm] v882 LocalNotifications (alarm channel) scheduled OK');
-                }).catch(function(e) {
-                    console.warn('[Dream Alarm] v882 LocalNotifications fallback failed:', e);
-                });
+                }).catch(function(e){ console.warn('[Dream Alarm] LN fallback failed:', e); });
             }
-        } catch(_eLN) { console.warn('[Dream Alarm] v882 LN setup error:', _eLN); }
+        } catch(_eLN) { console.warn('[Dream Alarm] v883 fallback setup error:', _eLN); }
     }
 
     // Fallback: setInterval que actúa cuando la app está abierta (cubre PWA y APK foreground)
@@ -14789,11 +14802,12 @@ function cancelDreamAlarm() {
         clearTimeout(window._dreamAlarmBackup);
         window._dreamAlarmBackup = null;
     }
-    // v745: También cancelar la LocalNotification nativa programada en Capacitor
-    if (window.MoonSyncNative && window.MoonSyncNative.cancelNotification) {
-        window.MoonSyncNative.cancelNotification(88888).catch(function(){});
-    }
-    // v882: cancelar también el id 88889 del LocalNotifications standard (canal alarm)
+    // v883: cancelar el plugin DreamAlarm nativo
+    try {
+        var _DAc = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
+        if (_DAc && _DAc.cancel) _DAc.cancel().catch(function(){});
+    } catch(_eDC) {}
+    // v882: cancelar también el id 88889 del LocalNotifications standard (canal alarm) — fallback
     try {
         var _LN2 = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
         if (_LN2 && _LN2.cancel) {
@@ -41365,21 +41379,22 @@ function openPreferencesModal() {
     voiceContent += '<button onclick="testTTSVoice(\'en\')" style="margin-top:8px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + 'Probar voz' + '</button>';
     voiceContent += '</div>';
 
-    // v875: nota informativa sobre cómo conseguir más voces (incluido Carlos)
-    voiceContent += '<div style="margin-top:10px;padding:10px 12px;background:rgba(155,89,182,0.06);border:1px solid rgba(155,89,182,0.2);border-radius:8px;font-size:0.72em;color:rgba(255,255,255,0.6);line-height:1.6;">';
-    voiceContent += '<div style="color:#c39bd3;font-weight:600;margin-bottom:4px;">💡 ' + (currentLang==='es'?'¿Solo ves una voz? Cómo conseguir más:':'Only seeing one voice? How to get more:') + '</div>';
+    // v883: dropdown desplegable (details/summary) + quitada toda referencia a la voz "Carlos"
+    voiceContent += '<details style="margin-top:10px;background:rgba(155,89,182,0.06);border:1px solid rgba(155,89,182,0.2);border-radius:8px;">';
+    voiceContent += '<summary style="cursor:pointer;padding:10px 12px;color:#c39bd3;font-weight:600;font-size:0.78em;list-style:none;">💡 ' + (currentLang==='es'?'¿Solo ves una voz? Cómo conseguir más':'Only seeing one voice? How to get more') + '</summary>';
+    voiceContent += '<div style="padding:0 12px 10px 12px;font-size:0.72em;color:rgba(255,255,255,0.6);line-height:1.6;">';
     if (currentLang === 'es') {
         voiceContent += '<b>Android:</b> el navegador solo expone 1 voz por idioma (limitación del sistema). Para cambiar la voz default: Ajustes → Accesibilidad → Texto a voz → Google ⚙️ → Idioma → cambiar variante. Después tocá "Re-escanear voces" arriba.<br>';
-        voiceContent += '<b>Voz "Carlos":</b> es de Microsoft Edge (Windows). En Android NO viene por default. Alternativas: instalar <b>Acapela TTS</b> o <b>Vocalizer TTS</b> (Google Play, pagas) — traen voces masculinas españolas de alta calidad.<br>';
+        voiceContent += '<b>Más voces en Android:</b> instalar <b>Acapela TTS</b> o <b>Vocalizer TTS</b> (Google Play, pagas) — traen voces masculinas/femeninas españolas de alta calidad.<br>';
         voiceContent += '<b>iPhone/iPad:</b> Ajustes → Accesibilidad → Contenido hablado → Voces → Español → "Voz mejorada" o "Premium".<br>';
-        voiceContent += '<b>PWA en computadora:</b> abrila en Edge (tenés Carlos) o Chrome (varias voces Google Cloud).';
+        voiceContent += '<b>PWA en computadora:</b> abrila en Edge o Chrome para acceder a varias voces premium (Microsoft / Google Cloud).';
     } else {
         voiceContent += '<b>Android:</b> browser only exposes 1 voice per language (OS limitation). To change: Settings → Accessibility → Text-to-Speech → Google ⚙️ → Language → change variant. Then tap "Re-scan voices".<br>';
-        voiceContent += '<b>"Carlos" voice:</b> it\'s a Microsoft Edge (Windows) voice. Not on Android by default. Alternatives: install <b>Acapela TTS</b> or <b>Vocalizer TTS</b> from Play Store (paid).<br>';
+        voiceContent += '<b>More voices on Android:</b> install <b>Acapela TTS</b> or <b>Vocalizer TTS</b> from Play Store (paid) — high quality male/female Spanish voices.<br>';
         voiceContent += '<b>iPhone/iPad:</b> Settings → Accessibility → Spoken Content → Voices → Spanish → "Enhanced" or "Premium".<br>';
-        voiceContent += '<b>PWA on desktop:</b> open in Edge (has Carlos) or Chrome (Google Cloud voices).';
+        voiceContent += '<b>PWA on desktop:</b> open in Edge or Chrome for premium voices (Microsoft / Google Cloud).';
     }
-    voiceContent += '</div>';
+    voiceContent += '</div></details>';
 
     // Speed control
     voiceContent += '<div style="margin-bottom:8px;">';
