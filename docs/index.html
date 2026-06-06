@@ -7708,6 +7708,49 @@ function exportUserData() {
     alert(L ? '✅ Backup completo descargado (' + count + ' elementos). Guárdalo en un lugar seguro.' : '✅ Full backup downloaded (' + count + ' items). Keep it in a safe place.');
 }
 
+// v883: Procesa el contenido JSON de un backup y lo restaura — extraída de importUserData
+// para que la pueda llamar también el handler de share (window._handleSharedBackup).
+function _processBackupJsonContent(jsonString) {
+    var L = currentLang === 'es';
+    try {
+        var backup = JSON.parse(jsonString);
+        if (!backup._version || !backup._version.startsWith('moonsync_backup')) {
+            alert(L ? '❌ Este archivo no es un backup válido de AstroAtlas.' : '❌ This file is not a valid AstroAtlas backup.');
+            return false;
+        }
+        if (!confirm(L ? '¿Restaurar datos desde backup del ' + (backup._date || '?').split('T')[0] + '? Esto reemplazará tus datos actuales.' : 'Restore data from backup dated ' + (backup._date || '?').split('T')[0] + '? This will replace your current data.')) return false;
+        if (backup.allKeys && Object.keys(backup.allKeys).length > 0) {
+            Object.keys(backup.allKeys).forEach(function(key) {
+                if (key !== 'app_version') localStorage.setItem(key, backup.allKeys[key]);
+            });
+        } else {
+            if (backup.events) { localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events)); try { events = backup.events; } catch(e) {} }
+            if (backup.journals) { localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals)); try { journals = backup.journals; } catch(e) {} }
+            if (backup.diaryEntries) { Object.keys(backup.diaryEntries).forEach(function(key) { localStorage.setItem(key, backup.diaryEntries[key]); }); }
+            if (backup.natalProfiles) { localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles)); }
+            if (backup.settings) { Object.keys(backup.settings).forEach(function(key) { localStorage.setItem(key, backup.settings[key]); }); }
+        }
+        alert(L ? '✅ Datos restaurados exitosamente. La app se recargará.' : '✅ Data restored successfully. The app will reload.');
+        location.reload();
+        return true;
+    } catch(err) {
+        alert(L ? '❌ Error leyendo el backup: ' + err.message : '❌ Error reading backup: ' + err.message);
+        return false;
+    }
+}
+
+// v883: Handler que recibe contenido JSON desde Android (MainActivity inyecta esto cuando
+// el user comparte un .json a AstroAtlas desde WhatsApp/Email/Drive/etc.)
+window._handleSharedBackup = function(jsonContent) {
+    if (!jsonContent) return;
+    _processBackupJsonContent(jsonContent);
+};
+// Si MainActivity envió el contenido ANTES que JS estuviera listo:
+if (typeof window._pendingSharedBackup === 'string' && window._pendingSharedBackup) {
+    try { _processBackupJsonContent(window._pendingSharedBackup); } catch(_e) {}
+    delete window._pendingSharedBackup;
+}
+
 function importUserData() {
     const L = currentLang === 'es';
     const input = document.createElement('input');
