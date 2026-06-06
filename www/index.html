@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v880';</script>
+    <script>window.APP_VERSION = 'v882';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -14714,6 +14714,50 @@ function scheduleDreamAlarm() {
         });
     }
 
+    // v882: ADEMÁS del MoonSyncNative, programar también una LocalNotifications standard de Capacitor
+    // en un canal con importance MAX (5) para que el sistema haga sonar la notif con la pantalla bloqueada.
+    // El MoonSyncNative scheduleNotification no garantiza sonido en lockscreen — el plugin estándar sí
+    // cuando se usa un channel con importance 5 + sound + allowWhileIdle.
+    if (_isCap) {
+        try {
+            var _LN = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+            if (_LN && _LN.schedule) {
+                // Crear/asegurar canal de ALARMA (importance MAX, suena en lockscreen, ignora DnD del user si Channel lo permite)
+                if (_LN.createChannel) {
+                    _LN.createChannel({
+                        id: 'astroatlas-alarm',
+                        name: currentLang === 'es' ? 'AstroAtlas — Alarma de Sueños' : 'AstroAtlas — Dream Alarm',
+                        description: currentLang === 'es' ? 'Alarma de sueños — debe sonar con pantalla bloqueada' : 'Dream alarm — must sound with screen locked',
+                        importance: 5,        // IMPORTANCE_MAX → suena/vibra/heads-up
+                        visibility: 1,        // PUBLIC → visible en lockscreen
+                        lights: true,
+                        lightColor: '#7ec8ff',
+                        vibration: true,
+                        sound: 'default'      // Sonido de notificación por defecto del sistema
+                    }).catch(function(){});
+                }
+                _LN.schedule({
+                    notifications: [{
+                        id: 88889, // distinto al de MoonSyncNative para no chocar
+                        title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
+                        body: currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream',
+                        schedule: { at: alarmDate, allowWhileIdle: true }, // allowWhileIdle = atraviesa Doze
+                        channelId: 'astroatlas-alarm',
+                        sound: 'default',
+                        smallIcon: 'ic_stat_icon',
+                        ongoing: false,
+                        autoCancel: true,
+                        extra: { dreamAlarm: true }
+                    }]
+                }).then(function() {
+                    console.log('[Dream Alarm] v882 LocalNotifications (alarm channel) scheduled OK');
+                }).catch(function(e) {
+                    console.warn('[Dream Alarm] v882 LocalNotifications fallback failed:', e);
+                });
+            }
+        } catch(_eLN) { console.warn('[Dream Alarm] v882 LN setup error:', _eLN); }
+    }
+
     // Fallback: setInterval que actúa cuando la app está abierta (cubre PWA y APK foreground)
     // Use setInterval (every 15s) instead of setTimeout — browsers throttle
     // setTimeout in background tabs but setInterval is more reliable.
@@ -14749,6 +14793,13 @@ function cancelDreamAlarm() {
     if (window.MoonSyncNative && window.MoonSyncNative.cancelNotification) {
         window.MoonSyncNative.cancelNotification(88888).catch(function(){});
     }
+    // v882: cancelar también el id 88889 del LocalNotifications standard (canal alarm)
+    try {
+        var _LN2 = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+        if (_LN2 && _LN2.cancel) {
+            _LN2.cancel({ notifications: [{ id: 88889 }] }).catch(function(){});
+        }
+    } catch(_eC) {}
 }
 
 // Re-check alarm when page becomes visible (user wakes phone / switches back to tab)
@@ -43591,6 +43642,27 @@ function _publishProfile(callback) {
             return;
         }
         console.log('🌐 [publishProfile] _socialUser:', _socialUser.uid, _socialUser.email);
+
+        // v882: detectar si Firebase Auth currentUser está sincronizado con _socialUser.
+        // En APK Capacitor a veces el _socialUser viene del plugin nativo pero firebase.auth().currentUser
+        // está vacío → Firestore.set() se cuelga 15s. Si está desync, forzar re-login via unified signin.
+        var _fbUser = null;
+        try { _fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null; } catch(_eFA) {}
+        if (!_fbUser) {
+            console.warn('🌐 [publishProfile] Firebase Auth currentUser NULL pero _socialUser existe → sesión stale, re-loguear');
+            _publishToast(_isES ? '🔄 Sincronizando sesión Firebase...\nReintentá Publicar en unos segundos.' : '🔄 Syncing Firebase session...\nTry Publish again in a few seconds.', '#00bcd4');
+            if (typeof window._signInGoogleUnified === 'function') {
+                try { window._signInGoogleUnified(); } catch(_eSi) { console.warn('signin error:', _eSi); }
+            }
+            return;
+        }
+        console.log('🌐 [publishProfile] Firebase currentUser OK:', _fbUser.uid);
+        // v882: refrescar el id token antes de llamar Firestore (evita cuelgue de 15s por token expirado)
+        try {
+            _fbUser.getIdToken(true).then(function() {
+                console.log('🌐 [publishProfile] Firebase ID token refreshed');
+            }).catch(function(e) { console.warn('🌐 [publishProfile] getIdToken refresh error:', e); });
+        } catch(_eTok) { console.warn('getIdToken setup error:', _eTok); }
         var natal = typeof getNatalData === 'function' ? getNatalData() : null;
         if (!natal) {
             _publishToast(_isES ? '❌ Primero configurá tu carta natal en la sección Astro\n(fecha, hora y lugar de nacimiento).' : '❌ First set up your natal chart in the Astro section\n(birth date, time and place).', '#ff9800');
@@ -46181,24 +46253,66 @@ var _pendingSW = null;
     }, 500);
 })();
 
-function showUpdateBanner() {
+// v881: showUpdateBanner ahora acepta serverVer (versión NUEVA en el server) y la muestra correctamente.
+// Antes mostraba APP_VERSION (la versión LOCAL) que era confuso ("nueva versión disponible - v878" cuando
+// el user ya tenía v878). Ahora muestra la del server, y persiste el dismiss en localStorage para no
+// volver a salir hasta que haya otra versión más nueva.
+function showUpdateBanner(serverVer) {
     if (document.getElementById('appUpdateBanner')) return;
     var L = currentLang === 'es';
+    function _parseVerLocal(v) { var m = (v||'').match(/v(\d+)/); return m ? parseInt(m[1],10) : 0; }
+    // v881: si serverVer no se pasó, asumir que es una actualización genuina (SW updatefound path)
+    //       y usar texto sin versión específica.
+    var displayVer = serverVer || '';
+    // v881: si el server NO es más nuevo que el local, no mostrar el banner.
+    //       Cubre el caso de _checkServerVersion que llegue al server con la misma versión que el local.
+    if (serverVer) {
+        var serverN = _parseVerLocal(serverVer);
+        var localN = _parseVerLocal(APP_VERSION);
+        if (serverN <= localN) {
+            console.log('🔕 showUpdateBanner: serverVer=' + serverVer + ' no es más nuevo que ' + APP_VERSION + ' → no mostrar');
+            return;
+        }
+        // v881: si el user ya dismisseó esta misma versión, no mostrarla de nuevo
+        var dismissedVer = localStorage.getItem('dismissedUpdateVer') || '';
+        if (dismissedVer) {
+            var dismissedN = _parseVerLocal(dismissedVer);
+            if (dismissedN >= serverN) {
+                console.log('🔕 showUpdateBanner: versión ' + serverVer + ' ya fue dismisseada anteriormente → no mostrar');
+                return;
+            }
+        }
+    }
     var banner = document.createElement('div');
     banner.id = 'appUpdateBanner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#667eea,#764ba2);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideDown 0.4s ease;';
+    banner.setAttribute('data-target-ver', displayVer);
     banner.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:white;font-size:0.85em;">'
         + '<span style="font-size:1.2em;">🚀</span>'
-        + '<div><strong>' + (L ? 'Nueva versión disponible' : 'New version available') + ' — ' + APP_VERSION + '</strong>'
+        + '<div><strong>' + (L ? 'Nueva versión disponible' : 'New version available') + (displayVer ? ' — ' + displayVer : '') + '</strong>'
         + '<div style="font-size:0.8em;opacity:0.8;">' + (L ? 'Toca actualizar para obtener las últimas mejoras' : 'Tap update to get the latest improvements') + '</div></div></div>'
         + '<div style="display:flex;gap:6px;">'
         + '<button onclick="applyAppUpdate()" style="padding:6px 16px;background:white;border:none;border-radius:20px;color:#764ba2;font-weight:700;font-size:0.82em;cursor:pointer;">' + (L ? 'Actualizar' : 'Update') + '</button>'
-        + '<button onclick="this.parentElement.parentElement.remove()" style="padding:6px 10px;background:rgba(255,255,255,0.2);border:none;border-radius:20px;color:white;font-size:0.82em;cursor:pointer;">✕</button>'
+        + '<button onclick="window._dismissUpdateBanner(this)" style="padding:6px 10px;background:rgba(255,255,255,0.2);border:none;border-radius:20px;color:white;font-size:0.82em;cursor:pointer;">✕</button>'
         + '</div>';
     document.body.prepend(banner);
-    // Also set app badge
     if (navigator.setAppBadge) navigator.setAppBadge(1).catch(function(){});
 }
+
+// v881: persiste el dismiss del banner — graba la versión que se rechazó así no vuelve a salir
+window._dismissUpdateBanner = function(btn) {
+    try {
+        var bannerEl = btn && btn.parentElement && btn.parentElement.parentElement;
+        if (bannerEl) {
+            var ver = bannerEl.getAttribute('data-target-ver') || '';
+            if (ver) {
+                localStorage.setItem('dismissedUpdateVer', ver);
+                console.log('🔕 Banner dismiss persistido para versión:', ver);
+            }
+            bannerEl.remove();
+        }
+    } catch(e) { console.warn('_dismissUpdateBanner error:', e); }
+};
 
 var _swUpdateRequested = false;
 function applyAppUpdate() {
@@ -46289,7 +46403,8 @@ if ('serviceWorker' in navigator) {
                     if (serverN > localN) {
                         console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — mostrando banner');
                         if (typeof showUpdateBanner === 'function') {
-                            showUpdateBanner();
+                            // v881: pasar serverVer para que el banner muestre la versión NUEVA, no la local
+                            showUpdateBanner(serverVer);
                         }
                     } else if (serverN < localN) {
                         console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
