@@ -520,6 +520,11 @@
         .natal-group-tab.active { color: #c39bd3; background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(102,126,234,0.15)); border-color: rgba(155,89,182,0.5); }
         .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; border: none; flex-wrap: wrap; }
         @media (orientation: landscape) { .natal-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .natal-subtabs::-webkit-scrollbar { display: none; } }
+        /* v883: SOLO en APK Capacitor — sub-tabs en UNA sola línea con scroll horizontal (Ciclos / Calendario Relacional se iban a 2da línea) */
+        body.cap-apk .natal-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        body.cap-apk .natal-subtabs::-webkit-scrollbar { display: none; }
+        body.cap-apk .natal-group-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        body.cap-apk .natal-group-tabs::-webkit-scrollbar { display: none; }
         .natal-subtab { flex: 0 0 auto; padding: 8px 10px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; white-space: nowrap; border-radius: 8px; }
         .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
         .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); }
@@ -667,7 +672,9 @@
             .personal-natal-card { padding: 6px !important; }
             .personal-month-grid { gap: 2px !important; }
             /* v749ac: en mobile también usar la var compartida → personal queda a la misma altura que lunar/solar/greg */
-            .personal-day-cell { min-height: var(--day-cell-min-height, 90px) !important; padding: 2px 3px !important; font-size: 0.62em !important; overflow: hidden !important; }
+            /* v883: aumentar min-height en personal cuando hay transitos retrógrados/aspectos densos (antes se cortaban íconos como SatR + ⌒⌒).
+               También bajamos el font-size MIN del cell content para que entre más sin agrandar la celda demasiado. */
+            .personal-day-cell { min-height: calc(var(--day-cell-min-height, 90px) + 20px) !important; padding: 3px 4px !important; font-size: 0.62em !important; overflow: hidden !important; }
             .personal-day-cell .personal-day-num { font-size: 0.95em !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child { margin-bottom: 4px !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child button { padding: 4px 8px !important; font-size: 0.78em !important; }
@@ -38481,6 +38488,21 @@ if (typeof google !== 'undefined' && google.accounts) {
     }
 })();
 
+// v883: marcar body con class cap-apk para que el CSS aplique reglas específicas del APK
+// (sub-tabs en una sola línea con scroll horizontal, etc.)
+(function _markApkBody() {
+    function _apply() {
+        try {
+            var isCap = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+            if (isCap && document.body) {
+                document.body.classList.add('cap-apk');
+            }
+        } catch(_e) {}
+    }
+    if (document.body) _apply();
+    else document.addEventListener('DOMContentLoaded', _apply);
+})();
+
 // v628: Pre-initialize Firebase (AstroConnect) on app startup so Social tab opens fast
 // Firebase SDK loads async — wait until firebase global exists, then init in background
 (function _preInitAstroConnect() {
@@ -48041,6 +48063,25 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
     var text = el.innerText || el.textContent || '';
     if (!text.trim()) return;
 
+    // v883: capturar el texto tocado ANTES de reescribir innerHTML.
+    // Si el user hizo doble-click sobre un punto sin selección, el elementFromPoint posterior
+    // puede fallar por timing del layout. Aquí guardamos el texto del nodo bajo el tap.
+    var _tappedText = '';
+    if (clickX !== undefined && clickY !== undefined) {
+        try {
+            var _tEl = document.elementFromPoint(clickX, clickY);
+            if (_tEl) {
+                // Si el doble-click cayó sobre una palabra/span pequeño, agarrar el padre con texto
+                var _walk = _tEl;
+                for (var _wp = 0; _wp < 6 && _walk; _wp++) {
+                    var _wt = (_walk.innerText || _walk.textContent || '').trim();
+                    if (_wt.length >= 8) { _tappedText = _wt; break; }
+                    _walk = _walk.parentElement;
+                }
+            }
+        } catch(_eTap) {}
+    }
+
     // Split FULL text into readable chunks (by paragraph/sentence groups)
     var clean = text.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
     var paragraphs = clean.split(/\n\n+/).filter(function(p) { return p.trim().length > 0; });
@@ -48082,18 +48123,53 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
     // Setup player state with karaoke info
     window._ttsPlayer = { chunks: chunks, currentIdx: 0, elementId: elementId, playing: false, originalHTML: origHTML, spanIds: spanIds, startWordIdx: 0 };
 
-    // v741: Determine start chunk AND start word from tap/click coordinates.
-    // Walk up from the tapped element looking for a tts-word span first (most precise),
-    // then a tts-sentence span (chunk-level fallback).
+    // v883: ORDEN DE PRIORIDAD del start position:
+    //  1) Selección explícita del usuario (startFromText) — más semántico, más confiable
+    //  2) Texto del párrafo bajo el tap capturado ANTES del rewrite (_tappedText)
+    //  3) Coordenadas + elementFromPoint sobre los ttsW_/ttsS_ spans recién creados (fallback)
+    //
+    // Antes el orden 3 corría primero y a veces fallaba por timing → empezaba siempre desde 0.
     var startIdx = 0;
     var startWordIdx = 0;
-    if (clickX !== undefined && clickY !== undefined) {
+    var _foundByText = false;
+
+    function _findChunkByText(rawText) {
+        if (!rawText) return -1;
+        var sClean = rawText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').toLowerCase().trim();
+        if (sClean.length < 4) return -1;
+        // Intentamos varias longitudes de match (full, 8 palabras, 5, 3)
+        var fullLow = sClean;
+        var w8 = sClean.split(/\s+/).slice(0, 8).join(' ');
+        var w5 = sClean.split(/\s+/).slice(0, 5).join(' ');
+        var w3 = sClean.split(/\s+/).slice(0, 3).join(' ');
+        var candidates = [fullLow, w8, w5, w3];
+        for (var qi = 0; qi < candidates.length; qi++) {
+            var q = candidates[qi];
+            if (q.length < 4) continue;
+            for (var ci = 0; ci < chunks.length; ci++) {
+                if (chunks[ci].toLowerCase().indexOf(q) !== -1) return ci;
+            }
+        }
+        return -1;
+    }
+
+    // 1) Selección explícita
+    if (startFromText) {
+        var _h = _findChunkByText(startFromText);
+        if (_h >= 0) { startIdx = _h; _foundByText = true; }
+    }
+    // 2) Texto capturado bajo el tap (antes del rewrite)
+    if (!_foundByText && _tappedText) {
+        var _h2 = _findChunkByText(_tappedText);
+        if (_h2 >= 0) { startIdx = _h2; _foundByText = true; }
+    }
+    // 3) Fallback: elementFromPoint sobre los spans recién creados
+    if (!_foundByText && clickX !== undefined && clickY !== undefined) {
         var elAtPoint = document.elementFromPoint(clickX, clickY);
         if (elAtPoint) {
             var checkEl = elAtPoint;
             for (var pi = 0; pi < 5 && checkEl; pi++) {
                 if (checkEl.id && checkEl.id.indexOf('ttsW_') === 0) {
-                    // ttsW_<chunkIdx>_<wordIdx>
                     var wParts = checkEl.id.split('_');
                     var fIdx = parseInt(wParts[1]);
                     var fWord = parseInt(wParts[2]);
@@ -48102,7 +48178,6 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
                     break;
                 }
                 if (checkEl.id && checkEl.id.indexOf('ttsS_') === 0) {
-                    // ttsS_<uid>_<chunkIdx> — only chunk-level resolution (legacy fallback)
                     var sParts = checkEl.id.split('_');
                     var sIdx = parseInt(sParts[sParts.length - 1]);
                     if (!isNaN(sIdx)) startIdx = sIdx;
@@ -48112,20 +48187,7 @@ window.readAloud = function(elementId, startFromText, clickX, clickY) {
             }
         }
     }
-    // Fallback: use selected text if coordinate method found nothing and text is available
-    if (startIdx === 0 && startWordIdx === 0 && startFromText) {
-        var selClean = startFromText.replace(/\*\*?/g, '').replace(/---/g, '').replace(/✅/g, '').trim();
-        var selWords = selClean.split(/\s+/).slice(0, 5).join(' ').toLowerCase();
-        for (var ci = 0; ci < chunks.length; ci++) {
-            if (chunks[ci].toLowerCase().indexOf(selWords) !== -1) { startIdx = ci; break; }
-        }
-        if (startIdx === 0 && selWords.length > 0) {
-            var sel3 = selClean.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
-            for (var ci2 = 0; ci2 < chunks.length; ci2++) {
-                if (chunks[ci2].toLowerCase().indexOf(sel3) !== -1) { startIdx = ci2; break; }
-            }
-        }
-    }
+    console.log('[TTS readAloud] start chunk=' + startIdx + ' word=' + startWordIdx + ' (byText=' + _foundByText + ', sel="' + (startFromText||'').slice(0,40) + '", tapped="' + (_tappedText||'').slice(0,40) + '")');
     window._ttsPlayer.startWordIdx = startWordIdx;
     // Mark previous chunks as visually done
     if (startIdx > 0) {
