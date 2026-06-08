@@ -22138,10 +22138,14 @@ function showAllTransitsInterpretation() {
     if (transitTexts.length === 0) {
         html += '<div style="font-style:italic;color:rgba(255,255,255,0.5);padding:8px;">' + (L?'Sin tránsitos mayores hoy':'No major transits today') + '</div>';
     } else {
+        // v883: lista de tránsitos en caja SCROLLABLE — antes la lista entera empujaba la interpretación
+        // lejos abajo. Ahora coincide con el formato del modal "Interpretación del Día" (foto 1).
+        html += '<div style="max-height:200px;overflow-y:auto;padding:4px 2px 4px 0;margin-bottom:4px;">';
         transitTexts.forEach(function(txt) {
             var safeTxt = txt.replace(/'/g, "\\'");
             html += '<div onclick="showBannerAspectDetail(\'' + safeTxt + '\')" style="font-size:0.85em;padding:6px 10px;margin-bottom:4px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.18);border-radius:6px;cursor:pointer;color:rgba(255,255,255,0.85);transition:all 0.2s;">' + txt + '</div>';
         });
+        html += '</div>';
     }
     html += '</div>';
     html += '<div style="border-top:2px solid #7ec8ff;padding-top:12px;"><h4 style="color:#7ec8ff;margin-bottom:8px;">✦ ' + (L ? 'Interpretación de tránsitos' : 'Transits interpretation') + '</h4><div id="aiTransitsInterpDiv"></div></div>';
@@ -31870,11 +31874,13 @@ function interpretCalendarDay(year, month, day) {
     detailModal.onclick = function(e) { if (e.target === detailModal) detailModal.classList.remove('show'); };
     try {
         // Force-rewrite estructura siempre (evita cualquier estado raro)
-        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header"><h2 id="compPlanetDetailTitle" style="flex:1;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
+        // v883: quitar el título del header (queda solo el botón ×) porque ya aparece grande con ✨
+        // dentro del bodyHtml. Antes se mostraba duplicado (small-caps arriba + grande abajo).
+        detailModal.innerHTML = '<div class="modal-content" style="max-width:500px;max-height:85vh;overflow-y:auto;"><div class="modal-header" style="justify-content:flex-end;"><h2 id="compPlanetDetailTitle" style="display:none;"></h2><button class="modal-close" onclick="document.getElementById(\'compositePlanetDetailModal\').classList.remove(\'show\')">&times;</button></div><div id="compPlanetDetailBody"></div></div>';
         var _ttlEl = document.getElementById('compPlanetDetailTitle');
         var _bodyEl = document.getElementById('compPlanetDetailBody');
         if (!_ttlEl || !_bodyEl) throw new Error('estructura del modal no se pudo crear');
-        _ttlEl.textContent = _title;
+        _ttlEl.textContent = '';
         _bodyEl.innerHTML = bodyHtml;
         detailModal.classList.add('show');
         // Scroll al tope inicialmente para que el usuario vea el título
@@ -38503,6 +38509,73 @@ if (typeof google !== 'undefined' && google.accounts) {
     else document.addEventListener('DOMContentLoaded', _apply);
 })();
 
+// v883b: ONBOARDING DE PERMISOS — al primer arranque del APK pedir TODOS los permisos
+// necesarios para que el usuario no tenga que buscarlos manualmente en Settings.
+// Solicita: POST_NOTIFICATIONS (notificaciones) + RECORD_AUDIO (micrófono) + SCHEDULE_EXACT_ALARM.
+(function _astroAtlasPermissionsOnboarding() {
+    async function _ask() {
+        try {
+            var isCap = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+            if (!isCap) return;
+            if (localStorage.getItem('astroatlas_perms_v883_asked') === '1') return;
+
+            var L = (typeof currentLang !== 'undefined' && currentLang === 'es') || (navigator.language || '').startsWith('es');
+            // Aviso explicativo antes de tirar las pantallas nativas (Android suele mostrar 2-3 dialogos seguidos)
+            var ok = confirm(L
+                ? '🌙 AstroAtlas necesita algunos permisos para funcionar bien:\n\n📢 Notificaciones — para recordatorios astrológicos\n🎙️ Micrófono — para dictado de sueños\n⏰ Alarmas exactas — para que la alarma de sueños suene a la hora exacta\n\nVamos a pedirlos uno por uno. Tocá "Aceptar" en cada pantalla.'
+                : '🌙 AstroAtlas needs a few permissions to work properly:\n\n📢 Notifications — for astrological reminders\n🎙️ Microphone — to dictate dreams\n⏰ Exact alarms — so the dream alarm rings on time\n\nWe will request them one by one. Tap "Allow" on each screen.'
+            );
+            if (!ok) {
+                // El user dijo "no" — no insistimos pero marcamos como ya preguntado
+                localStorage.setItem('astroatlas_perms_v883_asked', '1');
+                return;
+            }
+
+            var Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+
+            // 1) Notificaciones
+            try {
+                if (Plugins.LocalNotifications && Plugins.LocalNotifications.requestPermissions) {
+                    await Plugins.LocalNotifications.requestPermissions();
+                }
+            } catch(_eN) { console.warn('[perms] notif request error:', _eN); }
+
+            // 2) Micrófono — vía SpeechRecognition plugin
+            try {
+                if (Plugins.SpeechRecognition && Plugins.SpeechRecognition.requestPermission) {
+                    await Plugins.SpeechRecognition.requestPermission();
+                } else if (Plugins.SpeechRecognition && Plugins.SpeechRecognition.requestPermissions) {
+                    await Plugins.SpeechRecognition.requestPermissions();
+                }
+            } catch(_eM) { console.warn('[perms] mic request error:', _eM); }
+
+            // 3) Alarmas exactas — si no están otorgadas, abrir la pantalla de settings
+            try {
+                if (Plugins.DreamAlarm && Plugins.DreamAlarm.canScheduleExactAlarms) {
+                    var r = await Plugins.DreamAlarm.canScheduleExactAlarms();
+                    if (r && r.granted === false) {
+                        alert(L
+                            ? '⏰ Ahora se abrirá la pantalla de "Alarmas y recordatorios" — activá el toggle de AstroAtlas y volvé a la app.'
+                            : '⏰ The "Alarms & reminders" screen will open — enable the AstroAtlas toggle and come back to the app.'
+                        );
+                        if (Plugins.DreamAlarm.openExactAlarmSettings) {
+                            await Plugins.DreamAlarm.openExactAlarmSettings();
+                        }
+                    }
+                }
+            } catch(_eA) { console.warn('[perms] exact alarm check error:', _eA); }
+
+            localStorage.setItem('astroatlas_perms_v883_asked', '1');
+        } catch(_eAll) { console.warn('[perms] onboarding outer error:', _eAll); }
+    }
+    // Esperar 2 segundos después de que el app cargue — así el splash no compite con el modal de permisos
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(_ask, 2500);
+    } else {
+        window.addEventListener('load', function() { setTimeout(_ask, 2500); });
+    }
+})();
+
 // v628: Pre-initialize Firebase (AstroConnect) on app startup so Social tab opens fast
 // Firebase SDK loads async — wait until firebase global exists, then init in background
 (function _preInitAstroConnect() {
@@ -39039,19 +39112,21 @@ function buildPhaseTimesCache() {
 }
 
 function getLunarPhaseEnrichment(phaseDate) {
-    var moonPos = getMoonPosition(phaseDate);
-    var distance = moonPos.distance;
-    var zodiacSign = getZodiacSignFromLongitude(moonPos.longitude);
-    var aspects = calculateAspects(phaseDate);
+    // v883b: BUG FIX — getMoonPosition() retorna un NÚMERO (longitud en grados), no un objeto.
+    // Antes hacíamos moonPos.distance / moonPos.longitude → todo undefined → notif decía
+    // "Cuarto Menguante en undefined | NaN km". Ahora usamos moonLon directo.
+    var moonLon = getMoonPosition(phaseDate);
+    var zodiacSign = (typeof moonLon === 'number' && !isNaN(moonLon)) ? getZodiacSignFromLongitude(moonLon) : '';
+    var aspects = [];
+    try { aspects = calculateAspects(phaseDate) || []; } catch(_eA) {}
     var moonAspects = aspects.filter(function(a) { return a.planet1 === 'Luna' || a.planet2 === 'Luna'; });
     var shortAspects = moonAspects.slice(0, 2).map(function(a) {
         var other = a.planet1 === 'Luna' ? a.planet2 : a.planet1;
         return a.symbol + ' ' + other;
     }).join(', ');
     return {
-        distance: Math.round(distance),
-        zodiacSign: zodiacSign,
-        moonAspects: shortAspects
+        zodiacSign: zodiacSign || '',
+        moonAspects: shortAspects || ''
     };
 }
 
@@ -39733,8 +39808,8 @@ function checkNotifications() {
                 if (now >= min12hBefore && now <= max12hBefore && !localStorage.getItem(key12h)) {
                     var enrich = getLunarPhaseEnrichment(phaseTime);
                     var body12h = L 
-                        ? 'En 12 horas: ' + phaseName + ' en ' + enrich.zodiacSign + ' | ' + enrich.distance + ' km'
-                        : 'In 12h: ' + phaseName + ' in ' + enrich.zodiacSign + ' | ' + enrich.distance + ' km';
+                        ? 'En 12 horas: ' + phaseName + (enrich.zodiacSign ? ' en ' + enrich.zodiacSign : '')
+                        : 'In 12h: ' + phaseName + (enrich.zodiacSign ? ' in ' + enrich.zodiacSign : '');
                     sendNotif(times[pi].icon + ' ' + phaseName, {
                         body: body12h,
                         tag: 'lunar-phase-12h-' + phaseId,
@@ -39754,7 +39829,7 @@ function checkNotifications() {
                 if (now >= min5m && now <= max5m && !localStorage.getItem(key5m)) {
                     var enrich2 = getLunarPhaseEnrichment(phaseTime);
                     var _inWord2 = L ? ' en ' : ' in ';
-                    var body5m = phaseName + _inWord2 + enrich2.zodiacSign + ' | ' + enrich2.distance + ' km' + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '');
+                    var body5m = phaseName + (enrich2.zodiacSign ? _inWord2 + enrich2.zodiacSign : '') + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '');
                     sendNotif(times[pi].icon + ' ' + phaseName, {
                         body: body5m,
                         tag: 'lunar-phase-5m-' + phaseId,
@@ -39775,7 +39850,7 @@ function checkNotifications() {
                     if (!localStorage.getItem(keyCatchup)) {
                         var enrich3 = getLunarPhaseEnrichment(phaseTime);
                         var _inWord3 = L ? ' en ' : ' in ';
-                        var bodyCatch = phaseName + _inWord3 + enrich3.zodiacSign + ' | ' + enrich3.distance + ' km' + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '');
+                        var bodyCatch = phaseName + (enrich3.zodiacSign ? _inWord3 + enrich3.zodiacSign : '') + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '');
                         sendNotif(times[pi].icon + ' ' + phaseName + ' (' + (L ? 'hoy' : 'today') + ')', {
                             body: bodyCatch,
                             tag: 'lunar-phase-catchup-' + phaseId,
@@ -43737,12 +43812,8 @@ function _publishProfile(callback) {
             return;
         }
         console.log('🌐 [publishProfile] Firebase currentUser OK:', _fbUser.uid);
-        // v882: refrescar el id token antes de llamar Firestore (evita cuelgue de 15s por token expirado)
-        try {
-            _fbUser.getIdToken(true).then(function() {
-                console.log('🌐 [publishProfile] Firebase ID token refreshed');
-            }).catch(function(e) { console.warn('🌐 [publishProfile] getIdToken refresh error:', e); });
-        } catch(_eTok) { console.warn('getIdToken setup error:', _eTok); }
+        // v883b: refresh del token se hace AHORA con AWAIT antes del set() — movido más abajo.
+        // (Antes corría async y no bloqueaba el set, por eso seguía dando timeout 15s.)
         var natal = typeof getNatalData === 'function' ? getNatalData() : null;
         if (!natal) {
             _publishToast(_isES ? '❌ Primero configurá tu carta natal en la sección Astro\n(fecha, hora y lugar de nacimiento).' : '❌ First set up your natal chart in the Astro section\n(birth date, time and place).', '#ff9800');
@@ -43836,26 +43907,55 @@ function _publishProfile(callback) {
     // v859: backup local SIEMPRE — para que el user tenga algo aunque Firestore falle
     try { localStorage.setItem('astroconnect_profile_backup', JSON.stringify(_safeProfile)); } catch(_eB) {}
 
-    // v859: timeout de 15s con Promise.race — si Firestore se cuelga (offline, network drop, SDK bug),
-    //       mostramos error en vez de quedarnos colgados para siempre
-    var _writePromise = _db.collection('users').doc(_socialUser.uid).set(_safeProfile, { merge: true });
-    var _timeoutPromise = new Promise(function(_resolve, _reject) {
-        setTimeout(function() { _reject(new Error('Firestore set() timeout 15s — Firestore se colgó')); }, 15000);
-    });
+    // v883b: REFRESCAR EL TOKEN FIRST, después set() — esta es la clave para evitar el cuelgue de 15s.
+    // Antes el getIdToken(true) corría async y no bloqueaba el set, así Firestore usaba el token viejo
+    // del plugin nativo @capacitor-firebase/authentication (que en APK queda stale después de un rato).
+    var _doFirestoreSet = function() {
+        // v859: timeout de 15s con Promise.race
+        var _writePromise = _db.collection('users').doc(_socialUser.uid).set(_safeProfile, { merge: true });
+        var _timeoutPromise = new Promise(function(_resolve, _reject) {
+            setTimeout(function() { _reject(new Error('Firestore set() timeout 15s — Firestore se colgó')); }, 15000);
+        });
+        Promise.race([_writePromise, _timeoutPromise]).then(function() {
+            console.log('🌐 [publishProfile] ✅ Firestore write OK');
+            _socialProfile = _safeProfile;
+            _socialProfile._uid = _socialUser.uid;
+            _publishToast(_isES ? '✅ Perfil publicado correctamente' : '✅ Profile published successfully', '#4ecdc4');
+            if (callback) callback();
+            _renderSocial();
+        }).catch(function(e) {
+            var _msg = e && e.message ? e.message : (typeof e === 'string' ? e : 'unknown');
+            var _code = e && e.code ? ' [' + e.code + ']' : '';
+            console.error('🌐 [publishProfile] FAIL Firestore write:', e);
+            // v883b: si fue timeout 15s, ofrecemos re-login automático para resincronizar Auth
+            if (_msg.indexOf('timeout 15s') !== -1) {
+                _publishToast((_isES ? '⏳ El servidor no respondió. Re-autenticando...' : '⏳ Server timed out. Re-authenticating...'), '#ff9800');
+                if (typeof window._signInGoogleUnified === 'function') {
+                    setTimeout(function(){ try { window._signInGoogleUnified(); } catch(_e){} }, 800);
+                }
+                return;
+            }
+            _publishToast((_isES ? '❌ Error guardando perfil' : '❌ Error saving profile') + _code + ':\n' + _msg, '#ff6b6b');
+        });
+    };
 
-    Promise.race([_writePromise, _timeoutPromise]).then(function() {
-        console.log('🌐 [publishProfile] ✅ Firestore write OK');
-        _socialProfile = _safeProfile;
-        _socialProfile._uid = _socialUser.uid;
-        _publishToast(_isES ? '✅ Perfil publicado correctamente' : '✅ Profile published successfully', '#4ecdc4');
-        if (callback) callback();
-        _renderSocial();
-    }).catch(function(e) {
-        var _msg = e && e.message ? e.message : (typeof e === 'string' ? e : 'unknown');
-        var _code = e && e.code ? ' [' + e.code + ']' : '';
-        console.error('🌐 [publishProfile] FAIL Firestore write:', e);
-        _publishToast((_isES ? '❌ Error guardando perfil' : '❌ Error saving profile') + _code + ':\n' + _msg, '#ff6b6b');
-    });
+    // Forzar refresh del token y ESPERARLO antes de invocar set()
+    try {
+        if (_fbUser.getIdToken) {
+            _fbUser.getIdToken(true).then(function(token) {
+                console.log('🌐 [publishProfile] Firebase ID token refreshed, len:', (token||'').length);
+                _doFirestoreSet();
+            }).catch(function(e) {
+                console.warn('🌐 [publishProfile] getIdToken refresh FAILED (intentando set igual):', e);
+                _doFirestoreSet();
+            });
+        } else {
+            _doFirestoreSet();
+        }
+    } catch(_eTok) {
+        console.warn('getIdToken setup error, intentando set sin refresh:', _eTok);
+        _doFirestoreSet();
+    }
     } catch(_outerErr) {
         console.error('🌐 [publishProfile] OUTER catch:', _outerErr);
         _publishToast((_isES ? '❌ Error inesperado:\n' : '❌ Unexpected error:\n') + (_outerErr && _outerErr.message ? _outerErr.message : _outerErr), '#ff6b6b');
