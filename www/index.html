@@ -14841,7 +14841,8 @@ function scheduleDreamAlarm() {
     _dreamAlarmTimeout = setInterval(function() {
         if (!_dreamAlarmEnabled) return;
         var now2 = Date.now();
-        if (now2 >= window._dreamAlarmTargetTime) {
+        // v884 #71: ventana de frescura — no disparar por targets vencidos viejos
+        if (now2 >= window._dreamAlarmTargetTime && (now2 - window._dreamAlarmTargetTime) < 5 * 60 * 1000) {
             cancelDreamAlarm();
             triggerDreamAlarm();
         }
@@ -14878,19 +14879,23 @@ function cancelDreamAlarm() {
             _LN2.cancel({ notifications: [{ id: 88889 }] }).catch(function(){});
         }
     } catch(_eC) {}
+    window._dreamAlarmTargetTime = null; // v884 #71: limpiar target — un target viejo disparaba la alarma antes de hora
 }
 
 // Re-check alarm when page becomes visible (user wakes phone / switches back to tab)
 document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible' && _dreamAlarmEnabled) {
         var target = window._dreamAlarmTargetTime;
-        if (target && Date.now() >= target) {
+        // v884 #71: SOLO disparar si la alarma venció hace MENOS de 5 min — un target viejo
+        // (de un test anterior / día anterior) disparaba la alarma apenas se abría la app,
+        // pareciendo que "sonaba antes de hora". Si es viejo: re-programar, no disparar.
+        if (target && Date.now() >= target && (Date.now() - target) < 5 * 60 * 1000) {
             // Alarm time passed while we were in background — trigger now!
             console.log('🌙 Dream alarm: firing on visibility restore (missed while backgrounded)');
             cancelDreamAlarm();
             triggerDreamAlarm();
-        } else if (!_dreamAlarmTimeout) {
-            // Re-schedule if interval was killed by the browser
+        } else if (!_dreamAlarmTimeout || (target && Date.now() >= target)) {
+            // Re-schedule if interval was killed by the browser (o target vencido viejo)
             scheduleDreamAlarm();
         }
     }
@@ -14898,10 +14903,15 @@ document.addEventListener('visibilitychange', function() {
 
 // Also re-check on focus (some browsers fire focus but not visibilitychange)
 window.addEventListener('focus', function() {
+    // v884 #71: misma ventana de frescura de 5 min que visibilitychange
     if (_dreamAlarmEnabled && window._dreamAlarmTargetTime && Date.now() >= window._dreamAlarmTargetTime) {
-        console.log('🌙 Dream alarm: firing on focus (missed while backgrounded)');
-        cancelDreamAlarm();
-        triggerDreamAlarm();
+        if ((Date.now() - window._dreamAlarmTargetTime) < 5 * 60 * 1000) {
+            console.log('🌙 Dream alarm: firing on focus (missed while backgrounded)');
+            cancelDreamAlarm();
+            triggerDreamAlarm();
+        } else {
+            scheduleDreamAlarm(); // target viejo — re-programar sin disparar
+        }
     }
 });
 
@@ -14938,7 +14948,11 @@ function triggerDreamAlarm() {
     }
 
     // v747: Mostrar overlay con botón STOP grande para detener manualmente
-    showDreamAlarmStopOverlay();
+    // v884 #69: SOLO en PWA — en APK la persona no debe tocar el teléfono: la voz
+    // detiene la alarma y el diario de sueños queda directo en pantalla.
+    if (!_isCapAlarm) {
+        showDreamAlarmStopOverlay();
+    }
 
     // 3. Show notification
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -15098,9 +15112,9 @@ function _playDreamAlarmWebAudio() {
             g.connect(masterComp);
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq.hz, ctx.currentTime);
-            // Fade in — same as test (1.5s ramp to full volume)
+            // v884 #70: fade-in de 5 seg + -2dB (×0.794) — despertar gradual
             g.gain.setValueAtTime(0, ctx.currentTime);
-            g.gain.linearRampToValueAtTime(freq.vol, ctx.currentTime + 1.5);
+            g.gain.linearRampToValueAtTime(freq.vol * 0.794, ctx.currentTime + 5);
             // NO osc.stop() — plays indefinitely until stopDreamAlarmSound()
             osc.start(ctx.currentTime);
             allOscs.push(osc);
@@ -15216,6 +15230,8 @@ function openDreamRecorder() {
 function startDreamVoiceRecording() {
     var L = currentLang === 'es';
     _dreamRecording = true;
+    window._dreamLastFinalText = ''; // v884 #72: resetear dedupe en cada sesión nueva de dictado
+    window._dreamLastFinalAt = 0;
 
     // v657: Stop any stale recognition before starting fresh — fixes Android mic-busy on 2nd recording
     if (_dreamRecognition) {
@@ -15306,6 +15322,30 @@ function startDreamVoiceRecording() {
                     }
                 }
                 var transcript = (typeof postProcessTranscript === 'function') ? postProcessTranscript(bestTranscript) : bestTranscript;
+
+                // v884 #72: DEDUPE — el motor nativo entrega transcripts ACUMULATIVOS del
+                // mismo dictado ("Salió", "Salió bien", "Salió bien todo"...). Insertar solo
+                // el DELTA nuevo; ignorar repetidos exactos.
+                var _ddNow = Date.now();
+                var _ddPrev = window._dreamLastFinalText || '';
+                var _ddPrevAt = window._dreamLastFinalAt || 0;
+                if (_ddPrev && (_ddNow - _ddPrevAt) < 20000) {
+                    if (transcript === _ddPrev) { continue; } // repetido exacto → ignorar
+                    if (transcript.indexOf(_ddPrev) === 0) {
+                        var _ddDelta = transcript.substring(_ddPrev.length).trim();
+                        window._dreamLastFinalText = transcript;
+                        window._dreamLastFinalAt = _ddNow;
+                        if (!_ddDelta) continue;
+                        transcript = _ddDelta;
+                    } else {
+                        window._dreamLastFinalText = transcript;
+                        window._dreamLastFinalAt = _ddNow;
+                    }
+                } else {
+                    window._dreamLastFinalText = transcript;
+                    window._dreamLastFinalAt = _ddNow;
+                }
+
                 var cursorPos = textarea.selectionStart;
                 var textBefore = textarea.value.substring(0, cursorPos);
                 var textAfter = textarea.value.substring(cursorPos);
@@ -15320,6 +15360,14 @@ function startDreamVoiceRecording() {
 
     _dreamRecognition.onerror = function(event) {
         console.error('🌙 Dream voice error:', event.error);
+        // v884 #69: mostrar el error en pantalla — diagnóstico visible de por qué no transcribe
+        try {
+            var _stErr = document.getElementById('dreamSaveStatus');
+            if (_stErr && event && event.error && event.error !== 'no-speech' && event.error !== 'aborted') {
+                _stErr.innerHTML = '⚠️ ' + (L ? 'dictado: ' : 'dictation: ') + String(event.error).substring(0, 80);
+                _stErr.style.color = '#ffb74d';
+            }
+        } catch(e) {}
         if (event.error === 'not-allowed') {
             var status = document.getElementById('dreamSaveStatus');
             if (status) {
