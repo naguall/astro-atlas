@@ -14758,10 +14758,23 @@ function scheduleDreamAlarm() {
     if (_DA && _DA.schedule) {
         // Chequear permiso de Exact Alarms (Android 12+) — si no está, abrir settings para que el user lo active
         var _proceedSchedule = function() {
+            // v884 #66: pasar las frecuencias Solfeggio del usuario — el receiver nativo las
+            // sintetiza con pantalla bloqueada (la alarma ES el solfeggio, no ringtone sistema)
+            var _sfFreqs = [];
+            var _sfVol = 0.7;
+            try {
+                var _sfPrefs = (typeof _getSolfeggioPrefs === 'function') ? _getSolfeggioPrefs() : {};
+                for (var _sk in _sfPrefs) {
+                    if (_sfPrefs[_sk].on) { _sfFreqs.push(parseInt(_sk)); _sfVol = _sfPrefs[_sk].vol / 100; }
+                }
+            } catch(e) {}
+            if (!_sfFreqs.length) _sfFreqs = [396, 417, 528];
             _DA.schedule({
                 at: alarmDate.getTime(),
                 title: currentLang === 'es' ? '🌙 Alarma de Sueños' : '🌙 Dream Alarm',
-                body:  currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream'
+                body:  currentLang === 'es' ? 'Hora de registrar tu sueño' : 'Time to log your dream',
+                frequencies: _sfFreqs,
+                volume: Math.max(_sfVol, 0.5)
             }).then(function() {
                 console.log('[Dream Alarm] v883 native DreamAlarm.schedule OK for', alarmDate.toLocaleString());
             }).catch(function(e) {
@@ -14893,6 +14906,14 @@ window.addEventListener('focus', function() {
 });
 
 function triggerDreamAlarm() {
+    // v884 #66: debounce — el trigger puede llegar por varias vías a la vez (visibilitychange,
+    // interval de 15s, tap en la notif). El doble trigger reabría el modal y REINICIABA el
+    // dictado, cortando la transcripción en curso.
+    if (window._dreamAlarmLastTrigger && (Date.now() - window._dreamAlarmLastTrigger) < 5 * 60 * 1000) {
+        console.log('🌙 Dream alarm already triggered recently — skipping duplicate');
+        return;
+    }
+    window._dreamAlarmLastTrigger = Date.now();
     console.log('🌙✨ Dream alarm triggered!');
 
     // v884 #64: parar el ringtone de respaldo nativo (el JS toma el control del sonido)
@@ -15177,7 +15198,7 @@ function openDreamRecorder() {
         switchDiarioTab('dreams');
         // Auto-start dream voice recording after another short delay
         setTimeout(function() {
-            startDreamVoiceRecording();
+            if (!_dreamRecording) startDreamVoiceRecording(); // v884 #66: no reiniciar si ya está grabando
         }, 500);
     }, 300);
 }
@@ -15209,7 +15230,7 @@ function startDreamVoiceRecording() {
     _dreamRecognition.maxAlternatives = 3;
 
     var lastSpeechTime = Date.now();
-    var SILENCE_TIMEOUT = 45000; // 45 seconds
+    var SILENCE_TIMEOUT = 10000; // v884 #66: 10 seg sin voz → guardar y terminar (dictar y volver a dormir)
 
     _dreamRecognition.onstart = function() {
         console.log('🌙🎤 Dream recording started');
@@ -15227,17 +15248,17 @@ function startDreamVoiceRecording() {
         // Show recording status
         var status = document.getElementById('dreamSaveStatus');
         if (status) {
-            status.innerHTML = L ? '🎤 Grabando sueño... (se detiene tras 45 seg de silencio)' : '🎤 Recording dream... (stops after 45s silence)';
+            status.innerHTML = L ? '🎤 Grabando sueño... (se guarda tras 10 seg de silencio)' : '🎤 Recording dream... (saves after 10s silence)';
             status.style.color = '#ff6b6b';
         }
 
         // Start silence check timer
         _dreamSilenceTimer = setInterval(function() {
             if (Date.now() - lastSpeechTime > SILENCE_TIMEOUT) {
-                console.log('🌙 45s silence — auto-stopping dream recording');
+                console.log('🌙 10s silence — auto-stopping dream recording (auto-save)');
                 stopDreamVoiceRecording(true);
             }
-        }, 10000); // Check every 10 seconds
+        }, 2000); // v884 #66: chequear cada 2 seg para cortar puntual a los ~10 seg
     };
 
     _dreamRecognition.onresult = function(event) {
@@ -15364,6 +15385,13 @@ function startDreamVoiceRecording() {
 
 function stopDreamVoiceRecording(autoSave) {
     _dreamRecording = false;
+
+    // v884 #66: liberar la pantalla (despertada por la alarma) — se apaga sola y
+    // la persona vuelve a dormir sin tocar el teléfono
+    try {
+        var _daRel = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
+        if (_daRel && _daRel.releaseScreen) _daRel.releaseScreen();
+    } catch(e) {}
 
     if (_dreamSilenceTimer) {
         clearInterval(_dreamSilenceTimer);
