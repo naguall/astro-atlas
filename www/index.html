@@ -14914,14 +14914,13 @@ function triggerDreamAlarm() {
         return;
     }
     window._dreamAlarmLastTrigger = Date.now();
+    window._dreamAlarmVoiceStopped = false; // v884 #68: rearmar el corte por voz
     console.log('🌙✨ Dream alarm triggered!');
 
-    // v884 #64: parar el ringtone de respaldo nativo (el JS toma el control del sonido)
-    try {
-        var _daStop = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
-        if (_daStop && _daStop.stopSound) _daStop.stopSound();
-    } catch(e) {}
-    window._dreamAlarmVoiceRetry = false; // v884 #65: permitir un retry del detector de voz
+    // v884 #68: en APK NO apagar el solfeggio nativo — sigue sonando hasta que el dictado
+    // transcribe la primera palabra (mic exclusivo del reconocimiento, sin getUserMedia).
+    window._dreamAlarmVoiceRetry = false; // v884 #65: permitir un retry del detector de voz (PWA)
+    var _isCapAlarm = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
     // 1. Start vibration (repeating pattern for 60 seconds)
     if (navigator.vibrate) {
@@ -14930,8 +14929,13 @@ function triggerDreamAlarm() {
         navigator.vibrate(vibPattern);
     }
 
-    // 2. Play alarm sound (60 seconds) with voice detection to stop
-    playDreamAlarmSound();
+    // 2. Play alarm sound with voice detection to stop
+    // v884 #68: en APK el solfeggio nativo del receiver YA está sonando — no arrancar un
+    // segundo solfeggio JS ni el detector getUserMedia (peleaba el mic con el reconocimiento
+    // de voz y por eso no transcribía). En PWA sí: WebAudio + detector de volumen.
+    if (!_isCapAlarm) {
+        playDreamAlarmSound();
+    }
 
     // v747: Mostrar overlay con botón STOP grande para detener manualmente
     showDreamAlarmStopOverlay();
@@ -14965,11 +14969,16 @@ function triggerDreamAlarm() {
 window._dreamAlarmAudio = null;
 
 function stopDreamAlarmSound() {
-    // v884 #64: parar también el ringtone de respaldo nativo
+    // v884 #64/#68: parar el solfeggio nativo + vibración + overlay SIEMPRE
+    // (aunque no haya audio JS — en APK el sonido es 100% nativo)
     try {
         var _daStop2 = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
         if (_daStop2 && _daStop2.stopSound) _daStop2.stopSound();
     } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate(0);
+    var _stopOvN = document.getElementById('dreamAlarmStopOverlay');
+    if (_stopOvN) _stopOvN.remove();
+    window._dreamAlarmVoiceStopped = true; // v884 #68: alarma callada → arranca el countdown de 10s del dictado
     var a = window._dreamAlarmAudio;
     if (!a) return;
     try { if (a._pulseTimer) clearInterval(a._pulseTimer); } catch(e) {} // v714: stop tremolo interval
@@ -15188,7 +15197,8 @@ function openDreamRecorder() {
         document.removeEventListener('touchstart', _stopAlarmOnTap);
         document.removeEventListener('click', _stopAlarmOnTap);
     }
-    if (window._dreamAlarmAudio) {
+    // v884 #68: en APK no hay _dreamAlarmAudio (sonido nativo) — agregar tap-para-parar igual
+    if (window._dreamAlarmAudio || (window._dreamAlarmLastTrigger && (Date.now() - window._dreamAlarmLastTrigger) < 5 * 60 * 1000)) {
         document.addEventListener('touchstart', _stopAlarmOnTap, { once: true });
         document.addEventListener('click', _stopAlarmOnTap, { once: true });
     }
@@ -15225,7 +15235,7 @@ function startDreamVoiceRecording() {
 
     _dreamRecognition = new SpeechRecognition();
     _dreamRecognition.continuous = true;
-    _dreamRecognition.interimResults = false;
+    _dreamRecognition.interimResults = true; // v884 #67: resultados parciales mantienen vivo el reloj de voz (frases largas sin pausa no cortan a los 10s)
     _dreamRecognition.lang = getVoiceLang();
     _dreamRecognition.maxAlternatives = 3;
 
@@ -15235,7 +15245,9 @@ function startDreamVoiceRecording() {
     _dreamRecognition.onstart = function() {
         console.log('🌙🎤 Dream recording started');
         _dreamRecording = true;
-        lastSpeechTime = Date.now();
+        // v884 #67: NO resetear lastSpeechTime en los auto-restarts — Android reinicia el
+        // reconocimiento cada ~5s de silencio y el reloj volvía a cero: nunca cortaba a los 10s.
+        if (!_dreamSilenceTimer) lastSpeechTime = Date.now();
 
         var btn = document.getElementById('voiceDreamBtn');
         if (btn) {
@@ -15252,13 +15264,21 @@ function startDreamVoiceRecording() {
             status.style.color = '#ff6b6b';
         }
 
-        // Start silence check timer
-        _dreamSilenceTimer = setInterval(function() {
-            if (Date.now() - lastSpeechTime > SILENCE_TIMEOUT) {
-                console.log('🌙 10s silence — auto-stopping dream recording (auto-save)');
-                stopDreamVoiceRecording(true);
-            }
-        }, 2000); // v884 #66: chequear cada 2 seg para cortar puntual a los ~10 seg
+        // Start silence check timer — v884 #67: solo en el primer start (no en restarts)
+        if (!_dreamSilenceTimer) {
+            _dreamSilenceTimer = setInterval(function() {
+                // v884 #68: mientras la alarma suena y la persona AÚN no habló, no cortar —
+                // se está despertando. El límite duro es el auto-stop nativo (3 min).
+                if (!window._dreamAlarmVoiceStopped && window._dreamAlarmLastTrigger && (Date.now() - window._dreamAlarmLastTrigger) < 5 * 60 * 1000) {
+                    lastSpeechTime = Date.now();
+                    return;
+                }
+                if (Date.now() - lastSpeechTime > SILENCE_TIMEOUT) {
+                    console.log('🌙 10s silence — auto-stopping dream recording (auto-save)');
+                    stopDreamVoiceRecording(true);
+                }
+            }, 2000); // v884 #66: chequear cada 2 seg para cortar puntual a los ~10 seg
+        }
     };
 
     _dreamRecognition.onresult = function(event) {
@@ -15267,10 +15287,11 @@ function startDreamVoiceRecording() {
 
         lastSpeechTime = Date.now();
 
-        // v884 #65: SEGUNDA VÍA para apagar el solfeggio con la voz — si el detector de
-        // volumen (getUserMedia) falló o no consiguió el mic, el propio reconocimiento
-        // de voz detiene la alarma apenas escucha hablar.
-        if (window._dreamAlarmAudio) {
+        // v884 #65/#68: la VOZ apaga el solfeggio — en APK esta es la vía principal:
+        // el reconocimiento transcribe la primera palabra y detiene el sonido nativo.
+        // (window._dreamAlarmAudio cubre la PWA; _dreamAlarmLastTrigger cubre el APK)
+        if (!window._dreamAlarmVoiceStopped && (window._dreamAlarmAudio || (window._dreamAlarmLastTrigger && (Date.now() - window._dreamAlarmLastTrigger) < 5 * 60 * 1000))) {
+            window._dreamAlarmVoiceStopped = true; // evitar llamadas repetidas al bridge en cada resultado
             try { stopDreamAlarmSound(); } catch(e) {}
         }
 
@@ -15335,7 +15356,7 @@ function startDreamVoiceRecording() {
                     var oldOnStart = _dreamRecognition.onstart;
                     _dreamRecognition = new SpeechRec();
                     _dreamRecognition.continuous = true;
-                    _dreamRecognition.interimResults = false;
+                    _dreamRecognition.interimResults = true; // v884 #67: resultados parciales mantienen vivo el reloj de voz (frases largas sin pausa no cortan a los 10s)
                     _dreamRecognition.lang = (currentLang === 'es') ? 'es-ES' : 'en-US';
                     _dreamRecognition.onstart = oldOnStart;
                     _dreamRecognition.onresult = oldOnResult;
