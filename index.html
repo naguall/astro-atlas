@@ -36954,7 +36954,7 @@ function goToCurrentCycle() {
             if (sendBtn) sendBtn.innerHTML = '⏹';
             window._tutorAbortCtrl = new AbortController();
             var _tutorStreamId = 'aiMsg_tutor_' + Date.now();
-            area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" id="tutorReplyWrap_' + _tutorStreamId + '" style="margin-bottom:8px;"><div id="' + _tutorStreamId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div></div>');
+            area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" id="tutorReplyWrap_' + _tutorStreamId + '" style="margin-bottom:8px;"><div id="' + _tutorStreamId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p><span style="animation:aiDot 1.4s infinite;">●</span> <span style="animation:aiDot 1.4s infinite 0.2s;">●</span> <span style="animation:aiDot 1.4s infinite 0.4s;">●</span></p></div></div>');
             area.scrollTop = area.scrollHeight;
             var tutorFullText = '';
             try {
@@ -38704,6 +38704,14 @@ window._astroAtlasRequestPermissions = async function() {
                     : ('🔕 ' + (L ? 'Nunca disparó todavía' : 'Never fired yet')));
                 alert((L ? '🌙 Diagnóstico de la alarma:\n\n' : '🌙 Alarm diagnostics:\n\n') + lines.join('\n'));
                 _diagShown = true;
+                // v885 #81: pantalla completa denegada → llevar directo al ajuste de Android
+                if (d.fullScreenIntent === false && Plugins.DreamAlarm.openFullScreenIntentSettings) {
+                    if (confirm(L
+                        ? '🌙 El permiso de PANTALLA COMPLETA está denegado.\n\nSin esto, la alarma de sueños NO puede abrir la app con el teléfono bloqueado (y tu voz no puede detenerla).\n\n¿Abrir el ajuste para activarlo? Buscá "Pantalla completa" y activá el toggle.'
+                        : '🌙 FULL-SCREEN permission is denied.\n\nWithout it, the dream alarm CANNOT open the app while the phone is locked (and your voice cannot stop it).\n\nOpen the setting to enable it? Look for "Full-screen" and turn the toggle on.')) {
+                        await Plugins.DreamAlarm.openFullScreenIntentSettings();
+                    }
+                }
                 if (d.batteryUnrestricted === false && Plugins.DreamAlarm.openBatteryOptimizationSettings) {
                     if (confirm(L
                         ? '⚡ La optimización de batería está ACTIVA y puede impedir que la alarma suene de noche.\n\n¿Excluir AstroAtlas de la optimización? (recomendado)'
@@ -50990,7 +50998,7 @@ function showTypingIndicator() {
     const div = document.createElement('div');
     div.className = 'ai-typing';
     div.id = 'aiTypingIndicator';
-    div.innerHTML = '✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + ' <span>●</span> <span>●</span> <span>●</span>';
+    div.innerHTML = '<span>●</span> <span>●</span> <span>●</span>'; // v885: solo puntos suspensivos animados
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
@@ -51222,7 +51230,7 @@ async function sendAIMessage() {
         const streamWrapper = document.createElement('div');
         streamWrapper.className = 'ai-msg assistant';
         const _streamId = 'aiMsg_' + Date.now();
-        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="animation:aiDot 1.4s infinite;">●</span> <span style="animation:aiDot 1.4s infinite 0.2s;">●</span> <span style="animation:aiDot 1.4s infinite 0.4s;">●</span></p></div>';
         container.appendChild(streamWrapper);
         // Scroll so the new response appears at the top (user reads from beginning)
         var _cRect = container.getBoundingClientRect();
@@ -51321,7 +51329,7 @@ async function sendAIMessage() {
         const streamWrapper = document.createElement('div');
         streamWrapper.className = 'ai-msg assistant';
         const _streamId = 'aiMsg_' + Date.now();
-        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="animation:aiDot 1.4s infinite;">●</span> <span style="animation:aiDot 1.4s infinite 0.2s;">●</span> <span style="animation:aiDot 1.4s infinite 0.4s;">●</span></p></div>';
         container.appendChild(streamWrapper);
         // Scroll so the new response appears at the top (user reads from beginning)
         var _cRect2 = container.getBoundingClientRect();
