@@ -14871,7 +14871,7 @@ function scheduleDreamAlarm() {
         var now2 = Date.now();
         // v884 #71: ventana de frescura — no disparar por targets vencidos viejos
         if (now2 >= window._dreamAlarmTargetTime && (now2 - window._dreamAlarmTargetTime) < 5 * 60 * 1000) {
-            cancelDreamAlarm();
+            cancelDreamAlarm(true); // v885 #86: NO cancelar nativo — el trigger re-programa mañana
             triggerDreamAlarm();
         }
     }, 15000); // Check every 15 seconds
@@ -14880,7 +14880,7 @@ function scheduleDreamAlarm() {
     var msUntilAlarm = alarmDate.getTime() - now.getTime();
     window._dreamAlarmBackup = setTimeout(function() {
         if (_dreamAlarmEnabled && Date.now() >= window._dreamAlarmTargetTime) {
-            cancelDreamAlarm();
+            cancelDreamAlarm(true); // v885 #86: NO cancelar nativo — el trigger re-programa mañana
             triggerDreamAlarm();
         }
     }, msUntilAlarm);
@@ -14926,7 +14926,7 @@ document.addEventListener('visibilitychange', function() {
         if (target && Date.now() >= target && (Date.now() - target) < 5 * 60 * 1000) {
             // Alarm time passed while we were in background — trigger now!
             console.log('🌙 Dream alarm: firing on visibility restore (missed while backgrounded)');
-            cancelDreamAlarm();
+            cancelDreamAlarm(true); // v885 #86: NO cancelar nativo — el trigger re-programa mañana
             triggerDreamAlarm();
         } else if (!_dreamAlarmTimeout || (target && Date.now() >= target)) {
             // Re-schedule if interval was killed by the browser (o target vencido viejo)
@@ -14941,13 +14941,23 @@ window.addEventListener('focus', function() {
     if (_dreamAlarmEnabled && window._dreamAlarmTargetTime && Date.now() >= window._dreamAlarmTargetTime) {
         if ((Date.now() - window._dreamAlarmTargetTime) < 5 * 60 * 1000) {
             console.log('🌙 Dream alarm: firing on focus (missed while backgrounded)');
-            cancelDreamAlarm();
+            cancelDreamAlarm(true); // v885 #86: NO cancelar nativo — el trigger re-programa mañana
             triggerDreamAlarm();
         } else {
             scheduleDreamAlarm(); // target viejo — re-programar sin disparar
         }
     }
 });
+
+// v885 #86: la alarma NATIVA abrió la app — disparar el flujo de sueños YA, sin depender
+// del reloj/target del JS (que podía apuntar a otra hora y dejar el dictado sin arrancar).
+// Lo llama MainActivity vía evaluateJavascript. El debounce de triggerDreamAlarm evita dobles.
+window._nativeDreamAlarmFired = function() {
+    try {
+        console.log('🌙 [native→JS] alarma nativa disparó — arrancando flujo de sueños');
+        if (typeof triggerDreamAlarm === 'function') triggerDreamAlarm();
+    } catch(e) { console.warn('_nativeDreamAlarmFired error:', e); }
+};
 
 function triggerDreamAlarm() {
     // v884 #66: debounce — el trigger puede llegar por varias vías a la vez (visibilitychange,
