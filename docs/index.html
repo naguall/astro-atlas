@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v883';</script>
+    <script>window.APP_VERSION = 'v884';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -9884,10 +9884,11 @@ function initVoiceRecognition() {
                 '2. Microphone → Allow for this site';
             
             alert(message);
-        } else if (event.error === 'no-speech') {
+        } else if (event.error === 'no-speech' || event.error === 'aborted') {
             console.log('No se detectó voz, reiniciando...');
+            return; // v884 #62: las pausas no cortan el dictado — onend lo reinicia
         }
-        
+
         stopVoiceInput();
     };
     
@@ -22060,6 +22061,8 @@ function showAllAspectsInterpretation() {
     if (eclipse) allTexts.push(eclipse.type || 'Eclipse');
     if (astroEvent) allTexts.push(L ? (astroEvent.esName || 'Evento') : (astroEvent.enName || 'Event'));
     if (stellium) allTexts.push('Stellium ' + (stellium.sign || ''));
+    var _aiPats = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(today) : []; // v884 #63: patrones dinámicos
+    _aiPats.forEach(function(p) { if (p.type !== 'stellium' || !stellium) allTexts.push(p.name + (p.planets ? ' (' + p.planets.join(', ') + ')' : '')); });
     signChanges.forEach(function(ch) { allTexts.push(tp(ch.planet) + ' → ' + ts(ch.toSign)); });
     retrogrades.forEach(function(ret) { allTexts.push(tp(ret.planet) + (ret.isStart ? ' ℞' : ' D')); });
     interAspects.forEach(function(asp) { allTexts.push(tp(asp.planet1) + ' ' + asp.symbol + ' ' + tp(asp.planet2)); });
@@ -22429,7 +22432,7 @@ function updateCurrentDayInfoForMode(mode) {
         // v749ct: detectar patrones de aspectos (T-Cuadrada, Yod, Gran Trígono, Gran Cruz)
         // y añadirlos al banner. Stellium ya estaba — ahora se añaden los demás.
         var _todayPatterns2 = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(today) : [];
-        var _patternsForBanner2 = _todayPatterns2.filter(function(p) { return p.type !== 'stellium'; });
+        var _patternsForBanner2 = _todayPatterns2.filter(function(p) { return p.type !== 'stellium' || !todayStellium; }); // v884 #63: stellium dinámico si no hay hardcoded
         const allPlanetaryEvents = [
             ...(_todayLunarPhaseEvent ? [{ type: 'moonPhase', data: _todayLunarPhaseEvent }] : []),
             ...(todayEclipse ? [{ type: 'eclipse', data: todayEclipse }] : []),
@@ -27599,7 +27602,7 @@ function renderNatalLunarCal() {
                     astroSymbols += '<div style="font-size:1.2em;color:#FFD700;font-weight:bold;line-height:1;text-align:right;" title="Stellium ' + stellium.sign + '">★</div>';
                 }
                 dayPatterns.forEach(function(pat) {
-                    if (pat.type === 'stellium') return;
+                    if (pat.type === 'stellium' && stellium) return; // v884 #63: solo saltar si ya hay stellium hardcoded
                     astroSymbols += '<div style="color:' + pat.color + ';font-weight:bold;font-size:0.7em;text-align:right;" title="' + pat.name + '">' + pat.icon + '</div>';
                 });
                 astroSymbols += '</div>';
@@ -30093,7 +30096,7 @@ function renderPersonalCalendar(opts) {
         });
         if (_calStellium) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="Stellium ${_calStellium.sign}">★</span>`;
         _calPatterns.forEach(function(pat) {
-            if (pat.type === 'stellium') return;
+            if (pat.type === 'stellium' && _calStellium) return; // v884 #63: solo saltar si ya hay stellium hardcoded
             _calAstroIcons += `<span style="font-size:0.5em;color:${pat.color};font-weight:700;" title="${pat.name}: ${pat.planets.join(', ')}">${pat.icon}</span>`;
         });
 
@@ -31411,7 +31414,7 @@ function showPersonalDayDetail(year, month, day) {
 
                     // Patrones (Gran Trino, T-Cuadrada, etc.)
                     _dayPatterns.forEach(function(pat) {
-                        if (pat.type === 'stellium') return; // ya mostrado arriba
+                        if (pat.type === 'stellium' && _dayStellium) return; // v884 #63: ya mostrado arriba solo si hay hardcoded
                         rows += '<div style="padding:6px 10px;border-left:3px solid ' + (pat.color || '#c9a840') + ';background:rgba(201,168,64,0.06);border-radius:6px;margin-bottom:4px;font-size:0.85em;">'
                               + (pat.icon || '✦') + ' ' + pat.name + ' — ' + (pat.planets ? pat.planets.join(', ') : '') + '</div>';
                     });
@@ -31694,7 +31697,7 @@ function interpretCalendarDay(year, month, day) {
         });
         var _evPat = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
         _evPat.forEach(function(pat) {
-            if (pat.type !== 'stellium') {
+            if (pat.type !== 'stellium' || !_evStel) { // v884 #63: incluir stellium dinámico si no hay hardcoded
                 _dayEventsList.push(pat.name + (pat.planets ? ' (' + pat.planets.join(', ') + ')' : ''));
             }
         });
@@ -31991,6 +31994,8 @@ window.interpretPersonalSection = function(sectionType, year, month, day) {
         if (me) events.push(me.type==='full'?(L?'Luna Llena':'Full Moon'):me.type==='new'?(L?'Luna Nueva':'New Moon'):(me.name||(L?'evento lunar':'lunar event')));
         if (ec) events.push(ec.type==='solar'?(L?'Eclipse Solar':'Solar Eclipse'):(L?'Eclipse Lunar':'Lunar Eclipse'));
         if (st) events.push('Stellium ' + (L?'en ':'in ') + st.sign);
+        var _pats = (typeof detectAspectPatterns==='function')? detectAspectPatterns(date):[]; // v884 #63: incluir patrones dinámicos
+        _pats.forEach(function(p){ if (p.type !== 'stellium' || !st) events.push(p.name + (p.planets ? ' (' + p.planets.join(', ') + ')' : '')); });
         sc.forEach(function(s){ events.push((planetNames[s.planet]||s.planet) + ' → ' + s.toSign); });
         rg.forEach(function(r){ events.push((planetNames[r.planet]||r.planet) + (r.isStart?(L?' inicia retrógrado':' starts retrograde'):(L?' se pone directo':' goes direct')) + (r.sign?(L?' en ':' in ')+r.sign:'')); });
         ia.forEach(function(a){ events.push((planetNames[a.planet1]||a.planet1)+' '+a.symbol+' '+(planetNames[a.planet2]||a.planet2)); });
@@ -33991,7 +33996,7 @@ function generateSolarWeeks(sign) {
                         </div>
                         
                         <!-- Derecha: Símbolos astronómicos (bajan según eventos de agenda) -->
-                        ${(eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || majorAspect || astronomicalEvent || moonEvent) ? `
+                        ${(eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || dayPatterns.length > 0 || majorAspect || astronomicalEvent || moonEvent) ? `
                         <div style="display: flex; flex-direction: column; gap: 2px; font-size: 1.2em; flex-shrink: 0; margin-left: auto; padding-top: ${Math.min(dayEvents.length, 3) * 13 + (dayEvents.length > 3 ? 10 : 0)}px;">
                             ${astronomicalEvent ? `<div style="color: #e8c84a; font-weight: bold; line-height: 1; font-size: 0.9em; text-align: right; cursor: default;" title="${astronomicalEvent[currentLang]}">${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}</div>` : ''}
                             ${moonEvent ? `<div onclick="event.stopPropagation(); navigateToLunar2026Moon(${dayDate.getTime()}, '${moonEvent.type}')" style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'};font-weight:bold;font-size:0.65em;text-align:right;line-height:1.2;overflow:visible;cursor:pointer;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span></div>` : ''}
@@ -35987,7 +35992,7 @@ function renderCalendar() {
                         </div>
                         
                         <!-- Derecha: Símbolos astronómicos (bajan según eventos de agenda) -->
-                        ${(eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || majorAspect || astronomicalEvent || moonEvent) ? `
+                        ${(eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || dayPatterns.length > 0 || majorAspect || astronomicalEvent || moonEvent) ? `
                         <div style="display: flex; flex-direction: column; gap: 2px; font-size: 1.2em; flex-shrink: 0; margin-left: auto; padding-top: ${Math.min(dayEvents.length, 3) * 13 + (dayEvents.length > 3 ? 10 : 0)}px;">
                             ${astronomicalEvent ? `<div style="color: #e8c84a; font-weight: bold; line-height: 1; font-size: 0.9em; text-align: right; cursor: default;" title="${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}">${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}</div>` : ''}
                             ${eclipse ? (() => { const eclLbl = eclipse.type==='solar'?'Eclipse Solar':'Eclipse Lunar'; const eclTxt = (eclLbl + ' ' + eclipse.name).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${eclTxt}')" style="cursor: pointer; line-height: 1.2; font-size:0.7em; font-weight:bold; color:#FFD700; text-align:right;" title="${eclipse.name}">${eclipse.type === 'solar' ? '☀️' : '🌒'} Eclipse</div>`; })() : ''}
@@ -47332,6 +47337,7 @@ let _aiVoiceConvoMode = false; // v657: full voice conversation mode
 // ===== GENERIC VOICE INPUT FOR ANY CHAT =====
 // Reusable voice-to-text for any input/textarea element
 var _genericVoiceRecognitions = {};
+var VOICE_SILENCE_MS = 3000; // v884 #62: tolerancia de silencio antes de finalizar dictado
 window.startGenericVoice = function(inputId, sendFnStr, btnId) {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         alert(currentLang === 'es' ? 'Tu navegador no soporta reconocimiento de voz. Usa Chrome o Safari.' : 'Your browser does not support speech recognition. Use Chrome or Safari.');
@@ -47346,7 +47352,8 @@ window.startGenericVoice = function(inputId, sendFnStr, btnId) {
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     var recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+    var _silenceTimer = null;
     recognition.lang = (typeof getVoiceLang === 'function') ? getVoiceLang() : (currentLang === 'es' ? 'es-419' : 'en-US');
     recognition.maxAlternatives = 3;
     var input = document.getElementById(inputId);
@@ -47362,6 +47369,7 @@ window.startGenericVoice = function(inputId, sendFnStr, btnId) {
         }
     };
     recognition.onresult = function(event) {
+        if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
                 var bestTranscript = event.results[i][0].transcript;
@@ -47384,16 +47392,28 @@ window.startGenericVoice = function(inputId, sendFnStr, btnId) {
             }
         }
     };
-    recognition.onerror = function() {
+    recognition.onerror = function(event) {
+        if (event && (event.error === 'no-speech' || event.error === 'aborted')) return; // v884 #62: pausas no cortan el dictado
         stopGenericVoice(inputId, btnId);
     };
     recognition.onend = function() {
         if (_genericVoiceRecognitions[inputId]) {
-            stopGenericVoice(inputId, btnId);
-            // Auto-send if we have content
-            if (input.value.trim() && sendFnStr) {
-                try { eval(sendFnStr); } catch(e) {}
-            }
+            // v884 #62: no finalizar de inmediato — esperar VOICE_SILENCE_MS de silencio real
+            if (_silenceTimer) clearTimeout(_silenceTimer);
+            _silenceTimer = setTimeout(function() {
+                if (_genericVoiceRecognitions[inputId]) {
+                    stopGenericVoice(inputId, btnId);
+                    // Auto-send if we have content
+                    if (input.value.trim() && sendFnStr) {
+                        try { eval(sendFnStr); } catch(e) {}
+                    }
+                }
+            }, VOICE_SILENCE_MS);
+            setTimeout(function() {
+                if (_genericVoiceRecognitions[inputId]) {
+                    try { recognition.start(); } catch(e) {}
+                }
+            }, 200);
         }
     };
     recognition.start();
@@ -48425,7 +48445,8 @@ function toggleAIChatVoice() {
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     aiVoiceRecognition = new SpeechRecognition();
     aiVoiceRecognition.continuous = true;
-    aiVoiceRecognition.interimResults = false;
+    aiVoiceRecognition.interimResults = true;
+    var _aiSilenceTimer = null;
     aiVoiceRecognition.lang = (typeof getVoiceLang === 'function') ? getVoiceLang() : (currentLang === 'es' ? 'es-419' : 'en-US');
     aiVoiceRecognition.maxAlternatives = 3;
     var input = document.getElementById('aiChatInput');
@@ -48440,6 +48461,7 @@ function toggleAIChatVoice() {
         btn.title = currentLang === 'es' ? 'Detener' : 'Stop';
     };
     aiVoiceRecognition.onresult = function(event) {
+        if (_aiSilenceTimer) { clearTimeout(_aiSilenceTimer); _aiSilenceTimer = null; }
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
                 var bestTranscript = event.results[i][0].transcript;
@@ -48464,16 +48486,27 @@ function toggleAIChatVoice() {
     };
     aiVoiceRecognition.onerror = function(event) {
         console.warn('Voice error:', event.error);
+        if (event && (event.error === 'no-speech' || event.error === 'aborted')) return; // v884 #62: pausas no cortan el dictado
         stopAIChatVoice();
     };
     aiVoiceRecognition.onend = function() {
-        // If still supposed to be listening (can stop due to silence), auto-stop
+        // v884 #62: no cortar en la primera pausa — esperar VOICE_SILENCE_MS de silencio real
         if (aiVoiceIsListening) {
-            stopAIChatVoice();
-            // Auto-send if we have content
-            if (input.value.trim()) {
-                sendAIMessage();
-            }
+            if (_aiSilenceTimer) clearTimeout(_aiSilenceTimer);
+            _aiSilenceTimer = setTimeout(function() {
+                if (aiVoiceIsListening) {
+                    stopAIChatVoice();
+                    // Auto-send if we have content
+                    if (input.value.trim()) {
+                        sendAIMessage();
+                    }
+                }
+            }, VOICE_SILENCE_MS);
+            setTimeout(function() {
+                if (aiVoiceIsListening) {
+                    try { aiVoiceRecognition.start(); } catch(e) {}
+                }
+            }, 200);
         }
     };
     aiVoiceRecognition.start();
@@ -50781,7 +50814,7 @@ function showTypingIndicator() {
     const div = document.createElement('div');
     div.className = 'ai-typing';
     div.id = 'aiTypingIndicator';
-    div.innerHTML = '<span>●</span> <span>●</span> <span>●</span>';
+    div.innerHTML = '✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + ' <span>●</span> <span>●</span> <span>●</span>';
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
