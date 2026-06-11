@@ -14744,7 +14744,7 @@ function setDreamAlarmTime(timeStr) {
 }
 
 function scheduleDreamAlarm() {
-    cancelDreamAlarm();
+    cancelDreamAlarm(true); // v885 #82: NO cancelar nativo — schedule() reemplaza solo (evita race)
     var now = new Date();
     var parts = _dreamAlarmTime.split(':');
     var hours = parseInt(parts[0], 10);
@@ -14791,6 +14791,20 @@ function scheduleDreamAlarm() {
                 volume: Math.max(_sfVol, 0.5)
             }).then(function() {
                 console.log('[Dream Alarm] v883 native DreamAlarm.schedule OK for', alarmDate.toLocaleString());
+                // v885 #82: confirmación VISIBLE de la hora programada + verificación real
+                try {
+                    var _DAv = window.Capacitor.Plugins.DreamAlarm;
+                    if (_DAv && _DAv.getDiagnostics) {
+                        _DAv.getDiagnostics().then(function(dg) {
+                            var L82 = currentLang === 'es';
+                            if (dg && dg.nextAt && Math.abs(dg.nextAt - alarmDate.getTime()) < 60000) {
+                                if (typeof window.showToast === 'function') window.showToast('⏰ ' + (L82 ? 'Alarma programada: ' : 'Alarm set: ') + alarmDate.toLocaleString(L82 ? 'es' : 'en', { weekday: 'short', hour: '2-digit', minute: '2-digit' }), 'rgba(126,200,255,0.95)', 3500);
+                            } else {
+                                if (typeof window.showToast === 'function') window.showToast('⚠️ ' + (L82 ? 'OJO: la alarma nativa quedó en ' : 'WARNING: native alarm is at ') + (dg && dg.nextAt ? new Date(dg.nextAt).toLocaleString() : '?'), 'rgba(255,107,107,0.95)', 6000);
+                            }
+                        }).catch(function(){});
+                    }
+                } catch(_eV) {}
             }).catch(function(e) {
                 console.warn('[Dream Alarm] v883 DreamAlarm.schedule failed:', e);
                 // Si el error es permiso SCHEDULE_EXACT_ALARM, abrir settings
@@ -14872,7 +14886,11 @@ function scheduleDreamAlarm() {
     }, msUntilAlarm);
 }
 
-function cancelDreamAlarm() {
+function cancelDreamAlarm(keepNative) {
+    // v885 #82: keepNative=true cuando vamos a RE-programar inmediatamente — el cancel()
+    // nativo async podía ejecutarse DESPUÉS del schedule() nuevo y cancelarlo (por eso
+    // la alarma "a veces sonaba y a veces no"). AlarmManager reemplaza solo la alarma
+    // vieja al programar con el mismo PendingIntent: el cancel previo NO hace falta.
     if (_dreamAlarmTimeout) {
         clearInterval(_dreamAlarmTimeout);
         _dreamAlarmTimeout = null;
@@ -14881,11 +14899,13 @@ function cancelDreamAlarm() {
         clearTimeout(window._dreamAlarmBackup);
         window._dreamAlarmBackup = null;
     }
-    // v883: cancelar el plugin DreamAlarm nativo
-    try {
-        var _DAc = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
-        if (_DAc && _DAc.cancel) _DAc.cancel().catch(function(){});
-    } catch(_eDC) {}
+    // v883: cancelar el plugin DreamAlarm nativo (solo si NO vamos a re-programar)
+    if (!keepNative) {
+        try {
+            var _DAc = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
+            if (_DAc && _DAc.cancel) _DAc.cancel().catch(function(){});
+        } catch(_eDC) {}
+    }
     // v882: cancelar también el id 88889 del LocalNotifications standard (canal alarm) — fallback
     try {
         var _LN2 = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
@@ -14959,6 +14979,20 @@ function triggerDreamAlarm() {
     // de voz y por eso no transcribía). En PWA sí: WebAudio + detector de volumen.
     if (!_isCapAlarm) {
         playDreamAlarmSound();
+    } else {
+        // v885 #83: si el solfeggio nativo NO está sonando (la alarma nativa no llegó a
+        // disparar, o ya se auto-paró), arrancarlo desde acá — el trigger de la app
+        // también debe sonar, no solo escuchar.
+        try {
+            var _daPS = window.Capacitor.Plugins.DreamAlarm;
+            if (_daPS && _daPS.isSoundPlaying) {
+                _daPS.isSoundPlaying().then(function(r) {
+                    if ((!r || !r.playing) && _daPS.playSound && !window._dreamAlarmVoiceStopped) {
+                        _daPS.playSound().catch(function(){});
+                    }
+                }).catch(function(){});
+            }
+        } catch(_ePS) {}
     }
 
     // v747: Mostrar overlay con botón STOP grande para detener manualmente
@@ -38727,6 +38761,58 @@ window._astroAtlasRequestPermissions = async function() {
         alert('Error: ' + (_eAll && _eAll.message ? _eAll.message : _eAll));
     }
 };
+
+// v885 #85: pedir permisos AUTOMÁTICAMENTE en el primer arranque del APK (una sola vez).
+// Android no permite concederlos "al instalar" — esto es lo más cercano: diálogos del
+// sistema (notif + mic) apenas abre, y banner NO bloqueante para los permisos de Ajustes.
+// NUNCA usar confirm()/alert() bloqueantes acá (causó la regresión del botón Preferencias).
+(function _autoPermsFirstRun() {
+    try {
+        var isCap = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        if (!isCap) return;
+        if (localStorage.getItem('astroatlas_perms_auto_v885')) return;
+        setTimeout(function() {
+            try {
+                localStorage.setItem('astroatlas_perms_auto_v885', '1');
+                var Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+                // 1) Diálogos nativos del sistema (no bloquean la UI)
+                try { if (Plugins.LocalNotifications && Plugins.LocalNotifications.requestPermissions) Plugins.LocalNotifications.requestPermissions().catch(function(){}); } catch(e){}
+                setTimeout(function() {
+                    try {
+                        if (Plugins.SpeechRecognition) {
+                            if (Plugins.SpeechRecognition.requestPermissions) Plugins.SpeechRecognition.requestPermissions().catch(function(){});
+                            else if (Plugins.SpeechRecognition.requestPermission) Plugins.SpeechRecognition.requestPermission().catch(function(){});
+                        }
+                    } catch(e){}
+                }, 2500);
+                // 2) Permisos de Ajustes (pantalla completa / batería / alarmas exactas):
+                //    si falta alguno → banner no bloqueante que lleva al flujo completo
+                setTimeout(function() {
+                    try {
+                        var DA = Plugins.DreamAlarm;
+                        if (!DA || !DA.getDiagnostics) return;
+                        DA.getDiagnostics().then(function(d) {
+                            var missing = (d.exactAlarms === false) || (d.fullScreenIntent === false) || (d.batteryUnrestricted === false) || (d.notificationsEnabled === false);
+                            if (!missing) return;
+                            var L = currentLang === 'es';
+                            var bn = document.createElement('div');
+                            bn.id = '_permsFirstRunBanner';
+                            bn.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:99998;background:#1a1040;border:1px solid rgba(155,89,182,0.5);border-radius:14px;padding:14px 16px;max-width:92vw;width:360px;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
+                            bn.innerHTML = '<div style="font-size:0.9em;color:#c39bd3;font-weight:700;margin-bottom:6px;">🔐 ' + (L?'Permisos pendientes':'Pending permissions') + '</div>'
+                                + '<div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:10px;">' + (L?'Para que la alarma de sueños funcione con el teléfono bloqueado, faltan permisos por activar.':'For the dream alarm to work while locked, some permissions are missing.') + '</div>'
+                                + '<div style="display:flex;gap:8px;">'
+                                + '<button id="_pfrGo" style="flex:1;padding:10px;background:rgba(155,89,182,0.3);border:1px solid rgba(155,89,182,0.6);border-radius:8px;color:#fff;font-weight:700;cursor:pointer;">' + (L?'Configurar ahora':'Set up now') + '</button>'
+                                + '<button id="_pfrLater" style="padding:10px 14px;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.6);cursor:pointer;">' + (L?'Después':'Later') + '</button></div>';
+                            document.body.appendChild(bn);
+                            document.getElementById('_pfrGo').onclick = function() { bn.remove(); if (window._astroAtlasRequestPermissions) window._astroAtlasRequestPermissions(); };
+                            document.getElementById('_pfrLater').onclick = function() { bn.remove(); };
+                        }).catch(function(){});
+                    } catch(e){}
+                }, 6000);
+            } catch(e){}
+        }, 4000);
+    } catch(e){}
+})();
 
 // v628: Pre-initialize Firebase (AstroConnect) on app startup so Social tab opens fast
 // Firebase SDK loads async — wait until firebase global exists, then init in background
