@@ -14900,6 +14900,7 @@ function triggerDreamAlarm() {
         var _daStop = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
         if (_daStop && _daStop.stopSound) _daStop.stopSound();
     } catch(e) {}
+    window._dreamAlarmVoiceRetry = false; // v884 #65: permitir un retry del detector de voz
 
     // 1. Start vibration (repeating pattern for 60 seconds)
     if (navigator.vibrate) {
@@ -15143,6 +15144,13 @@ function startAlarmVoiceDetection() {
 
     }).catch(function(err) {
         console.log('🎤 Mic access denied for alarm voice detection:', err.message);
+        // v884 #65: reintentar una vez — el mic puede estar ocupado recién despertando en lockscreen
+        if (!window._dreamAlarmVoiceRetry && window._dreamAlarmAudio) {
+            window._dreamAlarmVoiceRetry = true;
+            setTimeout(function() {
+                if (window._dreamAlarmAudio) startAlarmVoiceDetection();
+            }, 1500);
+        }
         // Alarm continues without voice detection — user can tap screen to dismiss
     });
 }
@@ -15237,6 +15245,13 @@ function startDreamVoiceRecording() {
         if (!textarea) return;
 
         lastSpeechTime = Date.now();
+
+        // v884 #65: SEGUNDA VÍA para apagar el solfeggio con la voz — si el detector de
+        // volumen (getUserMedia) falló o no consiguió el mic, el propio reconocimiento
+        // de voz detiene la alarma apenas escucha hablar.
+        if (window._dreamAlarmAudio) {
+            try { stopDreamAlarmSound(); } catch(e) {}
+        }
 
         for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
