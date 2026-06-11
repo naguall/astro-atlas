@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v884';</script>
+    <script>window.APP_VERSION = 'v885';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -290,8 +290,9 @@
             transform: scale(1.02);
         }
         /* v854: contraste más oscuro para fechas pasadas (calendario lunar/solar/gregoriano) */
-        .day-cell.past { opacity: 0.40; filter: brightness(0.55) saturate(0.70); }
-        .day-cell.past:hover { opacity: 0.72; filter: brightness(0.78) saturate(0.85); }
+        /* v884 #79: días pasados diferenciados pero LEGIBLES (antes 0.40×0.55 = ilegible) */
+        .day-cell.past { opacity: 0.60; filter: brightness(0.80) saturate(0.75); }
+        .day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         /* v749: glow celeste fuerte para HOY (antes era casi invisible) */
         .day-cell.today {
             background: linear-gradient(160deg, rgba(126,200,255,0.22) 0%, rgba(100,181,246,0.12) 100%);
@@ -520,11 +521,13 @@
         .natal-group-tab.active { color: #c39bd3; background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(102,126,234,0.15)); border-color: rgba(155,89,182,0.5); }
         .natal-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: rgba(15,5,30,0.8); border-radius: 10px; border: none; flex-wrap: wrap; }
         @media (orientation: landscape) { .natal-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .natal-subtabs::-webkit-scrollbar { display: none; } }
-        /* v883: SOLO en APK Capacitor — sub-tabs en UNA sola línea con scroll horizontal (Ciclos / Calendario Relacional se iban a 2da línea) */
-        body.cap-apk .natal-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        body.cap-apk .natal-subtabs::-webkit-scrollbar { display: none; }
-        body.cap-apk .natal-group-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        body.cap-apk .natal-group-tabs::-webkit-scrollbar { display: none; }
+        /* v883: SOLO en APK Capacitor — sub-tabs en UNA sola línea
+           v884 #77: SIN scroll — todos los tabs visibles FIJOS: se reparten el ancho
+           en partes iguales con tipografía compacta (antes Mapa/Ciclos quedaban cortados) */
+        body.cap-apk .natal-subtabs { flex-wrap: nowrap; overflow-x: hidden; }
+        body.cap-apk .natal-subtabs .natal-subtab { flex: 1 1 0; min-width: 0; padding: 8px 1px; font-size: 0.6em; letter-spacing: 0; overflow: hidden; }
+        body.cap-apk .natal-group-tabs { flex-wrap: nowrap; overflow-x: hidden; }
+        body.cap-apk .natal-group-tabs .natal-group-tab { flex: 1 1 0; min-width: 0; padding: 7px 1px; font-size: 0.6em; letter-spacing: 0; overflow: hidden; white-space: nowrap; }
         .natal-subtab { flex: 0 0 auto; padding: 8px 10px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; white-space: nowrap; border-radius: 8px; }
         .natal-subtab:hover { color: rgba(255,255,255,0.7); background: rgba(155,89,182,0.1); }
         .natal-subtab.active { color: #c39bd3; background: rgba(155,89,182,0.15); }
@@ -571,8 +574,9 @@
         .personal-day-cell { min-height: var(--day-cell-min-height, 110px); background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; box-sizing: border-box; overflow: hidden; min-width: 0; }
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
         /* v854: contraste más oscuro para fechas pasadas (calendario personal) */
-        .personal-day-cell.past { opacity: 0.40; filter: brightness(0.55) saturate(0.70); }
-        .personal-day-cell.past:hover { opacity: 0.72; filter: brightness(0.78) saturate(0.85); }
+        /* v884 #79: días pasados diferenciados pero LEGIBLES */
+        .personal-day-cell.past { opacity: 0.60; filter: brightness(0.80) saturate(0.75); }
+        .personal-day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
         .personal-day-cell.birthday { background: rgba(40,15,60,0.95); border: 1px solid rgba(155,89,182,0.60); box-shadow: 0 0 15px rgba(155,89,182,0.25); }
@@ -11586,7 +11590,17 @@ window._doNativeShareTextSafe = function(title, text) {
         }
 
         // Share intent nativo
-        if (navigator.share) {
+        // v884 #76: en APK navigator.share NO existe en el WebView — usar plugin nativo
+        // ShareText (ACTION_SEND chooser de Android: WhatsApp, Email, etc.)
+        var _STn = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ShareText) || null;
+        if (_STn && _STn.share) {
+            try {
+                _STn.share({ title: title || 'AstroAtlas', text: text }).catch(function(e) {
+                    console.warn('[share] native share err:', e);
+                    _showToast(L ? '📋 Texto en portapapeles. Pegá en WhatsApp.' : '📋 Text in clipboard. Paste in WhatsApp.', 'rgba(37,211,102,0.95)', 4500);
+                });
+            } catch(_){}
+        } else if (navigator.share) {
             try {
                 navigator.share({ title: title || 'AstroAtlas', text: text }).catch(function(e) {
                     if (e && e.name !== 'AbortError') console.warn('[share] navigator.share err:', e);
@@ -36940,7 +36954,7 @@ function goToCurrentCycle() {
             if (sendBtn) sendBtn.innerHTML = '⏹';
             window._tutorAbortCtrl = new AbortController();
             var _tutorStreamId = 'aiMsg_tutor_' + Date.now();
-            area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" id="tutorReplyWrap_' + _tutorStreamId + '" style="margin-bottom:8px;"><div id="' + _tutorStreamId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div></div>');
+            area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" id="tutorReplyWrap_' + _tutorStreamId + '" style="margin-bottom:8px;"><div id="' + _tutorStreamId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div></div>');
             area.scrollTop = area.scrollHeight;
             var tutorFullText = '';
             try {
@@ -49855,6 +49869,18 @@ function gatherFullAppContext() {
         }
     } catch(e) {}
 
+    // ========== v884 #75: HERRAMIENTA DE EFEMÉRIDES (fechas exactas de aspectos) ==========
+    ctx += '\n🔭 HERRAMIENTA DE EFEMÉRIDES — BÚSQUEDA DE FECHAS EXACTAS (pasado y futuro):\n'
+        + 'La app puede calcularte CUÁNDO se perfecciona CUALQUIER aspecto/tránsito. Cuando el usuario pregunte "cuándo / qué día se perfecciona u ocurre" un tránsito o aspecto, DEBES incluir en tu respuesta el tag:\n'
+        + '[FIND_ASPECT|planeta_transito|objetivo|aspecto|desde|hasta]\n'
+        + '- planeta_transito: sol/luna/mercurio/venus/marte/jupiter/saturno/urano/neptuno/pluton/quiron\n'
+        + '- objetivo: "natal:planeta" (punto natal del usuario, ej natal:quiron), "transito:planeta" (otro planeta en tránsito), o "grado:longitud_absoluta_0-360"\n'
+        + '- aspecto: conjuncion/sextil/cuadratura/trigono/quincuncio/oposicion\n'
+        + '- desde/hasta: YYYY-MM-DD (rango de búsqueda; por defecto ±12 meses desde hoy)\n'
+        + 'La app calcula las fechas exactas, las muestra al usuario debajo de tu respuesta y TE LAS PASA en el siguiente mensaje (como [DATOS DE EFEMÉRIDES...]). 🚨 NUNCA digas que no tenés acceso a efemérides o a otros días — usá este tag.\n'
+        + 'Ejemplo: Usuario: "¿qué día se perfecciona la conjunción de Quirón con mi Quirón natal?"\n'
+        + 'Respuesta: "Calculo la fecha exacta: [FIND_ASPECT|quiron|natal:quiron|conjuncion|2025-06-01|2027-06-01] El resultado aparece abajo."\n\n';
+
     return ctx;
 }
 
@@ -50975,11 +51001,102 @@ function removeTypingIndicator() {
 }
 
 // v643: Process AI action tags in reply text (events/diary creation)
+// v884 #75: Buscador de fechas EXACTAS de aspectos — efemérides para el AI.
+// Encuentra cuándo se perfecciona cualquier aspecto entre un planeta en tránsito y
+// (a) un punto natal fijo, (b) otro planeta en tránsito, o (c) una longitud absoluta.
+window._aiPlanetIdMap = { 'sol':'sun','sun':'sun','luna':'moon','moon':'moon','mercurio':'mercury','mercury':'mercury','venus':'venus','marte':'mars','mars':'mars','jupiter':'jupiter','júpiter':'jupiter','saturno':'saturn','saturn':'saturn','urano':'uranus','uranus':'uranus','neptuno':'neptune','neptune':'neptune','pluton':'pluto','plutón':'pluto','pluto':'pluto','quiron':'chiron','quirón':'chiron','chiron':'chiron','nodo':'northnode','nodonorte':'northnode','northnode':'northnode','lilith':'lilith' };
+window._aiAspectMap = { 'conjuncion':0,'conjunción':0,'conjunction':0,'sextil':60,'sextile':60,'cuadratura':90,'square':90,'trigono':120,'trígono':120,'trine':120,'quincuncio':150,'quincunx':150,'oposicion':180,'oposición':180,'opposition':180 };
+window.findAspectDates = function(p1, targetSpec, aspectAngle, fromDate, toDate) {
+    function wrap180(x) { return ((x % 360) + 540) % 360 - 180; }
+    var targetFn = (targetSpec.kind === 'fixed')
+        ? function(d) { return targetSpec.lon; }
+        : function(d) { return getPlanetPosition(targetSpec.planet, d); };
+    var angles = (aspectAngle === 0 || aspectAngle === 180) ? [aspectAngle] : [aspectAngle, -aspectAngle];
+    var hits = [];
+    var stepMs = 86400000;
+    for (var ai = 0; ai < angles.length; ai++) {
+        var A = angles[ai];
+        var f = (function(AA) {
+            return function(d) { return wrap180(getPlanetPosition(p1, d) - targetFn(d) - AA); };
+        })(A);
+        var prevT = fromDate.getTime();
+        var prevV = f(new Date(prevT));
+        for (var t = prevT + stepMs; t <= toDate.getTime(); t += stepMs) {
+            var curV = f(new Date(t));
+            // cruce real (no salto de wrap ±180)
+            if (prevV * curV <= 0 && Math.abs(prevV - curV) < 90) {
+                var lo = prevT, hi = t;
+                for (var it = 0; it < 30; it++) {
+                    var mid = (lo + hi) / 2;
+                    var lv = f(new Date(lo));
+                    var mv = f(new Date(mid));
+                    if (lv * mv <= 0) hi = mid; else lo = mid;
+                }
+                var hitD = new Date((lo + hi) / 2);
+                var dup = hits.some(function(h) { return Math.abs(h.getTime() - hitD.getTime()) < 36e5; });
+                if (!dup) hits.push(hitD);
+                if (hits.length >= 8) break;
+            }
+            prevT = t; prevV = curV;
+        }
+    }
+    hits.sort(function(a, b) { return a - b; });
+    return hits;
+};
+
 function _processAIActionTags(reply) {
     var actionsExecuted = [];
     var eventRegex = /\[CREATE_EVENT\|([^|]+)\|([^|]+)(?:\|([^|]*))?(?:\|([^|]*))?(?:\|([^\]]*))?\]/g;
     var diaryRegex = /\[CREATE_DIARY\|([^|]+)\|([^\]]+)\]/g;
     var match;
+
+    // v884 #75: [FIND_ASPECT|planeta|objetivo|aspecto|desde|hasta] → calcular fechas exactas
+    var findRegex = /\[FIND_ASPECT\|([^|\]]+)\|([^|\]]+)\|([^|\]]+)(?:\|([^|\]]*))?(?:\|([^\]]*))?\]/g;
+    while ((match = findRegex.exec(reply)) !== null) {
+        try {
+            var L75 = currentLang === 'es';
+            var _norm = function(s) { return (s || '').toLowerCase().trim().replace(/\s+/g, ''); };
+            var p1 = window._aiPlanetIdMap[_norm(match[1])];
+            var aspName = _norm(match[3]);
+            var aspAngle = window._aiAspectMap[aspName];
+            var tgtRaw = _norm(match[2]);
+            var targetSpec = null, tgtLabel = match[2].trim();
+            if (tgtRaw.indexOf('natal:') === 0) {
+                var np = window._aiPlanetIdMap[tgtRaw.substring(6)];
+                var _nd = (typeof getNatalData === 'function') ? getNatalData() : null;
+                var _chRaw = _nd ? (localStorage.getItem('natalChart_' + _nd.id) || localStorage.getItem('natalChart')) : localStorage.getItem('natalChart');
+                var _ch = _chRaw ? JSON.parse(_chRaw) : null;
+                var _pl = _ch && _ch.planets && np ? _ch.planets[np] : null;
+                if (_pl && typeof _pl.longitude === 'number') {
+                    targetSpec = { kind: 'fixed', lon: _pl.longitude };
+                    tgtLabel = (L75 ? 'natal ' : 'natal ') + tgtRaw.substring(6) + ' (' + (_pl.formatted || '') + ')';
+                }
+            } else if (tgtRaw.indexOf('grado:') === 0) {
+                var glon = parseFloat(tgtRaw.substring(6));
+                if (!isNaN(glon)) targetSpec = { kind: 'fixed', lon: ((glon % 360) + 360) % 360 };
+            } else {
+                var tp = window._aiPlanetIdMap[tgtRaw.replace('transito:', '').replace('tránsito:', '')];
+                if (tp) targetSpec = { kind: 'planet', planet: tp };
+            }
+            var fromD = match[4] && /^\d{4}-\d{2}-\d{2}$/.test(match[4].trim()) ? new Date(match[4].trim() + 'T00:00:00') : new Date(Date.now() - 365 * 86400000);
+            var toD = match[5] && /^\d{4}-\d{2}-\d{2}$/.test(match[5].trim()) ? new Date(match[5].trim() + 'T23:59:59') : new Date(Date.now() + 365 * 86400000);
+            if (!p1 || targetSpec === null || aspAngle === undefined) {
+                actionsExecuted.push('⚠️ ' + (L75 ? 'No pude interpretar la búsqueda de efemérides: ' : 'Could not parse ephemeris query: ') + match[0]);
+                continue;
+            }
+            var dates = window.findAspectDates(p1, targetSpec, aspAngle, fromD, toD);
+            var _fmtD = function(d) { return d.toLocaleDateString(L75 ? 'es' : 'en', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString(L75 ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }); };
+            var resTxt;
+            if (dates.length) {
+                resTxt = '📅 ' + (L75 ? 'Efemérides — ' : 'Ephemeris — ') + match[1].trim() + ' ' + match[3].trim() + ' ' + tgtLabel + (L75 ? ' — exacto el:' : ' — exact on:') + '\n' + dates.map(function(d) { return '   • ' + _fmtD(d); }).join('\n');
+            } else {
+                resTxt = '📅 ' + (L75 ? 'Efemérides: sin perfecciones de ' : 'Ephemeris: no perfections of ') + match[1].trim() + ' ' + match[3].trim() + ' ' + tgtLabel + (L75 ? ' en el rango ' : ' in range ') + fromD.toISOString().slice(0, 10) + ' → ' + toD.toISOString().slice(0, 10);
+            }
+            actionsExecuted.push(resTxt);
+            // El AI recibe el resultado en el próximo mensaje del usuario
+            window._pendingEphemerisNote = (window._pendingEphemerisNote ? window._pendingEphemerisNote + '\n' : '') + resTxt;
+        } catch(fe) { console.warn('AI find aspect error:', fe); }
+    }
     while ((match = eventRegex.exec(reply)) !== null) {
         try {
             var evDate = match[1].trim(); var evTitle = match[2].trim();
@@ -50999,7 +51116,7 @@ function _processAIActionTags(reply) {
             actionsExecuted.push((currentLang === 'es' ? '✅ Nota de diario creada: ' : '✅ Diary note created: ') + diDate);
         } catch(ae) { console.warn('AI create diary error:', ae); }
     }
-    var cleanReply = reply.replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').trim();
+    var cleanReply = reply.replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').replace(/\[FIND_ASPECT\|[^\]]+\]/g, '').trim();
     if (actionsExecuted.length > 0) cleanReply += '\n\n---\n' + actionsExecuted.join('\n');
     return cleanReply;
 }
@@ -51028,13 +51145,21 @@ function _updateStreamBubble(elemId, wrapperDiv, rawText, isFinal) {
         copyBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.35);border-radius:6px;color:#c4b5fd;cursor:pointer;font-weight:600;';
         copyBtn.onclick = function() { navigator.clipboard.writeText(rawText2).then(function() { copyBtn.innerHTML = '✅ ' + (currentLang === 'es' ? 'Copiado' : 'Copied'); setTimeout(function() { copyBtn.innerHTML = '📋 ' + (currentLang === 'es' ? 'Copiar' : 'Copy'); }, 2000); }); };
         btnBar.appendChild(copyBtn);
-        if (navigator.share) {
-            var shareBtn = document.createElement('button');
-            shareBtn.innerHTML = '📤 ' + (currentLang === 'es' ? 'Compartir' : 'Share');
-            shareBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(78,205,196,0.2);border:1px solid rgba(78,205,196,0.35);border-radius:6px;color:#7dd3c8;cursor:pointer;font-weight:600;';
-            shareBtn.onclick = function() { navigator.share({ title: 'AstroAtlas', text: rawText2 }).catch(function(){}); };
-            btnBar.appendChild(shareBtn);
-        }
+        // v884 #76/#78: MISMO flujo de compartir que el resto de la app — picker con
+        // Chat AstroAtlas / Publicar al Feed (Social) / Otras apps (share sheet nativo)
+        var shareBtn = document.createElement('button');
+        shareBtn.innerHTML = '📤 ' + (currentLang === 'es' ? 'Compartir' : 'Share');
+        shareBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(78,205,196,0.2);border:1px solid rgba(78,205,196,0.35);border-radius:6px;color:#7dd3c8;cursor:pointer;font-weight:600;';
+        shareBtn.onclick = function() {
+            if (typeof window.shareTextSafe === 'function') {
+                window.shareTextSafe('AstroAtlas Chat', rawText2);
+            } else {
+                var _STb = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ShareText) || null;
+                if (_STb && _STb.share) { _STb.share({ title: 'AstroAtlas', text: rawText2 }).catch(function(){}); }
+                else if (navigator.share) { navigator.share({ title: 'AstroAtlas', text: rawText2 }).catch(function(){}); }
+            }
+        };
+        btnBar.appendChild(shareBtn);
         wrapperDiv.appendChild(btnBar);
     }
 }
@@ -51065,7 +51190,14 @@ async function sendAIMessage() {
     input.style.height = 'auto';
 
     addAIMessage('user', text);
-    aiChatHistory.push({role: 'user', parts: [{text: text}]});
+    // v884 #75: si hay resultados de efemérides pendientes (FIND_ASPECT del turno anterior),
+    // pasárselos al modelo junto con el mensaje — así puede responder con las fechas exactas.
+    var _ephNote = '';
+    if (window._pendingEphemerisNote) {
+        _ephNote = '\n\n[DATOS DE EFEMÉRIDES calculados por la app — usalos para responder]:\n' + window._pendingEphemerisNote;
+        window._pendingEphemerisNote = null;
+    }
+    aiChatHistory.push({role: 'user', parts: [{text: text + _ephNote}]});
     saveAIChatState();
 
     aiIsTyping = true;
@@ -51090,7 +51222,7 @@ async function sendAIMessage() {
         const streamWrapper = document.createElement('div');
         streamWrapper.className = 'ai-msg assistant';
         const _streamId = 'aiMsg_' + Date.now();
-        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
         container.appendChild(streamWrapper);
         // Scroll so the new response appears at the top (user reads from beginning)
         var _cRect = container.getBoundingClientRect();
@@ -51100,12 +51232,21 @@ async function sendAIMessage() {
         let fullText = '';
         try {
             const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(requestBody),
-                signal: _aiAbortCtrl.signal
-            });
+            // v884 #74: retry automático ante saturación (429/5xx) — antes mostraba el error directo
+            let response = null;
+            for (let _rt = 0; _rt < 3; _rt++) {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestBody),
+                    signal: _aiAbortCtrl.signal
+                });
+                if (response.ok || [429, 500, 502, 503, 504].indexOf(response.status) === -1) break;
+                if (_rt < 2) {
+                    _updateStreamBubble(_streamId, streamWrapper, (currentLang === 'es' ? '✨ AI saturado — reintentando (' + (_rt + 2) + '/3)...' : '✨ AI overloaded — retrying (' + (_rt + 2) + '/3)...'), false);
+                    await new Promise(function(r) { setTimeout(r, 2000 * (_rt + 1)); });
+                }
+            }
 
             if (!response.ok) {
                 const err = await response.json().catch(function() { return {}; });
@@ -51180,7 +51321,7 @@ async function sendAIMessage() {
         const streamWrapper = document.createElement('div');
         streamWrapper.className = 'ai-msg assistant';
         const _streamId = 'aiMsg_' + Date.now();
-        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;">✨ ' + (currentLang === 'es' ? 'Consultando' : 'Consulting') + '</span> <span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
         container.appendChild(streamWrapper);
         // Scroll so the new response appears at the top (user reads from beginning)
         var _cRect2 = container.getBoundingClientRect();
@@ -51190,12 +51331,21 @@ async function sendAIMessage() {
         let fullText = '';
         const streamBody = Object.assign({}, requestBody, { _stream: true });
         try {
-            const response = await fetch(AI_PROXY_URL, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(streamBody),
-                signal: _aiAbortCtrl.signal
-            });
+            // v884 #74: retry automático ante saturación (429/5xx)
+            let response = null;
+            for (let _rt2 = 0; _rt2 < 3; _rt2++) {
+                response = await fetch(AI_PROXY_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(streamBody),
+                    signal: _aiAbortCtrl.signal
+                });
+                if (response.ok || [429, 500, 502, 503, 504].indexOf(response.status) === -1) break;
+                if (_rt2 < 2) {
+                    _updateStreamBubble(_streamId, streamWrapper, (currentLang === 'es' ? '✨ AI saturado — reintentando (' + (_rt2 + 2) + '/3)...' : '✨ AI overloaded — retrying (' + (_rt2 + 2) + '/3)...'), false);
+                    await new Promise(function(r) { setTimeout(r, 2000 * (_rt2 + 1)); });
+                }
+            }
 
             if (!response.ok) {
                 const err = await response.json().catch(function() { return {}; });
