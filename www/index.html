@@ -14895,6 +14895,12 @@ window.addEventListener('focus', function() {
 function triggerDreamAlarm() {
     console.log('🌙✨ Dream alarm triggered!');
 
+    // v884 #64: parar el ringtone de respaldo nativo (el JS toma el control del sonido)
+    try {
+        var _daStop = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
+        if (_daStop && _daStop.stopSound) _daStop.stopSound();
+    } catch(e) {}
+
     // 1. Start vibration (repeating pattern for 60 seconds)
     if (navigator.vibrate) {
         var vibPattern = [];
@@ -14937,6 +14943,11 @@ function triggerDreamAlarm() {
 window._dreamAlarmAudio = null;
 
 function stopDreamAlarmSound() {
+    // v884 #64: parar también el ringtone de respaldo nativo
+    try {
+        var _daStop2 = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm;
+        if (_daStop2 && _daStop2.stopSound) _daStop2.stopSound();
+    } catch(e) {}
     var a = window._dreamAlarmAudio;
     if (!a) return;
     try { if (a._pulseTimer) clearInterval(a._pulseTimer); } catch(e) {} // v714: stop tremolo interval
@@ -38549,8 +38560,35 @@ window._astroAtlasRequestPermissions = async function() {
                 }
             }
         } catch(_eA) { console.warn('[perms] exact alarm check error:', _eA); }
+        // v884 #64: diagnóstico completo de la alarma + exclusión de optimización de batería
+        var _diagShown = false;
+        try {
+            if (Plugins.DreamAlarm && Plugins.DreamAlarm.getDiagnostics) {
+                var d = await Plugins.DreamAlarm.getDiagnostics();
+                console.log('[perms] DreamAlarm diagnostics:', JSON.stringify(d));
+                var lines = [];
+                lines.push((d.notificationsEnabled !== false ? '✅' : '❌') + ' ' + (L ? 'Notificaciones' : 'Notifications'));
+                lines.push((d.exactAlarms !== false ? '✅' : '❌') + ' ' + (L ? 'Alarmas exactas' : 'Exact alarms'));
+                lines.push((d.fullScreenIntent !== false ? '✅' : '❌') + ' ' + (L ? 'Pantalla completa en lock' : 'Full-screen on lock'));
+                lines.push((d.batteryUnrestricted !== false ? '✅' : '❌') + ' ' + (L ? 'Batería sin restricción' : 'Battery unrestricted'));
+                if (d.lastScheduledAt) lines.push('🕐 ' + (L ? 'Última programación: ' : 'Last scheduled: ') + new Date(d.lastScheduledAt).toLocaleString());
+                if (d.nextAt) lines.push('⏰ ' + (L ? 'Próxima alarma: ' : 'Next alarm: ') + new Date(d.nextAt).toLocaleString());
+                lines.push(d.lastFiredAt
+                    ? ('🔔 ' + (L ? 'Última vez que sonó: ' : 'Last fired: ') + new Date(d.lastFiredAt).toLocaleString())
+                    : ('🔕 ' + (L ? 'Nunca disparó todavía' : 'Never fired yet')));
+                alert((L ? '🌙 Diagnóstico de la alarma:\n\n' : '🌙 Alarm diagnostics:\n\n') + lines.join('\n'));
+                _diagShown = true;
+                if (d.batteryUnrestricted === false && Plugins.DreamAlarm.openBatteryOptimizationSettings) {
+                    if (confirm(L
+                        ? '⚡ La optimización de batería está ACTIVA y puede impedir que la alarma suene de noche.\n\n¿Excluir AstroAtlas de la optimización? (recomendado)'
+                        : '⚡ Battery optimization is ON and can prevent the alarm from ringing at night.\n\nExclude AstroAtlas from optimization? (recommended)')) {
+                        await Plugins.DreamAlarm.openBatteryOptimizationSettings();
+                    }
+                }
+            }
+        } catch(_eD) { console.warn('[perms] diagnostics error:', _eD); }
         localStorage.setItem('astroatlas_perms_v883_asked', '1');
-        alert(L ? '✅ Listo. Permisos solicitados.' : '✅ Done. Permissions requested.');
+        if (!_diagShown) alert(L ? '✅ Listo. Permisos solicitados.' : '✅ Done. Permissions requested.');
     } catch(_eAll) {
         alert('Error: ' + (_eAll && _eAll.message ? _eAll.message : _eAll));
     }
