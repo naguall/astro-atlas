@@ -38756,6 +38756,15 @@ window._astroAtlasRequestPermissions = async function() {
                         await Plugins.DreamAlarm.openFullScreenIntentSettings();
                     }
                 }
+                // v885 #87: Huawei/Xiaomi/Oppo — ofrecer el ajuste de "mostrar sobre lockscreen /
+                // inicio automático" (EMUI bloquea la app sobre el lock aunque FSI esté ✅)
+                if (Plugins.DreamAlarm.openAppLaunchSettings) {
+                    if (confirm(L
+                        ? '📱 Si tenés Huawei, Xiaomi u Oppo: estos teléfonos bloquean que la app aparezca sobre la pantalla bloqueada.\n\n¿Abrir el ajuste del fabricante? Activá "AstroAtlas" en "Inicio automático" / "Pantallas emergentes" / "Mostrar en bloqueo".'
+                        : '📱 If you have Huawei/Xiaomi/Oppo: these phones block the app from showing over the lock screen.\n\nOpen the manufacturer setting? Enable "AstroAtlas" in "Auto-launch" / "Pop-up windows" / "Show on lock screen".')) {
+                        await Plugins.DreamAlarm.openAppLaunchSettings();
+                    }
+                }
                 if (d.batteryUnrestricted === false && Plugins.DreamAlarm.openBatteryOptimizationSettings) {
                     if (confirm(L
                         ? '⚡ La optimización de batería está ACTIVA y puede impedir que la alarma suene de noche.\n\n¿Excluir AstroAtlas de la optimización? (recomendado)'
