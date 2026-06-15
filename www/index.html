@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v887';</script>
+    <script>window.APP_VERSION = 'v888';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -34201,7 +34201,7 @@ function generateSolarWeeks(sign) {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.7em;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="order:-1;color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -36196,7 +36196,7 @@ function renderCalendar() {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.85em;white-space:nowrap;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="order:-1;color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
