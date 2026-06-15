@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v888';</script>
+    <script>window.APP_VERSION = 'v890';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -291,7 +291,7 @@
         }
         /* v854: contraste más oscuro para fechas pasadas (calendario lunar/solar/gregoriano) */
         /* v884 #79: días pasados diferenciados pero LEGIBLES (antes 0.40×0.55 = ilegible) */
-        .day-cell.past { opacity: 0.60; filter: brightness(0.80) saturate(0.75); }
+        .day-cell.past { opacity: 0.75; filter: brightness(0.90) saturate(0.85); }
         .day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         /* v749: glow celeste fuerte para HOY (antes era casi invisible) */
         .day-cell.today {
@@ -575,7 +575,7 @@
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
         /* v854: contraste más oscuro para fechas pasadas (calendario personal) */
         /* v884 #79: días pasados diferenciados pero LEGIBLES */
-        .personal-day-cell.past { opacity: 0.60; filter: brightness(0.80) saturate(0.75); }
+        .personal-day-cell.past { opacity: 0.75; filter: brightness(0.90) saturate(0.85); }
         .personal-day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
@@ -18278,7 +18278,7 @@ function showMajorAspectsModal() {
         majorAspects.stelliums.forEach(s => {
             var clickTxt = ('Stellium ' + s.sign + ': ' + s.planets.join(', ') + ' (' + s.startDate + ' - ' + s.endDate + ')').replace(/'/g, "\\'");
             var sPast = isPastDate(s.endDate);
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;${sPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;${sPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Período':'Period'}: ${s.startDate} - ${s.endDate}</small>`;
             html += `</div>`;
@@ -18292,7 +18292,7 @@ function showMajorAspectsModal() {
         majorAspects.tSquares.forEach(t => {
             var clickTxt = ('T-Cuadrada: ' + t.apex + ' opuesto a ' + t.base.join(', ') + ' (' + t.dates + ')').replace(/'/g, "\\'");
             var tPast = false; try { var tParts = t.dates.split('-'); tPast = isPastDate(tParts[tParts.length-1].trim()); } catch(e){}
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;${tPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;${tPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #ff6b6b;">${t.apex}</strong> ${currentLang==='es'?'opuesto a':'opposed to'} ${t.base.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Activo aproximadamente':'Active approximately'}: ${t.dates}</small>`;
             html += `</div>`;
@@ -18306,7 +18306,7 @@ function showMajorAspectsModal() {
         majorAspects.grandTrines.forEach(g => {
             var clickTxt = ('Gran Trígono: ' + g.planets.join(' - ') + ' en ' + g.element + ' (' + g.dates + ')').replace(/'/g, "\\'");
             var gPast = false; try { var gParts = g.dates.split('-'); gPast = isPastDate(gParts[gParts.length-1].trim()); } catch(e){}
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;${gPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;${gPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #51cf66;">${g.planets.join(' - ')}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Elemento':'Element'}: ${g.element} • ${currentLang==='es'?'Períodos':'Periods'}: ${g.dates}</small>`;
             html += `</div>`;
@@ -18320,7 +18320,7 @@ function showMajorAspectsModal() {
         majorAspects.majorOppositions.forEach(o => {
             var clickTxt = (o.planet1 + ' ☍ oposición ' + o.planet2 + ' (' + o.date + ')').replace(/'/g, "\\'");
             var oPast = isPastDate(o.date);
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;${oPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;${oPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==="es"?"Signo exacto":"Exact sign"}: ${o.date}</small>`;
             html += `</div>`;
@@ -18433,7 +18433,7 @@ function showMajorAspectsModal() {
         majorAspects.stelliums.forEach(s => {
             var clickTxt = ('Stellium ' + s.sign + ': ' + s.planets.join(', ') + ' (' + s.startDate + ' - ' + s.endDate + ')').replace(/'/g, "\\'");
             var sPast = isPastDate(s.endDate);
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;${sPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;${sPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Período':'Period'}: ${s.startDate} - ${s.endDate}</small>`;
             html += `</div>`;
@@ -18447,7 +18447,7 @@ function showMajorAspectsModal() {
         majorAspects.tSquares.forEach(t => {
             var clickTxt = ('T-Cuadrada: ' + t.apex + ' opuesto a ' + t.base.join(', ') + ' (' + t.dates + ')').replace(/'/g, "\\'");
             var tPast = false; try { var tParts = t.dates.split('-'); tPast = isPastDate(tParts[tParts.length-1].trim()); } catch(e){}
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;${tPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;${tPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #ff6b6b;">${t.apex}</strong> ${currentLang==='es'?'opuesto a':'opposed to'} ${t.base.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Activo aproximadamente':'Active approximately'}: ${t.dates}</small>`;
             html += `</div>`;
@@ -18461,7 +18461,7 @@ function showMajorAspectsModal() {
         majorAspects.grandTrines.forEach(g => {
             var clickTxt = ('Gran Trígono: ' + g.planets.join(' - ') + ' en ' + g.element + ' (' + g.dates + ')').replace(/'/g, "\\'");
             var gPast = false; try { var gParts = g.dates.split('-'); gPast = isPastDate(gParts[gParts.length-1].trim()); } catch(e){}
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;${gPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;${gPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #51cf66;">${g.planets.join(' - ')}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Elemento':'Element'}: ${g.element} • ${currentLang==='es'?'Períodos':'Periods'}: ${g.dates}</small>`;
             html += `</div>`;
@@ -18475,7 +18475,7 @@ function showMajorAspectsModal() {
         majorAspects.majorOppositions.forEach(o => {
             var clickTxt = (o.planet1 + ' ☍ oposición ' + o.planet2 + ' (' + o.date + ')').replace(/'/g, "\\'");
             var oPast = isPastDate(o.date);
-            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;${oPast?'opacity:0.45;':''}">`;
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;${oPast?'opacity:0.68;':''}">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==="es"?"Signo exacto":"Exact sign"}: ${o.date}</small>`;
             html += `</div>`;
@@ -18513,7 +18513,7 @@ function showHistoricAspectsModal() {
         var titleLine = isSC ? tp(ev.planet1) + ' → ' + ts(ev.planet2) : tp(ev.planet1) + ' ' + ev.symbol + aspW + tp(ev.planet2) + (ev.degrees ? ' (' + ev.degrees + ')' : '') + (ev.signs ? ' — ' + ev.signs : '');
         var evPast = false;
         try { var dp = ev.date.split(' '); var evD = new Date(parseInt(dp[2]),monthMapHist[dp[1]]||0,parseInt(dp[0])); evPast = evD < nowHist; } catch(e){}
-        html += '<div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + ev.badgeColor + ';' + (evPast ? 'opacity:0.45;' : '') + '">';
+        html += '<div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:14px;margin-bottom:14px;border-left:4px solid ' + ev.badgeColor + ';' + (evPast ? 'opacity:0.68;' : '') + '">';
         html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
         html += '<div style="font-size:1.05em;font-weight:700;color:#e8eaf6;">' + titleLine + '</div>';
         html += '<span onclick="event.stopPropagation();showCategoryPanel(\'' + ev.type + '\')" style="background:' + ev.badgeBg + ';color:' + ev.badgeColor + ';padding:2px 8px;border-radius:4px;font-size:0.72em;font-weight:700;border:1px solid ' + ev.badgeColor + '40;cursor:pointer;">' + ev.badge + '</span>';
@@ -20939,7 +20939,7 @@ function _renderSigns2026View(es, activeYear) {
                 asp.isMajor ? '<span style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">' + (es?'MAYOR':'MAJOR') + '</span>' :
                 (asp.isImportant || asp.isCritical) ? '<span style="background:rgba(78,205,196,0.15);color:#80cbc4;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:4px;">★</span>' : '';
 
-            html += '<div onclick="showSign2026AspectByIndex(' + aspDataIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + aspectColor + ';cursor:pointer;' + (isPast ? 'opacity:0.55;' : '') + '">';
+            html += '<div onclick="showSign2026AspectByIndex(' + aspDataIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + aspectColor + ';cursor:pointer;' + (isPast ? 'opacity:0.72;' : '') + '">';
             html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
             html += '<div style="font-size:0.9em;flex:1;">';
             html += (asp.time ? '<span style="font-weight:bold;color:#f0e68c;">' + asp.time + '</span> — ' : '');
@@ -21032,7 +21032,7 @@ function _renderMajor2026View(es, activeYear) {
                 itemPast = isPastDate(item.date);
             }
 
-            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + cat.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.55;' : '') + '">';
+            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + cat.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.72;' : '') + '">';
             html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
             html += '<div style="font-size:0.9em;flex:1;"><strong style="color:' + cat.color + ';">' + label + '</strong>';
             if (sublabel) html += ' <span style="color:rgba(255,255,255,0.5);">' + sublabel + '</span>';
@@ -21129,7 +21129,7 @@ function _renderMajor2026View(es, activeYear) {
                 var _dynIdx = window._dynPatterns2026.length;
                 window._dynPatterns2026.push({ name: item.name, planets: item.planets, desc: item.desc });
 
-                html += '<div onclick="showDynPatternDetail(' + _dynIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + meta.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.55;' : '') + '">';
+                html += '<div onclick="showDynPatternDetail(' + _dynIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + meta.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.72;' : '') + '">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
                 html += '<div style="font-size:0.88em;flex:1;"><strong style="color:' + meta.color + ';">' + item.planets.join(', ') + '</strong>';
                 html += ' <span style="font-size:0.8em;color:rgba(255,255,255,0.4);">' + (item.symbols || '') + '</span>';
@@ -21201,7 +21201,7 @@ function _renderEvents2026View(es, activeYear) {
 
             var evClickText = (ev.planet1 + ' ' + ev.symbol + ' ' + ev.planet2 + ' ' + ev.date + ' ' + (ev.meaning||'')).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-            html += '<div onclick="showBannerAspectDetail(\'' + evClickText + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + grp.color + ';cursor:pointer;' + (evPast ? 'opacity:0.55;' : '') + '">';
+            html += '<div onclick="showBannerAspectDetail(\'' + evClickText + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + grp.color + ';cursor:pointer;' + (evPast ? 'opacity:0.72;' : '') + '">';
             // Title row
             html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
             html += '<div style="font-size:0.9em;flex:1;">';
@@ -21465,7 +21465,7 @@ function _renderAsteroids2026View(es, activeYear) {
                     category: evt.category
                 });
 
-                html += '<div onclick="showAsteroid2026Detail(' + evtIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + evtColor + ';cursor:pointer;' + (isPast ? 'opacity:0.55;' : '') + 'transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\'">'
+                html += '<div onclick="showAsteroid2026Detail(' + evtIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + evtColor + ';cursor:pointer;' + (isPast ? 'opacity:0.72;' : '') + 'transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.3)\'">'
                     + '<div style="display:flex;justify-content:space-between;align-items:center;">'
                     + '<div style="flex:1;">'
                     + '<span style="color:' + ast.color + ';font-weight:700;font-size:0.9em;">' + ast.symbol + ' ' + ast.name + '</span> '
@@ -21868,7 +21868,7 @@ function renderAspects2026Panel() {
                     asp.isMajor ? '<span onclick="event.stopPropagation();showCategoryPanel(\'major\')" style="background:rgba(231,76,60,0.2);color:#ff8a80;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:5px;cursor:pointer;border:1px solid rgba(231,76,60,0.35);">' + (es?'MAYOR':'MAJOR') + '</span>' :
                     (asp.isImportant || asp.isCritical) ? '<span onclick="event.stopPropagation();showCategoryPanel(\'notable\')" style="background:rgba(78,205,196,0.15);color:#80cbc4;padding:1px 5px;border-radius:3px;font-size:0.7em;margin-left:5px;cursor:pointer;border:1px solid rgba(78,205,196,0.35);">' + (es?'NOTABLE':'NOTABLE') + '</span>' : '';
 
-                html += '<div onclick="showAspect2026ByIndex(' + aspDataIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + aspectColor + ';cursor:pointer;' + (isPast ? 'opacity:0.55;' : '') + '">'
+                html += '<div onclick="showAspect2026ByIndex(' + aspDataIdx + ')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + aspectColor + ';cursor:pointer;' + (isPast ? 'opacity:0.72;' : '') + '">'
                     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
                     + '<div style="font-size:0.9em;flex:1;">'
                     + timeStr + '<strong style="color:' + p.color + ';">' + planetLabel + '</strong> '
@@ -29510,6 +29510,64 @@ function calculateCosmicCyclesForMonth(year, month, natalChart, birthDate) {
         });
     });
 
+    // --- 2b. RETORNOS PLANETARIOS (Mercurio → Plutón) — v889 ---
+    // Cuando un planeta en tránsito regresa a su longitud natal exacta dentro del mes.
+    // Mercurio/Venus/Marte: cada ~1-2 años. Júpiter ~12a, Saturno ~29a, exteriores casi nunca.
+    (function() {
+        var prDefs = [
+            { key: 'mercury', icon: '☿', color: '#26c6da', es: 'Retorno de Mercurio', en: 'Mercury Return' },
+            { key: 'venus',   icon: '♀', color: '#ec407a', es: 'Retorno de Venus',    en: 'Venus Return' },
+            { key: 'mars',    icon: '♂', color: '#ef5350', es: 'Retorno de Marte',    en: 'Mars Return' },
+            { key: 'jupiter', icon: '♃', color: '#ffb74d', es: 'Retorno de Júpiter',  en: 'Jupiter Return' },
+            { key: 'saturn',  icon: '♄', color: '#a1887f', es: 'Retorno de Saturno',  en: 'Saturn Return' },
+            { key: 'uranus',  icon: '♅', color: '#4dd0e1', es: 'Retorno de Urano',    en: 'Uranus Return' },
+            { key: 'neptune', icon: '♆', color: '#7986cb', es: 'Retorno de Neptuno',  en: 'Neptune Return' },
+            { key: 'pluto',   icon: '♇', color: '#90a4ae', es: 'Retorno de Plutón',   en: 'Pluto Return' }
+        ];
+        if (!natalChart.planets) return;
+        var mStart = new Date(year, month, 1);
+        var mEnd = new Date(year, month + 1, 0, 23, 59, 59);
+        function sdiff(p, t) { var x = p - t; while (x > 180) x -= 360; while (x < -180) x += 360; return x; }
+        prDefs.forEach(function(pr) {
+            try {
+                var nd = natalChart.planets[pr.key];
+                if (!nd || typeof nd.longitude !== 'number') return;
+                var natalLon = nd.longitude;
+                // Pre-check barato (muestreo cada 5 días): si nunca se acerca y no hay cambio de
+                // signo, saltar el scan fino. Ningún planeta (sin la Luna) recorre >16° en 5 días,
+                // así que un cruce real siempre deja una muestra cerca o un cambio de signo.
+                var anyNear = false, firstSign = null, signChange = false;
+                for (var ts = mStart.getTime(); ts <= mEnd.getTime(); ts += 5 * 86400000) {
+                    var df = sdiff(getPlanetPosition(pr.key, new Date(ts)), natalLon);
+                    var sg = df > 0 ? 1 : -1;
+                    if (firstSign === null) firstSign = sg; else if (sg !== firstSign) signChange = true;
+                    if (Math.abs(df) <= 16) anyNear = true;
+                }
+                if (!signChange && !anyNear) return; // sin cruce este mes
+                // Scan fino (captura múltiples cruces durante retrogradación)
+                var cursor = new Date(mStart), guard = 0;
+                while (cursor < mEnd && guard < 6) {
+                    guard++;
+                    var ret = findExactReturnTime(pr.key, natalLon, cursor, mEnd);
+                    if (ret && ret >= mStart && ret <= mEnd) {
+                        var prTime = ret.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+                        cycles.push({
+                            day: ret.getDate(),
+                            type: 'planetReturn',
+                            icon: pr.icon,
+                            color: pr.color,
+                            label: L ? pr.es : pr.en,
+                            desc: L ? ('Vuelve a su posición natal (' + natalLon.toFixed(2) + '°) a las ' + prTime + '. Marca un nuevo ciclo personal de este planeta.')
+                                    : ('Returns to its natal position (' + natalLon.toFixed(2) + '°) at ' + prTime + '. Marks a new personal cycle of this planet.'),
+                            exactTime: ret
+                        });
+                        cursor = new Date(ret.getTime() + 3 * 86400000);
+                    } else break;
+                }
+            } catch (e) {}
+        });
+    })();
+
     // --- 3. MEDIO CIELO SOLAR (Solar Half-Return) ~182 days from birthday ---
     var birthdayThisYear = new Date(year, birthM - 1, birthD);
     var halfReturn = new Date(birthdayThisYear.getTime() + 182 * 86400000);
@@ -32830,7 +32888,7 @@ function generateGregorianMonth() {
             if (pat.type === 'stellium') {
                 html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${_pTxt}')" style="color:#FFD700;font-size:0.75em;font-weight:bold;cursor:pointer;text-align:right;line-height:1;" title="${pat.name}">★</div>`;
             } else {
-                html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${_pTxt}')" style="color:${pat.color};font-size:0.75em;font-weight:bold;cursor:pointer;text-align:right;line-height:1;" title="${pat.name}">${pat.icon}</div>`;
+                html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${_pTxt}')" style="color:${pat.color};font-size:1.6em;font-weight:bold;cursor:pointer;text-align:right;line-height:1;" title="${pat.name}">${pat.icon}</div>`;
             }
         });
 
@@ -34201,7 +34259,7 @@ function generateSolarWeeks(sign) {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.7em;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="order:-1;color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:1.6em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -36196,7 +36254,7 @@ function renderCalendar() {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.85em;white-space:nowrap;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="order:-1;color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:1.6em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -36230,7 +36288,7 @@ function renderCalendar() {
             <div class="week-header" style="display:grid;grid-template-columns:repeat(${_gridCols},1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;position:relative;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')"` : ''}>
                 <div style="grid-column:1/${_safePerfCol};font-size:0.6em;color:#8899cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;">${week.days.length}d • ${formatDate(week.startDate)} - ${formatDate(week.endDate)}</div>
                 <div class="moon-icon" style="grid-column:${_safePerfCol}/${_safePerfCol + 1};margin:0;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative;z-index:2;"><span style="display:inline-block;">${week.emoji}</span><span style="${_nameStyle}">${week.name}</span></div>
-                <div style="grid-column:${Math.max(1, _zodColStart - 1)}/${_gridCols + 1};font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;overflow:visible;padding-right:50px;position:relative;z-index:1;">${week.zodiacSign}</div>
+                <div style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:0.6em;color:#c9a840;white-space:nowrap;text-align:right;z-index:3;background:rgba(8,10,30,0.9);padding:1px 4px;border-radius:4px;pointer-events:none;">${week.zodiacSign}</div>
             </div>
             <div class="days-container" style="grid-template-columns:repeat(${_gridCols},1fr);">${daysHTML}</div>
         `;
