@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v890';</script>
+    <script>window.APP_VERSION = 'v891';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -31681,7 +31681,7 @@ function showPersonalDayDetail(year, month, day) {
             </div>
 
             <!-- Slow Planet Transits (Jupiter+) -->
-            ${slowTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="interpretPersonalSection(\'transitosMayores\',' + year + ',' + month + ',' + day + ')" style="font-size:0.75em;font-weight:700;color:#e74c3c;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.2);" title="' + (L?'Click para interpretar':'Click to interpret') + '">🔴 ' + (L ? 'Tránsitos Mayores (Lentos)' : 'Major Transits (Slow)') + ' (' + slowTransits.length + ') <span style="font-size:0.85em;opacity:0.7;">✨</span></div>' + slowTransits.map(function(t) {
+            ${slowTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><div onclick="var c=this.parentElement.nextElementSibling;c.style.display=c.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.chevron\').textContent=c.style.display===\'none\'?\'▸\':\'▾\'" style="flex:1;font-size:0.75em;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:4px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.2);"><span class="chevron">▸</span> 🔴 ' + (L ? 'Tránsitos Mayores' : 'Major Transits') + ' (' + slowTransits.length + ')</div><button onclick="interpretPersonalSection(\'transitosMayores\',' + year + ',' + month + ',' + day + ')" style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.35);border-radius:4px;color:#e74c3c;font-size:0.95em;cursor:pointer;padding:4px 9px;flex-shrink:0;" title="' + (L?'Interpretar':'Interpret') + '">✨</button></div><div style="display:none;">' + slowTransits.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
@@ -31700,10 +31700,10 @@ function showPersonalDayDetail(year, month, day) {
                         + '</div>'
                         + '<span style="font-size:0.7em;color:rgba(201,168,64,0.5);">✨</span>'
                     + '</div>';
-                }).join('') + '</div>' : ''}
+                }).join('') + '</div></div>' : ''}
 
             <!-- Personal Planet Transits (Sun, Venus, Mars) -->
-            ${personalTransits.length > 0 ? '<div style="margin-bottom:12px;"><div onclick="interpretPersonalSection(\'transitosPersonales\',' + year + ',' + month + ',' + day + ')" style="font-size:0.75em;font-weight:700;color:#f1c40f;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;padding:4px 6px;border-radius:4px;background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.2);" title="' + (L?'Click para interpretar':'Click to interpret') + '">🟡 ' + (L ? 'Tránsitos Personales' : 'Personal Transits') + ' (' + personalTransits.length + ') <span style="font-size:0.85em;opacity:0.7;">✨</span></div>' + personalTransits.map(function(t) {
+            ${personalTransits.length > 0 ? '<div style="margin-bottom:12px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><div onclick="var c=this.parentElement.nextElementSibling;c.style.display=c.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.chevron\').textContent=c.style.display===\'none\'?\'▸\':\'▾\'" style="flex:1;font-size:0.75em;font-weight:700;color:#f1c40f;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:4px;background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.2);"><span class="chevron">▸</span> 🟡 ' + (L ? 'Tránsitos Personales' : 'Personal Transits') + ' (' + personalTransits.length + ')</div><button onclick="interpretPersonalSection(\'transitosPersonales\',' + year + ',' + month + ',' + day + ')" style="background:rgba(241,196,15,0.12);border:1px solid rgba(241,196,15,0.35);border-radius:4px;color:#f1c40f;font-size:0.95em;cursor:pointer;padding:4px 9px;flex-shrink:0;" title="' + (L?'Interpretar':'Interpret') + '">✨</button></div><div style="display:none;">' + personalTransits.map(function(t) {
                     var aspDesc = (planetNames[t.transitPlanet]||t.transitPlanet) + ' ' + (aspectNames[t.type]||t.type) + ' ' + (currentLang==='es'?'natal ':'natal ') + (planetNames[t.natalPlanet]||t.natalPlanet);
                     var perfStr = t.perfectionTime ? t.perfectionTime.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '';
                     var orbColor = parseFloat(t.orb) < 1 ? '#ff6b6b' : parseFloat(t.orb) < 3 ? '#ffa726' : 'rgba(255,255,255,0.4)';
@@ -31722,7 +31722,7 @@ function showPersonalDayDetail(year, month, day) {
                         + '</div>'
                         + '<span style="font-size:0.65em;color:rgba(201,168,64,0.4);">✨</span>'
                     + '</div>';
-                }).join('') + '</div>' : ''}
+                }).join('') + '</div></div>' : ''}
 
             <!-- Fast Transits (Moon, Mercury) — collapsed -->
             <!-- v749aj: split toggle (chevron expand) y botón ✨ interpretar para no confundir gestos -->
