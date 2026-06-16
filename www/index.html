@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v891';</script>
+    <script>window.APP_VERSION = 'v892';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -43985,6 +43985,16 @@ function _initFirebase() {
             _fireApp = firebase.apps[0];
         }
         _db = firebase.firestore();
+        // v891 #91: en el WebView de Android (APK Capacitor) el transporte WebChannel por
+        // defecto de Firestore se cuelga → set()/get() nunca resuelven (timeout 15s, "el
+        // servidor no respondió"). experimentalAutoDetectLongPolling usa WebChannel en el
+        // navegador (PWA) y cae a long-polling en el WebView, donde sí funciona. DEBE llamarse
+        // ANTES de cualquier uso de Firestore.
+        try {
+            _db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+        } catch(_eFsSettings) {
+            console.warn('🌐 Firestore longPolling settings error (¿Firestore ya usado?):', _eFsSettings);
+        }
         _auth = firebase.auth();
         // v639: Ensure auth persists across sessions so social notifications always work
         _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(e) {
