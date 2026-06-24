@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v892';</script>
+    <script>window.APP_VERSION = 'v893';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -291,7 +291,7 @@
         }
         /* v854: contraste más oscuro para fechas pasadas (calendario lunar/solar/gregoriano) */
         /* v884 #79: días pasados diferenciados pero LEGIBLES (antes 0.40×0.55 = ilegible) */
-        .day-cell.past { opacity: 0.75; filter: brightness(0.90) saturate(0.85); }
+        .day-cell.past { opacity: 0.67; filter: brightness(0.81) saturate(0.82); }
         .day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         /* v749: glow celeste fuerte para HOY (antes era casi invisible) */
         .day-cell.today {
@@ -575,7 +575,7 @@
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
         /* v854: contraste más oscuro para fechas pasadas (calendario personal) */
         /* v884 #79: días pasados diferenciados pero LEGIBLES */
-        .personal-day-cell.past { opacity: 0.75; filter: brightness(0.90) saturate(0.85); }
+        .personal-day-cell.past { opacity: 0.67; filter: brightness(0.81) saturate(0.82); }
         .personal-day-cell.past:hover { opacity: 0.85; filter: brightness(0.95) saturate(0.9); }
         .personal-day-cell.today { background: rgba(10,20,50,0.95); border: 1px solid rgba(100,181,246,0.50); border-top: 3px solid #64B5F6; box-shadow: 0 0 18px rgba(100,181,246,0.20); }
         .personal-day-cell.weekend { border-color: rgba(201,168,64,0.25); border-top: 2px solid rgba(201,168,64,0.40); }
@@ -48163,6 +48163,15 @@ window._ttsStartBgAudio = function(title) {
                 }).catch(function(e) { console.warn('WakeLock request:', e); });
             }
         } catch(_eWL) { console.warn('WakeLock setup:', _eWL); }
+
+        // 5) v893 #92: keep-alive NATIVO (FGS mediaPlayback + PARTIAL_WAKE_LOCK). El wakeLock
+        //    'screen' de arriba se suelta cuando el usuario bloquea el teléfono; éste mantiene la
+        //    CPU despierta y el proceso en primer plano, así speechSynthesis sigue leyendo con la
+        //    pantalla apagada hasta terminar (estilo YouTube). Solo aplica en APK (Capacitor).
+        try {
+            var _DAtts = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
+            if (_DAtts && _DAtts.ttsKeepAliveStart) _DAtts.ttsKeepAliveStart({ label: title || 'AstroAtlas' });
+        } catch(_eTtsKA) { console.warn('tts keepAlive start:', _eTtsKA); }
     } catch(e) { console.warn('_ttsStartBgAudio error:', e); }
 };
 
@@ -48180,6 +48189,11 @@ window._ttsStopBgAudio = function() {
             try { window._ttsBgWakeLock.release(); } catch(_eW){}
             window._ttsBgWakeLock = null;
         }
+        // v893 #92: soltar el keep-alive nativo (FGS + PARTIAL_WAKE_LOCK) al terminar/cancelar
+        try {
+            var _DAtts2 = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.DreamAlarm) || null;
+            if (_DAtts2 && _DAtts2.ttsKeepAliveStop) _DAtts2.ttsKeepAliveStop();
+        } catch(_eTtsKA2) {}
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = 'paused';
         }
