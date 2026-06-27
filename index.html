@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v895';</script>
+    <script>window.APP_VERSION = 'v896';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -12907,6 +12907,17 @@ let globalNatalChart = null;
 let globalTodayTransits = [];
 
 // AI interpretation for modals — sends specific prompt + full chart context
+// v895 #95: GLOBAL — en el APK (Capacitor) el streaming SSE de Gemini no cierra el stream y cuelga el
+// loop de lectura (texto aparece pero no se arman botones/player/chat). En APK usamos generateContent
+// (no-streaming). En navegador (PWA) seguimos con streaming. Definido global para que TODAS las
+// funciones de AI lo usen (no solo fetchAIInterpretation).
+var _isCapApp = !!(typeof window !== 'undefined' && window.Capacitor && (typeof window.Capacitor.isNativePlatform === 'function' ? window.Capacitor.isNativePlatform() : (window.Capacitor.platform && window.Capacitor.platform !== 'web')));
+function _personalGeminiUrl(_k) {
+    return _isCapApp
+        ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + _k
+        : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + _k;
+}
+
 async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, storageKey, cachedHtml) {
     var div = document.getElementById(targetDivId);
     if (!div) return;
@@ -12966,6 +12977,16 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         };
 
         var personalKey = getGeminiKey();
+        // v895 #95: en el APK (Capacitor) el streaming SSE de Gemini NO cierra el stream → el loop de
+        // lectura se cuelga DESPUÉS de pintar el texto y nunca construye el reproductor/botones/chat.
+        // En APK usamos el endpoint NO-streaming (generateContent), que cae al parser JSON y SÍ llega
+        // a armar los controles. En navegador (PWA) seguimos con streaming (anda bien).
+        var _isCapApp = !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform === 'function' ? window.Capacitor.isNativePlatform() : (window.Capacitor.platform && window.Capacitor.platform !== 'web')));
+        function _personalGeminiUrl(_k) {
+            return _isCapApp
+                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + _k
+                : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + _k;
+        }
         // v749bd: Plan C — proxy PRIMERO, key personal como FALLBACK cuando 429.
         // Lógica:
         //   1) Si hay AI_PROXY_URL → usar proxy (default, comparte cuota con beta)
@@ -12980,8 +13001,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             usingProxy = true;
             useStreaming = false; // proxy no soporta SSE streaming
         } else if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
-            useStreaming = true;
+            apiUrl = _personalGeminiUrl(personalKey);
+            useStreaming = !_isCapApp;
         }
 
         var response;
@@ -13007,9 +13028,9 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                 // v894 #94: si el proxy se cuelga (timeout) y hay key personal → fallback inmediato a Gemini directo
                 if (_isAiTimeout && usingProxy && personalKey && !_fellbackToPersonal) {
                     console.warn('[AI] Proxy timeout 25s → fallback a key personal');
-                    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                    apiUrl = _personalGeminiUrl(personalKey);
                     usingProxy = false;
-                    useStreaming = true;
+                    useStreaming = !_isCapApp;
                     _fellbackToPersonal = true;
                     continue;
                 }
@@ -13022,18 +13043,18 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             // v749bd: si el proxy hit 429 y hay key personal disponible, hacer FALLBACK INMEDIATO
             if (_status === 429 && usingProxy && personalKey && !_fellbackToPersonal) {
                 console.warn('[AI] Proxy 429 → fallback a key personal');
-                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                apiUrl = _personalGeminiUrl(personalKey);
                 usingProxy = false;
-                useStreaming = true;
+                useStreaming = !_isCapApp;
                 _fellbackToPersonal = true;
                 continue;
             }
             // v749bt/v749ce: 500/502/503/504 (server overload / gateway / timeout / internal) → fallback a key personal si existe
             if ((_status === 500 || _status === 502 || _status === 503 || _status === 504) && usingProxy && personalKey && !_fellbackToPersonal) {
                 console.warn('[AI] Proxy ' + _status + ' (server error) → fallback a key personal');
-                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                apiUrl = _personalGeminiUrl(personalKey);
                 usingProxy = false;
-                useStreaming = true;
+                useStreaming = !_isCapApp;
                 _fellbackToPersonal = true;
                 continue;
             }
@@ -13173,7 +13194,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             // reintentar automáticamente con streaming directo a Gemini (más robusto, sin timeout del proxy).
             // BUG anterior: el proxy de Cloudflare tiene timeout interno y a veces corta respuestas largas
             // mid-palabra, devolviendo finishReason="MAX_TOKENS"/"OTHER" sin que el usuario sepa.
-            if (_finishReason && _finishReason !== 'STOP' && _finishReason !== 'FINISH_REASON_UNSPECIFIED' && personalKey && !_fellbackToPersonal) {
+            if (_finishReason && _finishReason !== 'STOP' && _finishReason !== 'FINISH_REASON_UNSPECIFIED' && personalKey && !_fellbackToPersonal && !_isCapApp) {
                 console.warn('[AI] Proxy truncó (' + _finishReason + ', ' + text.length + ' chars) → reintento con key personal streaming');
                 try {
                     var _streamUrl2 = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
@@ -13651,7 +13672,7 @@ async function sendInterpChatMessage(chatId, readingKey) {
             requestBody._stream = true;
             _usingProxy = true;
         } else if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+            apiUrl = _personalGeminiUrl(personalKey);
         } else {
             apiUrl = AI_PROXY_URL; // safety fallback
             requestBody._stream = true;
@@ -13673,7 +13694,7 @@ async function sendInterpChatMessage(chatId, readingKey) {
             // 5xx/429 + proxy + personal key disponible → fallback
             if ((_st === 429 || _st === 500 || _st === 502 || _st === 503 || _st === 504) && _usingProxy && personalKey && !_fellback) {
                 console.warn('[AI follow-up] Proxy ' + _st + ' → fallback a key personal streaming');
-                apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                apiUrl = _personalGeminiUrl(personalKey);
                 _usingProxy = false;
                 _fellback = true;
                 delete requestBody._stream;
@@ -37136,7 +37157,7 @@ function goToCurrentCycle() {
             area.scrollTop = area.scrollHeight;
             var tutorFullText = '';
             try {
-                var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                var apiUrl = _personalGeminiUrl(personalKey);
                 var resp = await fetch(apiUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(requestBody), signal: window._tutorAbortCtrl.signal });
                 if (resp.ok) {
                     var reader = resp.body.getReader();
@@ -51502,7 +51523,7 @@ async function sendAIMessage() {
 
         let fullText = '';
         try {
-            const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+            const apiUrl = _personalGeminiUrl(personalKey);
             // v884 #74: retry automático ante saturación (429/5xx) — antes mostraba el error directo
             let response = null;
             for (let _rt = 0; _rt < 3; _rt++) {
