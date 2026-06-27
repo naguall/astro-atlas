@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v896';</script>
+    <script>window.APP_VERSION = 'v897';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -13021,7 +13021,7 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(requestBody)
                     }),
-                    new Promise(function(_res, _rej) { setTimeout(function() { _rej(new Error('AI_TIMEOUT')); }, 25000); })
+                    new Promise(function(_res, _rej) { setTimeout(function() { _rej(new Error('AI_TIMEOUT')); }, 60000); })
                 ]);
             } catch(_netErr) {
                 var _isAiTimeout = _netErr && _netErr.message === 'AI_TIMEOUT';
@@ -13528,7 +13528,26 @@ function getInterpChat(chatId) {
 }
 
 function saveInterpChat(chatId, chatData) {
-    localStorage.setItem(getInterpChatKey(chatId), JSON.stringify(chatData));
+    // v896 #96: localStorage LLENO tiraba QuotaExceededError sin atrapar → abortaba la construcción
+    // del reproductor/botones/chat (el AI respondía bien pero "no aparecían los botones"). Ahora ante
+    // quota: podamos chats viejos, reintentamos, y NUNCA tiramos el error.
+    try {
+        localStorage.setItem(getInterpChatKey(chatId), JSON.stringify(chatData));
+    } catch (e) {
+        console.warn('[interpChat] save falló (' + (e && e.name) + ') — podando chats viejos y reintentando');
+        try {
+            var _myKey = getInterpChatKey(chatId);
+            var _keys = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf('interp_chat_') === 0 && k !== _myKey) _keys.push(k);
+            }
+            for (var j = 0; j < _keys.length && j < 15; j++) { try { localStorage.removeItem(_keys[j]); } catch (_) {} }
+            localStorage.setItem(_myKey, JSON.stringify(chatData));
+        } catch (e2) {
+            console.warn('[interpChat] sigue sin lugar tras podar — se continúa SIN cachear (la UI igual se arma):', e2 && e2.name);
+        }
+    }
 }
 
 function deleteInterpChat(chatId) {
