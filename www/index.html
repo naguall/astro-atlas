@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v897';</script>
+    <script>window.APP_VERSION = 'v898';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -13519,41 +13519,120 @@ async function expandAIReading(readingKey, btn) {
 // Store for interpretation chats
 var interpretationChats = {};
 
+// v897 #97: las interpretaciones se cacheaban en localStorage (~5 MB → se llenaba y tiraba
+// QuotaExceededError que rompía la UI del AI). Ahora se guardan en IndexedDB (cientos de MB,
+// prácticamente ilimitado para texto). Caché en memoria para mantener la API SINCRÓNICA
+// (getInterpChat/saveInterpChat) sin tocar los lugares que la usan. Persistencia async en IndexedDB.
+var _idbInterp = null;
+function _idbInterpOpen() {
+    return new Promise(function(resolve, reject) {
+        if (_idbInterp) { resolve(_idbInterp); return; }
+        try {
+            var req = indexedDB.open('astroatlas_interp', 1);
+            req.onupgradeneeded = function(e) {
+                var db = e.target.result;
+                if (!db.objectStoreNames.contains('chats')) db.createObjectStore('chats');
+            };
+            req.onsuccess = function(e) { _idbInterp = e.target.result; resolve(_idbInterp); };
+            req.onerror = function(e) { reject(e && e.target && e.target.error); };
+        } catch (err) { reject(err); }
+    });
+}
+function _idbInterpPut(id, data) {
+    return _idbInterpOpen().then(function(db) {
+        return new Promise(function(res, rej) {
+            try {
+                var tx = db.transaction('chats', 'readwrite');
+                tx.objectStore('chats').put(data, id);
+                tx.oncomplete = function() { res(); };
+                tx.onerror = function(e) { rej(e); };
+            } catch (e) { rej(e); }
+        });
+    });
+}
+function _idbInterpDelete(id) {
+    return _idbInterpOpen().then(function(db) {
+        return new Promise(function(res, rej) {
+            try {
+                var tx = db.transaction('chats', 'readwrite');
+                tx.objectStore('chats').delete(id);
+                tx.oncomplete = function() { res(); };
+                tx.onerror = function(e) { rej(e); };
+            } catch (e) { rej(e); }
+        });
+    });
+}
+function _idbInterpLoadAll() {
+    return _idbInterpOpen().then(function(db) {
+        return new Promise(function(res, rej) {
+            try {
+                var out = {};
+                var tx = db.transaction('chats', 'readonly');
+                var cur = tx.objectStore('chats').openCursor();
+                cur.onsuccess = function(e) {
+                    var c = e.target.result;
+                    if (c) { out[c.key] = c.value; c.continue(); } else { res(out); }
+                };
+                cur.onerror = function(e) { rej(e); };
+            } catch (e) { rej(e); }
+        });
+    });
+}
+// Migración inicial: mover lo viejo de localStorage → IndexedDB (y liberar ese localStorage chico),
+// y cargar todo a memoria. Corre una vez al cargar el script.
+(function _initInterpStorage() {
+    try {
+        var migrated = 0;
+        for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf('interp_chat_') === 0) {
+                var id = k.substring('interp_chat_'.length);
+                try {
+                    var data = JSON.parse(localStorage.getItem(k));
+                    if (data) { interpretationChats[id] = data; _idbInterpPut(id, data).catch(function(){}); }
+                    localStorage.removeItem(k);
+                    migrated++;
+                } catch (_) {}
+            }
+        }
+        _idbInterpLoadAll().then(function(all) {
+            Object.keys(all).forEach(function(id) { if (!interpretationChats[id]) interpretationChats[id] = all[id]; });
+            console.log('[interpChat] IndexedDB listo —', Object.keys(interpretationChats).length, 'chats en memoria (' + migrated + ' migrados de localStorage)');
+        }).catch(function(e) { console.warn('[interpChat] loadAll falló:', e); });
+    } catch (e) { console.warn('[interpChat] init storage error:', e); }
+})();
+
 function getInterpChatKey(chatId) {
     return 'interp_chat_' + chatId;
 }
 
 function getInterpChat(chatId) {
-    try { return JSON.parse(localStorage.getItem(getInterpChatKey(chatId)) || 'null'); } catch(e) { return null; }
+    if (interpretationChats[chatId]) return interpretationChats[chatId];
+    // fallback: localStorage viejo (por si algo quedó sin migrar) → lo migra y libera
+    try {
+        var v = JSON.parse(localStorage.getItem(getInterpChatKey(chatId)) || 'null');
+        if (v) {
+            interpretationChats[chatId] = v;
+            _idbInterpPut(chatId, v).catch(function(){});
+            try { localStorage.removeItem(getInterpChatKey(chatId)); } catch (_) {}
+        }
+        return v;
+    } catch (e) { return null; }
 }
 
 function saveInterpChat(chatId, chatData) {
-    // v896 #96: localStorage LLENO tiraba QuotaExceededError sin atrapar → abortaba la construcción
-    // del reproductor/botones/chat (el AI respondía bien pero "no aparecían los botones"). Ahora ante
-    // quota: podamos chats viejos, reintentamos, y NUNCA tiramos el error.
-    try {
-        localStorage.setItem(getInterpChatKey(chatId), JSON.stringify(chatData));
-    } catch (e) {
-        console.warn('[interpChat] save falló (' + (e && e.name) + ') — podando chats viejos y reintentando');
-        try {
-            var _myKey = getInterpChatKey(chatId);
-            var _keys = [];
-            for (var i = 0; i < localStorage.length; i++) {
-                var k = localStorage.key(i);
-                if (k && k.indexOf('interp_chat_') === 0 && k !== _myKey) _keys.push(k);
-            }
-            for (var j = 0; j < _keys.length && j < 15; j++) { try { localStorage.removeItem(_keys[j]); } catch (_) {} }
-            localStorage.setItem(_myKey, JSON.stringify(chatData));
-        } catch (e2) {
-            console.warn('[interpChat] sigue sin lugar tras podar — se continúa SIN cachear (la UI igual se arma):', e2 && e2.name);
-        }
-    }
+    // v897 #97: memoria (sync, sin tope práctico) + IndexedDB (cientos de MB). NUNCA tira error
+    // → no vuelve a romper la construcción del reproductor/botones/chat por falta de espacio.
+    interpretationChats[chatId] = chatData;
+    try { _idbInterpPut(chatId, chatData).catch(function(e) { console.warn('[interpChat] idb put falló:', e && e.name); }); } catch (e) {}
 }
 
 function deleteInterpChat(chatId) {
     var L = currentLang === 'es';
     if (!confirm(L ? '¿Eliminar este chat?' : 'Delete this chat?')) return;
-    localStorage.removeItem(getInterpChatKey(chatId));
+    delete interpretationChats[chatId];
+    try { _idbInterpDelete(chatId).catch(function(){}); } catch (e) {}
+    try { localStorage.removeItem(getInterpChatKey(chatId)); } catch (e) {}
     var chatEl = document.getElementById('interpChat_' + chatId);
     if (chatEl) chatEl.remove();
 }
