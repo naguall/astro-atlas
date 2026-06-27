@@ -28,7 +28,7 @@
     </style>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v893';</script>
+    <script>window.APP_VERSION = 'v895';</script>
     <!-- v853: GPS msgs amables + Social publish error msg + Google nativo Calendar/Social -->
 
 
@@ -1092,7 +1092,18 @@
                         <label>Descripción</label>
                         <textarea id="eventDescription" placeholder="Detalles adicionales..."></textarea>
                     </div>
-                    
+
+                    <!-- v893 #93: repetición del evento (aplica a todos los calendarios) -->
+                    <div class="form-group">
+                        <label>🔁 Repetir</label>
+                        <select id="eventRecurrence">
+                            <option value="none">No se repite</option>
+                            <option value="weekly">Cada semana</option>
+                            <option value="monthly">Cada mes</option>
+                            <option value="yearly">Cada año</option>
+                        </select>
+                    </div>
+
                     <!-- Reminder options -->
                     <div class="form-group" id="reminderOptions">
                         <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size:0.85em;">📬 Recordatorios:</label>
@@ -9734,7 +9745,47 @@ function getAllEventsForDate(date) {
     const key = getDateKey(date);
     const local = events[key] || [];
     const google = gcalEvents[key] || [];
-    return [...local, ...google];
+    // v893 #93: además de los eventos del día exacto, expandir los eventos con repetición
+    // (semanal/mensual/anual) que caen en esta fecha. Aplica a TODOS los calendarios porque
+    // todos consumen getAllEventsForDate.
+    const recurring = _getRecurringEventsForDate(date, key);
+    return [...local, ...recurring, ...google];
+}
+
+// v893 #93: devuelve clones de eventos repetidos cuya regla cae en `date` (excluye la fecha
+// original, que ya viene por el lookup directo). weekly=mismo día de semana, monthly=mismo día
+// del mes, yearly=mismo mes+día. Solo desde la fecha original en adelante.
+function _getRecurringEventsForDate(date, dateKey) {
+    var out = [];
+    try {
+        var d = new Date(date); d.setHours(0, 0, 0, 0);
+        var dDay = d.getDate(), dMonth = d.getMonth(), dDow = d.getDay();
+        for (var k in events) {
+            if (!events.hasOwnProperty(k) || k === dateKey) continue;
+            var list = events[k];
+            if (!list || !list.length) continue;
+            var parts = k.split('-');
+            if (parts.length !== 3) continue;
+            var od = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            od.setHours(0, 0, 0, 0);
+            if (od.getTime() >= d.getTime()) continue; // la repetición aplica DESPUÉS de la fecha original
+            for (var i = 0; i < list.length; i++) {
+                var ev = list[i];
+                if (!ev || !ev.recurrence || ev.recurrence === 'none') continue;
+                var match = false;
+                if (ev.recurrence === 'weekly') match = (od.getDay() === dDow);
+                else if (ev.recurrence === 'monthly') match = (od.getDate() === dDay);
+                else if (ev.recurrence === 'yearly') match = (od.getDate() === dDay && od.getMonth() === dMonth);
+                if (match) {
+                    var clone = Object.assign({}, ev);
+                    clone._isRecurrence = true;
+                    clone._recurredFrom = k;
+                    out.push(clone);
+                }
+            }
+        }
+    } catch (e) { console.warn('🔁 recurring events error:', e); }
+    return out;
 }
 
 // Voice input for journal
@@ -12939,14 +12990,31 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         // con retry exponencial y fallback a key personal. Hasta 5 intentos.
         for (var _retry = 0; _retry < 5; _retry++) {
             try {
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
+                // v894 #94: timeout de 25s. En el APK (CapacitorHttp = HTTP nativo) el fetch al proxy
+                // a veces se CUELGA sin resolver ni rechazar → spinner infinito "Consultando las
+                // estrellas..." sin error y sin disparar el fallback. El Promise.race lo convierte en
+                // error a los 25s para reintentar / caer a la key personal.
+                response = await Promise.race([
+                    fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    }),
+                    new Promise(function(_res, _rej) { setTimeout(function() { _rej(new Error('AI_TIMEOUT')); }, 25000); })
+                ]);
             } catch(_netErr) {
-                // network error (offline, DNS fail, etc.) — retry con backoff
-                console.warn('[AI] Network error (retry ' + (_retry+1) + '/5):', _netErr && _netErr.message);
+                var _isAiTimeout = _netErr && _netErr.message === 'AI_TIMEOUT';
+                // v894 #94: si el proxy se cuelga (timeout) y hay key personal → fallback inmediato a Gemini directo
+                if (_isAiTimeout && usingProxy && personalKey && !_fellbackToPersonal) {
+                    console.warn('[AI] Proxy timeout 25s → fallback a key personal');
+                    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                    usingProxy = false;
+                    useStreaming = true;
+                    _fellbackToPersonal = true;
+                    continue;
+                }
+                // network error (offline, DNS fail, timeout sin key personal) — retry con backoff
+                console.warn('[AI] Network/timeout error (retry ' + (_retry+1) + '/5):', _netErr && _netErr.message);
                 if (_retry < 4) { await new Promise(function(r) { setTimeout(r, Math.min(2000 * (_retry + 1), 10000)); }); continue; }
                 throw _netErr;
             }
@@ -17075,6 +17143,9 @@ function showEventForm() {
         if (typeof setTimePickerValue === 'function') setTimePickerValue('eventTime', '');
         document.getElementById('eventDescription').value = '';
         document.getElementById('eventType').value = 'event';
+        // v893 #93: resetear repetición a "No se repite" para eventos nuevos
+        var _recSelNew = document.getElementById('eventRecurrence');
+        if (_recSelNew) _recSelNew.value = 'none';
 
         // Reset reminder checkboxes (only 1 hour checked by default)
         document.querySelectorAll('.reminder-checkbox').forEach(cb => {
@@ -17239,7 +17310,9 @@ function saveEvent() {
         description: document.getElementById('eventDescription').value.trim(),
         reminders: reminders,
         created: new Date().toISOString(),
-        astro: astroSnap
+        astro: astroSnap,
+        // v893 #93: repetición (none|weekly|monthly|yearly) — aplica a todos los calendarios
+        recurrence: (document.getElementById('eventRecurrence') && document.getElementById('eventRecurrence').value) || 'none'
     };
 
     const key = getDateKey(selectedDate);
@@ -17331,6 +17404,9 @@ function editEvent(index) {
     document.getElementById('eventType').value = event.type;
     if (typeof setTimePickerValue === 'function') setTimePickerValue('eventTime', event.time || ''); else document.getElementById('eventTime').value = event.time || '';
     document.getElementById('eventDescription').value = event.description || '';
+    // v893 #93: restaurar la repetición al editar
+    var _recSelEdit = document.getElementById('eventRecurrence');
+    if (_recSelEdit) _recSelEdit.value = event.recurrence || 'none';
 
     // Pre-select reminders
     document.querySelectorAll('.reminder-checkbox').forEach(checkbox => {
